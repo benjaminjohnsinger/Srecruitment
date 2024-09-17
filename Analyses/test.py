@@ -6,7 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
 
-print(np.log(10))
+x = np.ones(1200)
+np.savetxt("Data/Processed/KP_population_by_age_FAKE.csv",x,delimiter=",")
 
 # ## SIRS model
 # T = 1300
