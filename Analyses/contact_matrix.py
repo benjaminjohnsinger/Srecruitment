@@ -9,7 +9,7 @@ PREM_OTHERS = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_ot
 PREM_ALL = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_all.csv', delimiter=',')
 
 # Load population by each age in months from 0 to 1199
-AGE_POP = np.genfromtxt('Data/Processed/KP_population_by_age_FAKE.csv', delimiter=',')
+AGE_POP = np.genfromtxt('Data/Processed/US_Census_population_by_age.csv', delimiter=',')
 AGE_POP_norm = AGE_POP/np.sum(AGE_POP)
 
 ## Define matrix to map between age groups
@@ -56,8 +56,8 @@ KP_ALL = np.dot(np.dot(AGE_INC,PREM_ALL),AGE_MAP.T)
 # plt.show()
 
 ## Save contact matrices
-np.savetxt('Data/Processed/contact_matrices/KP_contact_home_FAKE.csv',KP_HOME,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/KP_contact_work_FAKE.csv',KP_WORK,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/KP_contact_school_FAKE.csv',KP_SCHOOL,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/KP_contact_others_FAKE.csv',KP_OTHERS,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/KP_contact_all_FAKE.csv',KP_ALL,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_contact_home_US_Census.csv',KP_HOME,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_contact_work_US_Census.csv',KP_WORK,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_contact_school_US_Census.csv',KP_SCHOOL,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_contact_others_US_Census.csv',KP_OTHERS,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv',KP_ALL,delimiter=',')
