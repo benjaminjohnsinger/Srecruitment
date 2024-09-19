@@ -89,17 +89,17 @@ def deltas(t,state,params):
 ## Integrate the system
 POINTS = PERIOD
 # result = sp.integrate.odeint(deltas, STATE0, np.linspace(0,PERIOD,POINTS),args=((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, S_VAX, VAX, INFECTIOUS_CONTACT),))
-result = sp.integrate.solve_ivp(deltas, [0,PERIOD], STATE0, args=((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, S_VAX, VAX, INFECTIOUS_CONTACT),))
+result = sp.integrate.solve_ivp(deltas, [0,PERIOD], STATE0, method='RK45', t_eval=np.linspace(0,PERIOD,POINTS),
+ args=((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, S_VAX, VAX, INFECTIOUS_CONTACT),))
 
-print(result.y.shape)
 
 ## Calculate observations
 obs = np.zeros(len(result.t))
-pop_size = np.sum(result.y,axis=1)
-for t in result.t:
-    foi = np.dot(INFECTIOUS_CONTACT(t),np.sum((np.array([result.y[(3*j+2)*NAG:(3*j+3)*NAG,t] for j in range(N_S)])*I_REL_3D),axis=0))/pop_size[t]
+pop_size = np.sum(result.y,axis=0)
+for i_t,t in enumerate(result.t):
+    foi = np.dot(INFECTIOUS_CONTACT(t),np.sum((np.array([result.y[(3*j+2)*NAG:(3*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
     for i in range(N_S):
-        obs[t] += P_OBS[i]*S_REL[i]*np.sum(foi[:,i]*result.y[t,(3*i+1)*NAG:(3*i+2)*NAG])
+        obs[i_t] += P_OBS[i]*S_REL[i]*np.sum(foi*result.y[(3*i+1)*NAG:(3*i+2)*NAG,i_t])
 
 ## Plot the results
 import matplotlib.pyplot as plt
@@ -107,8 +107,8 @@ import matplotlib.pyplot as plt
 viridis = plt.cm.get_cmap('viridis', 7)
 
 plt.plot(result.t,obs/pop_size, label='Observed cases per capita')
-# plt.xlim(19*POINTS/20,POINTS)
-plt.ylim(0,2e-5)
+# plt.xlim(300,400)
+# plt.ylim(0,2e-5)
 plt.show()
 
 # fig, axes = plt.subplots(2,2,figsize=(6.5,6.5))
