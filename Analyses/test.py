@@ -5,9 +5,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
+import pandas as pd
 
-x = np.ones(1200)
-np.savetxt("Data/Processed/KP_population_by_age_FAKE.csv",x,delimiter=",")
+def f1(t):
+    return 0.5*np.sin(2*np.pi*t/52)
+
+# census_data = pd.read_csv('Data/Raw/US_Census_population_by_age.csv', delimiter=',')
+# AGE_POP = np.repeat(census_data.loc[(census_data["SEX"]==0) & (census_data["AGE"]<=100),"POPESTIMATE2022"],12)/12
+# AGE_POP = np.array(AGE_POP.values)
+# np.savetxt('Data/Processed/US_Census_population_by_age.csv',AGE_POP,delimiter=',')
 
 # ## SIRS model
 # T = 1300

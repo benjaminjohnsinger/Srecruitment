@@ -14,6 +14,9 @@ al = len(agep)
 u = np.concatenate((1*np.ones(12), (1/12)*np.ones(4), np.array([1/(12*5), 1/120, 1/240, 1/240, 1/126])))
 c = np.concatenate((1.555*np.ones(12), np.array([2.312,1.738]), np.ones(7)))
 
+print(np.sum(c*agep))
+print(np.mean(c))
+
 N = 2.9e7
 
 St0 = np.concatenate((N/960*np.ones(1), np.zeros(al-1), N*agep - np.ones(al), np.ones(al), np.zeros(7*al)))
@@ -77,6 +80,9 @@ H = h*d1*foi*np.sum(result[:,al:2*al], axis=1)+h*d2*s1*foi*np.sum(result[:,4*al:
 
 # Plot the results
 plt.plot(H, label='Hospitalizations')
+# plt.plot(np.sum(result[:,2*3:3*3],axis=1), label='First infections')
+# plt.plot(np.sum(result[:,5*3:6*3],axis=1), label='Second infections')
+# plt.plot(np.sum(result[:,8*3:9*3],axis=1), label='Asymptomatic infections')
 
 viridis = plt.get_cmap('viridis')
 
@@ -100,8 +106,8 @@ for i in range(T//12+1):
         plt.axvline(x=12*i, color='gray', linewidth=1)
 
 plt.xticks(np.arange(0, T+1, 12), np.arange(2018-50, 2018+1))
-plt.xlim(300-24, T-24)
-plt.ylim(0, 1500)
+# plt.xlim(300-24, T-24)
+# plt.ylim(0, 1500)
 
 plt.legend()
 plt.show()
