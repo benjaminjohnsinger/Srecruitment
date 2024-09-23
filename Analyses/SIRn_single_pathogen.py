@@ -4,6 +4,8 @@
 import numpy as np
 import scipy as sp
 import itertools as it
+from vaccination import birth_vax, all_vax
+from Parameters.influenza import *
 
 ## Period of simulation in months
 T_FACTOR = 1
@@ -32,72 +34,11 @@ AGING_RATE = 1/(T_FACTOR*np.array([3,9,4*12,13*12,22*12,25*12,18.35*12]))
 BIRTH_RATE = 3.99e5/(POP_SIZE*12*T_FACTOR)
 # AGING_RATE = BIRTH_RATE/AGE_PROPORTION # Stable population distribution
 
-# ## Parameters that vary by susceptibility class (for rotavirus in this example)
-# # Number of susceptibility classes
-# N_S = 3
-# # Immunity waning rates for each susceptibility class, with prefixed zero
-# WANE_UP = np.array([1/9,1/9,0])/T_FACTOR # Waning to higher susceptibility class (last value always 0)
-# WANE_SAME = np.array([0,0,1/12])/T_FACTOR # Waning to same susceptibility class
-# # Recovery rates for each susceptibility class
-# REC = np.array([4.3,8.6,8.6])/T_FACTOR
-# # Relative susceptability and infectiousness, for each susceptibility class
-# S_REL = np.array([1,0.62,0.35])
-# I_REL = np.array([[1],[0.5],[0.1]])
-# # Probability of detection of cases for each susceptibility class
-# P_OBS = 0.041*np.array([0.11,0.029,0])
-# # Factor to adjust Pitzer parameters to work with KP contact matrices
-# BETA_FUDGE_FACTOR = 1.3
-
-## Parameters that vary by susceptibility class (guess at a flu version)
-# Number of susceptibility classes
-N_S = 3
-# Immunity waning rates for each susceptibility class, with prefixed zero
-WANE_UP = np.array([1/3,1/3,0])/T_FACTOR # Waning to higher susceptibility class (last value always 0)
-WANE_SAME = np.array([0,0,1/3])/T_FACTOR # Waning to same susceptibility class
-# Recovery rates for each susceptibility class
-REC = np.array([4.3,8.6,8.6])/T_FACTOR
-# Relative susceptability and infectiousness, for each susceptibility class
-S_REL = np.array([1,0.8,0.6])
-I_REL = np.array([[1],[0.9],[0.8]])
-# Probability of detection of cases for each susceptibility class
-P_OBS = 0.4*np.array([0.1,0.05,0.05])
-# Factor to adust FOI
-BETA_FUDGE_FACTOR = 0.7
-
-## Parameters that vary by age group
-# Age-specific susceptibility
-S_AGE = np.array([1,1,1,1,1,1,1])
-# Age-specific probability of detection
-OBS_AGE = np.array([0.5,0.5,0.1,0.1,0.1,0.1,1])
-
-## Time-varying parameters
-# Vaccination of infants
-# S_VAX is the susceptibility class of vaccinated individuals
-# COVERAGE is the proportion of infants vaccinated
-# T_VAX is the time at which vaccination starts
-def birth_vax(t,s_class,S_VAX=2,COVERAGE=0,T_VAX=500*T_FACTOR):
-    if t < T_VAX:
-        return 1 if (s_class == 0) else 0
-    else:
-        if s_class == S_VAX:
-            return COVERAGE
-        elif s_class == 0:
-            return 1-COVERAGE
-        else:
-            return 0
-# Annual mass vaccination 
-# S_VAX is the susceptibility class of vaccinated individuals
-# COVERAGE is the proportion of the population vaccinated each month - this can be an age-dependent vector
-# T_VAX is the time at which vaccination starts
-def all_vax(t,compartment,S_VAX=2,COVERAGE=0.04,T_VAX=500*T_FACTOR):
-    if compartment != S_VAX*3+1:
-        vec = np.zeros((3*N_S+1)*NAG)
-        vec[compartment*NAG:(compartment+1)*NAG] = -1
-        return 0 if t < T_VAX else COVERAGE*vec
-    else:
-        vec = np.ones((3*N_S+1)*NAG)
-        vec[compartment*NAG:(compartment+1)*NAG] = 0
-        return 0 if t < T_VAX else COVERAGE*vec
+# Correct parameters with T_FACTOR
+WANE_UP /= T_FACTOR
+WANE_SAME /= T_FACTOR
+REC /= T_FACTOR
+ACOV /= T_FACTOR
 
 # Force of infection per contact
 SEASONALITY = 0.05
@@ -118,22 +59,22 @@ STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 def deltas(t,state,params):
     delta = np.zeros(state.shape)
     pop_size = np.sum(state)
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, birth_vax, INFECTIOUS_CONTACT = params
+    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, INFECTIOUS_CONTACT = params
     # Susceptible, infected, recovered - waning, aging, infection, recovery for all susceptibility classes
     for i in range(N_S):
-        delta[(3*i+1)*NAG:(3*i+2)*NAG] = birth_vax(t,i)*BIRTH_RATE*pop_size*np.concatenate((np.ones(1),np.zeros(NAG-1)))\
+        delta[(3*i+1)*NAG:(3*i+2)*NAG] = birth_vax(t,i,S_VAX,BCOV,T_VAX)*BIRTH_RATE*pop_size*np.concatenate((np.ones(1),np.zeros(NAG-1)))\
             -S_REL[i]*S_AGE*(np.dot(INFECTIOUS_CONTACT(t),np.sum(np.array(([state[(3*j+2)*NAG:(3*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
             + WANE_UP[i-1]*state[(3*i)*NAG:(3*i+1)*NAG] + WANE_SAME[i]*state[(3*i+3)*NAG:(3*i+4)*NAG]\
             - AGING_RATE*state[(3*i+1)*NAG:(3*i+2)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+1)*NAG:(3*i+2)*NAG-1]))\
-            + (all_vax(t,3*i+1)*state).reshape((3*N_S+1,NAG)).sum(axis=0)
+            + (all_vax(t,3*i+1,S_VAX,ACOV,T_VAX,NAG,N_S)*state).reshape((3*N_S+1,NAG)).sum(axis=0)
         delta[(3*i+2)*NAG:(3*i+3)*NAG] = S_REL[i]*S_AGE*(np.dot(INFECTIOUS_CONTACT(t),np.sum(np.array(([state[(3*j+2)*NAG:(3*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
             - REC[i]*state[(3*i+2)*NAG:(3*i+3)*NAG]\
             - AGING_RATE*state[(3*i+2)*NAG:(3*i+3)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+2)*NAG:(3*i+3)*NAG-1]))\
-            + (all_vax(t,3*i+2)*state).reshape((3*N_S+1,NAG)).sum(axis=0)
+            + (all_vax(t,3*i+2,S_VAX,ACOV,T_VAX,NAG,N_S)*state).reshape((3*N_S+1,NAG)).sum(axis=0)
         delta[(3*i+3)*NAG:(3*i+4)*NAG] = REC[i]*state[(3*i+2)*NAG:(3*i+3)*NAG]\
             - (WANE_UP[i]+WANE_SAME[i])*state[(3*i+3)*NAG:(3*i+4)*NAG]\
             - AGING_RATE*state[(3*i+3)*NAG:(3*i+4)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+3)*NAG:(3*i+4)*NAG-1]))\
-            + (all_vax(t,3*i+3)*state).reshape((3*N_S+1,NAG)).sum(axis=0)
+            + (all_vax(t,3*i+3,S_VAX,ACOV,T_VAX,NAG,N_S)*state).reshape((3*N_S+1,NAG)).sum(axis=0)
     # # Enforce stable population size
     # if np.sum(delta) > 0:
     #     delta -= np.sum(delta)*state/np.sum(state)
@@ -141,8 +82,9 @@ def deltas(t,state,params):
 
 ## Integrate the system
 POINTS = 1000
+T_VAX = 500*T_FACTOR
 result = sp.integrate.solve_ivp(deltas, [0,PERIOD], STATE0, method='RK45', t_eval=np.linspace(0,PERIOD,POINTS),
- args=((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, birth_vax, INFECTIOUS_CONTACT),))
+ args=((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, INFECTIOUS_CONTACT),))
 
 ## Calculate observations
 obs = np.zeros((len(result.t),NAG))
@@ -155,7 +97,7 @@ for i_t,t in enumerate(result.t):
 ## Plot the results
 import matplotlib.pyplot as plt
 
-viridis = plt.cm.get_cmap('viridis', 7)
+viridis = plt.cm.get_cmap('viridis', NAG)
 
 fig, axes = plt.subplots(2,2,figsize=(6.5,6.5))
 axes[0,0].plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
