@@ -1,8 +1,5 @@
 import numpy as np
 
-# Contact matrix for all contact types
-CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',')
-
 def STATIC(t):
     return 1
 
