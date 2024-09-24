@@ -20,8 +20,8 @@ S_AGE = np.array([1,1,1,1,1,1,1])
 # Age-specific probability of detection
 OBS_AGE = np.array([0.5,0.5,0.1,0.1,0.1,0.1,1])
 ## Other parameters
-# Factor to adust FOI
-BETA_FUDGE_FACTOR = 0.7
+# Infectiousness
+BETA = 5.39
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
 def ACOV(t,T_VAX):

@@ -20,8 +20,8 @@ S_AGE = np.array([1,1,1,1,1,1,1])
 # Age-specific probability of detection
 OBS_AGE = np.array([1,1,1,1,1,1,1])
 ## Other parameters
-# Factor to adjust Pitzer parameters to work with KP contact matrices
-BETA_FUDGE_FACTOR = 1.3
+# Infectiousness
+BETA = 10
 # Vaccination paramters
 S_VAX, BCOV = 2, 0.8*0.96
 def ACOV(t,T_VAX):

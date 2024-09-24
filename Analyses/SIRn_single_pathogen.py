@@ -5,6 +5,7 @@ import numpy as np
 import scipy as sp
 import itertools as it
 from vaccination import birth_vax, all_vax
+import contact_model as cm
 from Parameters.rotavirus import *
 
 ## Period of simulation in months
@@ -39,24 +40,19 @@ WANE_UP /= T_FACTOR
 WANE_SAME /= T_FACTOR
 REC /= T_FACTOR
 
-# Force of infection per contact
-SEASONALITY = 0.05
-OFFSET = 0.636*T_FACTOR
+## Contacts and force of infection
 # Contact matrix for all contact types
 CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',')
-
-## messing around with contact over time
-# BCOV=0
-def BETA_PC(t):
-    # if t < 3*PERIOD/4:
-    #     z = 1
-    # elif t < 3*PERIOD/4 + T_FACTOR*12:
-    #     z = 0.6
-    # else:
-    z = 1
-    return z*(BETA_FUDGE_FACTOR*23.25*4.3/(12.99*T_FACTOR))*CONTACT
-def INFECTIOUS_CONTACT(t):
-    return BETA_PC(t)*(1+SEASONALITY*np.cos(2*np.pi*(t/(12*T_FACTOR)-OFFSET)))
+# Seasonality
+SEASONALITY = 0.05
+OFFSET = 0.636
+# 
+T_LOCKDOWN = 3*PERIOD/4
+LOCKDOWN_DURATION = 12*T_FACTOR
+LOCKDOWN_REDUCTION = 0.4
+shape = lambda t : cm.STEP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)
+def contact(t,shape):
+    return shape(t)*(1+SEASONALITY*np.cos(2*np.pi*(t/(12*T_FACTOR)-OFFSET)))*CONTACT
 
 ## Initial conditions
 STATE0 = np.zeros((1+N_S*3)*(NAG))
@@ -67,17 +63,17 @@ STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 def deltas(t,state,params):
     delta = np.zeros(state.shape)
     pop_size = np.sum(state)
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, INFECTIOUS_CONTACT = params
+    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, BETA, contact, shape = params
     # Susceptible, infected, recovered - waning, aging, infection, recovery for all susceptibility classes
     for i in range(N_S):
         # Susceptibile class i = birth - infection + waning + aging in - aging out +/- vaccination
         delta[(3*i+1)*NAG:(3*i+2)*NAG] = birth_vax(t,i,S_VAX,BCOV,T_VAX)*BIRTH_RATE*pop_size*np.concatenate((np.ones(1),np.zeros(NAG-1)))\
-            -S_REL[i]*S_AGE*(np.dot(INFECTIOUS_CONTACT(t),np.sum(np.array(([state[(3*j+2)*NAG:(3*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
+            -S_REL[i]*S_AGE*BETA*(np.dot(contact(t,shape),np.sum(np.array(([state[(3*j+2)*NAG:(3*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
             + WANE_UP[i-1]*state[(3*i)*NAG:(3*i+1)*NAG] + WANE_SAME[i]*state[(3*i+3)*NAG:(3*i+4)*NAG]\
             - AGING_RATE*state[(3*i+1)*NAG:(3*i+2)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+1)*NAG:(3*i+2)*NAG-1]))\
             + (all_vax(t,i,ACOV,S_VAX,T_VAX,NAG,N_S)*state/T_FACTOR).reshape((3*N_S+1,NAG)).sum(axis=0)
         # Infectious class i = infection - recovery + aging in - aging out - vaccination
-        delta[(3*i+2)*NAG:(3*i+3)*NAG] = S_REL[i]*S_AGE*(np.dot(INFECTIOUS_CONTACT(t),np.sum(np.array(([state[(3*j+2)*NAG:(3*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
+        delta[(3*i+2)*NAG:(3*i+3)*NAG] = S_REL[i]*S_AGE*BETA*(np.dot(contact(t,shape),np.sum(np.array(([state[(3*j+2)*NAG:(3*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
             - REC[i]*state[(3*i+2)*NAG:(3*i+3)*NAG]\
             - AGING_RATE*state[(3*i+2)*NAG:(3*i+3)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+2)*NAG:(3*i+3)*NAG-1]))\
         # Recovered class i = recovery - waning + aging in - aging out - vaccination
@@ -91,15 +87,15 @@ def deltas(t,state,params):
 
 ## Integrate the system
 POINTS = 1000
-T_VAX = 500*T_FACTOR
+T_VAX = PERIOD
 result = sp.integrate.solve_ivp(deltas, [0,PERIOD], STATE0, method='RK45', t_eval=np.linspace(0,PERIOD,POINTS),
- args=((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, INFECTIOUS_CONTACT),))
+ args=((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, BETA, contact, shape),))
 
 ## Calculate observations
 obs = np.zeros((len(result.t),NAG))
 pop_size = np.sum(result.y,axis=0)
 for i_t,t in enumerate(result.t):
-    foi = np.dot(INFECTIOUS_CONTACT(t),np.sum((np.array([result.y[(3*j+2)*NAG:(3*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
+    foi = BETA*np.dot(contact(t,shape),np.sum((np.array([result.y[(3*j+2)*NAG:(3*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
     for i in range(N_S):
         obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(3*i+1)*NAG:(3*i+2)*NAG,i_t]*T_FACTOR
 
@@ -108,48 +104,49 @@ import matplotlib.pyplot as plt
 
 viridis = plt.cm.get_cmap('viridis', NAG)
 
-# plt.plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
-# plt.xlim(2*PERIOD/3,2*PERIOD/3+10*12)
+plt.plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
+plt.xlim(2*PERIOD/3,2*PERIOD/3+10*12)
 # plt.ylim(0,7e-4)
-# # plt.ylim(0,1e-4)
-# plt.ylabel('Observed incidence')
-# plt.fill_between([3*PERIOD/4,3*PERIOD/4+12],0,7e-4,color='gray',alpha=0.2)
-# plt.xticks(np.arange(2*PERIOD/3,2*PERIOD/3+11*12,12),[str(int(x)) for x in np.arange(0,11,1)])
-# plt.xlabel('Time (years)')
-# plt.title('Incidence of flu-like-disease with 1-year lockdown')
-# plt.tight_layout()
-# plt.savefig('Figures/flu_lockdown.png')
-
-fig, axes = plt.subplots(2,2,figsize=(6.5,6.5))
-axes[0,0].plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
-axes[0,0].set_title('Simulation (including burn-in)')
-axes[0,0].set_ylabel('Observed incidence')
-axes[0,1].plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
-axes[0,1].set_xlim(2*PERIOD/3,PERIOD)
-axes[0,1].set_ylim(0,2e-5)
-# axes[0,1].set_ylim(0,3e-4)
-axes[0,1].set_title('Detail after burn-in')
-axes[0,1].set_ylabel('Observed incidence')
-# axes[1,0].plot(result.t,pop_size, label='Population size')
-# axes[1,0].set_title('Total population')
-# axes[1,0].set_ylabel('Persons')
-
-# Infected persons in each age group
-for i in range(NAG):
-    axes[1,0].plot(result.t,obs[:,i]/np.sum(result.y[range(i,10*NAG,NAG),:],axis=0), label=AGE_GROUP_NAMES[i], color=viridis(i), alpha=0.5)
-axes[1,0].set_xlim(2*PERIOD/3,PERIOD)
-axes[1,0].set_ylim(0,1e-4)
-# axes[1,0].set_ylim(0,1.5e-3)
-axes[1,0].set_title('Incidence by age group')
-axes[1,0].set_ylabel('Observed incidence')
-
-# Population in each age group
-for i in range(NAG):
-    axes[1,1].plot(result.t,np.sum(result.y[range(i,10*NAG,NAG),:],axis=0), label=AGE_GROUP_NAMES[i], color=viridis(i))
-axes[1,1].set_title('Age groups')
-axes[1,1].set_ylabel('Age group population')
-
-
+plt.ylim(0,1e-4)
+plt.ylabel('Observed incidence')
+plt.fill_between([3*PERIOD/4,3*PERIOD/4+12],0,7e-4,color='gray',alpha=0.2)
+plt.xticks(np.arange(2*PERIOD/3,2*PERIOD/3+11*12,12),[str(int(x)) for x in np.arange(0,11,1)])
+plt.xlabel('Time (years)')
+plt.title('Incidence of rota-like-disease with 1-year lockdown')
 plt.tight_layout()
-plt.savefig('Figures/SIR3_rotalike_demo.png')
-plt.show()
+plt.savefig('Figures/rota_lockdown.png')
+# plt.show()
+
+# fig, axes = plt.subplots(2,2,figsize=(6.5,6.5))
+# axes[0,0].plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
+# axes[0,0].set_title('Simulation (including burn-in)')
+# axes[0,0].set_ylabel('Observed incidence')
+# axes[0,1].plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
+# axes[0,1].set_xlim(2*PERIOD/3,PERIOD)
+# axes[0,1].set_ylim(0,2e-5)
+# # axes[0,1].set_ylim(0,3e-4)
+# axes[0,1].set_title('Detail after burn-in')
+# axes[0,1].set_ylabel('Observed incidence')
+# # axes[1,0].plot(result.t,pop_size, label='Population size')
+# # axes[1,0].set_title('Total population')
+# # axes[1,0].set_ylabel('Persons')
+
+# # Infected persons in each age group
+# for i in range(NAG):
+#     axes[1,0].plot(result.t,obs[:,i]/np.sum(result.y[range(i,10*NAG,NAG),:],axis=0), label=AGE_GROUP_NAMES[i], color=viridis(i), alpha=0.5)
+# axes[1,0].set_xlim(2*PERIOD/3,PERIOD)
+# axes[1,0].set_ylim(0,1e-4)
+# # axes[1,0].set_ylim(0,1.5e-3)
+# axes[1,0].set_title('Incidence by age group')
+# axes[1,0].set_ylabel('Observed incidence')
+
+# # Population in each age group
+# for i in range(NAG):
+#     axes[1,1].plot(result.t,np.sum(result.y[range(i,10*NAG,NAG),:],axis=0), label=AGE_GROUP_NAMES[i], color=viridis(i))
+# axes[1,1].set_title('Age groups')
+# axes[1,1].set_ylabel('Age group population')
+
+
+# plt.tight_layout()
+# plt.savefig('Figures/SIR3_rotalike_demo_yearly.png')
+# plt.show()
