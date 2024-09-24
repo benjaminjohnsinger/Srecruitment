@@ -5,7 +5,7 @@ import numpy as np
 import scipy as sp
 import itertools as it
 from vaccination import birth_vax, all_vax
-from Parameters.influenza import *
+from Parameters.rotavirus import *
 
 ## Period of simulation in months
 T_FACTOR = 1
@@ -44,8 +44,17 @@ SEASONALITY = 0.05
 OFFSET = 0.636*T_FACTOR
 # Contact matrix for all contact types
 CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',')
+
+## messing around with contact over time
+# BCOV=0
 def BETA_PC(t):
-    return (BETA_FUDGE_FACTOR*23.25*4.3/(12.99*T_FACTOR))*CONTACT
+    # if t < 3*PERIOD/4:
+    #     z = 1
+    # elif t < 3*PERIOD/4 + T_FACTOR*12:
+    #     z = 0.6
+    # else:
+    z = 1
+    return z*(BETA_FUDGE_FACTOR*23.25*4.3/(12.99*T_FACTOR))*CONTACT
 def INFECTIOUS_CONTACT(t):
     return BETA_PC(t)*(1+SEASONALITY*np.cos(2*np.pi*(t/(12*T_FACTOR)-OFFSET)))
 
@@ -99,14 +108,26 @@ import matplotlib.pyplot as plt
 
 viridis = plt.cm.get_cmap('viridis', NAG)
 
+# plt.plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
+# plt.xlim(2*PERIOD/3,2*PERIOD/3+10*12)
+# plt.ylim(0,7e-4)
+# # plt.ylim(0,1e-4)
+# plt.ylabel('Observed incidence')
+# plt.fill_between([3*PERIOD/4,3*PERIOD/4+12],0,7e-4,color='gray',alpha=0.2)
+# plt.xticks(np.arange(2*PERIOD/3,2*PERIOD/3+11*12,12),[str(int(x)) for x in np.arange(0,11,1)])
+# plt.xlabel('Time (years)')
+# plt.title('Incidence of flu-like-disease with 1-year lockdown')
+# plt.tight_layout()
+# plt.savefig('Figures/flu_lockdown.png')
+
 fig, axes = plt.subplots(2,2,figsize=(6.5,6.5))
 axes[0,0].plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
 axes[0,0].set_title('Simulation (including burn-in)')
 axes[0,0].set_ylabel('Observed incidence')
 axes[0,1].plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
 axes[0,1].set_xlim(2*PERIOD/3,PERIOD)
-axes[0,1].set_ylim(0,4e-4)
-# axes[0,1].set_ylim(0,2e-5)
+axes[0,1].set_ylim(0,2e-5)
+# axes[0,1].set_ylim(0,3e-4)
 axes[0,1].set_title('Detail after burn-in')
 axes[0,1].set_ylabel('Observed incidence')
 # axes[1,0].plot(result.t,pop_size, label='Population size')
@@ -117,7 +138,8 @@ axes[0,1].set_ylabel('Observed incidence')
 for i in range(NAG):
     axes[1,0].plot(result.t,obs[:,i]/np.sum(result.y[range(i,10*NAG,NAG),:],axis=0), label=AGE_GROUP_NAMES[i], color=viridis(i), alpha=0.5)
 axes[1,0].set_xlim(2*PERIOD/3,PERIOD)
-axes[1,0].set_ylim(0,1e-3)
+axes[1,0].set_ylim(0,1e-4)
+# axes[1,0].set_ylim(0,1.5e-3)
 axes[1,0].set_title('Incidence by age group')
 axes[1,0].set_ylabel('Observed incidence')
 
@@ -129,5 +151,5 @@ axes[1,1].set_ylabel('Age group population')
 
 
 plt.tight_layout()
-# plt.savefig('Figures/SIR3_rota_demo_pc.png')
+plt.savefig('Figures/SIR3_rotalike_demo.png')
 plt.show()
