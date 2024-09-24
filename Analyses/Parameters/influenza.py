@@ -23,4 +23,6 @@ OBS_AGE = np.array([0.5,0.5,0.1,0.1,0.1,0.1,1])
 # Factor to adust FOI
 BETA_FUDGE_FACTOR = 0.7
 # Vaccination paramters
-S_VAX, ACOV, BCOV = 2, 0.04, 0
+S_VAX, BCOV = 2, 0
+def ACOV(t,T_VAX):
+    return 0.04 if t > T_VAX else 0

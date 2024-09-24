@@ -1,6 +1,6 @@
 import numpy as np
 
-# Vaccination of infants
+# Vaccination of infants (a proportion)
 # S_VAX is the susceptibility class of vaccinated individuals
 # COVERAGE is the proportion of infants vaccinated
 # T_VAX is the time at which vaccination starts
@@ -14,16 +14,17 @@ def birth_vax(t,s_class,S_VAX=2,COVERAGE=0,T_VAX=0):
             return 1-COVERAGE
         else:
             return 0
-# Annual mass vaccination 
+# Annual mass vaccination (a rate)
 # S_VAX is the susceptibility class of vaccinated individuals
-# COVERAGE is the proportion of the population vaccinated each month - this can be an age-dependent vector
-# T_VAX is the time at which vaccination starts
-def all_vax(t,compartment,S_VAX=2,COVERAGE=0,T_VAX=0,NAG=7,N_S=3):
-    if compartment != S_VAX*3+1:
+# coverage is the time-varying proportion of the population vaccinated each month - this can be an age-dependent vector
+def all_vax(t,s_class,coverage,S_VAX=2,T_VAX=0,NAG=7,N_S=3):
+    if s_class != S_VAX:
         vec = np.zeros((3*N_S+1)*NAG)
-        vec[compartment*NAG:(compartment+1)*NAG] = -1
-        return 0 if t < T_VAX else COVERAGE*vec
+        vec[(3*s_class+1)*NAG:(3*s_class+2)*NAG] = -1
+        return 0 if t < T_VAX else coverage(t,T_VAX)*vec
     else:
-        vec = np.ones((3*N_S+1)*NAG)
-        vec[compartment*NAG:(compartment+1)*NAG] = 0
-        return 0 if t < T_VAX else COVERAGE*vec
+        vec = np.zeros((3*N_S+1)*NAG)
+        for i in range(N_S):
+            if i != s_class:
+                vec[(i*3+1)*NAG:(i*3+2)*NAG] = 1
+        return 0 if t < T_VAX else coverage(t,T_VAX)*vec

@@ -23,4 +23,6 @@ OBS_AGE = np.array([1,1,1,1,1,1,1])
 # Factor to adjust Pitzer parameters to work with KP contact matrices
 BETA_FUDGE_FACTOR = 1.3
 # Vaccination paramters
-S_VAX, ACOV, BCOV = 2, 0, 0.8*0.96
+S_VAX, BCOV = 2, 0.8*0.96
+def ACOV(t,T_VAX):
+    return 0

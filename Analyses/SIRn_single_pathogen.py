@@ -38,7 +38,6 @@ BIRTH_RATE = 3.99e5/(POP_SIZE*12*T_FACTOR)
 WANE_UP /= T_FACTOR
 WANE_SAME /= T_FACTOR
 REC /= T_FACTOR
-ACOV /= T_FACTOR
 
 # Force of infection per contact
 SEASONALITY = 0.05
@@ -62,19 +61,20 @@ def deltas(t,state,params):
     NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, INFECTIOUS_CONTACT = params
     # Susceptible, infected, recovered - waning, aging, infection, recovery for all susceptibility classes
     for i in range(N_S):
+        # Susceptibile class i = birth - infection + waning + aging in - aging out +/- vaccination
         delta[(3*i+1)*NAG:(3*i+2)*NAG] = birth_vax(t,i,S_VAX,BCOV,T_VAX)*BIRTH_RATE*pop_size*np.concatenate((np.ones(1),np.zeros(NAG-1)))\
             -S_REL[i]*S_AGE*(np.dot(INFECTIOUS_CONTACT(t),np.sum(np.array(([state[(3*j+2)*NAG:(3*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
             + WANE_UP[i-1]*state[(3*i)*NAG:(3*i+1)*NAG] + WANE_SAME[i]*state[(3*i+3)*NAG:(3*i+4)*NAG]\
             - AGING_RATE*state[(3*i+1)*NAG:(3*i+2)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+1)*NAG:(3*i+2)*NAG-1]))\
-            + (all_vax(t,3*i+1,S_VAX,ACOV,T_VAX,NAG,N_S)*state).reshape((3*N_S+1,NAG)).sum(axis=0)
+            + (all_vax(t,i,ACOV,S_VAX,T_VAX,NAG,N_S)*state/T_FACTOR).reshape((3*N_S+1,NAG)).sum(axis=0)
+        # Infectious class i = infection - recovery + aging in - aging out - vaccination
         delta[(3*i+2)*NAG:(3*i+3)*NAG] = S_REL[i]*S_AGE*(np.dot(INFECTIOUS_CONTACT(t),np.sum(np.array(([state[(3*j+2)*NAG:(3*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
             - REC[i]*state[(3*i+2)*NAG:(3*i+3)*NAG]\
             - AGING_RATE*state[(3*i+2)*NAG:(3*i+3)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+2)*NAG:(3*i+3)*NAG-1]))\
-            + (all_vax(t,3*i+2,S_VAX,ACOV,T_VAX,NAG,N_S)*state).reshape((3*N_S+1,NAG)).sum(axis=0)
+        # Recovered class i = recovery - waning + aging in - aging out - vaccination
         delta[(3*i+3)*NAG:(3*i+4)*NAG] = REC[i]*state[(3*i+2)*NAG:(3*i+3)*NAG]\
             - (WANE_UP[i]+WANE_SAME[i])*state[(3*i+3)*NAG:(3*i+4)*NAG]\
             - AGING_RATE*state[(3*i+3)*NAG:(3*i+4)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+3)*NAG:(3*i+4)*NAG-1]))\
-            + (all_vax(t,3*i+3,S_VAX,ACOV,T_VAX,NAG,N_S)*state).reshape((3*N_S+1,NAG)).sum(axis=0)
     # # Enforce stable population size
     # if np.sum(delta) > 0:
     #     delta -= np.sum(delta)*state/np.sum(state)
@@ -92,7 +92,7 @@ pop_size = np.sum(result.y,axis=0)
 for i_t,t in enumerate(result.t):
     foi = np.dot(INFECTIOUS_CONTACT(t),np.sum((np.array([result.y[(3*j+2)*NAG:(3*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
     for i in range(N_S):
-        obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(3*i+1)*NAG:(3*i+2)*NAG,i_t]
+        obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(3*i+1)*NAG:(3*i+2)*NAG,i_t]*T_FACTOR
 
 ## Plot the results
 import matplotlib.pyplot as plt
