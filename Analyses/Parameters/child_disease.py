@@ -1,3 +1,6 @@
+## Child disease parameters
+## Epidemiological parameters for a rota-like disease
+
 import numpy as np
 
 # ## Rota-like parameters
@@ -22,7 +25,7 @@ OBS_AGE = np.array([1,1,1,1,1,1,1])
 ## Other parameters
 # Seasonality parameters
 SEASONALITY = 0.05
-OFFSET = 0.636
+OFFSET = 0
 # Infectiousness
 BETA = 130
 # Vaccination paramters

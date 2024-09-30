@@ -1,3 +1,6 @@
+## Adult disease parameters
+## Epidemiological parameters for a flu-like disease
+
 import numpy as np
 
 ## Flu-like parameters
@@ -9,7 +12,7 @@ WANE = 1/3
 WANE_UP = WANE*np.array([1,1,0]) # Waning to higher susceptibility class (last value always 0)
 WANE_SAME = WANE*np.array([0,0,1]) # Waning to same susceptibility class
 # Recovery rates for each susceptibility class
-REC = 5*np.ones(3)
+REC = 10*np.ones(3)
 # Relative susceptability and infectiousness, for each susceptibility class
 S_REL = np.array([1,0.8,0.6])
 I_REL = np.array([[1],[0.9],[0.8]])
@@ -25,7 +28,7 @@ OBS_AGE = np.ones(7)
 SEASONALITY = 0.05
 OFFSET = 0
 # Infectiousness
-BETA = 30
+BETA = 70
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
 def ACOV(t,T_VAX):
