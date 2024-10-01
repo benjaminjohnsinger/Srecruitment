@@ -7,8 +7,19 @@ import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
 
-def f1(t):
-    return 0.5*np.sin(2*np.pi*t/52)
+# grid plot of x minus y
+N = 20
+x = np.linspace(0,1,N)
+y = np.linspace(0,1,N)
+z = np.zeros((N,N))
+for i in range(N):
+    for j in range(N):
+        z[i,j] = x[i] - y[j]
+plt.imshow(z)
+plt.show()
+
+# def f1(t):
+#     return 0.5*np.sin(2*np.pi*t/52)
 
 # census_data = pd.read_csv('Data/Raw/US_Census_population_by_age.csv', delimiter=',')
 # AGE_POP = np.repeat(census_data.loc[(census_data["SEX"]==0) & (census_data["AGE"]<=100),"POPESTIMATE2022"],12)/12
