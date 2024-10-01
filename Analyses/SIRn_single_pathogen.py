@@ -12,6 +12,8 @@ from SIRn_ODEs import single_pathogen_deltas as deltas
 from Parameters.test_population import *
 from Parameters.child_disease import *
 
+from plotting import *
+
 ## Period of simulation in months
 T_FACTOR = 1
 PERIOD = int(T_FACTOR*12*50)
@@ -47,95 +49,50 @@ STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 POINTS = PERIOD
 T_VAX = PERIOD
 
-# ## Line plots of observed incidence around lockdown time for beta=103, rec=6.75,7.125,7.375,7.625
-# ## and for rec=6.75, beta=105,99,95,91
+# I_REL = np.array([[1],[0.9],[0.8]])
+# BETA = 70
 
-# fig, axes = plt.subplots(4,2,figsize=(6.5,6.5),sharey="row")
-# beta = 70
-# for rec_n,rec_val in enumerate([6,9,12,15]):
-#     rec = rec_val*np.ones(3)
-#     result = sp.integrate.solve_ivp(deltas, [0,PERIOD], STATE0, method='RK45', t_eval=np.linspace(0,PERIOD,POINTS),
-#         args=((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX, IMPORT, beta,
-#         lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),))
-#     ## Calculate observations
-#     obs = np.zeros((len(result.t),NAG))
-#     pop_size = np.sum(result.y,axis=0)
-#     for i_t,t in enumerate(result.t):
-#         foi = beta*np.dot(contact(t,shape_step),np.sum((np.array([result.y[(3*j+2)*NAG:(3*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
-#         for i in range(N_S):
-#             obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(3*i+1)*NAG:(3*i+2)*NAG,i_t]*T_FACTOR
-#     axes[rec_n,0].plot(result.t,np.sum(obs,axis=1)/pop_size, label=f'Rec={rec_val}')
-#     axes[rec_n,0].set_xlim(33*12,33*12+10*12)
-#     mx = 1.1*np.max((np.sum(obs,axis=1)/pop_size)[int(2*POINTS/3):POINTS])
-#     axes[rec_n,0].set_ylim(0,mx)
-#     axes[rec_n,0].fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
-#     axes[rec_n,0].set_xticks(np.arange(33*12,33*12+11*12,12))
-#     axes[rec_n,0].set_xticklabels([str(int(x)-5) for x in np.arange(0,11,1)])
-#     axes[rec_n,0].set_title(f'Incidence with beta={beta}, rec={rec_val}')
-#     axes[rec_n,0].set_ylabel('Observed incidence')
 
-# rec = 10*np.ones(3)
-# for beta_n,beta_val in enumerate([110,90,70,50]):
-#     result = sp.integrate.solve_ivp(deltas, [0,PERIOD], STATE0, method='RK45', t_eval=np.linspace(0,PERIOD,POINTS),
-#         args=((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX, IMPORT, beta_val,
-#         lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),))
-#     ## Calculate observations
-#     obs = np.zeros((len(result.t),NAG))
-#     pop_size = np.sum(result.y,axis=0)
-#     for i_t,t in enumerate(result.t):
-#         foi = beta_val*np.dot(contact(t,shape_step),np.sum((np.array([result.y[(3*j+2)*NAG:(3*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
-#         for i in range(N_S):
-#             obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(3*i+1)*NAG:(3*i+2)*NAG,i_t]*T_FACTOR
-#     axes[beta_n,1].plot(result.t,np.sum(obs,axis=1)/pop_size, label=f'Beta={beta_val}')
-#     axes[beta_n,1].set_xlim(33*12,33*12+10*12)
-#     mx = 1.1*np.max((np.sum(obs,axis=1)/pop_size)[int(2*POINTS/3):POINTS])
-#     axes[beta_n,1].set_ylim(0,mx)
-#     axes[beta_n,1].fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
-#     axes[beta_n,1].set_xticks(np.arange(33*12,33*12+11*12,12))
-#     axes[beta_n,1].set_xticklabels([str(int(x)-5) for x in np.arange(0,11,1)])
-#     axes[beta_n,1].set_title(f'Incidence with rec={rec[0]}, beta={beta_val}')
-#     axes[beta_n,1].set_ylabel('Observed incidence')
+fig,axes = plt.subplots(2,1,figsize=(6.5,6.5))
 
-# plt.tight_layout()
-# plt.savefig('Figures/adult_beta_rec_parameters_exploration2.png',dpi=300)
+from Parameters.child_disease import *
+args1=((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
+    IMPORT, BETA,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
+result1 = sp.integrate.solve_ivp(deltas, [0,PERIOD], STATE0, method='RK45', t_eval=np.linspace(0,PERIOD,POINTS),args=args1)
+mx1 = lockdown_incidence_plot(axes[0],STATE0,args1,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result1,label="Child disease",color='#648FFF')
+lockdown_susceptibility_plot(axes[1],STATE0,args1,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result1,label="Child disease",color='#648FFF')
 
-N=15
-N_span = 10
-beta_n = 11
-wane_n = 5
-sim_beta = BETA*(1+(1/N_span)*(beta_n-N/2))
-sim_rec = REC*(1+(1/N_span)*(beta_n-N/2))
-print(sim_beta,sim_rec)
-sim_wane_up = WANE_UP*(1+(1/N_span)*(wane_n-N/2))
-sim_wane_same = WANE_SAME*(1+(1/N_span)*(wane_n-N/2))
+from Parameters.adult_disease import *
+args2=((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
+    IMPORT, BETA,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
+result2 = sp.integrate.solve_ivp(deltas, [0,PERIOD], STATE0, method='RK45', t_eval=np.linspace(0,PERIOD,POINTS),args=args2)
+mx2 = lockdown_incidence_plot(axes[0],STATE0,args2,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result2,label="Adult disease",color='#DC267F')
+lockdown_susceptibility_plot(axes[1],STATE0,args2,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result2,label="Adult disease",color='#DC267F')
 
-result = sp.integrate.solve_ivp(deltas, [0,PERIOD], STATE0, method='RK45', t_eval=np.linspace(0,PERIOD,POINTS),
-    args=((NAG, N_S, AGING_RATE, BIRTH_RATE, sim_wane_up, sim_wane_same, sim_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX, IMPORT, sim_beta,
-    lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),))
-## Calculate observations
-obs = np.zeros((len(result.t),NAG))
-pop_size = np.sum(result.y,axis=0)
-for i_t,t in enumerate(result.t):
-    foi = BETA*np.dot(contact(t,shape_step),np.sum((np.array([result.y[(3*j+2)*NAG:(3*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
-    for i in range(N_S):
-        obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(3*i+1)*NAG:(3*i+2)*NAG,i_t]*T_FACTOR
+lockdown_incidence_format(axes[0],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,max(mx1,mx2))
+lockdown_susceptibility_format(axes[1],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION)
+
+axes[0].legend()
+
+plt.tight_layout()
+plt.show()
 
 # viridis = plt.cm.get_cmap('viridis', NAG)
 
-# plt.plot(result_static.t,np.sum(obs_static,axis=1)/pop_size, label='Observed cases',color='blue')
-plt.plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
-plt.xlim(33*12,33*12+10*12)
-# plt.ylim(0,7e-4)
-mx = 1.1*np.max((np.sum(obs,axis=1)/pop_size)[int(2*POINTS/3):POINTS])
-plt.ylim(0,mx)
-plt.ylabel('Observed incidence')
-plt.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
-plt.xticks(np.arange(33*12,33*12+11*12,12),[str(int(x)-5) for x in np.arange(0,11,1)])
-plt.xlabel('Time (years)')
-plt.title('Incidence of non-pediatric disease with 1-year lockdown')
-plt.tight_layout()
-plt.savefig('Figures/rec_wane_timing240930/child_growth184_wane0p07.png',dpi=300)
-plt.show()
+# # plt.plot(result_static.t,np.sum(obs_static,axis=1)/pop_size, label='Observed cases',color='blue')
+# # plt.plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
+# plt.xlim(25*12,43*12)
+# # plt.ylim(0,7e-4)
+# mx = 1.1*np.max((np.sum(obs,axis=1)/pop_size)[int(2*POINTS/3):POINTS])
+# # plt.ylim(mn,mx)
+# plt.ylabel('Observed incidence')
+# plt.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
+# plt.xticks(np.arange(25*12,44*12,12),[str(int(x)-13) for x in np.arange(0,19,1)])
+# plt.xlabel('Time (years)')
+# plt.title('Incidence of non-pediatric disease with 1-year lockdown')
+# plt.tight_layout()
+# # plt.savefig('Figures/rec_wane_timing240930/child_growth174_wane0p07.png',dpi=300)
+# plt.show()
 
 # fig, axes = plt.subplots(2,2,figsize=(6.5,6.5))
 # axes[0,0].plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')

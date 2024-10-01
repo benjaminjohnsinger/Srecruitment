@@ -15,7 +15,7 @@ WANE_SAME = WANE*np.array([0,0,1]) # Waning to same susceptibility class
 REC = 10*np.ones(3)
 # Relative susceptability and infectiousness, for each susceptibility class
 S_REL = np.array([1,0.8,0.6])
-I_REL = np.array([[1],[0.9],[0.8]])
+I_REL = np.ones((N_S,1))
 # Probability of detection of cases for each susceptibility class
 P_OBS = 0.01*np.array([4,2,2])
 ## Parameters that vary by age group
@@ -28,7 +28,7 @@ OBS_AGE = np.ones(7)
 SEASONALITY = 0.05
 OFFSET = 0
 # Infectiousness
-BETA = 70
+BETA = 55
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
 def ACOV(t,T_VAX):
