@@ -6,17 +6,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
+import itertools as it
+from plotting import *
 
-# grid plot of x minus y
-N = 20
-x = np.linspace(0,1,N)
-y = np.linspace(0,1,N)
-z = np.zeros((N,N))
-for i in range(N):
-    for j in range(N):
-        z[i,j] = x[i] - y[j]
-plt.imshow(z)
-plt.show()
+
+for i in it.product(range(3),repeat=3):
+    print(i)
+    for j,p in enumerate(i):
+        print(j,p)
 
 # def f1(t):
 #     return 0.5*np.sin(2*np.pi*t/52)

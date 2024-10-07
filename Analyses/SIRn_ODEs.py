@@ -7,7 +7,7 @@ import numpy as np
 def single_pathogen_deltas(t,state,params):
     delta = np.zeros(state.shape)
     pop_size = np.sum(state)
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params
+    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
     # Susceptible, infected, recovered - waning, aging, infection, recovery for all susceptibility classes
     for i in range(N_S):
         # Susceptibile class i = birth - infection + waning + aging in - aging out +/- vaccination

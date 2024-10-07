@@ -3,14 +3,18 @@
 
 import numpy as np
 import scipy as sp
+import time
 import itertools as it
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 
 from vaccination import birth_vax, all_vax
 import contact_model as cm
 from SIRn_ODEs import single_pathogen_deltas as deltas
 from Parameters.test_population import *
 from Parameters.adult_disease import *
+
+
 
 from plotting import *
 
@@ -46,55 +50,83 @@ STATE0[NAG:2*NAG] = KP_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 ## Integrate the system
-POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12,0.1),np.ones(1)*PERIOD))
+# POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12,0.1),np.ones(1)*PERIOD))
+POINTS = np.arange(0,PERIOD+1,1)
 T_VAX = PERIOD
 
 # S_REL = S_REL**2
 
+# fig = plt.figure(figsize=(6.5,6.5),constrained_layout=True)
+# gs = GridSpec(3,3,figure=fig)
+# ax1 = fig.add_subplot(gs[0,0])
+# ax2 = fig.add_subplot(gs[0,1:])
+# ax3 = fig.add_subplot(gs[1,0])
+# ax4 = fig.add_subplot(gs[2,0])
+# ax5 = fig.add_subplot(gs[1:,1:])
+
 # params = ((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
 #     IMPORT, BETA,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
+# params as a dictionary
+params = {'NAG':NAG, 'N_S':N_S, 'AGING_RATE':AGING_RATE, 'BIRTH_RATE':BIRTH_RATE, 'WANE_UP':WANE_UP, 'WANE_SAME':WANE_SAME, 'REC':REC, 'S_REL':S_REL, 'S_AGE':S_AGE, 'I_REL':I_REL, 'P_OBS':P_OBS, 'birth_vax':birth_vax, 'all_vax':all_vax, 'S_VAX':S_VAX, 'ACOV_SCALED':ACOV_SCALED, 'BCOV':BCOV, 'T_VAX':T_VAX,
+    'IMPORT':IMPORT, 'BETA':BETA, 'contact':lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)}
+
+
+# result = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params)
+
+# measure time to get results
+start = time.time()
+results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,N=10)
+end = time.time()
+print('Time to get results:',end-start)
+fig, axes = plt.subplots(4,2,figsize=(6.5,8.5))
+obs_grid_plot(axes[0:2,:],results,params,OBS_AGE,T_LOCKDOWN,LOCKDOWN_DURATION)
+susc_grid_plot(axes[2,:],results,params,T_LOCKDOWN,LOCKDOWN_DURATION)
+age_infect_grid_plot(axes[3,:],results,params,T_LOCKDOWN,LOCKDOWN_DURATION)
+plt.tight_layout()
+plt.show()
+
 # fig, axes = plt.subplots(3,2,figsize=(6.5,8.5))
 # grid_plot(axes,STATE0,params,OBS_AGE,PERIOD,T_LOCKDOWN,LOCKDOWN_DURATION,N=3,N_span=3)
 # plt.tight_layout()
 # plt.show()
 
-w36_up = 0.36*np.array([1,1,0])
-w36_same = 0.36*np.array([0,0,1])
-g64_rec = 14.2*np.ones(3)
-g64_beta = 78.2
-params_g64_w36 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w36_up, w36_same, g64_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
-    IMPORT, g64_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
-result_g64_w36 = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params_g64_w36)
-w24_up = 0.24*np.array([1,1,0])
-w24_same = 0.24*np.array([0,0,1])
-params_g64_w24 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w24_up, w24_same, g64_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
-    IMPORT, g64_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
-result_g64_w24 = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params_g64_w24)
-g48_rec = 10.6*np.ones(3)
-g48_beta = 58.7
-params_g48_w36 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w36_up, w36_same, g48_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
-    IMPORT, g48_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
-result_g48_w36 = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params_g48_w36)
-g40_rec = 8.9*np.ones(3)
-g40_beta = 48.9
-params_g40_w36 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w36_up, w36_same, g40_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
-    IMPORT, g40_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
-result_g40_w36 = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params_g40_w36)
+# w36_up = 0.36*np.array([1,1,0])
+# w36_same = 0.36*np.array([0,0,1])
+# g64_rec = 14.2*np.ones(3)
+# g64_beta = 78.2
+# params_g64_w36 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w36_up, w36_same, g64_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
+#     IMPORT, g64_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
+# result_g64_w36 = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params_g64_w36)
+# w24_up = 0.24*np.array([1,1,0])
+# w24_same = 0.24*np.array([0,0,1])
+# params_g64_w24 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w24_up, w24_same, g64_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
+#     IMPORT, g64_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
+# result_g64_w24 = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params_g64_w24)
+# g48_rec = 10.6*np.ones(3)
+# g48_beta = 58.7
+# params_g48_w36 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w36_up, w36_same, g48_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
+#     IMPORT, g48_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
+# result_g48_w36 = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params_g48_w36)
+# g40_rec = 8.9*np.ones(3)
+# g40_beta = 48.9
+# params_g40_w36 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w36_up, w36_same, g40_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
+#     IMPORT, g40_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
+# result_g40_w36 = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params_g40_w36)
 
-fig, axes = plt.subplots(2,1,figsize=(6.5,6))
-mx_g64_w24 = lockdown_incidence_plot(axes[0],STATE0,params_g64_w24,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result_g64_w24,label='g64_w24',color='#DC267F')
-mx_g64_w36 = lockdown_incidence_plot(axes[0],STATE0,params_g64_w36,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result_g64_w36,label='g64_w36',color='#648FFF')
-mx_g48_w36 = lockdown_incidence_plot(axes[0],STATE0,params_g48_w36,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result_g48_w36,label='g48_w36',color='#FFB000')
-mx_g40_w36 = lockdown_incidence_plot(axes[0],STATE0,params_g40_w36,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result_g40_w36,label='g40_w36',color='#785EF0')
-lockdown_incidence_format(axes[0],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,mx=max(mx_g64_w36,mx_g64_w24,mx_g48_w36,mx_g40_w36))
-lockdown_susceptibility_plot(axes[1],STATE0,params_g64_w24,PERIOD,POINTS,T_LOCKDOWN,result_g64_w24,color='#DC267F',relative=False)
-lockdown_susceptibility_plot(axes[1],STATE0,params_g64_w36,PERIOD,POINTS,T_LOCKDOWN,result_g64_w36,color='#648FFF',relative=False)
-lockdown_susceptibility_plot(axes[1],STATE0,params_g48_w36,PERIOD,POINTS,T_LOCKDOWN,result_g48_w36,color='#FFB000',relative=False)
-lockdown_susceptibility_plot(axes[1],STATE0,params_g40_w36,PERIOD,POINTS,T_LOCKDOWN,result_g40_w36,color='#785EF0',relative=False)
-lockdown_susceptibility_format(axes[1],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,ymin=2.5e7,ymax=2.62e7)
-axes[0].legend()
-plt.tight_layout()
-plt.savefig('Figures/lockdown_incidence_g64_w36_w24_g48_w36_g40_w36.png',dpi=300)
+# fig, axes = plt.subplots(2,1,figsize=(6.5,6))
+# mx_g64_w24 = lockdown_incidence_plot(axes[0],STATE0,params_g64_w24,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result_g64_w24,label='g64_w24',color='#DC267F')
+# mx_g64_w36 = lockdown_incidence_plot(axes[0],STATE0,params_g64_w36,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result_g64_w36,label='g64_w36',color='#648FFF')
+# mx_g48_w36 = lockdown_incidence_plot(axes[0],STATE0,params_g48_w36,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result_g48_w36,label='g48_w36',color='#FFB000')
+# mx_g40_w36 = lockdown_incidence_plot(axes[0],STATE0,params_g40_w36,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result_g40_w36,label='g40_w36',color='#785EF0')
+# lockdown_incidence_format(axes[0],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,mx=max(mx_g64_w36,mx_g64_w24,mx_g48_w36,mx_g40_w36))
+# lockdown_susceptibility_plot(axes[1],STATE0,params_g64_w24,PERIOD,POINTS,T_LOCKDOWN,result_g64_w24,color='#DC267F',relative=False)
+# lockdown_susceptibility_plot(axes[1],STATE0,params_g64_w36,PERIOD,POINTS,T_LOCKDOWN,result_g64_w36,color='#648FFF',relative=False)
+# lockdown_susceptibility_plot(axes[1],STATE0,params_g48_w36,PERIOD,POINTS,T_LOCKDOWN,result_g48_w36,color='#FFB000',relative=False)
+# lockdown_susceptibility_plot(axes[1],STATE0,params_g40_w36,PERIOD,POINTS,T_LOCKDOWN,result_g40_w36,color='#785EF0',relative=False)
+# lockdown_susceptibility_format(axes[1],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,ymin=2.5e7,ymax=2.62e7)
+# axes[0].legend()
+# plt.tight_layout()
+# plt.savefig('Figures/lockdown_incidence_g64_w36_w24_g48_w36_g40_w36.png',dpi=300)
 
 
 

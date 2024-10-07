@@ -8,18 +8,19 @@ import matplotlib.pyplot as plt
 
 from SIRn_ODEs import single_pathogen_deltas as deltas
 
+N_C = 3
 
 def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',by_age=False,AGE_GROUP_NAMES=None):
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params[0]
+    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
     if result is None:
-        result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=params)
+        result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
     ## Calculate observations
     obs = np.zeros((len(result.t),NAG))
     pop_size = np.sum(result.y,axis=0)
     for i_t,t in enumerate(result.t):
-        foi = BETA*np.dot(contact(t),np.sum((np.array([result.y[(3*j+2)*NAG:(3*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
+        foi = BETA*np.dot(contact(t),np.sum((np.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
         for i in range(N_S):
-            obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(3*i+1)*NAG:(3*i+2)*NAG,i_t]
+            obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
     if by_age:
         cmap = plt.get_cmap('viridis')
         pop_size_by_age = np.array([np.sum(result.y[range(i_age,(3*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
@@ -41,14 +42,14 @@ def lockdown_incidence_format(ax,points,T_LOCKDOWN,LOCKDOWN_DURATION,mx):
     ax.set_title('Incidence of disease with 1-year lockdown')
 
 def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,result=None,label='Susceptible_population',color='#648FFF',relative=True,by_age=False,AGE_GROUP_NAMES=None,style='-'):
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params[0]
+    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
     if result is None:
-        result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=params)
+        result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
     ## Calculate susceptibility
     sus = np.zeros((len(result.t),NAG))
     for i_t,t in enumerate(result.t):
         for i in range(N_S):
-            sus[i_t,:] += S_REL[i]*S_AGE*result.y[(3*i+1)*NAG:(3*i+2)*NAG,i_t]
+            sus[i_t,:] += S_REL[i]*S_AGE*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
     if by_age:
         cmap = plt.get_cmap('viridis')
         rel_sus = sus/np.sum(sus,axis=1)[:,np.newaxis]
@@ -73,13 +74,13 @@ def lockdown_susceptibility_format(ax,points,T_LOCKDOWN,LOCKDOWN_DURATION,ymin=0
 
 def age_infect_plot(ax,state0,params,AGE_GROUP_NAMES,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None):
     cmap = plt.get_cmap('viridis')
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params[0]
+    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
     if result is None:
-        result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=params)
+        result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
     ## Calculate rate of infections created by each age group
     infs = np.zeros((len(result.t),NAG))
     for i_t,t in enumerate(result.t):
-        infs[i_t,:] = np.sum(np.array([BETA*result.y[(3*i+2)*NAG:(3*i+3)*NAG,i_t]*I_REL[i]*np.dot(contact(t),np.sum([S_REL[j]*result.y[(3*j+1)*NAG:(3*j+2)*NAG,i_t] for j in range(N_S)],axis=0)) for i in range(N_S)]),axis=0)
+        infs[i_t,:] = np.sum(np.array([BETA*result.y[(N_C*i+2)*NAG:(N_C*i+3)*NAG,i_t]*I_REL[i]*np.dot(contact(t),np.sum([S_REL[j]*result.y[(N_C*j+1)*NAG:(N_C*j+2)*NAG,i_t] for j in range(N_S)],axis=0)) for i in range(N_S)]),axis=0)
     rel_infs = infs/np.sum(infs,axis=1)[:,np.newaxis]
     for i in range(NAG):
         ax.plot(result.t,rel_infs[:,i], label=AGE_GROUP_NAMES[i], color=cmap(i/(NAG-1)),zorder=1)
@@ -92,163 +93,205 @@ def age_infect_plot(ax,state0,params,AGE_GROUP_NAMES,period,points,T_LOCKDOWN,LO
     ax.set_ylim(0,1)
     # ax.legend()
 
-def age_infect_grid_plot(axes,state0,params,AGE_GROUP_NAMES,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,N=25,N_span=25):
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params[0]
+def sim_grid(state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,
+            grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),N=10,factors=(1,1)):
+    N_params = len(grid_params)
+    results = {}
 
+    for p_n in it.product(range(N),repeat=N_params):
+        # Scale parameters for exploration
+        params_n = params.copy()
+        for i,p in enumerate(p_n):
+            for pname in grid_params[i]:
+                if grid_mode[i] == "scale":
+                    params_n[pname] = params[pname]*(1+factors[i]*(p/N-1/2))
+                elif grid_mode[i] == "fade_vec":
+                    N_S = params["N_S"]
+                    params_n[pname] = np.array([1-i*factors[i]*(p/(N_span*N_S)) for i in range(N_S)])
+        # Run simulation
+        result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points, args=(params_n,))
+        results[p_n] = result
+    return(results)
+
+def age_infect_grid_plot(axes,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,
+grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),label_mode=("diff_mean","nz_mean"),factors=(1,1)):
+    N_params = len(grid_params)
+    N = max([max(p) for p in results.keys()])+1
     # Grid plots of infections caused by children, under-fives
     child_inf = np.zeros((N,N))
     under_five_inf = np.zeros((N,N))
+    parameter_values = np.zeros((N,N_params))
 
-    for beta_n in range(N):
-        for wane_n in range(N):
-            # Scale parameters for exploration
-            sim_beta = BETA*(1+(1/N_span)*(beta_n-N/2))
-            sim_rec = REC*(1+(1/N_span)*(beta_n-N/2))
-            sim_wane_up = WANE_UP*(1+(1/N_span)*(wane_n-N/2))
-            sim_wane_same = WANE_SAME*(1+(1/N_span)*(wane_n-N/2))
-            # Run simulation
-            args = (NAG, N_S, AGING_RATE, BIRTH_RATE, sim_wane_up, sim_wane_same, sim_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, sim_beta, contact)
-            result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=np.linspace(0,period,points),args=(args,))
-            # Calculate rate of infections created by each age group
-            infs = np.zeros((len(result.t),NAG))
-            for i_t,t in enumerate(result.t):
-                infs[i_t,:] = np.sum(np.array([sim_beta*result.y[(3*i+2)*NAG:(3*i+3)*NAG,i_t]*I_REL[i]*np.dot(contact(t),np.sum([S_REL[j]*result.y[(3*j+1)*NAG:(3*j+2)*NAG,i_t] for j in range(N_S)],axis=0)) for i in range(N_S)]),axis=0)
-            # nan if simulation crashes
-            if len(result.t) != points:
-                child_inf[beta_n,wane_n] = np.nan
-                under_five_inf[beta_n,wane_n] = np.nan
-                continue
-            else:
-                # infections caused by children
-                child_inf[beta_n,wane_n] = (np.sum(infs[:,0:4],axis=1)/np.sum(infs,axis=1))[np.argmax(result.t>=T_LOCKDOWN)]
-                # infections caused by under-fives
-                under_five_inf[beta_n,wane_n] = (np.sum(infs[:,0:3],axis=1)/np.sum(infs,axis=1))[np.argmax(result.t>=T_LOCKDOWN)]
-    
+    for p_n,result in results.items():
+        N_S = params["N_S"]
+        params_n = params.copy()
+        for i,p in enumerate(p_n):
+            for pname in grid_params[i]:
+                if grid_mode[i] == "scale":
+                    params_n[pname] = params[pname]*(1+factors[i]*(p/N-1/2))
+                elif grid_mode[i] == "fade_vec":
+                    params_n[pname] = np.array([1-i*factors[i]*(p/(N_span*N_S)) for i in range(N_S)])
+            if label_mode[i]=="diff_mean":
+                parameter_values[p_n[i],i] = np.mean(params_n[grid_params[i][0]]) - np.mean(params_n[grid_params[i][1]])
+            elif label_mode[i]=="mean":
+                parameter_values[p_n[i],i] = np.mean([np.mean(params_n[pname]) for pname in grid_params[i]])
+            elif label_mode[i]=="nz_mean":
+                parameter_values[p_n[i],i] = np.mean([np.mean(params_n[pname])*(len(params_n[pname])/np.sum(params_n[pname]==0)) for pname in grid_params[i]])
+        # Calculate infections caused by each age group
+        NAG, BETA, REC, S_REL, I_REL, contact = params_n["NAG"], params_n["BETA"], params_n["REC"], params_n["S_REL"], params_n["I_REL"], params_n["contact"]
+        infs = np.zeros((len(result.t),NAG))
+        for i_t,t in enumerate(result.t):
+            infs[i_t,:] = np.sum(np.array([BETA*result.y[(N_C*i+2)*NAG:(N_C*i+3)*NAG,i_t]*I_REL[i]*np.dot(contact(t),np.sum([S_REL[j]*result.y[(N_C*j+1)*NAG:(N_C*j+2)*NAG,i_t] for j in range(N_S)],axis=0)) for i in range(N_S)]),axis=0)
+        # infections caused by children
+        child_inf[p_n] = (np.sum(infs[:,0:4],axis=1)/np.sum(infs,axis=1))[np.argmax(result.t>=T_LOCKDOWN)]
+        # infections caused by under-fives
+        under_five_inf[p_n] = (np.sum(infs[:,0:3],axis=1)/np.sum(infs,axis=1))[np.argmax(result.t>=T_LOCKDOWN)]
+
     tick_space = N//4 + 1
 
-    axes[0].imshow(child_inf)
-    axes[0].set_ylabel('Growth rate')
-    axes[0].set_xlabel('Wane rate')
+    im0 = axes[0].imshow(child_inf)
     axes[0].set_title('Infections caused by\nchildren')
-    axes[0].set_xticks(range(0,N,tick_space),[f'{1.5*np.mean(WANE_UP)*(1+(1/N_span)*(wane_n-N/2)):.2f}' for wane_n in range(0,N,tick_space)])
-    axes[0].set_yticks(range(0,N,tick_space),[f'{(BETA-np.mean(REC))*(1+(1/N_span)*(beta_n-N/2)):.0f}' for beta_n in range(0,N,tick_space)])
-    cbar = plt.colorbar(axes[0].imshow(child_inf), ax=axes[0])
+    axes[0].set_yticks(range(0,N,tick_space),[f'{parameter_values[y_n,0]:.0f}' for y_n in range(0,N,tick_space)])
+    axes[0].set_xticks(range(0,N,tick_space),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,tick_space)])
+    cbar = plt.colorbar(im0, ax=axes[0])
 
-    axes[1].imshow(under_five_inf)
-    axes[1].set_xlabel('Wane rate')
+    im1 = axes[1].imshow(under_five_inf)
     axes[1].set_title('Infections caused by\nunder-fives')
-    axes[1].set_xticks(range(0,N,tick_space),[f'{1.5*np.mean(WANE_UP)*(1+(1/N_span)*(wane_n-N/2)):.2f}' for wane_n in range(0,N,tick_space)])
-    axes[1].set_yticks(range(0,N,tick_space),[f'{(BETA-np.mean(REC))*(1+(1/N_span)*(beta_n-N/2)):.0f}' for beta_n in range(0,N,tick_space)])
-    cbar = plt.colorbar(axes[1].imshow(under_five_inf), ax=axes[1])
+    axes[1].set_yticks(range(0,N,tick_space),[f'{parameter_values[y_n,0]:.0f}' for y_n in range(0,N,tick_space)])
+    axes[1].set_xticks(range(0,N,tick_space),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,tick_space)])
+    cbar = plt.colorbar(im1, ax=axes[1])
     cbar.set_label('Fraction of infections')
 
 
-def grid_plot(axes,state0,params,OBS_AGE,period,T_LOCKDOWN,LOCKDOWN_DURATION,N=25,N_span=25):
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params[0]
-
-    points = np.concatenate((np.zeros(1),np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12),np.ones(1)*period))
-
+def obs_grid_plot(axes,results,params,OBS_AGE,T_LOCKDOWN,LOCKDOWN_DURATION,
+grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),factors=(1,1),
+label_mode=("diff_mean","nz_mean")):
+    N_params = len(grid_params)
+    N = max([max(p) for p in results.keys()])+1
     # Grid plots of peak incidence before and after lockdown
     pre_peaks = np.zeros((N,N))
     post_peaks = np.zeros((N,N))
     pre_space = np.zeros((N,N))
     post_space = np.zeros((N,N))
-    pre_susc = np.zeros((N,N))
-    post_susc = np.zeros((N,N))
+    parameter_values = np.zeros((N,N_params))
 
-    for beta_n in range(N):
-        for wane_n in range(N):
-            # Scale parameters for exploration
-            sim_beta = BETA*(1+(1/N_span)*(beta_n-N/2))
-            sim_rec = REC*(1+(1/N_span)*(beta_n-N/2))
-            sim_wane_up = WANE_UP*(1+(1/N_span)*(wane_n-N/2))
-            sim_wane_same = WANE_SAME*(1+(1/N_span)*(wane_n-N/2))
-            # Run simulation
-            args = (NAG, N_S, AGING_RATE, BIRTH_RATE, sim_wane_up, sim_wane_same, sim_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, sim_beta, contact)
-            result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(args,))
-            # Calculate observations and susceptibility
-            obs = np.zeros((len(result.t),NAG))
-            sus = np.zeros((len(result.t),NAG))
-            pop_size = np.sum(result.y,axis=0)
-            for i_t,t in enumerate(result.t):
-                foi = sim_beta*np.dot(contact(t),np.sum((np.array([result.y[(3*j+2)*NAG:(3*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))\
-                    /pop_size[i_t]
-                for i in range(N_S):
-                    obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(3*i+1)*NAG:(3*i+2)*NAG,i_t]
-                    sus[i_t,:] += S_REL[i]*S_AGE*result.y[(3*i+1)*NAG:(3*i+2)*NAG,i_t]
-            # nan if simulation crashes
-            if len(result.t) != len(points):
-                pre_peaks[beta_n,wane_n] = np.nan
-                post_peaks[beta_n,wane_n] = np.nan
-                pre_space[beta_n,wane_n] = np.nan
-                post_space[beta_n,wane_n] = np.nan
-                pre_susc[beta_n,wane_n] = np.nan
-                post_susc[beta_n,wane_n] = np.nan
-                continue
-            else:
-                # pre-lockdown peak incidence
-                pre_obs = np.sum(obs[(result.t>25*12) & (result.t<T_LOCKDOWN)],axis=1)
-                pre_peak = np.max(pre_obs/pop_size[(result.t>25*12) & (result.t<T_LOCKDOWN)])
-                pre_peaks[beta_n,wane_n] = pre_peak
-                # post-lockdown peak incidence
-                post_peaks[beta_n,wane_n] = np.max(np.sum(obs[result.t>=T_LOCKDOWN],axis=1)/pop_size[result.t>=T_LOCKDOWN])
-                # distinguish between annual, biannual, etc outbreaks pre-lockdown
-                corr = np.correlate(pre_obs, pre_obs, mode='same')
-                acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
-                lag = np.abs(acorr).argmax() + 1
-                pre_space[beta_n,wane_n] = lag
-                # find time to first post-lockdown rebound, first time to half the pre-lockdown peak incidence
-                post_peak_arg = np.argmax(np.sum(obs[result.t>=T_LOCKDOWN],axis=1)/pop_size[result.t>=T_LOCKDOWN] > pre_peak/2)
-                post_space[beta_n,wane_n] = result.t[post_peak_arg]
-                # absolut susceptibility when lockdown starts
-                total_sus = np.sum(sus,axis=1)
-                pre_susc[beta_n,wane_n] = total_sus[np.argmax(result.t>=T_LOCKDOWN)]
-                # susceptibility when lockdown ends
-                # rel_sus = total_sus/total_sus[np.argmax(result.t>=T_LOCKDOWN)]
-                post_susc[beta_n,wane_n] = total_sus[np.argmax(result.t>=T_LOCKDOWN+LOCKDOWN_DURATION)]
-    print(post_space)
+    for p_n,result in results.items():
+        N_S = params["N_S"]
+        params_n = params.copy()
+        for i,p in enumerate(p_n):
+            for pname in grid_params[i]:
+                if grid_mode[i] == "scale":
+                    params_n[pname] = params[pname]*(1+factors[i]*(p/N-1/2))
+                elif grid_mode[i] == "fade_vec":
+                    params_n[pname] = np.array([1-i*factors[i]*(p/(N_span*N_S)) for i in range(N_S)])
+            if label_mode[i]=="diff_mean":
+                parameter_values[p_n[i],i] = np.mean(params_n[grid_params[i][0]]) - np.mean(params_n[grid_params[i][1]])
+            elif label_mode[i]=="mean":
+                parameter_values[p_n[i],i] = np.mean([np.mean(params_n[pname]) for pname in grid_params[i]])
+            elif label_mode[i]=="nz_mean":
+                parameter_values[p_n[i],i] = np.mean([np.mean(params_n[pname])*(len(params_n[pname])/np.sum(params_n[pname]==0)) for pname in grid_params[i]])
+        # Calculate observations
+        NAG, BETA, I_REL, P_OBS, S_REL, contact = params_n["NAG"], params_n["BETA"], params_n["I_REL"], params_n["P_OBS"], params_n["S_REL"], params_n["contact"]
+        obs = np.zeros((len(result.t),NAG))
+        pop_size = np.sum(result.y,axis=0)
+        for i_t,t in enumerate(result.t):
+            foi = BETA*np.dot(contact(t),np.sum((np.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
+            for i in range(N_S):
+                obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
+        # pre-lockdown peak incidence
+        pre_obs = np.sum(obs[(result.t>25*12) & (result.t<T_LOCKDOWN)],axis=1)
+        pre_peak = np.max(pre_obs/pop_size[(result.t>25*12) & (result.t<T_LOCKDOWN)])
+        pre_peaks[p_n] = pre_peak
+        # post-lockdown peak incidence
+        post_peaks[p_n] = np.max(np.sum(obs[result.t>=T_LOCKDOWN],axis=1)/pop_size[result.t>=T_LOCKDOWN])
+        # distinguish between annual, biannual, etc outbreaks pre-lockdown
+        corr = np.correlate(pre_obs, pre_obs, mode='same')
+        acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
+        lag = np.abs(acorr).argmax() + 1
+        pre_space[p_n] = lag
+        # find time to first post-lockdown rebound, first time to half the pre-lockdown peak incidence
+        post_peak_arg = np.argmax(np.sum(obs[result.t>=T_LOCKDOWN],axis=1)/pop_size[result.t>=T_LOCKDOWN] > pre_peak/2)
+        post_space[p_n] = result.t[np.argmax(result.t>=T_LOCKDOWN)+post_peak_arg]
+
     tick_space = N//4 + 1
 
-    axes[0,0].imshow(pre_peaks)
-    axes[0,0].set_ylabel('Growth rate')
+    im00 = axes[0,0].imshow(pre_peaks)
     axes[0,0].set_title('Pre-lockdown\npeak incidence')
-    axes[0,0].set_xticks(range(0,N,tick_space),[f'{1.5*np.mean(WANE_UP)*(1+(1/N_span)*(wane_n-N/2)):.2f}' for wane_n in range(0,N,tick_space)])
-    axes[0,0].set_yticks(range(0,N,tick_space),[f'{(BETA-np.mean(REC))*(1+(1/N_span)*(beta_n-N/2)):.0f}' for beta_n in range(0,N,tick_space)])
-    cbar = plt.colorbar(axes[0,0].imshow(pre_peaks), ax=axes[0,0])
+    axes[0,0].set_yticks(range(0,N,tick_space),[f'{parameter_values[y_n,0]:.0f}' for y_n in range(0,N,tick_space)])
+    axes[0,0].set_xticks(range(0,N,tick_space),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,tick_space)])
+    cbar = plt.colorbar(im00, ax=axes[0,0])
 
-    axes[0,1].imshow(post_peaks)
+    im01 = axes[0,1].imshow(post_peaks)
     axes[0,1].set_title('Post-lockdown\npeak incidence')
-    axes[0,1].set_xticks(range(0,N,tick_space),[f'{1.5*np.mean(WANE_UP)*(1+(1/N_span)*(wane_n-N/2)):.2f}' for wane_n in range(0,N,tick_space)])
-    axes[0,1].set_yticks(range(0,N,tick_space),[f'{(BETA-np.mean(REC))*(1+(1/N_span)*(beta_n-N/2)):.0f}' for beta_n in range(0,N,tick_space)])
-    cbar = plt.colorbar(axes[0,1].imshow(post_peaks), ax=axes[0,1])
+    axes[0,1].set_yticks(range(0,N,tick_space),[f'{parameter_values[y_n,0]:.0f}' for y_n in range(0,N,tick_space)])
+    axes[0,1].set_xticks(range(0,N,tick_space),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,tick_space)])
+    cbar = plt.colorbar(im01, ax=axes[0,1])
     cbar.set_label('Observed incidence')
 
-    axes[1,0].imshow(pre_space)
-    axes[1,0].set_ylabel('Growth rate')
+    im10 = axes[1,0].imshow(pre_space)
     axes[1,0].set_title('Pre-lockdown\nperiodicity')
-    axes[1,0].set_xticks(range(0,N,tick_space),[f'{1.5*np.mean(WANE_UP)*(1+(1/N_span)*(wane_n-N/2)):.2f}' for wane_n in range(0,N,tick_space)])
-    axes[1,0].set_yticks(range(0,N,tick_space),[f'{(BETA-np.mean(REC))*(1+(1/N_span)*(beta_n-N/2)):.0f}' for beta_n in range(0,N,tick_space)])
-    cbar = plt.colorbar(axes[1,0].imshow(pre_space), ax=axes[1,0])
+    axes[1,0].set_yticks(range(0,N,tick_space),[f'{parameter_values[y_n,0]:.0f}' for y_n in range(0,N,tick_space)])
+    axes[1,0].set_xticks(range(0,N,tick_space),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,tick_space)])
+    cbar = plt.colorbar(im10, ax=axes[1,0])
 
-    axes[1,1].imshow(post_space)
+    im11 = axes[1,1].imshow(post_space)
     axes[1,1].set_title('Time to post-\nlockdown rebound')
-    axes[1,1].set_xticks(range(0,N,tick_space),[f'{1.5*np.mean(WANE_UP)*(1+(1/N_span)*(wane_n-N/2)):.2f}' for wane_n in range(0,N,tick_space)])
-    axes[1,1].set_yticks(range(0,N,tick_space),[f'{(BETA-np.mean(REC))*(1+(1/N_span)*(beta_n-N/2)):.0f}' for beta_n in range(0,N,tick_space)])
-    cbar = plt.colorbar(axes[1,1].imshow(post_space), ax=axes[1,1])
+    axes[1,1].set_yticks(range(0,N,tick_space),[f'{parameter_values[y_n,0]:.0f}' for y_n in range(0,N,tick_space)])
+    axes[1,1].set_xticks(range(0,N,tick_space),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,tick_space)])
+    cbar = plt.colorbar(im11, ax=axes[1,1])
     cbar.set_label('Time (months)')
 
-    axes[2,0].imshow(pre_susc)
-    axes[2,0].set_xlabel('Wane rate')
-    axes[2,0].set_ylabel('Growth rate')
-    axes[2,0].set_title('Susceptibility\nat lockdown start')
-    axes[2,0].set_xticks(range(0,N,tick_space),[f'{1.5*np.mean(WANE_UP)*(1+(1/N_span)*(wane_n-N/2)):.2f}' for wane_n in range(0,N,tick_space)])
-    axes[2,0].set_yticks(range(0,N,tick_space),[f'{(BETA-np.mean(REC))*(1+(1/N_span)*(beta_n-N/2)):.0f}' for beta_n in range(0,N,tick_space)])
-    cbar = plt.colorbar(axes[2,0].imshow(pre_susc), ax=axes[2,0])
+def susc_grid_plot(axes,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,
+grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),factors=(1,1),
+label_mode=("diff_mean","nz_mean")):
+    N_params = len(grid_params)
+    N = max([max(p) for p in results.keys()])+1
+    # Grid plots of susceptibility
+    pre_susc = np.zeros((N,N))
+    post_susc = np.zeros((N,N))
+    parameter_values = np.zeros((N,N_params))
 
-    axes[2,1].imshow(post_susc)
-    axes[2,1].set_xlabel('Wane rate')
-    axes[2,1].set_title('Susceptibility\nat lockdown end')
-    axes[2,1].set_xticks(range(0,N,tick_space),[f'{1.5*np.mean(WANE_UP)*(1+(1/N_span)*(wane_n-N/2)):.2f}' for wane_n in range(0,N,tick_space)])
-    axes[2,1].set_yticks(range(0,N,tick_space),[f'{(BETA-np.mean(REC))*(1+(1/N_span)*(beta_n-N/2)):.0f}' for beta_n in range(0,N,tick_space)])
-    cbar = plt.colorbar(axes[2,1].imshow(post_susc), ax=axes[2,1])
+    for p_n,result in results.items():
+        N_S = params["N_S"]
+        params_n = params.copy()
+        for i,p in enumerate(p_n):
+            for pname in grid_params[i]:
+                if grid_mode[i] == "scale":
+                    params_n[pname] = params[pname]*(1+factors[i]*(p/N-1/2))
+                elif grid_mode[i] == "fade_vec":
+                    N_S = params["N_S"]
+                    params_n[pname] = np.array([1-i*factors[i]*(p/(N_span*N_S)) for i in range(N_S)])
+            if label_mode[i]=="diff_mean":
+                parameter_values[p_n[i],i] = np.mean(params_n[grid_params[i][0]]) - np.mean(params_n[grid_params[i][1]])
+            elif label_mode[i]=="mean":
+                parameter_values[p_n[i],i] = np.mean([np.mean(params_n[pname]) for pname in grid_params[i]])
+            elif label_mode[i]=="nz_mean":
+                parameter_values[p_n[i],i] = np.mean([np.mean(params_n[pname])*(len(params_n[pname])/np.sum(params_n[pname]==0)) for pname in grid_params[i]])
+        NAG, S_REL, S_AGE = params_n["NAG"], params_n["S_REL"], params_n["S_AGE"]
+        # Calculate susceptibility
+        sus = np.zeros((len(result.t),NAG))
+        pop_size = np.sum(result.y,axis=0)
+        for i_t,t in enumerate(result.t):
+            for i in range(N_S):
+                sus[i_t,:] += S_REL[i]*S_AGE*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
+        # absolute susceptibility when lockdown starts
+        total_sus = np.sum(sus,axis=1)
+        pre_susc[p_n] = total_sus[np.argmax(result.t>=T_LOCKDOWN)]
+        # susceptibility when lockdown ends
+        # rel_sus = total_sus/total_sus[np.argmax(result.t>=T_LOCKDOWN)]
+        post_susc[p_n] = total_sus[np.argmax(result.t>=T_LOCKDOWN+LOCKDOWN_DURATION)]
+
+    tick_space = N//4 + 1
+
+    im0 = axes[0].imshow(pre_susc)
+    axes[0].set_title('Susceptibility\nat lockdown start')
+    axes[0].set_yticks(range(0,N,tick_space),[f'{parameter_values[y_n,0]:.0f}' for y_n in range(0,N,tick_space)])
+    axes[0].set_xticks(range(0,N,tick_space),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,tick_space)])
+    cbar = plt.colorbar(im0, ax=axes[0])
+
+    im1 = axes[1].imshow(post_susc)
+    axes[1].set_title('Susceptibility\nat lockdown end')
+    axes[1].set_yticks(range(0,N,tick_space),[f'{parameter_values[y_n,0]:.0f}' for y_n in range(0,N,tick_space)])
+    axes[1].set_xticks(range(0,N,tick_space),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,tick_space)])
+    cbar = plt.colorbar(im1, ax=axes[1])
     cbar.set_label('Effective susceptible population')
