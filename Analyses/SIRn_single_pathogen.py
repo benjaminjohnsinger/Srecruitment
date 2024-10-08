@@ -7,12 +7,13 @@ import time
 import itertools as it
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+import pickle
 
 from vaccination import birth_vax, all_vax
 import contact_model as cm
 from SIRn_ODEs import single_pathogen_deltas as deltas
 from Parameters.test_population import *
-from Parameters.adult_disease import *
+from Parameters.child_disease import *
 
 
 
@@ -64,20 +65,30 @@ T_VAX = PERIOD
 # ax4 = fig.add_subplot(gs[2,0])
 # ax5 = fig.add_subplot(gs[1:,1:])
 
-# params = ((NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
-#     IMPORT, BETA,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
-# params as a dictionary
+# BETA = 0.5*BETA
+# REC = 0.5*REC
 params = {'NAG':NAG, 'N_S':N_S, 'AGING_RATE':AGING_RATE, 'BIRTH_RATE':BIRTH_RATE, 'WANE_UP':WANE_UP, 'WANE_SAME':WANE_SAME, 'REC':REC, 'S_REL':S_REL, 'S_AGE':S_AGE, 'I_REL':I_REL, 'P_OBS':P_OBS, 'birth_vax':birth_vax, 'all_vax':all_vax, 'S_VAX':S_VAX, 'ACOV_SCALED':ACOV_SCALED, 'BCOV':BCOV, 'T_VAX':T_VAX,
     'IMPORT':IMPORT, 'BETA':BETA, 'contact':lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)}
+# result = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=(params,))
 
+# fig, axes = plt.subplots(figsize=(6.5,6.5))
 
-# result = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params)
+# mx = lockdown_incidence_plot(axes,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result)
+# lockdown_incidence_format(axes,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,mx)
+# plt.tight_layout()
+# plt.show()
 
 # measure time to get results
 start = time.time()
 results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,N=10)
+# save results
+with open('Data/Processed/test_child.pkl','wb') as f:
+    pickle.dump(results,f)
 end = time.time()
 print('Time to get results:',end-start)
+# # load results
+# with open('Data/Processed/test.pkl','rb') as f:
+#     results = pickle.load(f)
 fig, axes = plt.subplots(4,2,figsize=(6.5,8.5))
 obs_grid_plot(axes[0:2,:],results,params,OBS_AGE,T_LOCKDOWN,LOCKDOWN_DURATION)
 susc_grid_plot(axes[2,:],results,params,T_LOCKDOWN,LOCKDOWN_DURATION)

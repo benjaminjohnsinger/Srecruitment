@@ -207,11 +207,13 @@ label_mode=("diff_mean","nz_mean")):
         # distinguish between annual, biannual, etc outbreaks pre-lockdown
         corr = np.correlate(pre_obs, pre_obs, mode='same')
         acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
+        # slight correction prevents mistaking annual correlation for anything else
+        acorr = acorr + np.linspace(0.1, 0, len(acorr))
         lag = np.abs(acorr).argmax() + 1
         pre_space[p_n] = lag
         # find time to first post-lockdown rebound, first time to half the pre-lockdown peak incidence
-        post_peak_arg = np.argmax(np.sum(obs[result.t>=T_LOCKDOWN],axis=1)/pop_size[result.t>=T_LOCKDOWN] > pre_peak/2)
-        post_space[p_n] = result.t[np.argmax(result.t>=T_LOCKDOWN)+post_peak_arg]
+        post_peak_arg = np.argmax(np.sum(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)],axis=1)/pop_size[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)] > pre_peak/2)
+        post_space[p_n] = result.t[np.argmax(result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION))+post_peak_arg]-(T_LOCKDOWN+LOCKDOWN_DURATION)
 
     tick_space = N//4 + 1
 
@@ -228,18 +230,18 @@ label_mode=("diff_mean","nz_mean")):
     cbar = plt.colorbar(im01, ax=axes[0,1])
     cbar.set_label('Observed incidence')
 
-    im10 = axes[1,0].imshow(pre_space)
+    im10 = axes[1,0].imshow(pre_space/12)
     axes[1,0].set_title('Pre-lockdown\nperiodicity')
     axes[1,0].set_yticks(range(0,N,tick_space),[f'{parameter_values[y_n,0]:.0f}' for y_n in range(0,N,tick_space)])
     axes[1,0].set_xticks(range(0,N,tick_space),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,tick_space)])
     cbar = plt.colorbar(im10, ax=axes[1,0])
 
-    im11 = axes[1,1].imshow(post_space)
+    im11 = axes[1,1].imshow(post_space/12)
     axes[1,1].set_title('Time to post-\nlockdown rebound')
     axes[1,1].set_yticks(range(0,N,tick_space),[f'{parameter_values[y_n,0]:.0f}' for y_n in range(0,N,tick_space)])
     axes[1,1].set_xticks(range(0,N,tick_space),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,tick_space)])
     cbar = plt.colorbar(im11, ax=axes[1,1])
-    cbar.set_label('Time (months)')
+    cbar.set_label('Time (years)')
 
 def susc_grid_plot(axes,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,
 grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),factors=(1,1),
