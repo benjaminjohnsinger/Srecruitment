@@ -13,9 +13,7 @@ from vaccination import birth_vax, all_vax
 import contact_model as cm
 from SIRn_ODEs import single_pathogen_deltas as deltas
 from Parameters.test_population import *
-from Parameters.child_disease import *
-
-
+from Parameters.adult_disease import *
 
 from plotting import *
 
@@ -73,33 +71,72 @@ params = {'NAG':NAG, 'N_S':N_S, 'AGING_RATE':AGING_RATE, 'BIRTH_RATE':BIRTH_RATE
 
 # fig, axes = plt.subplots(figsize=(6.5,6.5))
 
-# mx = lockdown_incidence_plot(axes,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result)
-# lockdown_incidence_format(axes,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,mx)
+# start = time.time()
+# results_by_acqimm = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,N=100,\
+#     grid_params=(('S_REL',),),grid_mode=("fade_vec",),factors=(1,))
+# with open('Data/Processed/results_by_acqimm.pkl','wb') as f:
+#     pickle.dump(results_by_acqimm,f)
+# end = time.time()
+# print('Time to get results:',end-start)
+# # load results
+# with open('Data/Processed/results_by_acqimm.pkl','rb') as f:
+#     results_by_acqimm = pickle.load(f)
+# fig, axes = plt.subplots(3,1,figsize=(6.5,6.5),sharex=True)
+# param_line_plot(axes[0],results_by_acqimm,params,T_LOCKDOWN,LOCKDOWN_DURATION,
+# grid_params=("I_REL",),grid_mode="fade_vec",factor=1,label_mode="mean",
+# y_values=("child infections",),y_labels=("Child",),x_label="",
+# colors=("#648FFF",))
+# param_line_plot(axes[1],results_by_acqimm,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=OBS_AGE,
+# grid_params=("I_REL",),grid_mode="fade_vec",factor=1,label_mode="mean",
+# y_values=("time to rebound",),y_labels=("Time to rebound",),x_label="",
+# colors=("#FFB000",))
+# param_line_plot(axes[2],results_by_acqimm,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=OBS_AGE,
+# grid_params=("I_REL",),grid_mode="fade_vec",factor=1,label_mode="mean",
+# y_values=("rebound peak incidence",),y_labels=("Rebound peak",),x_label="Acquired immunity",
+# colors=("#DC267F",))
+# axes[0].set_ylabel('Child-caused infections')
+# axes[1].set_ylabel('Time to rebound')
+# axes[2].set_ylabel('Rebound size')
 # plt.tight_layout()
 # plt.show()
 
-# measure time to get results
-start = time.time()
-results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,N=10)
-# save results
-with open('Data/Processed/test_child.pkl','wb') as f:
-    pickle.dump(results,f)
-end = time.time()
-print('Time to get results:',end-start)
-# # load results
-# with open('Data/Processed/test.pkl','rb') as f:
-#     results = pickle.load(f)
+# # measure time to get results
+# start = time.time()
+# results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,N=10)
+# # save results
+# with open('Data/Processed/test_child.pkl','wb') as f:
+#     pickle.dump(results,f)
+# end = time.time()
+# print('Time to get results:',end-start)
+# # # load results
+with open('Data/Processed/test.pkl','rb') as f:
+    results = pickle.load(f)
 fig, axes = plt.subplots(4,2,figsize=(6.5,8.5))
-obs_grid_plot(axes[0:2,:],results,params,OBS_AGE,T_LOCKDOWN,LOCKDOWN_DURATION)
-susc_grid_plot(axes[2,:],results,params,T_LOCKDOWN,LOCKDOWN_DURATION)
-age_infect_grid_plot(axes[3,:],results,params,T_LOCKDOWN,LOCKDOWN_DURATION)
+z_values = [["child infections","under-five infections"],
+["peak incidence","rebound peak incidence"],
+["periodicity","time to rebound"],
+["pre-lockdown susceptibility","post-lockdown susceptibility"]]
+titles = [["Child infections","Under-five infections"],
+["Peak incidence","Rebound peak"],
+["Periodicity","Time to rebound"],
+["Pre-lockdown\nsusceptibility","Post-lockdown\nsusceptibility"]]
+cbar_labels = [["","Infections"],
+["","Observed infections"],
+["","Years"],
+["","Susceptibility"]]
+for i in range(4):
+    for j in range(2):
+        grid_plot(axes[i,j],results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=OBS_AGE,
+        grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),factors=(1,1),
+        z_value=z_values[i][j])
+        axes[i,j].set_title(titles[i][j])
+        if i == 3:
+            axes[i,j].set_xlabel("Waning")
+        if j == 0:
+            axes[i,j].set_ylabel("Growth rate")
 plt.tight_layout()
 plt.show()
 
-# fig, axes = plt.subplots(3,2,figsize=(6.5,8.5))
-# grid_plot(axes,STATE0,params,OBS_AGE,PERIOD,T_LOCKDOWN,LOCKDOWN_DURATION,N=3,N_span=3)
-# plt.tight_layout()
-# plt.show()
 
 # w36_up = 0.36*np.array([1,1,0])
 # w36_same = 0.36*np.array([0,0,1])

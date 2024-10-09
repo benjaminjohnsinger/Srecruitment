@@ -9,11 +9,13 @@ import pandas as pd
 import itertools as it
 from plotting import *
 
+z = ["x","y"]
+print([i=="x" for i in z])
 
-for i in it.product(range(3),repeat=3):
-    print(i)
-    for j,p in enumerate(i):
-        print(j,p)
+# for i in it.product(range(3),repeat=3):
+#     print(i)
+#     for j,p in enumerate(i):
+#         print(j,p)
 
 # def f1(t):
 #     return 0.5*np.sin(2*np.pi*t/52)
