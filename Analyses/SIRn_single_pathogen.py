@@ -65,20 +65,36 @@ T_VAX = PERIOD
 
 # BETA = 0.5*BETA
 # REC = 0.5*REC
+S_REL = np.ones(N_S)
 params = {'NAG':NAG, 'N_S':N_S, 'AGING_RATE':AGING_RATE, 'BIRTH_RATE':BIRTH_RATE, 'WANE_UP':WANE_UP, 'WANE_SAME':WANE_SAME, 'REC':REC, 'S_REL':S_REL, 'S_AGE':S_AGE, 'I_REL':I_REL, 'P_OBS':P_OBS, 'birth_vax':birth_vax, 'all_vax':all_vax, 'S_VAX':S_VAX, 'ACOV_SCALED':ACOV_SCALED, 'BCOV':BCOV, 'T_VAX':T_VAX,
     'IMPORT':IMPORT, 'BETA':BETA, 'contact':lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)}
-# result = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=(params,))
+result = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=(params,))
+
+# # plot each compartment
+# fig, axes = plt.subplots(3,1,figsize=(6.5,6.5),sharex=True)
+# for i in range(N_S):
+#     axes[0].plot(result.t,np.sum(result.y[(3*i+1)*NAG:(3*i+2)*NAG,:],axis=0), label='S'+str(i+1))
+#     axes[1].plot(result.t,np.sum(result.y[(3*i+2)*NAG:(3*i+3)*NAG,:],axis=0), label='I'+str(i+1))
+#     axes[2].plot(result.t,np.sum(result.y[(3*i+3)*NAG:(3*i+4)*NAG,:],axis=0), label='R'+str(i+1))
+# axes[0].set_xlim(25*12,43*12)
+# axes[1].set_ylim(0,5e4)
+# axes[2].set_ylim(0,7e5)
+# axes[0].legend()
+# axes[1].legend()
+# axes[2].legend()
+# plt.tight_layout()
+# plt.show()
 
 # fig, axes = plt.subplots(figsize=(6.5,6.5))
 
 # start = time.time()
-# results_by_acqimm = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,N=100,\
-#     grid_params=(('S_REL',),),grid_mode=("fade_vec",),factors=(1,))
-# with open('Data/Processed/results_by_acqimm.pkl','wb') as f:
-#     pickle.dump(results_by_acqimm,f)
+# results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,N=10,
+# grid_mode=("scale","fade_vec"))
+# with open('Data/Processed/results_growth_wane_vec.pkl','wb') as f:
+#     pickle.dump(results,f)
 # end = time.time()
 # print('Time to get results:',end-start)
-# # load results
+# # # load results
 # with open('Data/Processed/results_by_acqimm.pkl','rb') as f:
 #     results_by_acqimm = pickle.load(f)
 # fig, axes = plt.subplots(3,1,figsize=(6.5,6.5),sharex=True)
@@ -100,17 +116,17 @@ params = {'NAG':NAG, 'N_S':N_S, 'AGING_RATE':AGING_RATE, 'BIRTH_RATE':BIRTH_RATE
 # plt.tight_layout()
 # plt.show()
 
-# # measure time to get results
-# start = time.time()
-# results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,N=10)
-# # save results
-# with open('Data/Processed/test_child.pkl','wb') as f:
-#     pickle.dump(results,f)
-# end = time.time()
-# print('Time to get results:',end-start)
-# # # load results
-with open('Data/Processed/test.pkl','rb') as f:
-    results = pickle.load(f)
+# measure time to get results
+start = time.time()
+results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,N=10)
+# save results
+with open('Data/Processed/test_adult_no_SREL.pkl','wb') as f:
+    pickle.dump(results,f)
+end = time.time()
+print('Time to get results:',end-start)
+# # load results
+# with open('Data/Processed/results_by_wane_low.pkl','rb') as f:
+#     results = pickle.load(f)
 fig, axes = plt.subplots(4,2,figsize=(6.5,8.5))
 z_values = [["child infections","under-five infections"],
 ["peak incidence","rebound peak incidence"],
@@ -128,7 +144,7 @@ for i in range(4):
     for j in range(2):
         grid_plot(axes[i,j],results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=OBS_AGE,
         grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),factors=(1,1),
-        z_value=z_values[i][j])
+        z_value=z_values[i][j],z_label=cbar_labels[i][j])
         axes[i,j].set_title(titles[i][j])
         if i == 3:
             axes[i,j].set_xlabel("Waning")
