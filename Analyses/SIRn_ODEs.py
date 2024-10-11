@@ -11,6 +11,7 @@ def single_pathogen_deltas(t,state,params):
     # Susceptible, infected, recovered - waning, aging, infection, recovery for all susceptibility classes
     for i in range(N_S):
         # Susceptibile class i = birth - infection + waning + aging in - aging out +/- vaccination
+        # WANE_UP[-1] is zero
         delta[(3*i+1)*NAG:(3*i+2)*NAG] = birth_vax(t,i,S_VAX,BCOV,T_VAX)*BIRTH_RATE*pop_size*np.concatenate((np.ones(1),np.zeros(NAG-1)))\
             -S_REL[i]*S_AGE*BETA*(np.dot(contact(t),np.sum(np.array(([state[(3*j+2)*NAG:(3*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
             + WANE_UP[i-1]*state[(3*i)*NAG:(3*i+1)*NAG] + WANE_SAME[i]*state[(3*i+3)*NAG:(3*i+4)*NAG]\
