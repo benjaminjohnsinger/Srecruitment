@@ -35,21 +35,45 @@ def contact(t,shape,seasonality=SEASONALITY,offset=OFFSET,c_rate=CONTACT):
     return shape(t)*(1+seasonality*np.cos(2*np.pi*(t/12-offset)))*c_rate
 
 ## Initial conditions
-STATE0 = np.zeros(2*N_S*NAG)
-STATE0[0:NAG] = KP_AGE_POP-1 # Everyone is susceptible except
-STATE0[NAG:2*NAG] = 1 # one individual in each age group that is infected.
+STATE0 = np.zeros((2*N_S+2)*NAG)
+STATE0[NAG:2*NAG] = KP_AGE_POP-1 # Everyone is susceptible except
+STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 ## Integrate the system
-# POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12,0.1),np.ones(1)*PERIOD))
-POINTS = np.arange(0,PERIOD+1,1)
+POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12,0.1),np.ones(1)*PERIOD))
+# POINTS = np.arange(0,PERIOD+1,1)
 T_VAX = PERIOD
 
-# BETA *= 0.8
-
 # Parameters for the ODE
-params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_RATE, 'WANE': WANE, 'REC': REC, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
+params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_RATE, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
 'IMPORT': IMPORT, 'BETA': BETA, 'contact':lambda t : contact(t,shape_step)}
 result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
 
-plt.plot(result.y.T)
+## Plotting
+fig, ax = plt.subplots(figsize=(6.5,6.5))
+mx1 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label='12mo waning',color='#648FFF',by_age=False,AGE_GROUP_NAMES=None)
+params['WANE'] = 1/24*np.array([0.0,1.0,0.0])
+mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label='24mo waning',color='#DC267F',by_age=False,AGE_GROUP_NAMES=None)
+params['WANE'] = 1/36*np.array([0.0,1.0,0.0])
+mx3 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label='36mo waning',color='#FFB000',by_age=False,AGE_GROUP_NAMES=None)
+lockdown_incidence_format(ax,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,max(mx1,mx2,mx3))
+plt.legend()
 plt.show()
+
+
+# # results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,grid_params=(("BETA",),("REC_UP","REC_SAME")),N=10,factors=(2,2))
+# # # Save the results
+# # with open('Data/Processed/SISn_beta_rec2.pickle','wb') as f:
+# #     pickle.dump(results,f)
+# # Load the results
+# with open('Data/Processed/SISn_beta_rec2.pickle','rb') as f:
+#     results = pickle.load(f)
+
+# fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
+# grid_plot(ax[0],results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE,
+# grid_params=(("BETA",),("REC_UP","REC_SAME")),label_mode=("mean","nz_mean"),
+# z_value="oscillation size",z_label="Oscillation size")
+# grid_plot(ax[1],results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE,
+# grid_params=(("BETA",),("REC_UP","REC_SAME")),label_mode=("mean","nz_mean"),
+# z_value="peak incidence",z_label="Peak observed incidence")
+# plt.show()

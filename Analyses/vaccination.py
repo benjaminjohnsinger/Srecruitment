@@ -17,14 +17,15 @@ def birth_vax(t,s_class,S_VAX=2,COVERAGE=0,T_VAX=0):
 # Annual mass vaccination (a rate)
 # S_VAX is the susceptibility class of vaccinated individuals
 # coverage is the time-varying proportion of the population vaccinated each month - this can be an age-dependent vector
-def all_vax(t,s_class,coverage,S_VAX=2,T_VAX=0,NAG=7,N_S=3):
+def all_vax(t,s_class,coverage,S_VAX=2,T_VAX=0,NAG=7,N_S=3,N_C=3):
     if s_class != S_VAX:
-        vec = np.zeros((3*N_S+1)*NAG)
-        vec[(3*s_class+1)*NAG:(3*s_class+2)*NAG] = -1
+        # (3-N_C) here is a really hacky way of making this work with SIS model, which needs to reference an extra empty compartment
+        vec = np.zeros((N_C*N_S+1+(3-N_C))*NAG)
+        vec[(N_C*s_class+1)*NAG:(N_C*s_class+2)*NAG] = -1
         return 0 if t < T_VAX else coverage(t,T_VAX)*vec
     else:
-        vec = np.zeros((3*N_S+1)*NAG)
+        vec = np.zeros((N_C*N_S+1+(3-N_C))*NAG)
         for i in range(N_S):
             if i != s_class:
-                vec[(i*3+1)*NAG:(i*3+2)*NAG] = 1
+                vec[(i*N_C+1)*NAG:(i*N_C+2)*NAG] = 1
         return 0 if t < T_VAX else coverage(t,T_VAX)*vec
