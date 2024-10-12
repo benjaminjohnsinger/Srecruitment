@@ -49,17 +49,22 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 'IMPORT': IMPORT, 'BETA': BETA, 'contact':lambda t : contact(t,shape_step)}
 result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
 
-## Plotting
-fig, ax = plt.subplots(figsize=(6.5,6.5))
-mx1 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label='12mo waning',color='#648FFF',by_age=False,AGE_GROUP_NAMES=None)
-params['WANE'] = 1/24*np.array([0.0,1.0,0.0])
-mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label='24mo waning',color='#DC267F',by_age=False,AGE_GROUP_NAMES=None)
-params['WANE'] = 1/36*np.array([0.0,1.0,0.0])
-mx3 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label='36mo waning',color='#FFB000',by_age=False,AGE_GROUP_NAMES=None)
-lockdown_incidence_format(ax,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,max(mx1,mx2,mx3))
-plt.legend()
-plt.show()
+## four line plots with different values of waning, showing incidence and susceptibility
+fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
+mx = np.zeros(4)
+colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
+# Plot the incidence
+for i in range(4):
+    params['WANE'] = i/36*np.array([0.0,1.0,0.0])
+    result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+    mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label="Waning rate "+f'{i/3:.2f}'+r" $y^{-1}$",color=colors[i])
+    lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label="Waning rate "+f'{i/3:.2f}'+r" $y^{-1}$",color=colors[i])
 
+lockdown_incidence_format(ax[0],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,max(mx))
+lockdown_susceptibility_format(ax[1],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,ymax=1.35)
+ax[1].legend()
+plt.tight_layout()
+plt.savefig('Figures/SISn_waning.png')
 
 # # results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,grid_params=(("BETA",),("REC_UP","REC_SAME")),N=10,factors=(2,2))
 # # # Save the results

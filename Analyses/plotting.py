@@ -113,7 +113,6 @@ def age_infect_plot(ax,state0,params,AGE_GROUP_NAMES,period,points,T_LOCKDOWN,LO
 def sim_grid(state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,
             grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),N=10,factors=(1,1),deltas=deltas_SIS):
     N_params = len(grid_params)
-    N_S = params["N_S"]
     results = {}
     for p_n in it.product(range(N),repeat=N_params):
         # Scale parameters for exploration
@@ -123,7 +122,8 @@ def sim_grid(state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,
                 if grid_mode[i] == "scale":
                     params_n[pname] = params[pname]*(1+(p/N-1/2))**factors[i]
                 elif grid_mode[i] == "fade_vec":
-                    vec = np.array([(1-j*(p/(N*(N_S-1))))**factors[i] for j in range(N_S)])
+                    vec_len = len(params[pname])
+                    vec = np.array([(1-j*(p/(N*(vec_len-1))))**factors[i] for j in range(vec_len)])
                     vec = vec.reshape(params[pname].shape)
                     params_n[pname] = vec
         # Run simulation
@@ -141,7 +141,6 @@ colors=("#648FFF","#DC267F")):
     parameter_values = np.zeros(N)
 
     for p_n,result in results.items():
-        N_S = params["N_S"]
         params_n = params.copy()
         print(p_n)
         for p in p_n:
@@ -149,13 +148,13 @@ colors=("#648FFF","#DC267F")):
                 if grid_mode == "scale":
                     params_n[pname] = params[pname]*(1+(p/N-1/2))**factor
                 elif grid_mode == "fade_vec":
-                    N_S = params["N_S"]
-                    vec = np.array([(1-j*(p/(N*N_S)))**factor for j in range(N_S)])
+                    vec_len = len(params[pname])
+                    vec = np.array([(1-j*(p/(N*vec_len)))**factor for j in range(vec_len)])
                     vec = vec.reshape(params[pname].shape)
                     params_n[pname] = vec
             # Express summary of parameters as a single value
             if grid_mode == "fade_vec":
-                parameter_values[p] = factor*p/(N*N_S)
+                parameter_values[p] = factor*p/(N*vec_len)
             elif label_mode=="diff_mean":
                 parameter_values[p] = np.mean(params_n[grid_params[0]]) - np.mean(params_n[grid_params[1]])
             elif label_mode=="mean":
@@ -205,19 +204,18 @@ z_value="peak incidence",z_label="Observed incidence"):
     parameter_values = np.zeros((N,N_params))
 
     for p_n,result in results.items():
-        N_S = params["N_S"]
         params_n = params.copy()
         for i,p in enumerate(p_n):
             for pname in grid_params[i]:
                 if grid_mode[i] == "scale":
                     params_n[pname] = params[pname]*(1+(p/N-1/2))**factors[i]
                 elif grid_mode[i] == "fade_vec":
-                    vec = np.linspace(1,1-p, N_S)**factors[i]
-                    vec = np.array([(1-j*(p/N_S))**factors[i] for j in range(N_S)])
+                    vec_len = len(params[pname])
+                    vec = np.array([(1-j*(p/vec_len))**factors[i] for j in range(vec_len)])
                     vec = vec.reshape(params[pname].shape)
                     params_n[pname] = vec
             if grid_mode == "fade_vec":
-                parameter_values[p,i] = factors[i]*p/(N*N_S)
+                parameter_values[p,i] = factors[i]*p/(N*vec_len)
             if label_mode[i]=="diff_mean":
                 parameter_values[p,i] = np.mean(params_n[grid_params[i][0]]) - np.mean(params_n[grid_params[i][1]])
             elif label_mode[i]=="mean":
