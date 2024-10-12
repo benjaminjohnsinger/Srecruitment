@@ -49,22 +49,24 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 'IMPORT': IMPORT, 'BETA': BETA, 'contact':lambda t : contact(t,shape_step)}
 result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
 
-## four line plots with different values of waning, showing incidence and susceptibility
+## four line plots with different values of aquired immunity, showing incidence and susceptibility
 fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
 mx = np.zeros(4)
 colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
 # Plot the incidence
 for i in range(4):
-    params['WANE'] = i/36*np.array([0.0,1.0,0.0])
+    AQUIRED_IMMUNITY = [0.2,0.3,0.4,0.5][i]
+    params['S_REL'] = np.linspace(1,(1-(3-1)*AQUIRED_IMMUNITY),3)
     result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-    mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label="Waning rate "+f'{i/3:.2f}'+r" $y^{-1}$",color=colors[i])
-    lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label="Waning rate "+f'{i/3:.2f}'+r" $y^{-1}$",color=colors[i])
+    mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label="Aquired immunity "+f'{AQUIRED_IMMUNITY:.2f}',color=colors[i],relative=True)
+    lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label="Aquired immunity "+f'{AQUIRED_IMMUNITY:.2f}',color=colors[i])
 
 lockdown_incidence_format(ax[0],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,max(mx))
+ax[0].set_ylabel("Incidence relative to\npre-lockdown peak")
 lockdown_susceptibility_format(ax[1],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,ymax=1.35)
-ax[1].legend()
+ax[0].legend()
 plt.tight_layout()
-plt.savefig('Figures/SISn_waning.png')
+plt.savefig('Figures/SISn_acquired_immunity_relative.png',dpi=300)
 
 # # results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,grid_params=(("BETA",),("REC_UP","REC_SAME")),N=10,factors=(2,2))
 # # # Save the results

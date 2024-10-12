@@ -36,22 +36,28 @@ def susceptibility(result,params,N_C=2):
     return(sus)
             
 
-def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',by_age=False,AGE_GROUP_NAMES=None,deltas=deltas_SIS):
+def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS):
     NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
     if result is None:
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
     ## Calculate observations
     if by_age:
-        obs = observations(result,params,OBS_AGE,incidence=Frue)
+        obs = observations(result,params,OBS_AGE,incidence=False)
         cmap = plt.get_cmap('viridis')
         pop_size_by_age = np.array([np.sum(result.y[range(i_age,(3*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
         for i_age in range(NAG):
             ax.plot(result.t,obs[:,i_age]/pop_size_by_age[:,i_age], label=AGE_GROUP_NAMES[i_age], color=cmap(i_age/(NAG-1)))
         mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[np.argmax(result.t>T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])
     else:
-        obs = observations(result,params,OBS_AGE,incidence=True)
-        ax.plot(result.t, obs, label=label,color=color)
-        mx = 1.1*np.max(obs[np.argmax(result.t>T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])
+        if relative:
+            obs = observations(result,params,OBS_AGE,incidence=True)
+            pre_mx = 1.1*np.max(obs[np.argmax(result.t>T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN)])
+            ax.plot(result.t, obs/pre_mx, label=label,color=color)
+            mx = 1.1*np.max(obs[np.argmax(result.t>T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])/pre_mx
+        else:
+            obs = observations(result,params,OBS_AGE,incidence=True)
+            ax.plot(result.t, obs, label=label,color=color)
+            mx = 1.1*np.max(obs[np.argmax(result.t>T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])
     return(mx)
 
 def lockdown_incidence_format(ax,points,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5):
