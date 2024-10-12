@@ -47,31 +47,36 @@ T_VAX = PERIOD
 # Parameters for the ODE
 params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_RATE, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
 'IMPORT': IMPORT, 'BETA': BETA, 'contact':lambda t : contact(t,shape_step)}
-result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
 
-## four line plots with different values of aquired immunity, showing incidence and susceptibility
-fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
-mx = np.zeros(4)
-colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
-# Plot the incidence
-for i in range(4):
-    params['BETA'] = 30+i*20
-    result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-    mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label="Infectiousness "+f'{30+i*20:.2f}'+r" $m^{-1}$",color=colors[i])
-    lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label="Infectiousness "+f'{30+i*20:.2f}'+r" $m^{-1}$",color=colors[i],relative=False)
+# ## four line plots with different values of aquired immunity, showing incidence and susceptibility
+# fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
+# mx = np.zeros(4)
+# colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
+# # Plot the incidence
+# for i in range(4):
+#     AGE_IMMUNITY = i/21
+#     params['S_AGE'] = np.linspace(1,(1-(NAG-1)*AGE_IMMUNITY),NAG)
+#     result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+#     mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{AGE_IMMUNITY:.2f}',color=colors[i],relative=True)
+#     lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{AGE_IMMUNITY:.2f}',color=colors[i],relative=True)
 
-lockdown_incidence_format(ax[0],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,max(mx))
-lockdown_susceptibility_format(ax[1],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,ymax=None)
-ax[0].set_ylabel("Observed incidence")
-ax[0].legend()
-plt.tight_layout()
-plt.savefig('Figures/SISn_beta.png',dpi=300)
+# lockdown_incidence_format(ax[0],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,max(mx))
+# lockdown_susceptibility_format(ax[1],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,ymax=None)
+# ax[0].set_ylabel("Incidence relative to\npre-lockdown peak")
+# ax[0].legend(title="Age group immunity")
+# plt.tight_layout()
+# plt.savefig('Figures/SISn_age_immunity_relative.png',dpi=300)
 
-# # results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,grid_params=(("BETA",),("REC_UP","REC_SAME")),N=10,factors=(2,2))
-# # # Save the results
-# # with open('Data/Processed/SISn_beta_rec2.pickle','wb') as f:
-# #     pickle.dump(results,f)
-# # Load the results
+start = time.time()
+results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
+grid_params=(("BETA",),("REC_UP","REC_SAME"),("WANE",),("S_REL",),("S_AGE",),("IMPORT",)),
+N=7,factors=(1,1,1,1,1,1,1),grid_mode=("scale","scale","scale","fade_vec","fade_vec","scale"))
+print(f"Simulation took {time.time()-start:.2f} seconds")
+# Save the results
+with open('Data/Processed/SIS_6D.pickle','wb') as f:
+    pickle.dump(results,f)
+# Load the results
 # with open('Data/Processed/SISn_beta_rec2.pickle','rb') as f:
 #     results = pickle.load(f)
 
