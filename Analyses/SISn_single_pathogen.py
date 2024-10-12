@@ -55,18 +55,17 @@ mx = np.zeros(4)
 colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
 # Plot the incidence
 for i in range(4):
-    AQUIRED_IMMUNITY = [0.2,0.3,0.4,0.5][i]
-    params['S_REL'] = np.linspace(1,(1-(3-1)*AQUIRED_IMMUNITY),3)
+    params['BETA'] = 30+i*20
     result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-    mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label="Aquired immunity "+f'{AQUIRED_IMMUNITY:.2f}',color=colors[i],relative=True)
-    lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label="Aquired immunity "+f'{AQUIRED_IMMUNITY:.2f}',color=colors[i])
+    mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label="Infectiousness "+f'{30+i*20:.2f}'+r" $m^{-1}$",color=colors[i])
+    lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label="Infectiousness "+f'{30+i*20:.2f}'+r" $m^{-1}$",color=colors[i],relative=False)
 
 lockdown_incidence_format(ax[0],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,max(mx))
-ax[0].set_ylabel("Incidence relative to\npre-lockdown peak")
-lockdown_susceptibility_format(ax[1],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,ymax=1.35)
+lockdown_susceptibility_format(ax[1],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,ymax=None)
+ax[0].set_ylabel("Observed incidence")
 ax[0].legend()
 plt.tight_layout()
-plt.savefig('Figures/SISn_acquired_immunity_relative.png',dpi=300)
+plt.savefig('Figures/SISn_beta.png',dpi=300)
 
 # # results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,grid_params=(("BETA",),("REC_UP","REC_SAME")),N=10,factors=(2,2))
 # # # Save the results
