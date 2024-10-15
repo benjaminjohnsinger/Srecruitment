@@ -5,6 +5,8 @@ import numpy as np
 import scipy as sp
 import itertools as it
 import matplotlib.pyplot as plt
+from math import comb
+import pickle
 
 from SISn_ODEs import single_pathogen_deltas as deltas_SIS
 
@@ -36,7 +38,7 @@ def susceptibility(result,params,N_C=2):
     return(sus)
             
 
-def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS):
+def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS):
     NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
     if result is None:
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
@@ -52,11 +54,11 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
         if relative:
             obs = observations(result,params,OBS_AGE,incidence=True)
             pre_mx = 1.1*np.max(obs[np.argmax(result.t>T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN)])
-            ax.plot(result.t, obs/pre_mx, label=label,color=color)
+            ax.plot(result.t, obs/pre_mx, label=label,color=color,alpha=alpha)
             mx = 1.1*np.max(obs[np.argmax(result.t>T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])/pre_mx
         else:
             obs = observations(result,params,OBS_AGE,incidence=True)
-            ax.plot(result.t, obs, label=label,color=color)
+            ax.plot(result.t, obs, label=label,color=color,alpha=alpha)
             mx = 1.1*np.max(obs[np.argmax(result.t>T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])
     return(mx)
 
@@ -159,7 +161,7 @@ colors=("#648FFF","#DC267F")):
                     params_n[pname] = params[pname]*(1+(p/N-1/2))**factor
                 elif grid_mode == "fade_vec":
                     vec_len = len(params[pname])
-                    vec = np.array([(1-j*(p/(N*vec_len)))**factor for j in range(vec_len)])
+                    vec = np.array([(1-j*(p/(N*(vec_len-1))))**factor for j in range(vec_len)])
                     vec = vec.reshape(params[pname].shape)
                     params_n[pname] = vec
             # Express summary of parameters as a single value
@@ -207,13 +209,14 @@ colors=("#648FFF","#DC267F")):
 
 def grid_plot(ax,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=None,
 grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),factors=(1,1),label_mode=("diff_mean","nz_mean"),
-z_value="peak incidence",z_label="Observed incidence"):
+z_value="peak incidence",z_label="Observed incidence",x_labels=("Growth","Waning")):
     N_params = len(grid_params)
     N = max([max(p) for p in results.keys()])+1
-    z_values = np.zeros((N,N))
+    z_values = np.zeros(np.repeat(N,N_params))
     parameter_values = np.zeros((N,N_params))
-
     for p_n,result in results.items():
+        if all([p==0 for p in p_n[1:]]):
+            print(p_n)
         params_n = params.copy()
         for i,p in enumerate(p_n):
             for pname in grid_params[i]:
@@ -221,11 +224,11 @@ z_value="peak incidence",z_label="Observed incidence"):
                     params_n[pname] = params[pname]*(1+(p/N-1/2))**factors[i]
                 elif grid_mode[i] == "fade_vec":
                     vec_len = len(params[pname])
-                    vec = np.array([(1-j*(p/vec_len))**factors[i] for j in range(vec_len)])
+                    vec = np.array([(1-j*(p/(N*(vec_len-1))))**factors[i] for j in range(vec_len)])
                     vec = vec.reshape(params[pname].shape)
                     params_n[pname] = vec
-            if grid_mode == "fade_vec":
-                parameter_values[p,i] = factors[i]*p/(N*vec_len)
+            if grid_mode[i] == "fade_vec":
+                parameter_values[p,i] = (p/(N*(vec_len-1)))**factors[i]
             if label_mode[i]=="diff_mean":
                 parameter_values[p,i] = np.mean(params_n[grid_params[i][0]]) - np.mean(params_n[grid_params[i][1]])
             elif label_mode[i]=="mean":
@@ -267,9 +270,52 @@ z_value="peak incidence",z_label="Observed incidence"):
                 z_values[p_n] = total_sus[np.argmax(result.t>=T_LOCKDOWN)]
             if z_value == "post-lockdown susceptibility":
                 z_values[p_n] = total_sus[np.argmax(result.t>=T_LOCKDOWN+LOCKDOWN_DURATION)]
+    # with open('Data/Processed/temp_'+z_value+'.pickle','wb') as f:
+    #     pickle.dump((parameter_values,z_values),f)
+    if N_params == 2:
+        im = ax.imshow(z_values)
+        ax.set_yticks(range(0,N,N//4+1),[f'{parameter_values[y_n,0]:.2f}' for y_n in range(0,N,N//4+1)])
+        ax.set_xticks(range(0,N,N//4+1),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,N//4+1)])
+        cbar = plt.colorbar(im, ax=ax)
+        cbar.set_label(z_label)
+    else:
+        ax_width = ax.shape[1]
+        for i in range(N_params):
+            for j in range(i+1,N_params):
+                axn = sum((N_params-k) for k in range(i+1))+j-i-N_params-1
+                axis = ax[axn//ax_width,axn%ax_width]
+                z_values_plot = np.mean(z_values,axis=tuple([k for k in range(N_params) if (k!=i) and (k!=j)]))
+                # # get z_values with all indixes equal to N//2 except for i and j
+                # z_values_plot = np.zeros((N,N))
+                # for i_n in range(N):
+                #     for j_n in range(N):
+                #         indices = [N//2+1]*N_params
+                #         indices[i] = i_n
+                #         indices[j] = j_n
+                #         z_values_plot[i_n,j_n] = z_values[tuple(indices)]
+                im = axis.imshow(np.flipud(z_values_plot)
+                # ,vmin=1,vmax=4
+                )
+                cbar = plt.colorbar(im, ax=axis)
+                axis.set_yticks(range(0,N,N//4+1),[f'{parameter_values[y_n,i]:.2g}' for y_n in range(N-1,-1,-(N//4+1))])
+                axis.set_xticks(range(0,N,N//4+1),[f'{parameter_values[x_n,j]:.2g}' for x_n in range(0,N,N//4+1)])
+                axis.set_xlabel(x_labels[j])
+                axis.set_ylabel(x_labels[i])
+        return(im)
 
-    im = ax.imshow(z_values)
-    ax.set_yticks(range(0,N,N//4+1),[f'{parameter_values[y_n,0]:.2f}' for y_n in range(0,N,N//4+1)])
-    ax.set_xticks(range(0,N,N//4+1),[f'{parameter_values[x_n,1]:.2f}' for x_n in range(0,N,N//4+1)])
-    cbar = plt.colorbar(im, ax=ax)
-    cbar.set_label(z_label)
+
+
+# def multi_grid_plot(axes,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=None,
+# grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),factors=(1,1),label_mode=("diff_mean","nz_mean"),
+# z_value="peak incidence",z_label="Peak incidence",x_labels=("Growth","Waning")):
+
+
+#     N_p = len(grid_params)
+#     for i in range(N_p):
+#         for j in range(i+1,N_p):
+#             gps = (grid_params[i],grid_params[j])
+#             gm = (grid_mode[i],grid_mode[j])
+#             fx = (factors[i],factors[j])
+#             lm = (label_mode[i],label_mode[j])
+
+

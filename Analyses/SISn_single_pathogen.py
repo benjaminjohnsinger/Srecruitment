@@ -40,7 +40,7 @@ STATE0[NAG:2*NAG] = KP_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 ## Integrate the system
-POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12,0.1),np.ones(1)*PERIOD))
+POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12,1),np.ones(1)*PERIOD))
 # POINTS = np.arange(0,PERIOD+1,1)
 T_VAX = PERIOD
 
@@ -48,6 +48,12 @@ T_VAX = PERIOD
 params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_RATE, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
 'IMPORT': IMPORT, 'BETA': BETA, 'contact':lambda t : contact(t,shape_step)}
 # result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# obs = observations(result,params,OBS_AGE,incidence=True)
+# print(np.max(obs[(result.t>25*12) & (result.t<T_LOCKDOWN)]))
+# print(np.max(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)]))
+# mx=lockdown_incidence_plot(plt.gca(),STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result)
+# lockdown_incidence_format(plt.gca(),POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,mx)
+# plt.show()
 
 # ## four line plots with different values of aquired immunity, showing incidence and susceptibility
 # fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
@@ -68,17 +74,32 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 # plt.tight_layout()
 # plt.savefig('Figures/SISn_age_immunity_relative.png',dpi=300)
 
-start = time.time()
-results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
-grid_params=(("BETA",),("REC_UP","REC_SAME"),("WANE",),("S_REL",),("S_AGE",),("IMPORT",)),
-N=7,factors=(1,1,1,1,1,1,1),grid_mode=("scale","scale","scale","fade_vec","fade_vec","scale"))
-print(f"Simulation took {time.time()-start:.2f} seconds")
-# Save the results
-with open('Data/Processed/SIS_6D.pickle','wb') as f:
-    pickle.dump(results,f)
+# start = time.time()
+# results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
+# grid_params=(("BETA",),("REC_UP","REC_SAME"),("WANE",),("S_REL",),("S_AGE",),("IMPORT",)),
+# N=5,factors=(1,1,1,1,1,1,1),grid_mode=("scale","scale","scale","fade_vec","fade_vec","scale"))
+# print(f"Simulation took {time.time()-start:.2f} seconds")
+# # Save the results
+# with open('Data/Processed/SIS_6D.pickle','wb') as f:
+#     pickle.dump(results,f)
 # Load the results
-# with open('Data/Processed/SISn_beta_rec2.pickle','rb') as f:
-#     results = pickle.load(f)
+with open('Data/Processed/SIS_6D.pickle','rb') as f:
+    results = pickle.load(f)
+
+# fig, axes = plt.subplots(5,3,figsize=(8.27,11.69),layout='constrained')
+# start = time.time()
+# im = grid_plot(axes,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE,
+# grid_params=(("BETA",),("REC_UP","REC_SAME"),("WANE",),("S_REL",),("S_AGE",),("IMPORT",)),
+# factors=(1,1,1,1,1,1,1),grid_mode=("scale","scale","scale","fade_vec","fade_vec","scale"),
+# label_mode=("mean","mean","mean","fade_vec","fade_vec","mean"),
+# x_labels=("Transmission","Recovery","Waning","Acquired immunity","Age immunity","Imported cases"),
+# z_value="rebound peak incidence",z_label="")
+# print(f"Plotting took {time.time()-start:.2f} seconds")
+# # colorbar
+# fig.colorbar(im, ax=axes, orientation='horizontal', label="Proportional rebound in peak incidence")
+# # plt.tight_layout()
+# # plt.show()
+# plt.savefig('Figures/SIS_6D_rebound_proporitonal_fixup.png',dpi=300)
 
 # fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
 # grid_plot(ax[0],results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE,
