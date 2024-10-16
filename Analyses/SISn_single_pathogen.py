@@ -47,32 +47,51 @@ T_VAX = PERIOD
 # Parameters for the ODE
 params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_RATE, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
 'IMPORT': IMPORT, 'BETA': BETA, 'contact':lambda t : contact(t,shape_step)}
+
+# with open('Data/Processed/SIS_6D.pickle','rb') as f:
+#     results = pickle.load(f)
+# obses = {}
+# for key,result in results.items():
+#     print(key)
+#     obs = observations(result,params,OBS_AGE,incidence=True)
+#     obses[key] = obs
+# print(obses)
+# with open('Data/Processed/SIS_6D_obs.pickle','wb') as f:
+#     pickle.dump(obses,f)
+
 # result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
 # obs = observations(result,params,OBS_AGE,incidence=True)
-# print(np.max(obs[(result.t>25*12) & (result.t<T_LOCKDOWN)]))
-# print(np.max(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)]))
 # mx=lockdown_incidence_plot(plt.gca(),STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result)
-# lockdown_incidence_format(plt.gca(),POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,mx)
+# lockdown_incidence_format(plt.gca(),T_LOCKDOWN,LOCKDOWN_DURATION,mx)
 # plt.show()
 
-# ## four line plots with different values of aquired immunity, showing incidence and susceptibility
-# fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
-# mx = np.zeros(4)
-# colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
-# # Plot the incidence
-# for i in range(4):
-#     AGE_IMMUNITY = i/21
-#     params['S_AGE'] = np.linspace(1,(1-(NAG-1)*AGE_IMMUNITY),NAG)
-#     result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-#     mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{AGE_IMMUNITY:.2f}',color=colors[i],relative=True)
-#     lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{AGE_IMMUNITY:.2f}',color=colors[i],relative=True)
+## four line plots with different values of aquired immunity, showing incidence and susceptibility
+fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
+mx = np.zeros(4)
+colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
+# Plot the incidence
+params['BETA'] = 50
+for i in range(4):
+    params['S_REL'] = np.linspace(1,(1-(N_S-1)*0.1*(i+2)),N_S)
+    result = sp.integrate.solve_ivp(deltass,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+    # plot each susceptible compartment
+#     ax[i//2,i%2].plot(result.t[1:],np.sum(result.y[NAG:2*NAG,:],axis=0)[1:],label='S1',color=colors[0])
+#     ax[i//2,i%2].plot(result.t[1:],np.sum(result.y[3*NAG:4*NAG,:],axis=0)[1:],label='S2',color=colors[1])
+#     ax[i//2,i%2].plot(result.t[1:],np.sum(result.y[5*NAG:6*NAG,:],axis=0)[1:],label='S3',color=colors[2])
+#     ax[i//2,i%2].set_title(f"Aquired immunity: {0.1*(i+2):.2f}")
+# ax[0,0].legend()
+# plt.show()
+    mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{0.1*(i+2):.2f}',color=colors[i],relative=True)
+    lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{0.1*(i+2):.2f}',color=colors[i],relative=True)
 
-# lockdown_incidence_format(ax[0],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,max(mx))
-# lockdown_susceptibility_format(ax[1],POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,ymax=None)
-# ax[0].set_ylabel("Incidence relative to\npre-lockdown peak")
-# ax[0].legend(title="Age group immunity")
-# plt.tight_layout()
-# plt.savefig('Figures/SISn_age_immunity_relative.png',dpi=300)
+lockdown_incidence_format(ax[0],T_LOCKDOWN,LOCKDOWN_DURATION,max(mx))
+lockdown_susceptibility_format(ax[1],T_LOCKDOWN,LOCKDOWN_DURATION,ymax=None)
+ax[0].set_ylabel("Incidence relative to\npre-lockdown peak")
+ax[1].set_ylabel("Relative susceptibility")
+ax[1].set_ylim(0.95,1.25)
+ax[0].legend(title=r"Aquired immunity")
+plt.tight_layout()
+plt.savefig('Figures/SIS_acqimm_relative_beta_boost.png',dpi=300)
 
 # start = time.time()
 # results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
@@ -83,8 +102,8 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 # with open('Data/Processed/SIS_6D.pickle','wb') as f:
 #     pickle.dump(results,f)
 # Load the results
-with open('Data/Processed/SIS_6D.pickle','rb') as f:
-    results = pickle.load(f)
+# with open('Data/Processed/SIS_6D.pickle','rb') as f:
+#     results = pickle.load(f)
 
 # fig, axes = plt.subplots(5,3,figsize=(8.27,11.69),layout='constrained')
 # start = time.time()
@@ -108,4 +127,43 @@ with open('Data/Processed/SIS_6D.pickle','rb') as f:
 # grid_plot(ax[1],results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE,
 # grid_params=(("BETA",),("REC_UP","REC_SAME")),label_mode=("mean","nz_mean"),
 # z_value="peak incidence",z_label="Peak observed incidence")
+# plt.show()
+
+# # # measure time to get results
+# # start = time.time()
+# # results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,N=10
+# # ,grid_params=(("BETA","REC_UP","REC_SAME"),("S_REL",)),grid_mode=("scale","fade_vec"),factors=(1,1))
+# # # save results
+# # with open('Data/Processed/test_adult_SIS.pkl','wb') as f:
+# #     pickle.dump(results,f)
+# # end = time.time()
+# # print('Time to get results:',end-start)
+# # # load results
+# with open('Data/Processed/test_adult_SIS.pkl','rb') as f:
+#     results = pickle.load(f)
+# fig, axes = plt.subplots(4,2,figsize=(6.5,8.5))
+# z_values = [["child infections","under-five infections"],
+# ["peak incidence","rebound peak incidence"],
+# ["periodicity","time to rebound"],
+# ["pre-lockdown susceptibility","post-lockdown susceptibility"]]
+# titles = [["Child-caused\ninfections","Under-five-caused\ninfections"],
+# ["Peak incidence","Rebound peak"],
+# ["Periodicity","Time to rebound"],
+# ["Pre-lockdown\nsusceptibility","Post-lockdown\nsusceptibility"]]
+# cbar_labels = [["","Infections"],
+# ["","Observed infections"],
+# ["","Years"],
+# ["","Susceptibility"]]
+# for i in range(4):
+#     for j in range(2):
+#         grid_plot(axes[i,j],results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=OBS_AGE,
+#         grid_params=(("BETA","REC_UP"),("S_REL",)),grid_mode=("scale","fade_vec"),factors=(1,1),
+#         label_mode=("diff_mean","fade_vec"),
+#         z_value=z_values[i][j],z_label=cbar_labels[i][j])
+#         axes[i,j].set_title(titles[i][j])
+#         if i == 3:
+#             axes[i,j].set_xlabel("Immunity")
+#         if j == 0:
+#             axes[i,j].set_ylabel("Growth rate")
+# plt.tight_layout()
 # plt.show()

@@ -11,8 +11,8 @@ N_S = 3
 # Waning rates for susceptibles into lower susceptibilty class - for index plus one, i.e. [0,1,0] means only last class wanes
 WANE = 1/12*np.array([0.0,1.0,0.0])
 # Recovery rates for each susceptibility class
-REC_UP = 10*np.array([1.0,1.0,0.0]) # Recovery to higher susceptibility class
-REC_SAME = 10*np.array([0.0,0.0,1.0]) # Recovery to same susceptibility class
+REC_UP = 5*np.array([1.0,1.0,0.0]) # Recovery to higher susceptibility class
+REC_SAME = 5*np.array([0.0,0.0,1.0]) # Recovery to same susceptibility class
 # Relative susceptability and infectiousness, for each susceptibility class
 AQUIRED_IMMUNITY = 0.25
 S_REL = np.linspace(1,(1-(N_S-1)*AQUIRED_IMMUNITY),N_S)
@@ -30,7 +30,7 @@ OBS_AGE = np.linspace(1,(1-(NAG-1)*AGE_DISEASE_REDUCTION),NAG)
 SEASONALITY = 0.05
 OFFSET = 0
 # Infectiousness
-BETA = 70
+BETA = 30
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
 def ACOV(t,T_VAX):
