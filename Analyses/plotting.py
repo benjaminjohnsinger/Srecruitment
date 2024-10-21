@@ -11,11 +11,11 @@ import pickle
 from SISn_ODEs import single_pathogen_deltas as deltas_SIS
 
 def observations(result,params,OBS_AGE,incidence=False,N_C=2):
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
+    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, SEASONALITY, OFFSET, contact = params.values()
     obs = np.zeros((len(result.t),NAG))
     pop_size = np.sum(result.y,axis=0)
     for i_t,t in enumerate(result.t):
-        foi = BETA*np.dot(contact(t),np.sum((np.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
+        foi = BETA*np.dot(contact(t,SEASONALITY,OFFSET),np.sum((np.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
         for i in range(N_S):
             obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
     if incidence:
@@ -23,14 +23,14 @@ def observations(result,params,OBS_AGE,incidence=False,N_C=2):
     return(obs)
 
 def infections_by_age(result,params,N_C=2):
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
+    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, SEASONALITY, OFFSET, contact = params.values()
     infs = np.zeros((len(result.t),NAG))
     for i_t,t in enumerate(result.t):
-        infs[i_t,:] = np.sum(np.array([BETA*result.y[(N_C*i+2)*NAG:(N_C*i+3)*NAG,i_t]*I_REL[i]*np.dot(contact(t),np.sum([S_REL[j]*result.y[(N_C*j+1)*NAG:(N_C*j+2)*NAG,i_t] for j in range(N_S)],axis=0)) for i in range(N_S)]),axis=0)
+        infs[i_t,:] = np.sum(np.array([BETA*result.y[(N_C*i+2)*NAG:(N_C*i+3)*NAG,i_t]*I_REL[i]*np.dot(contact(t,SEASONALITY,OFFSET),np.sum([S_REL[j]*result.y[(N_C*j+1)*NAG:(N_C*j+2)*NAG,i_t] for j in range(N_S)],axis=0)) for i in range(N_S)]),axis=0)
     return(infs)
 
 def susceptibility(result,params,N_C=2):
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
+    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, SEASONALITY, OFFSET, contact = params.values()
     sus = np.zeros((len(result.t),NAG))
     for i_t,t in enumerate(result.t):
         for i in range(N_S):
@@ -38,9 +38,9 @@ def susceptibility(result,params,N_C=2):
     return(sus)
             
 
-def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None):
+def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None):
     if params is not None:
-        NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
+        NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, SEASONALITY, OFFSET, contact = params.values()
     if result is None:
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
     if times is None:
@@ -58,10 +58,10 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
             obs = observations(result,params,OBS_AGE,incidence=True)
         if relative:
             pre_mx = np.max(obs[np.argmax(times>T_LOCKDOWN-5*12):np.argmax(times>T_LOCKDOWN)])
-            ax.plot(times, obs/pre_mx, label=label,color=color,alpha=alpha)
+            ax.plot(times, obs/pre_mx, label=label,color=color,linewidth=linewidth,alpha=alpha)
             mx = 1.1*np.max(obs[np.argmax(times>T_LOCKDOWN-5*12):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])/pre_mx
         else:
-            ax.plot(times, obs, label=label,color=color,alpha=alpha)
+            ax.plot(times, obs, label=label,color=color,linewidth=linewidth,alpha=alpha)
             mx = 1.1*np.max(obs[np.argmax(times>T_LOCKDOWN-5*12):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])
     return(mx)
 
@@ -75,7 +75,7 @@ def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,t
     ax.set_title(title)
 
 def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,result=None,label='Susceptible_population',color='#648FFF',relative=True,by_age=False,AGE_GROUP_NAMES=None,style='-',delta=deltas_SIS):
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
+    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, SEASONALITY, OFFSET, contact = params.values()
     if result is None:
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
     ## Calculate susceptibility
@@ -94,10 +94,10 @@ def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,resul
         else:
             ax.plot(result.t,total_sus, label=label,color=color,linestyle=style)
 
-def lockdown_susceptibility_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,ymin=0.875,ymax=1.1):
-    ax.set_xlim(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12)
+def lockdown_susceptibility_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,ymin=0.875,ymax=1.1,year_window=5):
+    ax.set_xlim(T_LOCKDOWN-year_window*12,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*12)
     ax.set_ylabel('Relative susceptibility')
-    ax.set_xticks(np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12,12),[str(int(x)-5) for x in np.arange(0,11,1)])
+    ax.set_xticks(np.arange(T_LOCKDOWN-year_window*12,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*12,12),[str(int(x)-year_window) for x in np.arange(0,2*year_window+1,1)])
     ax.set_xlabel('Time (years)')
     ax.set_title('Population susceptibility with 1-year lockdown')
     yin, yax = ax.get_ylim()
@@ -109,7 +109,7 @@ def lockdown_susceptibility_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,ymin=0.875,ym
 
 def age_infect_plot(ax,state0,params,AGE_GROUP_NAMES,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,delts=deltas_SIS):
     cmap = plt.get_cmap('viridis')
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
+    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, SEASONALITY, OFFSET, contact = params.values()
     if result is None:
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
     ## Calculate rate of infections created by each age group
@@ -158,7 +158,6 @@ colors=("#648FFF","#DC267F")):
 
     for p_n,result in results.items():
         params_n = params.copy()
-        print(p_n)
         for p in p_n:
             for pname in grid_params:
                 if grid_mode == "scale":
@@ -170,26 +169,26 @@ colors=("#648FFF","#DC267F")):
                     params_n[pname] = vec
             # Express summary of parameters as a single value
             if grid_mode == "fade_vec":
-                parameter_values[p] = factor*p/(N*vec_len)
+                parameter_values[p] = factor*p/(N*(vec_len-1))
             elif label_mode=="diff_mean":
                 parameter_values[p] = np.mean(params_n[grid_params[0]]) - np.mean(params_n[grid_params[1]])
             elif label_mode=="mean":
                 parameter_values[p] = np.mean([np.mean(params_n[pname]) for pname in grid_params])
             elif label_mode=="nz_mean":
-                parameter_values[p] = np.mean([np.mean(params_n[pname])*(len(params_n[pname])/np.sum(params_n[pname]==0)) for pname in grid_params])
+                parameter_values[p] = np.mean([np.mean(params_n[pname])*(len(params_n[pname])/np.sum(params_n[pname]!=0)) for pname in grid_params])
         # Calculate observations
         if ("peak incidence" in y_values) or ("time to rebound" in y_values) or ("rebound peak incidence"in y_values) or ("periodicity" in y_values):
             obs = observations(result,params_n,OBS_AGE,incidence=True)
             if "peak incidence" in y_values:
-                values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="peak incidence"]] = np.max(obs[(result.t>25*12) & (result.t<T_LOCKDOWN)])
+                values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="peak incidence"]] = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
             if "time to rebound" in y_values:
-                post_peak_arg = np.argmax(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)] > np.max(obs[(result.t>25*12) & (result.t<T_LOCKDOWN)])/2)
+                post_peak_arg = np.argmax(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)] > np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])/2)
                 val = result.t[np.argmax(result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION))+post_peak_arg]-(T_LOCKDOWN+LOCKDOWN_DURATION)
                 values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="time to rebound"]] = val/12
             if "rebound peak incidence" in y_values:
                 values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="rebound peak incidence"]] = np.max(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)])
             if "periodicity" in y_values:
-                pre_obs = obs[(result.t>25*12) & (result.t<T_LOCKDOWN)]
+                pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
                 corr = np.correlate(pre_obs, pre_obs, mode='same')
                 acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
                 acorr = acorr + np.linspace(0.1, 0, len(acorr))
@@ -241,24 +240,24 @@ save=False,file=None,fix=False,vmin=None,vmax=None):
                 elif label_mode[i]=="mean":
                     parameter_values[p,i] = np.mean([np.mean(params_n[pname]) for pname in grid_params[i]])
                 elif label_mode[i]=="nz_mean":
-                    parameter_values[p,i] = np.mean([np.mean(params_n[pname])*(len(params_n[pname])/np.sum(params_n[pname]==0)) for pname in grid_params[i]])
+                    parameter_values[p,i] = np.mean([np.mean(params_n[pname])*(len(params_n[pname])/np.sum(params_n[pname]!=0)) for pname in grid_params[i]])
             # Calculate observations
             if (z_value == "peak incidence") or (z_value == "min incidence") or (z_value == "oscillation size") or (z_value == "time to rebound") or (z_value == "rebound peak incidence") or (z_value == "periodicity"):
                 obs = observations(result,params_n,OBS_AGE,incidence=True)
                 if z_value == "peak incidence":
-                    z_values[p_n] = np.max(obs[(result.t>25*12) & (result.t<T_LOCKDOWN)])
+                    z_values[p_n] = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
                 if z_value == "min incidence":
-                    z_values[p_n] = np.min(obs[(result.t>25*12) & (result.t<T_LOCKDOWN)])
+                    z_values[p_n] = np.min(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
                 if z_value == "oscillation size":
-                    pre_obs = obs[(result.t>25*12) & (result.t<T_LOCKDOWN)]
+                    pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
                     z_values[p_n] = (np.max(pre_obs) - np.min(pre_obs))/np.mean(pre_obs)
                 if z_value == "time to rebound":
-                    post_peak_arg = np.argmax(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)] > np.max(obs[(result.t>25*12) & (result.t<T_LOCKDOWN)])/2)
+                    post_peak_arg = np.argmax(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)] > np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])/2)
                     z_values[p_n] = (result.t[np.argmax(result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION))+post_peak_arg]-(T_LOCKDOWN+LOCKDOWN_DURATION))/12
                 if z_value == "rebound peak incidence":
                     z_values[p_n] = np.max(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)])
                 if z_value == "periodicity":
-                    pre_obs = obs[(result.t>25*12) & (result.t<T_LOCKDOWN)]
+                    pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
                     corr = np.correlate(pre_obs, pre_obs, mode='same')
                     acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
                     acorr = acorr + np.linspace(0.1, 0, len(acorr))
@@ -300,12 +299,12 @@ save=False,file=None,fix=False,vmin=None,vmax=None):
                     z_values_plot = np.zeros((N,N))
                     for i_n in range(N):
                         for j_n in range(N):
-                            indices = [N//2+1]*N_params
+                            indices = [N//2]*N_params
                             indices[i] = i_n
                             indices[j] = j_n
                             z_values_plot[i_n,j_n] = z_values[tuple(indices)]
                 else:  
-                    z_values_plot = z_values
+                    z_values_plot = np.mean(z_values,axis=tuple([k for k in range(N_params) if k not in [i,j]]))
                 if (vmax is not None) and (vmin is not None):
                     im = axis.imshow(np.flipud(z_values_plot),vmin=vmin,vmax=vmax)
                 else:
