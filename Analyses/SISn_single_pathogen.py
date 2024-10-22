@@ -15,6 +15,7 @@ from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.test_population import *
 from Parameters.generic_disease import *
 
+from clustering import *
 from plotting import *
 
 ## Period of simulation in months
@@ -49,9 +50,70 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 'IMPORT': IMPORT, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact':lambda t, seasonality, offset : contact(t,shape_step,seasonality,offset)}
 
-params['WANE'] = 1/12*np.array([0.0,1.0,0.0])
-params['BETA'] = 30
+# params['WANE'] = 1/12*np.array([0.0,1.0,0.0])
+# params['BETA'] = 30
 
+
+######## Plotting clusters ########
+# with open('Data/Processed/SIS_3D.pickle','rb') as f:
+#     results = pickle.load(f)
+# with open('Data/Processed/SIS_3D_obs.pickle','rb') as f:
+#     obses = pickle.load(f)
+
+### plot six clusters
+# model = cluster_sims(results,obses,T_LOCKDOWN,6)
+# fig, axes = plt.subplots(6,4,figsize=(6.5,1.7*4),sharex='col',layout='constrained',squeeze=False)
+# for row in range(6):
+#     axes[row,1].sharey(axes[row,2])
+#     axes[row,2].sharey(axes[row,3])
+# cluster_plot(axes,results,obses,model,color=True)
+# fig.align_ylabels()
+# plt.savefig('Figures/SIS_3D_6clusters_color.png',dpi=300)
+
+### plot all sims and select clusters
+# model = cluster_sims(results,obses,T_LOCKDOWN,6)
+# model1 = cluster_sims(results,obses,T_LOCKDOWN,1)
+# fig, axes = plt.subplots(4,4,figsize=(6.5,1.7*4),sharex='col',layout='constrained',squeeze=False)
+# for row in range(4):
+#     axes[row,1].sharey(axes[row,2])
+#     axes[row,2].sharey(axes[row,3])
+# first_row = axes[0,:]
+# first_row.shape = (1,4)
+# cluster_plot(first_row,results,obses,model1,color=False)
+# cluster_plot(axes[1:,:],results,obses,model,color=False,clusters=[0,2,4])
+# fig.align_ylabels()
+# plt.savefig('Figures/SIS_3D_clusters_1plus3of6.png',dpi=900)
+# model = cluster_sims(results,obses,T_LOCKDOWN,6)
+# # separate out results and observations from cluster 4 and save
+# cluster4_results = {}
+# cluster4_obses = {}
+# for key,result in results.items():
+#     if model.labels_[list(results.keys()).index(key)] == 3:
+#         cluster4_results[key] = result
+#         cluster4_obses[key] = obses[key]
+# with open('Data/Processed/SIS_3D_cluster4_results.pickle','wb') as f:
+#     pickle.dump(cluster4_results,f)
+# with open('Data/Processed/SIS_3D_cluster4_obses.pickle','wb') as f:
+#     pickle.dump(cluster4_obses,f)
+
+### plot sub-clusters of cluster 4
+# ## load cluster 4 and divide into 4 more clusters
+# with open('Data/Processed/SIS_3D_cluster4_results.pickle','rb') as f:
+#     results = pickle.load(f)
+# with open('Data/Processed/SIS_3D_cluster4_obses.pickle','rb') as f:
+#     obses = pickle.load(f)
+
+# n_clusters = 6
+# model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
+# fig, axes = plt.subplots(n_clusters,4,figsize=(6.5,1.7*n_clusters),sharex='col',layout='constrained',squeeze=False)
+# for row in range(n_clusters):
+#     axes[row,1].sharey(axes[row,2])
+#     axes[row,2].sharey(axes[row,3])
+# cluster_plot(axes,results,obses,model,color=False)
+# fig.align_ylabels()
+# plt.savefig('Figures/SIS_3D_'+str(n_clusters)+'clusters_of_cluster4of6.png',dpi=900)
+
+##### Generating observations from results #####
 # with open('Data/Processed/SIS_3D.pickle','rb') as f:
 #     results = pickle.load(f)
 # obses = {}
@@ -62,9 +124,11 @@ params['BETA'] = 30
 # with open('Data/Processed/SIS_3D_obs.pickle','wb') as f:
 #     pickle.dump(obses,f)
 
-# params['BETA'] = 60
-# params['SEASONALITY'] = 0.1
-# result = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# ##### One-shot line plot #####
+params['BETA'] = 44
+params['SEASONALITY'] = 0.02
+params['S_REL'] = np.array([1,0.95,0.9])
+result = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
 # obs = observations(result,params,OBS_AGE,incidence=True)
 # pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
 # corr = np.correlate(pre_obs, pre_obs, mode='same')
@@ -77,15 +141,22 @@ params['BETA'] = 30
 # plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
 # plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
 # plt.ylim(0,1.1*mx)
-# plt.show()
+fig, ax = plt.subplots(1,1,figsize=(6.5,4.5))
+mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result)
+lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=10)
+plt.show()
 
-# # # ## four line plots with different values of aquired immunity, showing incidence and susceptibility
+#### line plots with different parameter values, showing incidence and susceptibility #####
+# params['BETA'] = 41
+# params['SEASONALITY'] = 0.061
+# params['S_REL'] = np.array([1,0.55,0.1])
 # fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
 # mx = np.zeros(4)
 # colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
 # # Plot the incidence
 # for i in range(2):
-#     params['BETA'] = 50+5*i
+#     p_value = 0.06+0.02*i
+#     params['WANE'] = p_value*np.array([0.0,1.0,0.0])
 #     result = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
 #     # plot each susceptible compartment
 # #     ax[i//2,i%2].plot(result.t[1:],np.sum(result.y[NAG:2*NAG,:],axis=0)[1:],label='S1',color=colors[0])
@@ -101,19 +172,20 @@ params['BETA'] = 30
 #     acorr = acorr + np.linspace(0.1, 0, len(acorr))
 #     lag = np.abs(acorr).argmax() + 1
 #     print(lag)
-#     mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{50+5*i:.2f}',color=colors[i],relative=False,obs=obs)
-#     lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{50+5*i:.2f}',color=colors[i],relative=False)
+#     mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{(1/12)/p_value:.2f} y',color=colors[i],relative=False,obs=obs)
+#     lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{(1/12)/p_value:.2f} y',color=colors[i],relative=False)
 
 # lockdown_incidence_format(ax[0],T_LOCKDOWN,LOCKDOWN_DURATION,max(mx),year_window=10)
 # lockdown_susceptibility_format(ax[1],T_LOCKDOWN,LOCKDOWN_DURATION,ymax=None,year_window=10)
 # ax[0].set_ylabel("Observed incidence")
 # # ax[0].set_ylim(0,1.1)
 # ax[1].set_ylabel("Effective population susceptibility")
-# # ax[1].set_ylim(1.1e7,1.4e7)
-# ax[1].legend(title=r"Infectiousness")
+# ax[1].set_ylim(1.5e7,2.2e7)
+# ax[1].legend(title=r"Waning time")
 # plt.tight_layout()
-# plt.savefig('Figures/test.png',dpi=300)
+# plt.savefig('Figures/SIS_beta41_seasonality0p061_acqimm0p45_vary_wane.png',dpi=300)
 
+##### run multi-dimensional grid sims #####
 # start = time.time()
 # results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
 # grid_params=(("BETA",),("WANE",),("S_REL",),("SEASONALITY",)),
@@ -122,34 +194,30 @@ params['BETA'] = 30
 # # Save the results
 # with open('Data/Processed/SIS_4D.pickle','wb') as f:
 #     pickle.dump(results,f)
+
+# ##### Plotting multi-dimensional grid sims #####
 # # Load the results
-# with open('Data/Processed/Pitzer_RSV_beta_season.pickle','rb') as f:
+# with open('Data/Processed/SIS_4D.pickle','rb') as f:
 #     results = pickle.load(f)
 
-# fig,ax = plt.subplots()
-# grid_plot(ax,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE,
-# grid_params=(("BETA",),("SEASONALITY",)),label_mode=("mean","mean"),
-# factors=(2,2),grid_mode=("scale","scale"),x_labels=("Transmission","Seasonality"),
-# z_value="min incidence",z_label="Observed incidence")
-# plt.savefig('Figures/SIS_beta_seasonality_min_incidence.png',dpi=300)
-
-# fig, axes = plt.subplots(2,2,figsize=(8,11),layout='constrained')
+# fig, axes = plt.subplots(2,3,figsize=(6.5,4.5),layout='constrained')
 # start = time.time()
 # im = grid_plot(axes,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE,
-# grid_params=(("BETA",),("WANE",),("S_REL",)),
-# factors=(1,1,1),
-# grid_mode=("scale","scale","fade_vec"),
-# label_mode=("mean","nz_mean","fade_vec"),
-# x_labels=("Transmission","Waning","Acquired immunity"),
-# z_value="periodicity",z_label="",
-# fix=True,vmin=0,vmax=2)
+# grid_params=(("BETA",),("WANE",),("S_REL",),("SEASONALITY",)),
+# factors=(1,1,1,2),
+# grid_mode=("scale","scale","fade_vec","scale"),
+# label_mode=("mean","nz_mean","fade_vec","mean"),
+# x_labels=("Transmission","Waning","Acquired immunity","Seasonality"),
+# z_value="time to rebound",z_label="",
+# fix=True,vmin=0,vmax=5)
 # print(f"Plotting took {time.time()-start:.2f} seconds")
 # # colorbar
-# fig.colorbar(im, ax=axes, orientation='horizontal', label="Periodicity")
+# fig.colorbar(im, ax=axes, orientation='horizontal', label="Time to rebound (years)")
 # # plt.tight_layout()
 # # plt.show()
-# plt.savefig('Figures/SIS_3D_periodicity_fix.png',dpi=300)
+# plt.savefig('Figures/SIS_4D_rebound_time_to_rebound_fix.png',dpi=300)
 
+##### Grid plots of oscillation size and peak incidence #####
 # fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
 # grid_plot(ax[0],results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE,
 # grid_params=(("BETA",),("REC_UP","REC_SAME")),label_mode=("mean","nz_mean"),
@@ -159,6 +227,7 @@ params['BETA'] = 30
 # z_value="peak incidence",z_label="Peak observed incidence")
 # plt.show()
 
+##### Grid plots of child infections, incidence, perodicity, time to rebound, susceptibility #####
 # # # measure time to get results
 # # start = time.time()
 # # results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,N=10

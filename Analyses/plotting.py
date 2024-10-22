@@ -65,12 +65,12 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
             mx = 1.1*np.max(obs[np.argmax(times>T_LOCKDOWN-5*12):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])
     return(mx)
 
-def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,title='Incidence of disease with 1-year lockdown'):
+def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,year_skip=1,title='Incidence of disease with 1-year lockdown'):
     ax.set_xlim(T_LOCKDOWN-year_window*12,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*12)
     ax.set_ylim(0,mx)
     ax.set_ylabel('Observed incidence')
     ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
-    ax.set_xticks(np.arange(T_LOCKDOWN-year_window*12,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*12,12),[str(int(x)-year_window) for x in np.arange(0,year_window*2+1,1)])
+    ax.set_xticks(np.arange(T_LOCKDOWN-year_window*12,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*12+12,12*year_skip),[str(int(x)-year_window-1) for x in np.arange(0,year_window*2+2,year_skip)])
     ax.set_xlabel('Time (years)')
     ax.set_title(title)
 
@@ -221,8 +221,8 @@ save=False,file=None,fix=False,vmin=None,vmax=None):
     parameter_values = np.zeros((N,N_params))
     if save or (file is None):
         for p_n,result in results.items():
-            # if all([p==0 for p in p_n[1:]]):
-            #     print(p_n)
+            if all([p==0 for p in p_n[1:]]):
+                print(p_n)
             params_n = params.copy()
             for i,p in enumerate(p_n):
                 for pname in grid_params[i]:
