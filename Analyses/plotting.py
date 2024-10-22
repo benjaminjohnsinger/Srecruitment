@@ -29,6 +29,12 @@ def infections_by_age(result,params,N_C=2):
         infs[i_t,:] = np.sum(np.array([BETA*result.y[(N_C*i+2)*NAG:(N_C*i+3)*NAG,i_t]*I_REL[i]*np.dot(contact(t,SEASONALITY,OFFSET),np.sum([S_REL[j]*result.y[(N_C*j+1)*NAG:(N_C*j+2)*NAG,i_t] for j in range(N_S)],axis=0)) for i in range(N_S)]),axis=0)
     return(infs)
 
+def age_of_first_infection(result,NAG=7):
+    ages = np.zeros(len(result.t))
+    for i_t in range(len(result.t)):
+        ages[i_t] = np.mean(np.arange(NAG)*result.y[2*NAG:3*NAG,i_t]/np.sum(result.y[2*NAG:3*NAG,i_t]))
+    return(ages)
+
 def susceptibility(result,params,N_C=2):
     NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, SEASONALITY, OFFSET, contact = params.values()
     sus = np.zeros((len(result.t),NAG))
@@ -37,7 +43,6 @@ def susceptibility(result,params,N_C=2):
             sus[i_t,:] += S_REL[i]*S_AGE*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
     return(sus)
             
-
 def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None):
     if params is not None:
         NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, SEASONALITY, OFFSET, contact = params.values()
@@ -130,6 +135,7 @@ def sim_grid(state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,
             grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),N=10,factors=(1,1),deltas=deltas_SIS):
     N_params = len(grid_params)
     results = {}
+    params_dict = {}
     for p_n in it.product(range(N),repeat=N_params):
         # Scale parameters for exploration
         params_n = params.copy()
@@ -145,7 +151,8 @@ def sim_grid(state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,
         # Run simulation
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points, args=(params_n,))
         results[p_n] = result
-    return(results)
+        params_dict[p_n] = params_n
+    return(params_dict,results)
 
 def param_line_plot(ax,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=None,
 grid_params=("WANE_UP","WANE_SAME"),grid_mode="scale",factor=1,label_mode="mean",
@@ -315,3 +322,81 @@ save=False,file=None,fix=False,vmin=None,vmax=None):
                 axis.set_xlabel(x_labels[j])
                 axis.set_ylabel(x_labels[i])
         return(im)
+
+def cluster_plot(axes,results,obses,model,relative=False,color=False,line=True,clusters=None,
+parameters=["BETA","WANE","S_REL"],param_labels=["Infectiousness","Waning","Acquired immunity"],
+grid_mode=["scale","scale","fade_vec"],base_values=[30,1/12,1/2],factors=[1,1,1],N=25,
+y_value=("time to rebound"),y_label="Time to rebound",
+T_LOCKDOWN=37*12,LOCKDOWN_DURATION=12):
+    n_clusters = model.n_clusters
+    if clusters is None:
+        clusters = np.arange(n_clusters)
+    times = np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN,1)
+    for i,cluster in enumerate(clusters):
+        idx = np.where(model.labels_==cluster)[0]
+        print(len(idx))
+        param_values = np.zeros((len(idx),len(parameters)))
+        values = np.zeros(len(idx))
+        mx = 0
+        for n_j,j in enumerate(idx):
+            result = results[list(results.keys())[j]]
+            obs = 100*obses[list(obses.keys())[j]]
+            p_n = list(results.keys())[j]
+            if y_value == "rebound peak incidence":
+                values[n_j] = np.max(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)])
+            elif y_value == "time to rebound":
+                post_peak_arg = np.argmax(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)] > np.max(obs[(result.t>T_LOCKDOWN-5*12) & (result.t<T_LOCKDOWN)])/2)
+                val = result.t[np.argmax(result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION))+post_peak_arg]-(T_LOCKDOWN+LOCKDOWN_DURATION)
+                values[n_j] = min(val/12,5)
+            elif y_value == "child infections":
+                infs = infections_by_age(result,params)
+                values[n_j] = (np.sum(infs[:,0:4],axis=1)/np.sum(infs,axis=1))[np.argmax(result.t>=T_LOCKDOWN)]
+            for n_p,param in enumerate(parameters):
+                if grid_mode[n_p] == "scale":
+                    param_values[n_j,n_p] = base_values[n_p]*(1+(p_n[n_p]/N-1/2))**factors[n_p]
+                elif grid_mode[n_p] == "fade_vec":
+                    param_values[n_j,n_p] = p_n[n_p]/(2*N)
+            if color:
+                norm_param_values = param_values/np.max(param_values,axis=0)
+                if np.random.rand() < 100/len(idx):
+                    mxs = lockdown_incidence_plot(axes[i,0],None,None,None,None,None,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,relative=relative,
+                    color=norm_param_values[n_j]*0.95,alpha=1)
+                    mx = max(mx,mxs)
+            else:
+                mxs = lockdown_incidence_plot(axes[i,0],None,None,None,None,None,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,relative=relative,
+                color='black',alpha=0.01)
+                mx = max(mx,mxs)
+        if color:
+            axes[i,0].plot(times,100*model.cluster_centers_[cluster],color='black',label='Cluster center')
+        else:
+            axes[i,0].plot(times,100*model.cluster_centers_[cluster],color='red',label='Cluster center')
+        lockdown_incidence_format(axes[i,0],T_LOCKDOWN,LOCKDOWN_DURATION,mx,title='',year_skip=2)
+        axes[i,0].set_xlabel("")
+        for n_p,param in enumerate(parameters):
+            if color:
+                jitter_param = np.random.normal(-1,1,len(param_values[:,n_p]))*base_values[n_p]/(2*N)
+                jitter_values = np.random.normal(-1,1,len(param_values[:,n_p]))*(1/24)
+                axes[i,n_p+1].scatter(param_values[:,n_p]+jitter_param,values+jitter_values,c=norm_param_values*0.95,alpha=1,s=15/np.sqrt(len(idx)),linewidths=0)
+            elif not line:
+                axes[i,n_p+1].scatter(param_values[:,n_p],values,color="black",alpha=0.3,s=10)
+            else:
+                pf = param_values[:,n_p]
+                Qs = np.zeros((len(pf),3))
+                for pidx in range(len(pf)):
+                    Qs[pidx,:] = np.percentile(values[pf==pf[pidx]],[25,50,75])
+                sort_args = np.argsort(pf)
+                param_sorted = pf[sort_args]
+                Qs_sorted = Qs[sort_args,:]
+                axes[i,n_p+1].plot(param_sorted,Qs_sorted[:,1],color="black")
+                axes[i,n_p+1].fill_between(param_sorted,Qs_sorted[:,0],Qs_sorted[:,2],alpha=0.3,color="black")
+            if n_p > 0:
+                axes[i,n_p+1].set_yticklabels([])
+        if n_clusters > 1:
+            axes[i,0].set_ylabel(f"Cluster {cluster+1}\n\nIncidence")
+        else:
+            axes[i,0].set_ylabel(f"All simulations\n\nIncidence")
+        axes[i,1].set_ylabel("\n"+y_label)
+    if n_clusters > 1:
+        axes[len(clusters)-1,0].set_xlabel("Time (years)")
+        for n_p,label in enumerate(param_labels):
+            axes[len(clusters)-1,n_p+1].set_xlabel(f"{label}")

@@ -50,9 +50,31 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 'IMPORT': IMPORT, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact':lambda t, seasonality, offset : contact(t,shape_step,seasonality,offset)}
 
-# params['WANE'] = 1/12*np.array([0.0,1.0,0.0])
-# params['BETA'] = 30
+params['WANE'] = 1/12*np.array([0.0,1.0,0.0])
+params['BETA'] = 30
 
+with open('Data/Processed/SIS_3D.pickle','rb') as f:
+    results = pickle.load(f)
+with open('Data/Processed/SIS_3D_obs.pickle','rb') as f:
+    obses = pickle.load(f)
+n_clusters = 1
+model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
+cluster_mean_age_infect = cluster_age_infect(results,params,model,T_LOCKDOWN)
+for i in range(n_clusters):
+    plt.plot(cluster_mean_age_infect[i]/np.sum(cluster_mean_age_infect[i]),label=f'Cluster {i}')
+plt.legend()
+plt.show()
+
+######## Computing observations ########
+# with open('Data/Processed/SIS_3D.pickle','rb') as f:
+#     results = pickle.load(f)
+# obses = {}
+# for key,result in results.items():
+#     print(key)
+#     obs = observations(result,params,OBS_AGE,incidence=True)
+#     obses[key] = obs
+# with open('Data/Processed/SIS_3D_obs.pickle','wb') as f:
+#     pickle.dump(obses,f)
 
 ######## Plotting clusters ########
 # with open('Data/Processed/SIS_3D.pickle','rb') as f:
@@ -60,7 +82,7 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 # with open('Data/Processed/SIS_3D_obs.pickle','rb') as f:
 #     obses = pickle.load(f)
 
-### plot six clusters
+# ## plot six clusters
 # model = cluster_sims(results,obses,T_LOCKDOWN,6)
 # fig, axes = plt.subplots(6,4,figsize=(6.5,1.7*4),sharex='col',layout='constrained',squeeze=False)
 # for row in range(6):
@@ -68,9 +90,9 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 #     axes[row,2].sharey(axes[row,3])
 # cluster_plot(axes,results,obses,model,color=True)
 # fig.align_ylabels()
-# plt.savefig('Figures/SIS_3D_6clusters_color.png',dpi=300)
+# plt.savefig('Figures/SIS_3D_6clusters_color.png',dpi=500)
 
-### plot all sims and select clusters
+# ### plot all sims and select clusters
 # model = cluster_sims(results,obses,T_LOCKDOWN,6)
 # model1 = cluster_sims(results,obses,T_LOCKDOWN,1)
 # fig, axes = plt.subplots(4,4,figsize=(6.5,1.7*4),sharex='col',layout='constrained',squeeze=False)
@@ -79,11 +101,14 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 #     axes[row,2].sharey(axes[row,3])
 # first_row = axes[0,:]
 # first_row.shape = (1,4)
-# cluster_plot(first_row,results,obses,model1,color=False)
-# cluster_plot(axes[1:,:],results,obses,model,color=False,clusters=[0,2,4])
+# cluster_plot(first_row,results,obses,model1,color=True)
+# cluster_plot(axes[1:,:],results,obses,model,color=True,clusters=[0,2,4])
 # fig.align_ylabels()
 # plt.savefig('Figures/SIS_3D_clusters_1plus3of6.png',dpi=900)
-# model = cluster_sims(results,obses,T_LOCKDOWN,6)
+
+### Computing observations for a given cluster
+# with open('Data/Processed/SIS_3D.pickle','rb') as f:
+#     results = pickle.load(f)
 # # separate out results and observations from cluster 4 and save
 # cluster4_results = {}
 # cluster4_obses = {}
@@ -96,7 +121,7 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 # with open('Data/Processed/SIS_3D_cluster4_obses.pickle','wb') as f:
 #     pickle.dump(cluster4_obses,f)
 
-### plot sub-clusters of cluster 4
+# ## plot sub-clusters of cluster 4
 # ## load cluster 4 and divide into 4 more clusters
 # with open('Data/Processed/SIS_3D_cluster4_results.pickle','rb') as f:
 #     results = pickle.load(f)
@@ -109,42 +134,31 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 # for row in range(n_clusters):
 #     axes[row,1].sharey(axes[row,2])
 #     axes[row,2].sharey(axes[row,3])
-# cluster_plot(axes,results,obses,model,color=False)
+# cluster_plot(axes,results,obses,model,color=True)
 # fig.align_ylabels()
-# plt.savefig('Figures/SIS_3D_'+str(n_clusters)+'clusters_of_cluster4of6.png',dpi=900)
-
-##### Generating observations from results #####
-# with open('Data/Processed/SIS_3D.pickle','rb') as f:
-#     results = pickle.load(f)
-# obses = {}
-# for key,result in results.items():
-#     print(key)
-#     obs = observations(result,params,OBS_AGE,incidence=True)
-#     obses[key] = obs
-# with open('Data/Processed/SIS_3D_obs.pickle','wb') as f:
-#     pickle.dump(obses,f)
+# plt.savefig('Figures/SIS_3D_'+str(n_clusters)+'clusters_of_cluster4of6_color.png',dpi=300)
 
 # ##### One-shot line plot #####
-params['BETA'] = 44
-params['SEASONALITY'] = 0.02
-params['S_REL'] = np.array([1,0.95,0.9])
-result = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-# obs = observations(result,params,OBS_AGE,incidence=True)
-# pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
-# corr = np.correlate(pre_obs, pre_obs, mode='same')
-# acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
-# acorr = acorr + np.linspace(0.1, 0, len(acorr))
-# lag = np.abs(acorr).argmax() + 1
-# print(lag/12)
-# mx = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
-# plt.plot(result.t,obs)
-# plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
-# plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
-# plt.ylim(0,1.1*mx)
-fig, ax = plt.subplots(1,1,figsize=(6.5,4.5))
-mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result)
-lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=10)
-plt.show()
+# params['BETA'] = 44
+# params['SEASONALITY'] = 0.02
+# params['S_REL'] = np.array([1,0.95,0.9])
+# result = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# # obs = observations(result,params,OBS_AGE,incidence=True)
+# # pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
+# # corr = np.correlate(pre_obs, pre_obs, mode='same')
+# # acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
+# # acorr = acorr + np.linspace(0.1, 0, len(acorr))
+# # lag = np.abs(acorr).argmax() + 1
+# # print(lag/12)
+# # mx = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
+# # plt.plot(result.t,obs)
+# # plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
+# # plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
+# # plt.ylim(0,1.1*mx)
+# fig, ax = plt.subplots(1,1,figsize=(6.5,4.5))
+# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result)
+# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=10)
+# plt.show()
 
 #### line plots with different parameter values, showing incidence and susceptibility #####
 # params['BETA'] = 41
