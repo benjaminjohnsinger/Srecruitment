@@ -4,7 +4,7 @@
 import numpy as np
 from tslearn.clustering import TimeSeriesKMeans
 import matplotlib.pyplot as plt
-from plotting import infections_by_age
+from plotting import age_of_first_infection
 
 def cluster_sims(results,obses,T_LOCKDOWN,n_clusters,pre=True,width=5,scaled=False,metric='euclidean'):
     obs_cut_and_scaled = {}
@@ -17,25 +17,16 @@ def cluster_sims(results,obses,T_LOCKDOWN,n_clusters,pre=True,width=5,scaled=Fal
     model.fit(np.array([obs_cut_and_scaled[key] for key in obs_cut_and_scaled.keys()]))
     return model
 
-def cluster_age_infect(results,params,model,T_LOCKDOWN,N=25):
+def cluster_first_infect(results,params,model,T_LOCKDOWN,MEDIAN_AGE):
     n_clusters = model.n_clusters
     result_cluster_labels = model.labels_
-    cluster_mean_age_infect = {}
+    cluster_mean_first_infect = {}
     for i in range(n_clusters):
-        age_infect = np.zeros((sum(result_cluster_labels==i),params['NAG']))
+        first_infect = np.zeros(sum(result_cluster_labels==i))
         aidx = 0
         for j,key in enumerate(results.keys()):
             if result_cluster_labels[j]==i:
-                params_n = params.copy()
-                params_n['BETA'] = params['BETA']*(1+(key[0]/N-1/2))
-                params_n['WANE'] = params['WANE']*(1+(key[1]/N-1/2))
-                vec_len = len(params['S_REL'])
-                vec = np.array([(1-j*(key[2]/(N*(vec_len-1)))) for j in range(vec_len)])
-                vec = vec.reshape(params['S_REL'].shape)
-                params_n['S_REL'] = vec
-                result = results[key]
-                i_by_age = infections_by_age(result,params_n)
-                age_infect[aidx] = np.mean(i_by_age[(result.t>=T_LOCKDOWN-5*12) & (result.t<T_LOCKDOWN)],axis=0)
+                first_infect[aidx] = np.mean(age_of_first_infection(results[key],MEDIAN_AGE)[np.argmax(results[key].t>=T_LOCKDOWN-5*12):np.argmax(results[key].t>T_LOCKDOWN)])
                 aidx += 1
-        cluster_mean_age_infect[i] = np.mean(age_infect,axis=0)
-    return cluster_mean_age_infect
+        cluster_mean_first_infect[i] = np.mean(first_infect)/12
+    return cluster_mean_first_infect

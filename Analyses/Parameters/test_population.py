@@ -14,6 +14,7 @@ KP_AGE_GROUPS = [
     range(18*12,40*12),
     range(40*12,65*12),
     range(65*12,100*12)]
+MEDIAN_AGE = [np.median(KP_AGE_GROUPS[i]) for i in range(len(KP_AGE_GROUPS))]
 AGE_GROUP_NAMES = ['Newborns','Infants','Young children','Older children','Young adults','Middle-aged adults','Older adults']
 AGE_PROPORTION = np.array([np.sum(AGE_POP[group]) for group in KP_AGE_GROUPS])/np.sum(AGE_POP)
 KP_AGE_POP = AGE_PROPORTION*POP_SIZE

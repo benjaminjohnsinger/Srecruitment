@@ -29,10 +29,10 @@ def infections_by_age(result,params,N_C=2):
         infs[i_t,:] = np.sum(np.array([BETA*result.y[(N_C*i+2)*NAG:(N_C*i+3)*NAG,i_t]*I_REL[i]*np.dot(contact(t,SEASONALITY,OFFSET),np.sum([S_REL[j]*result.y[(N_C*j+1)*NAG:(N_C*j+2)*NAG,i_t] for j in range(N_S)],axis=0)) for i in range(N_S)]),axis=0)
     return(infs)
 
-def age_of_first_infection(result,NAG=7):
+def age_of_first_infection(result,MEDIAN_AGE,NAG=7):
     ages = np.zeros(len(result.t))
     for i_t in range(len(result.t)):
-        ages[i_t] = np.mean(np.arange(NAG)*result.y[2*NAG:3*NAG,i_t]/np.sum(result.y[2*NAG:3*NAG,i_t]))
+        ages[i_t] = np.mean(MEDIAN_AGE*result.y[2*NAG:3*NAG,i_t]/np.sum(result.y[2*NAG:3*NAG,i_t]))
     return(ages)
 
 def susceptibility(result,params,N_C=2):
@@ -323,18 +323,16 @@ save=False,file=None,fix=False,vmin=None,vmax=None):
                 axis.set_ylabel(x_labels[i])
         return(im)
 
-def cluster_plot(axes,results,obses,model,relative=False,color=False,line=True,clusters=None,
+def cluster_plot(axes,results,obses,n_clusters,labels,cluster_centers,relative=False,color=False,line=True,clusters=None, color_values_all=None,
 parameters=["BETA","WANE","S_REL"],param_labels=["Infectiousness","Waning","Acquired immunity"],
 grid_mode=["scale","scale","fade_vec"],base_values=[30,1/12,1/2],factors=[1,1,1],N=25,
 y_value=("time to rebound"),y_label="Time to rebound",
 T_LOCKDOWN=37*12,LOCKDOWN_DURATION=12):
-    n_clusters = model.n_clusters
     if clusters is None:
-        clusters = np.arange(n_clusters)
+        clusters = set(labels)
     times = np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN,1)
     for i,cluster in enumerate(clusters):
-        idx = np.where(model.labels_==cluster)[0]
-        print(len(idx))
+        idx = np.where(labels==cluster)[0]
         param_values = np.zeros((len(idx),len(parameters)))
         values = np.zeros(len(idx))
         mx = 0
@@ -357,26 +355,30 @@ T_LOCKDOWN=37*12,LOCKDOWN_DURATION=12):
                 elif grid_mode[n_p] == "fade_vec":
                     param_values[n_j,n_p] = p_n[n_p]/(2*N)
             if color:
-                norm_param_values = param_values/np.max(param_values,axis=0)
+                if color_values_all is None:
+                    color_values = 0.95*param_values/np.max(param_values,axis=0)
+                else:
+                    color_values = color_values_all[idx]
                 if np.random.rand() < 100/len(idx):
                     mxs = lockdown_incidence_plot(axes[i,0],None,None,None,None,None,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,relative=relative,
-                    color=norm_param_values[n_j]*0.95,alpha=1)
+                    color=color_values[n_j],alpha=1)
                     mx = max(mx,mxs)
             else:
                 mxs = lockdown_incidence_plot(axes[i,0],None,None,None,None,None,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,relative=relative,
                 color='black',alpha=0.01)
                 mx = max(mx,mxs)
-        if color:
-            axes[i,0].plot(times,100*model.cluster_centers_[cluster],color='black',label='Cluster center')
-        else:
-            axes[i,0].plot(times,100*model.cluster_centers_[cluster],color='red',label='Cluster center')
+        if cluster_centers is not None:
+            if color:
+                axes[i,0].plot(times,100*cluster_centers[cluster],color='black',label='Cluster center')
+            else:
+                axes[i,0].plot(times,100*cluster_centers[cluster],color='red',label='Cluster center')
         lockdown_incidence_format(axes[i,0],T_LOCKDOWN,LOCKDOWN_DURATION,mx,title='',year_skip=2)
         axes[i,0].set_xlabel("")
         for n_p,param in enumerate(parameters):
             if color:
                 jitter_param = np.random.normal(-1,1,len(param_values[:,n_p]))*base_values[n_p]/(2*N)
                 jitter_values = np.random.normal(-1,1,len(param_values[:,n_p]))*(1/24)
-                axes[i,n_p+1].scatter(param_values[:,n_p]+jitter_param,values+jitter_values,c=norm_param_values*0.95,alpha=1,s=15/np.sqrt(len(idx)),linewidths=0)
+                axes[i,n_p+1].scatter(param_values[:,n_p]+jitter_param,values+jitter_values,c=color_values,alpha=1,s=15/np.sqrt(len(idx)),linewidths=0)
             elif not line:
                 axes[i,n_p+1].scatter(param_values[:,n_p],values,color="black",alpha=0.3,s=10)
             else:

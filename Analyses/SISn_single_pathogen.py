@@ -7,6 +7,7 @@ import time
 import itertools as it
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from matplotlib import cm as pltcm
 import pickle
 
 from vaccination import birth_vax, all_vax
@@ -57,13 +58,20 @@ with open('Data/Processed/SIS_3D.pickle','rb') as f:
     results = pickle.load(f)
 with open('Data/Processed/SIS_3D_obs.pickle','rb') as f:
     obses = pickle.load(f)
-n_clusters = 1
-model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
-cluster_mean_age_infect = cluster_age_infect(results,params,model,T_LOCKDOWN)
-for i in range(n_clusters):
-    plt.plot(cluster_mean_age_infect[i]/np.sum(cluster_mean_age_infect[i]),label=f'Cluster {i}')
-plt.legend()
-plt.show()
+
+######## Plotting age-based clusters ########
+# ages = np.array([np.mean(age_of_first_infection(results[key],MEDIAN_AGE)[np.argmax(results[key].t>=T_LOCKDOWN-5*12):np.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
+# print(np.sum(ages<=3))
+# ages_label = np.array([int(age>3) + int(age>12) + int(age>5*12) + int(age>18*12) + int(age>40*12) + int(age>65*12) for age in ages])
+# n_age_clusters = max(ages_label)+1
+
+# fig,axes = plt.subplots(4,4,figsize=(6.5,1.7*4),sharex='col',layout='constrained',squeeze=False)
+# for row in range(4):
+#     axes[row,1].sharey(axes[row,2])
+#     axes[row,2].sharey(axes[row,3])
+# cluster_plot(axes,results,obses,n_age_clusters,ages_label,None,color=False)
+# fig.align_ylabels()
+# plt.savefig('Figures/SIS_3D_age_clusters.png',dpi=500)
 
 ######## Computing observations ########
 # with open('Data/Processed/SIS_3D.pickle','rb') as f:
@@ -88,23 +96,24 @@ plt.show()
 # for row in range(6):
 #     axes[row,1].sharey(axes[row,2])
 #     axes[row,2].sharey(axes[row,3])
-# cluster_plot(axes,results,obses,model,color=True)
+# cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=True)
 # fig.align_ylabels()
 # plt.savefig('Figures/SIS_3D_6clusters_color.png',dpi=500)
 
-# ### plot all sims and select clusters
-# model = cluster_sims(results,obses,T_LOCKDOWN,6)
-# model1 = cluster_sims(results,obses,T_LOCKDOWN,1)
-# fig, axes = plt.subplots(4,4,figsize=(6.5,1.7*4),sharex='col',layout='constrained',squeeze=False)
-# for row in range(4):
-#     axes[row,1].sharey(axes[row,2])
-#     axes[row,2].sharey(axes[row,3])
-# first_row = axes[0,:]
-# first_row.shape = (1,4)
-# cluster_plot(first_row,results,obses,model1,color=True)
-# cluster_plot(axes[1:,:],results,obses,model,color=True,clusters=[0,2,4])
-# fig.align_ylabels()
-# plt.savefig('Figures/SIS_3D_clusters_1plus3of6.png',dpi=900)
+### plot all sims and select clusters
+model = cluster_sims(results,obses,T_LOCKDOWN,6)
+model1 = cluster_sims(results,obses,T_LOCKDOWN,1)
+fig, axes = plt.subplots(4,4,figsize=(6.5,1.7*4),sharex='col',layout='constrained',squeeze=False)
+for row in range(4):
+    axes[row,1].sharey(axes[row,2])
+    axes[row,2].sharey(axes[row,3])
+first_row = axes[0,:]
+first_row.shape = (1,4)
+cluster_colors = np.array([["#648FFF", "#DC267F", "#785EF0", "#FFB000", "#FF832B", "#000000", "#FFD662", "#FF34FF", "#8B0000", "#00FF00"][i] for i in model.labels_])
+cluster_plot(first_row,results,obses,model1.n_clusters,model1.labels_,None,color=True,color_values_all=cluster_colors)
+cluster_plot(axes[1:,:],results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=True,clusters=[0,2,4],color_values_all=cluster_colors)
+fig.align_ylabels()
+plt.savefig('Figures/SIS_3D_clusters_1plus3of6_cluster_color.png',dpi=900)
 
 ### Computing observations for a given cluster
 # with open('Data/Processed/SIS_3D.pickle','rb') as f:
@@ -134,7 +143,7 @@ plt.show()
 # for row in range(n_clusters):
 #     axes[row,1].sharey(axes[row,2])
 #     axes[row,2].sharey(axes[row,3])
-# cluster_plot(axes,results,obses,model,color=True)
+# cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=True)
 # fig.align_ylabels()
 # plt.savefig('Figures/SIS_3D_'+str(n_clusters)+'clusters_of_cluster4of6_color.png',dpi=300)
 
