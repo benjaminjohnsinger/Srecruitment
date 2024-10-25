@@ -151,7 +151,7 @@ def sim_grid(state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,
         # Run simulation
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points, args=(params_n,))
         results[p_n] = result
-        params_dict[p_n] = params_n
+        params_dict[p_n] = {key: value for key, value in params_n.items() if key != 'contact'}
     return(params_dict,results)
 
 def param_line_plot(ax,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=None,
@@ -324,18 +324,30 @@ save=False,file=None,fix=False,vmin=None,vmax=None):
         return(im)
 
 def cluster_plot(axes,results,obses,n_clusters,labels,cluster_centers,relative=False,color=False,line=True,clusters=None, color_values_all=None,
-parameters=["BETA","WANE","S_REL"],param_labels=["Infectiousness","Waning","Acquired immunity"],
+parameters=["BETA","WANE","S_REL"],param_labels=["Infectiousness","Waning","Acquired\nimmunity"],
 grid_mode=["scale","scale","fade_vec"],base_values=[30,1/12,1/2],factors=[1,1,1],N=25,
 y_value=("time to rebound"),y_label="Time to rebound",
 T_LOCKDOWN=37*12,LOCKDOWN_DURATION=12):
     if clusters is None:
         clusters = set(labels)
     times = np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN,1)
+    param_values_all = np.zeros((len(results.keys()),len(parameters)))
+    for i,p_n in enumerate(results.keys()):
+        for n_p,param in enumerate(parameters):
+            if grid_mode[n_p] == "scale":
+                param_values_all[i,n_p] = base_values[n_p]*(1+(p_n[n_p]/N-1/2))**factors[n_p]
+            elif grid_mode[n_p] == "fade_vec":
+                param_values_all[i,n_p] = p_n[n_p]/(2*N)
     for i,cluster in enumerate(clusters):
         idx = np.where(labels==cluster)[0]
-        param_values = np.zeros((len(idx),len(parameters)))
         values = np.zeros(len(idx))
         mx = 0
+        param_values = param_values_all[idx,:]
+        if color:
+            if color_values_all is None:
+                color_values = 0.95*param_values/np.max(param_values_all,axis=0)
+            else:
+                color_values = color_values_all[idx]
         for n_j,j in enumerate(idx):
             result = results[list(results.keys())[j]]
             obs = 100*obses[list(obses.keys())[j]]
@@ -349,17 +361,8 @@ T_LOCKDOWN=37*12,LOCKDOWN_DURATION=12):
             elif y_value == "child infections":
                 infs = infections_by_age(result,params)
                 values[n_j] = (np.sum(infs[:,0:4],axis=1)/np.sum(infs,axis=1))[np.argmax(result.t>=T_LOCKDOWN)]
-            for n_p,param in enumerate(parameters):
-                if grid_mode[n_p] == "scale":
-                    param_values[n_j,n_p] = base_values[n_p]*(1+(p_n[n_p]/N-1/2))**factors[n_p]
-                elif grid_mode[n_p] == "fade_vec":
-                    param_values[n_j,n_p] = p_n[n_p]/(2*N)
             if color:
-                if color_values_all is None:
-                    color_values = 0.95*param_values/np.max(param_values,axis=0)
-                else:
-                    color_values = color_values_all[idx]
-                if np.random.rand() < 100/len(idx):
+                if np.random.rand() < 500/len(idx):
                     mxs = lockdown_incidence_plot(axes[i,0],None,None,None,None,None,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,relative=relative,
                     color=color_values[n_j],alpha=1)
                     mx = max(mx,mxs)
@@ -375,7 +378,7 @@ T_LOCKDOWN=37*12,LOCKDOWN_DURATION=12):
         lockdown_incidence_format(axes[i,0],T_LOCKDOWN,LOCKDOWN_DURATION,mx,title='',year_skip=2)
         axes[i,0].set_xlabel("")
         for n_p,param in enumerate(parameters):
-            if color:
+            if color and not line:
                 jitter_param = np.random.normal(-1,1,len(param_values[:,n_p]))*base_values[n_p]/(2*N)
                 jitter_values = np.random.normal(-1,1,len(param_values[:,n_p]))*(1/24)
                 axes[i,n_p+1].scatter(param_values[:,n_p]+jitter_param,values+jitter_values,c=color_values,alpha=1,s=15/np.sqrt(len(idx)),linewidths=0)
@@ -389,8 +392,12 @@ T_LOCKDOWN=37*12,LOCKDOWN_DURATION=12):
                 sort_args = np.argsort(pf)
                 param_sorted = pf[sort_args]
                 Qs_sorted = Qs[sort_args,:]
-                axes[i,n_p+1].plot(param_sorted,Qs_sorted[:,1],color="black")
-                axes[i,n_p+1].fill_between(param_sorted,Qs_sorted[:,0],Qs_sorted[:,2],alpha=0.3,color="black")
+                if color:
+                    axes[i,n_p+1].plot(param_sorted,Qs_sorted[:,1],color=color_values[n_j])
+                    axes[i,n_p+1].fill_between(param_sorted,Qs_sorted[:,0],Qs_sorted[:,2],alpha=0.3,color=color_values[n_j])
+                else:
+                    axes[i,n_p+1].plot(param_sorted,Qs_sorted[:,1],color="black")
+                    axes[i,n_p+1].fill_between(param_sorted,Qs_sorted[:,0],Qs_sorted[:,2],alpha=0.3,color="black")
             if n_p > 0:
                 axes[i,n_p+1].set_yticklabels([])
         if n_clusters > 1:

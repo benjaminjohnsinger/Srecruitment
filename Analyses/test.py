@@ -8,9 +8,20 @@ import scipy as sp
 import pandas as pd
 import itertools as it
 from plotting import *
+from math import comb
 
-z = ["x","y"]
-print([i=="x" for i in z])
+w = np.array([0.   , 0.12166667, 0.   ])
+print(np.mean(w))
+print(np.sum(w==0.0))
+print(np.mean(w)*len(w)/np.sum(w!=0))
+
+
+# N=5
+# x = range(N,0,-(N//4+1))
+# for i in x:
+#     print(i)
+# z = ["x","y"]
+# print([i=="x" for i in z])
 
 # for i in it.product(range(3),repeat=3):
 #     print(i)
