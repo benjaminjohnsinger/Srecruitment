@@ -10,14 +10,19 @@ import pickle
 
 from SISn_ODEs import single_pathogen_deltas as deltas_SIS
 
-def observations(result,params,OBS_AGE,incidence=False,N_C=2):
+def observations(result,params,OBS_AGE,incidence=False,cap=False,N_C=2):
     NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, SEASONALITY, OFFSET, contact = params.values()
     obs = np.zeros((len(result.t),NAG))
     pop_size = np.sum(result.y,axis=0)
     for i_t,t in enumerate(result.t):
         foi = BETA*np.dot(contact(t,SEASONALITY,OFFSET),np.sum((np.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
         for i in range(N_S):
-            obs[i_t,:] += OBS_AGE*P_OBS[i]*S_REL[i]*foi*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
+            if cap:
+                class_foi = np.minimum(1,S_REL[i]*foi)
+            else:
+                class_foi = S_REL[i]*foi
+            # S_REL*foi tells you what proportion of the population gets infected, the maximum is all of them
+            obs[i_t,:] += OBS_AGE*P_OBS[i]*class_foi*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
     if incidence:
         obs = np.sum(obs,axis=1)/pop_size
     return(obs)
@@ -29,10 +34,15 @@ def infections_by_age(result,params,N_C=2):
         infs[i_t,:] = np.sum(np.array([BETA*result.y[(N_C*i+2)*NAG:(N_C*i+3)*NAG,i_t]*I_REL[i]*np.dot(contact(t,SEASONALITY,OFFSET),np.sum([S_REL[j]*result.y[(N_C*j+1)*NAG:(N_C*j+2)*NAG,i_t] for j in range(N_S)],axis=0)) for i in range(N_S)]),axis=0)
     return(infs)
 
-def age_of_first_infection(result,MEDIAN_AGE,NAG=7):
+def age_of_first_infection(result,MEDIAN_AGE,NAG=7,sd=False):
     ages = np.zeros(len(result.t))
+    ages_sd = np.zeros(len(result.t))
     for i_t in range(len(result.t)):
-        ages[i_t] = np.mean(MEDIAN_AGE*result.y[2*NAG:3*NAG,i_t]/np.sum(result.y[2*NAG:3*NAG,i_t]))
+        age_distribution = MEDIAN_AGE*result.y[2*NAG:3*NAG,i_t]/np.sum(result.y[2*NAG:3*NAG,i_t])
+        ages[i_t] = np.mean(age_distribution)
+        ages_sd[i_t] = np.std(age_distribution)
+    if sd:
+        return(ages,ages_sd)
     return(ages)
 
 def susceptibility(result,params,N_C=2):
@@ -137,6 +147,8 @@ def sim_grid(state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,
     results = {}
     params_dict = {}
     for p_n in it.product(range(N),repeat=N_params):
+        if all([p==0 for p in p_n[1:]]):
+            print(p_n)
         # Scale parameters for exploration
         params_n = params.copy()
         for i,p in enumerate(p_n):
@@ -146,6 +158,12 @@ def sim_grid(state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,
                 elif grid_mode[i] == "fade_vec":
                     vec_len = len(params[pname])
                     vec = np.array([(1-j*(p/(N*(vec_len-1))))**factors[i] for j in range(vec_len)])
+                    vec = vec.reshape(params[pname].shape)
+                    params_n[pname] = vec
+                elif grid_mode[i] == "based_vec":
+                    vec_len = len(params[pname])
+                    base_value = params[pname][0]-params[pname][1]
+                    vec = np.array([(1-j*(base_value+(1/(vec_len-1)-base_value)*p/N))**factors[i] for j in range(vec_len)])
                     vec = vec.reshape(params[pname].shape)
                     params_n[pname] = vec
         # Run simulation
@@ -325,7 +343,7 @@ save=False,file=None,fix=False,vmin=None,vmax=None):
 
 def cluster_plot(axes,results,obses,n_clusters,labels,cluster_centers,relative=False,color=False,line=True,clusters=None, color_values_all=None,
 parameters=["BETA","WANE","S_REL"],param_labels=["Infectiousness","Waning","Acquired\nimmunity"],
-grid_mode=["scale","scale","fade_vec"],base_values=[30,1/12,1/2],factors=[1,1,1],N=25,
+grid_mode=["scale","scale","based_vec"],base_values=[40,1/30,1/4],factors=[0.7,3,1],N=25,
 y_value=("time to rebound"),y_label="Time to rebound",
 T_LOCKDOWN=37*12,LOCKDOWN_DURATION=12):
     if clusters is None:
@@ -338,6 +356,8 @@ T_LOCKDOWN=37*12,LOCKDOWN_DURATION=12):
                 param_values_all[i,n_p] = base_values[n_p]*(1+(p_n[n_p]/N-1/2))**factors[n_p]
             elif grid_mode[n_p] == "fade_vec":
                 param_values_all[i,n_p] = p_n[n_p]/(2*N)
+            elif grid_mode[n_p] == "based_vec":
+                param_values_all[i,n_p] = base_values[n_p]+(1/2-base_values[n_p])*p_n[n_p]/N
     for i,cluster in enumerate(clusters):
         idx = np.where(labels==cluster)[0]
         values = np.zeros(len(idx))

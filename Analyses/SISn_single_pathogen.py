@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib import cm as pltcm
 import pickle
+import colorsys
 
 from vaccination import birth_vax, all_vax
 import contact_model as cm
@@ -54,50 +55,70 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 # params['WANE'] = 1/12*np.array([0.0,1.0,0.0])
 # params['BETA'] = 30
 
-######## Computing observations ########
-# with open('Data/Processed/SIS_3D.pickle','rb') as f:
+####### Computing observations ########
+# with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
 #     results = pickle.load(f)
+# with open('Data/Processed/SIS_3D_based_params.pickle','rb') as f:
+#     param_dict = pickle.load(f)
 # obses = {}
 # for key,result in results.items():
-#     print(key)
-#     obs = observations(result,params,OBS_AGE,incidence=True)
+#     if np.all(np.array(key[1:]) == 0):
+#         print(key)
+#     params = param_dict[key]
+#     params['contact'] = lambda t, seasonality, offset : contact(t,shape_static,seasonality,offset)
+#     obs = observations(result,params,OBS_AGE,incidence=True,cap=True)
 #     obses[key] = obs
-# with open('Data/Processed/SIS_3D_obs.pickle','wb') as f:
+# with open('Data/Processed/SIS_3D_based_obs_cap.pickle','wb') as f:
 #     pickle.dump(obses,f)
 
-######## Plotting clusters ########
-with open('Data/Processed/SIS_3D.pickle','rb') as f:
+# # ######## Plotting clusters ########
+with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
     results = pickle.load(f)
-with open('Data/Processed/SIS_3D_obs.pickle','rb') as f:
+with open('Data/Processed/SIS_3D_based_obs.pickle','rb') as f:
     obses = pickle.load(f)
 
-#### plot age-based clusters
+# # #### plot age-based clusters
 # ages = np.array([np.mean(age_of_first_infection(results[key],MEDIAN_AGE)[np.argmax(results[key].t>=T_LOCKDOWN-5*12):np.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
+
 # print(np.sum(ages<=3))
 # ages_label = np.array([int(age>3) + int(age>12) + int(age>5*12) + int(age>18*12) + int(age>40*12) + int(age>65*12) for age in ages])
 # n_age_clusters = max(ages_label)+1
+# print(n_age_clusters)
 
-# fig,axes = plt.subplots(4,4,figsize=(6.5,1.7*4),sharex='col',layout='constrained',squeeze=False)
-# for row in range(4):
+# fig,axes = plt.subplots(n_age_clusters,4,figsize=(6.5,1.7*n_age_clusters),sharex='col',layout='constrained',squeeze=False)
+# for row in range(n_age_clusters):
 #     axes[row,1].sharey(axes[row,2])
 #     axes[row,2].sharey(axes[row,3])
-# cluster_plot(axes,results,obses,n_age_clusters,ages_label,None,color=True)
+# cluster_plot(axes,results,obses,n_age_clusters,ages_label,None,color=False,line=True,N=15)
 # fig.align_ylabels()
-# plt.savefig('Figures/SIS_3D_age_clusters_color.png',dpi=500)
+# plt.savefig('Figures/SIS_3D_2_age_clusters.png',dpi=500)
 
-### plot six clusters
+# # # ## plot six clusters
 # model = cluster_sims(results,obses,T_LOCKDOWN,6)
-# fig, axes = plt.subplots(6,4,figsize=(6.5,1.7*4),sharex='col',layout='constrained',squeeze=False)
-# for row in range(6):
-#     axes[row,1].sharey(axes[row,2])
-#     axes[row,2].sharey(axes[row,3])
-# cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=True)
-# fig.align_ylabels()
-# plt.savefig('Figures/SIS_3D_6clusters_color_test.png',dpi=500)
+with open('Data/Processed/SIS_3D_based_cluster6_scaled.pickle','rb') as f:
+    model = pickle.load(f)
+fig, axes = plt.subplots(6,4,figsize=(6.5,1.2*6),sharex='col',layout='constrained',squeeze=False)
+for row in range(6):
+    axes[row,1].sharey(axes[row,2])
+    axes[row,2].sharey(axes[row,3])
+cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=False,line=True,
+base_values=[40,1/30,1/4],factors=[0.7,3,1],grid_mode=("scale","scale","based_vec"),
+N=20)
+fig.align_ylabels()
+plt.savefig('Figures/SIS_3D_based_6clusters_scaled.png',dpi=500)
 
 # ### plot all sims and select clusters
 # model = cluster_sims(results,obses,T_LOCKDOWN,6)
 # model1 = cluster_sims(results,obses,T_LOCKDOWN,1)
+# ages = np.array([np.mean(age_of_first_infection(results[key],MEDIAN_AGE)[np.argmax(results[key].t>=T_LOCKDOWN-5*12):np.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
+# ages_sd = np.array([np.mean(age_of_first_infection(results[key],MEDIAN_AGE,sd=True)[1][np.argmax(results[key].t>=T_LOCKDOWN-5*12):np.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
+
+# def hsv_to_hex(h, s, v):
+#     r, g, b = colorsys.hsv_to_rgb(h, s, v)
+#     return '#%02x%02x%02x' % (int(r * 255), int(g * 255), int(b * 255))
+
+# age_colors = np.array([hsv_to_hex(mu/np.max(ages),1-sd/np.max(ages_sd), 0.9) for mu,sd in zip(ages,ages_sd)])
+
 # fig, axes = plt.subplots(4,4,figsize=(6.5,1.7*4),sharex='col',layout='constrained',squeeze=False)
 # for row in range(4):
 #     axes[row,1].sharey(axes[row,2])
@@ -105,42 +126,44 @@ with open('Data/Processed/SIS_3D_obs.pickle','rb') as f:
 # first_row = axes[0,:]
 # first_row.shape = (1,4)
 # # cluster_colors = np.array([["#648FFF", "#DC267F", "#785EF0", "#FFB000", "#FF832B", "#000000", "#FFD662", "#FF34FF", "#8B0000", "#00FF00"][i] for i in model.labels_])
-# cluster_plot(first_row,results,obses,model1.n_clusters,model1.labels_,None,color=True)
-# cluster_plot(axes[1:,:],results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=True,clusters=[0,2,4])
+# cluster_plot(first_row,results,obses,model1.n_clusters,model1.labels_,None,color=True,line=False,color_values_all=age_colors)
+# cluster_plot(axes[1:,:],results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=True,clusters=[0,2,4],line=False,color_values_all=age_colors)
 # fig.align_ylabels()
-# plt.savefig('Figures/SIS_3D_clusters_1plus3of_color.png',dpi=900)
+# plt.savefig('Figures/SIS_3D_clusters_1plus3of6_age_color.png',dpi=900)
 
-# # ## Computing observations for a given cluster
-# # with open('Data/Processed/SIS_3D.pickle','rb') as f:
-# #     results = pickle.load(f)
-# # # separate out results and observations from cluster 4 and save
-# # cluster4_results = {}
-# # cluster4_obses = {}
-# # for key,result in results.items():
-# #     if model.labels_[list(results.keys()).index(key)] == 3:
-# #         cluster4_results[key] = result
-# #         cluster4_obses[key] = obses[key]
-# # with open('Data/Processed/SIS_3D_cluster4_results.pickle','wb') as f:
-# #     pickle.dump(cluster4_results,f)
-# # with open('Data/Processed/SIS_3D_cluster4_obses.pickle','wb') as f:
-# #     pickle.dump(cluster4_obses,f)
-
-# ## Plot sub-clusters of cluster 4
-# ## load cluster 4 and divide into 4 more clusters
-# with open('Data/Processed/SIS_3D_cluster4_results.pickle','rb') as f:
+# ## Computing observations for a given cluster
+# with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
 #     results = pickle.load(f)
-# with open('Data/Processed/SIS_3D_cluster4_obses.pickle','rb') as f:
+# pick_cluster = 0
+# # separate out results and observations from cluster pick and save
+# cluster_pick_results = {}
+# cluster_pick_obses = {}
+# for key,result in results.items():
+#     if model.labels_[list(results.keys()).index(key)] == pick_cluster:
+#         cluster_pick_results[key] = result
+#         cluster_pick_obses[key] = obses[key]
+# with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_results.pickle','wb') as f:
+#     pickle.dump(cluster_pick_results,f)
+# with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_obses.pickle','wb') as f:
+#     pickle.dump(cluster_pick_obses,f)
+
+# # ## Plot sub-clusters
+# # ## load cluster 4 and divide into 4 more clusters
+# with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_results.pickle','rb') as f:
+#     results = pickle.load(f)
+# with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_obses.pickle','rb') as f:
 #     obses = pickle.load(f)
 
+# pick_cluster = 0
 # n_clusters = 6
 # model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
-# fig, axes = plt.subplots(n_clusters,4,figsize=(6.5,1.7*n_clusters),sharex='col',layout='constrained',squeeze=False)
+# fig, axes = plt.subplots(n_clusters,4,figsize=(6.5,1.1*n_clusters),sharex='col',layout='constrained',squeeze=False)
 # for row in range(n_clusters):
 #     axes[row,1].sharey(axes[row,2])
 #     axes[row,2].sharey(axes[row,3])
-# cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=True)
+# cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=True,line=False)
 # fig.align_ylabels()
-# plt.savefig('Figures/SIS_3D_'+str(n_clusters)+'clusters_of_cluster4of6_color.png',dpi=300)
+# plt.savefig('Figures/SIS_3D_based_'+str(n_clusters)+'clusters_of_cluster'+str(pick_cluster+1)+'of6_color.png',dpi=300)
 
 # ##### One-shot line plot #####
 # params['BETA'] = 44
@@ -165,16 +188,15 @@ with open('Data/Processed/SIS_3D_obs.pickle','rb') as f:
 # plt.show()
 
 #### line plots with different parameter values, showing incidence and susceptibility #####
-# params['BETA'] = 41
-# params['SEASONALITY'] = 0.061
-# params['S_REL'] = np.array([1,0.55,0.1])
+# params['BETA'] = 70
+# # params['SEASONALITY'] = 0.061
+# params['S_REL'] = np.array([1,0.8,0.6])
 # fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
 # mx = np.zeros(4)
 # colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
 # # Plot the incidence
 # for i in range(2):
-#     p_value = 0.06+0.02*i
-#     params['WANE'] = p_value*np.array([0.0,1.0,0.0])
+#     params['BETA'] = [30,50][i]
 #     result = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
 #     # plot each susceptible compartment
 # #     ax[i//2,i%2].plot(result.t[1:],np.sum(result.y[NAG:2*NAG,:],axis=0)[1:],label='S1',color=colors[0])
@@ -184,35 +206,38 @@ with open('Data/Processed/SIS_3D_obs.pickle','rb') as f:
 # # ax[0,0].legend()
 # # plt.show()
 #     obs = observations(result,params,OBS_AGE,incidence=True)
+#     print(params['P_OBS'])
+#     print(OBS_AGE)
+#     print(np.max(obs))
 #     pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
 #     corr = np.correlate(pre_obs, pre_obs, mode='same')
 #     acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
 #     acorr = acorr + np.linspace(0.1, 0, len(acorr))
 #     lag = np.abs(acorr).argmax() + 1
 #     print(lag)
-#     mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{(1/12)/p_value:.2f} y',color=colors[i],relative=False,obs=obs)
-#     lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{(1/12)/p_value:.2f} y',color=colors[i],relative=False)
+#     mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{[50,70][i]:.2f}',color=colors[i],relative=False,obs=obs)
+#     lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{[50,70][i]:.2f}',color=colors[i],relative=False)
 
 # lockdown_incidence_format(ax[0],T_LOCKDOWN,LOCKDOWN_DURATION,max(mx),year_window=10)
 # lockdown_susceptibility_format(ax[1],T_LOCKDOWN,LOCKDOWN_DURATION,ymax=None,year_window=10)
 # ax[0].set_ylabel("Observed incidence")
 # # ax[0].set_ylim(0,1.1)
 # ax[1].set_ylabel("Effective population susceptibility")
-# ax[1].set_ylim(1.5e7,2.2e7)
-# ax[1].legend(title=r"Waning time")
+# # ax[1].set_ylim(1.5e7,2.2e7)
+# ax[1].legend(title="Transm.")
 # plt.tight_layout()
-# plt.savefig('Figures/SIS_beta41_seasonality0p061_acqimm0p45_vary_wane.png',dpi=300)
+# plt.savefig('Figures/test.png',dpi=300)
 
-# ##### run multi-dimensional GRID SIMS #####
+# # ##### run multi-dimensional GRID SIMS #####
 # start = time.time()
 # param_dict, results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
 # grid_params=(("BETA",),("WANE",),("S_REL",)),
-# N=20,factors=(1,2,1),grid_mode=("scale","scale","fade_vec"))
+# N=20,factors=(0.7,3,1),grid_mode=("scale","scale","based_vec"))
 # print(f"Simulation took {time.time()-start:.2f} seconds")
 # # Save the results
-# with open('Data/Processed/SIS_4D_2.pickle','wb') as f:
+# with open('Data/Processed/SIS_3D_based.pickle','wb') as f:
 #     pickle.dump(results,f)
-# with open('Data/Processed/SIS_4D_2_params.pickle','wb') as f:
+# with open('Data/Processed/SIS_3D_based_params.pickle','wb') as f:
 #     pickle.dump(param_dict,f)
 
 # ##### Plotting multi-dimensional grid sims #####

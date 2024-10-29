@@ -9,10 +9,12 @@ from plotting import age_of_first_infection
 from Parameters.test_population import MEDIAN_AGE
 
 
-with open('Data/Processed/SIS_3D.pickle','rb') as f:
+with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
     results = pickle.load(f)
-with open('Data/Processed/SIS_3D_obs.pickle','rb') as f:
+with open('Data/Processed/SIS_3D_based_obs_cap.pickle','rb') as f:
     obses = pickle.load(f)
+
+N = max([max(key) for key in results.keys()])+1
 
 T_LOCKDOWN = 37*12
 LOCKDOWN_DURATION = 12
@@ -51,17 +53,21 @@ for col in range(4):
     panel2_axes[2,col].sharex(panel2_axes[1,col])
     panel2_axes[1,col].sharex(panel2_axes[0,col])
 
-model = cluster_sims(results,obses,T_LOCKDOWN,6)
+model = cluster_sims(results,obses,T_LOCKDOWN,6,scaled=True)
+with open('Data/Processed/SIS_3D_based_cluster6_scaled.pickle','wb') as f:
+    pickle.dump(model,f)
+# with open('Data/Processed/SIS_3D_2_cluster6_no_cap.pickle','rb') as f:
+#     model = pickle.load(f)
 model1 = cluster_sims(results,obses,T_LOCKDOWN,1)
 ages = np.array([np.mean(age_of_first_infection(results[key],MEDIAN_AGE)[np.argmax(results[key].t>=T_LOCKDOWN-5*12):np.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
 ages_label = np.array([int(age>3) + int(age>12) + int(age>5*12) + int(age>18*12) + int(age>40*12) + int(age>65*12) for age in ages])
 n_age_clusters = max(ages_label)+1
-cluster_colors = np.array([["#648FFF", "#DC267F", "#785EF0", "#BBBBBB", "#FF832B", "#FFB000", "#8B0000", "#00FF00"][i] for i in model.labels_])
+cluster_colors = np.array([["#BBBBBB", "#FF832B", "#FFB000", "#648FFF", "#DC267F", "#785EF0", "#8B0000", "#00FF00"][i] for i in model.labels_])
 
-cluster_plot(top_row_up,results,obses,model1.n_clusters,model1.labels_,None,color=False)
-cluster_plot(top_row_down,results,obses,model1.n_clusters,model1.labels_,None,color=True,line=False,color_values_all=cluster_colors)
-cluster_plot(panel1_axes,results,obses,model.n_clusters,model.labels_,None,color=True,line=True,color_values_all=cluster_colors,clusters=[2,4,0])
-cluster_plot(panel2_axes,results,obses,n_age_clusters,ages_label,None,color=False,clusters=[0,1,2])
+cluster_plot(top_row_up,results,obses,model1.n_clusters,model1.labels_,None,color=False,N=N)
+cluster_plot(top_row_down,results,obses,model1.n_clusters,model1.labels_,None,color=True,line=False,color_values_all=cluster_colors,N=N)
+cluster_plot(panel1_axes,results,obses,model.n_clusters,model.labels_,None,color=True,line=True,color_values_all=cluster_colors,clusters=[0,4,2],N=N)
+cluster_plot(panel2_axes,results,obses,n_age_clusters,ages_label,None,color=False,clusters=[0,1,2],N=N)
 
 top_row_down[0,0].set_xlabel("Time (years)\n")
 top_row_down[0,0].set_ylabel("All simulations\n\nIncidence")
@@ -71,7 +77,9 @@ top_row_down[0,1].set_xlabel("Transmissibility\n")
 top_row_down[0,2].set_xlabel("Immune waning rate\n")
 top_row_down[0,3].set_xlabel("Acquired immunity\n")
 top_row_up[0,1].set_ylim(top_row_down[0,1].get_ylim())
-panel1_axes[0,1].set_ylim([-0.1,2.1])
+# panel1_axes[1,1].set_ylim([-0.1,2.1])
+# panel1_axes[2,3].set_xlim([-0.01,0.51])
+# panel2_axes[2,3].set_xlim([-0.01,0.51])
 for col in range(1,4):
     top_row_up[0,col].set_xticklabels([])
 for axes in [panel1_axes,panel2_axes]:
@@ -89,4 +97,4 @@ for row in range(3):
 panel1_axes[1,1].set_ylabel("Time to rebound (years)")
 panel2_axes[1,1].set_ylabel("Time to rebound (years)")
 
-plt.savefig('Figures/SIS_3D_complex_clusters_cluster_color.png',dpi=500)
+plt.savefig('Figures/SIS_3D_based_complex_clusters_cap_scaled.png',dpi=500)
