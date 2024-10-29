@@ -93,19 +93,18 @@ with open('Data/Processed/SIS_3D_based_obs.pickle','rb') as f:
 # fig.align_ylabels()
 # plt.savefig('Figures/SIS_3D_2_age_clusters.png',dpi=500)
 
-# # # ## plot six clusters
-# model = cluster_sims(results,obses,T_LOCKDOWN,6)
-with open('Data/Processed/SIS_3D_based_cluster6_scaled.pickle','rb') as f:
-    model = pickle.load(f)
-fig, axes = plt.subplots(6,4,figsize=(6.5,1.2*6),sharex='col',layout='constrained',squeeze=False)
-for row in range(6):
-    axes[row,1].sharey(axes[row,2])
-    axes[row,2].sharey(axes[row,3])
-cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=False,line=True,
-base_values=[40,1/30,1/4],factors=[0.7,3,1],grid_mode=("scale","scale","based_vec"),
-N=20)
-fig.align_ylabels()
-plt.savefig('Figures/SIS_3D_based_6clusters_scaled.png',dpi=500)
+# # # ## plot n clusters
+n_clusters = 3
+model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
+# fig, axes = plt.subplots(n_clusters,4,figsize=(6.5,1.2*n_clusters),sharex='col',layout='constrained',squeeze=False)
+# for row in range(n_clusters):
+#     axes[row,1].sharey(axes[row,2])
+#     axes[row,2].sharey(axes[row,3])
+# cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=False,line=True,
+# base_values=[40,1/30,1/4],factors=[0.7,3,1],grid_mode=("scale","scale","based_vec"),
+# N=20)
+# fig.align_ylabels()
+# plt.savefig('Figures/SIS_3D_based_'+str(n_clusters)+'clusters.png',dpi=500)
 
 # ### plot all sims and select clusters
 # model = cluster_sims(results,obses,T_LOCKDOWN,6)
@@ -131,7 +130,7 @@ plt.savefig('Figures/SIS_3D_based_6clusters_scaled.png',dpi=500)
 # fig.align_ylabels()
 # plt.savefig('Figures/SIS_3D_clusters_1plus3of6_age_color.png',dpi=900)
 
-# ## Computing observations for a given cluster
+# # ## Computing observations for a given cluster
 # with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
 #     results = pickle.load(f)
 # pick_cluster = 0
@@ -147,23 +146,25 @@ plt.savefig('Figures/SIS_3D_based_6clusters_scaled.png',dpi=500)
 # with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_obses.pickle','wb') as f:
 #     pickle.dump(cluster_pick_obses,f)
 
-# # ## Plot sub-clusters
-# # ## load cluster 4 and divide into 4 more clusters
-# with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_results.pickle','rb') as f:
-#     results = pickle.load(f)
-# with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_obses.pickle','rb') as f:
-#     obses = pickle.load(f)
+# ## Plot sub-clusters
+pick_cluster = 0
+# # ## load cluster and divide into more clusters
+with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_results.pickle','rb') as f:
+    results = pickle.load(f)
+with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_obses.pickle','rb') as f:
+    obses = pickle.load(f)
 
-# pick_cluster = 0
-# n_clusters = 6
-# model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
-# fig, axes = plt.subplots(n_clusters,4,figsize=(6.5,1.1*n_clusters),sharex='col',layout='constrained',squeeze=False)
-# for row in range(n_clusters):
-#     axes[row,1].sharey(axes[row,2])
-#     axes[row,2].sharey(axes[row,3])
-# cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=True,line=False)
-# fig.align_ylabels()
-# plt.savefig('Figures/SIS_3D_based_'+str(n_clusters)+'clusters_of_cluster'+str(pick_cluster+1)+'of6_color.png',dpi=300)
+n_clusters = 5
+model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
+with open('Data/Processed/SIS_3D_based_'+str(n_clusters)+'clusters_of_cluster'+str(pick_cluster+1)+'of3.pickle','wb') as f:
+    pickle.dump(model,f)
+fig, axes = plt.subplots(n_clusters,4,figsize=(6.5,1.1*n_clusters),sharex='col',layout='constrained',squeeze=False)
+for row in range(n_clusters):
+    axes[row,1].sharey(axes[row,2])
+    axes[row,2].sharey(axes[row,3])
+cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=False,line=True,y_value="rebound peak incidence")
+fig.align_ylabels()
+plt.savefig('Figures/SIS_3D_based_'+str(n_clusters)+'clusters_of_cluster'+str(pick_cluster+1)+'of3_rebound_size.png',dpi=300)
 
 # ##### One-shot line plot #####
 # params['BETA'] = 44

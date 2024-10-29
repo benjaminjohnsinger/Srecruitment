@@ -11,7 +11,7 @@ from Parameters.test_population import MEDIAN_AGE
 
 with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
     results = pickle.load(f)
-with open('Data/Processed/SIS_3D_based_obs_cap.pickle','rb') as f:
+with open('Data/Processed/SIS_3D_based_obs.pickle','rb') as f:
     obses = pickle.load(f)
 
 N = max([max(key) for key in results.keys()])+1
@@ -53,20 +53,28 @@ for col in range(4):
     panel2_axes[2,col].sharex(panel2_axes[1,col])
     panel2_axes[1,col].sharex(panel2_axes[0,col])
 
-model = cluster_sims(results,obses,T_LOCKDOWN,6,scaled=True)
-with open('Data/Processed/SIS_3D_based_cluster6_scaled.pickle','wb') as f:
-    pickle.dump(model,f)
+model = cluster_sims(results,obses,T_LOCKDOWN,3)
+# with open('Data/Processed/SIS_3D_based_cluster6_scaled.pickle','wb') as f:
+#     pickle.dump(model,f)
 # with open('Data/Processed/SIS_3D_2_cluster6_no_cap.pickle','rb') as f:
 #     model = pickle.load(f)
+with open('Data/Processed/SIS_3D_based_5clusters_of_cluster1of3.pickle','rb') as f:
+    model_5of1 = pickle.load(f)
+# relabel cluster 1 in model
+model.labels_[model.labels_==2] = 5
+model.labels_[model.labels_==1] = 5
+model.labels_[model.labels_==0] = model_5of1.labels_
+model.n_clusters = 6
+
 model1 = cluster_sims(results,obses,T_LOCKDOWN,1)
 ages = np.array([np.mean(age_of_first_infection(results[key],MEDIAN_AGE)[np.argmax(results[key].t>=T_LOCKDOWN-5*12):np.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
 ages_label = np.array([int(age>3) + int(age>12) + int(age>5*12) + int(age>18*12) + int(age>40*12) + int(age>65*12) for age in ages])
 n_age_clusters = max(ages_label)+1
-cluster_colors = np.array([["#BBBBBB", "#FF832B", "#FFB000", "#648FFF", "#DC267F", "#785EF0", "#8B0000", "#00FF00"][i] for i in model.labels_])
+cluster_colors = np.array([["#FF832B", "#FFB000", "#DC267F", "#648FFF", "#BBBBBB", "#785EF0", "#8B0000", "#00FF00"][i] for i in model.labels_])
 
 cluster_plot(top_row_up,results,obses,model1.n_clusters,model1.labels_,None,color=False,N=N)
 cluster_plot(top_row_down,results,obses,model1.n_clusters,model1.labels_,None,color=True,line=False,color_values_all=cluster_colors,N=N)
-cluster_plot(panel1_axes,results,obses,model.n_clusters,model.labels_,None,color=True,line=True,color_values_all=cluster_colors,clusters=[0,4,2],N=N)
+cluster_plot(panel1_axes,results,obses,model.n_clusters,model.labels_,None,color=True,line=True,color_values_all=cluster_colors,clusters=[4,0,3],N=N)
 cluster_plot(panel2_axes,results,obses,n_age_clusters,ages_label,None,color=False,clusters=[0,1,2],N=N)
 
 top_row_down[0,0].set_xlabel("Time (years)\n")
@@ -97,4 +105,4 @@ for row in range(3):
 panel1_axes[1,1].set_ylabel("Time to rebound (years)")
 panel2_axes[1,1].set_ylabel("Time to rebound (years)")
 
-plt.savefig('Figures/SIS_3D_based_complex_clusters_cap_scaled.png',dpi=500)
+plt.savefig('Figures/SIS_3D_based_complex_clusters_split1of3in5.png',dpi=500)
