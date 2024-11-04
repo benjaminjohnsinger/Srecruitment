@@ -34,6 +34,8 @@ LOCKDOWN_DURATION = 12
 LOCKDOWN_REDUCTION = 0.4
 shape_step = lambda t : cm.STEP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)
 shape_static = lambda t : 1
+shape_piecewise = lambda t : cm.piecewise(t,np.array([0,36*12,37*12,38*12,39*12]),np.array([1,0.7,0.8,0.9,1]))
+shape_ramp = lambda t : cm.RAMP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)
 def contact(t,shape,seasonality=SEASONALITY,offset=OFFSET,c_rate=CONTACT):
     return shape(t)*(1+seasonality*np.cos(2*np.pi*(t/12-offset)))*c_rate
 
@@ -52,30 +54,55 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_
 'IMPORT': IMPORT, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact':lambda t, seasonality, offset : contact(t,shape_step,seasonality,offset)}
 
+##### One-shot line plot #####
+# params['BETA'] = 50
+# params['SEASONALITY'] = 0.061
+# params['S_REL'] = np.array([1,0.55,0.1])
+# result = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# # params['contact'] = lambda t, seasonality, offset : contact(t,shape_ramp,seasonality,offset)
+# # result_ramp = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# # obs = observations(result,params,OBS_AGE,incidence=True)
+# # pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
+# # corr = np.correlate(pre_obs, pre_obs, mode='same')
+# # acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
+# # acorr = acorr + np.linspace(0.1, 0, len(acorr))
+# # lag = np.abs(acorr).argmax() + 1
+# # print(lag/12)
+# # mx = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
+# # plt.plot(result.t,obs)
+# # plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
+# # plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
+# # plt.ylim(0,1.1*mx)
+# fig, ax = plt.subplots(1,1,figsize=(10,5.6))
+# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result)
+# # mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result_ramp,color='#FF832B')
+# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=10)
+# plt.savefig('Figures/examle_trajectory_slide.png',dpi=300)
+
 # params['WANE'] = 1/12*np.array([0.0,1.0,0.0])
 # params['BETA'] = 30
 
 ####### Computing observations ########
-# with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
-#     results = pickle.load(f)
-# with open('Data/Processed/SIS_3D_based_params.pickle','rb') as f:
-#     param_dict = pickle.load(f)
-# obses = {}
-# for key,result in results.items():
-#     if np.all(np.array(key[1:]) == 0):
-#         print(key)
-#     params = param_dict[key]
-#     params['contact'] = lambda t, seasonality, offset : contact(t,shape_static,seasonality,offset)
-#     obs = observations(result,params,OBS_AGE,incidence=True,cap=True)
-#     obses[key] = obs
-# with open('Data/Processed/SIS_3D_based_obs_cap.pickle','wb') as f:
-#     pickle.dump(obses,f)
-
-# # ######## Plotting clusters ########
 with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
     results = pickle.load(f)
-with open('Data/Processed/SIS_3D_based_obs.pickle','rb') as f:
-    obses = pickle.load(f)
+with open('Data/Processed/SIS_3D_based_params.pickle','rb') as f:
+    param_dict = pickle.load(f)
+obses = {}
+for key,result in results.items():
+    if np.all(np.array(key[1:]) == 0):
+        print(key)
+    params = param_dict[key]
+    params['contact'] = lambda t, seasonality, offset : contact(t,shape_static,seasonality,offset)
+    obs = observations(result,params,OBS_AGE,incidence=False,cap=False)
+    obses[key] = obs
+with open('Data/Processed/SIS_3D_based_obs_full.pickle','wb') as f:
+    pickle.dump(obses,f)
+
+# # ######## Plotting clusters ########
+# with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
+#     results = pickle.load(f)
+# with open('Data/Processed/SIS_3D_based_obs.pickle','rb') as f:
+#     obses = pickle.load(f)
 
 # # #### plot age-based clusters
 # ages = np.array([np.mean(age_of_first_infection(results[key],MEDIAN_AGE)[np.argmax(results[key].t>=T_LOCKDOWN-5*12):np.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
@@ -94,8 +121,8 @@ with open('Data/Processed/SIS_3D_based_obs.pickle','rb') as f:
 # plt.savefig('Figures/SIS_3D_2_age_clusters.png',dpi=500)
 
 # # # ## plot n clusters
-n_clusters = 3
-model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
+# n_clusters = 3
+# model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
 # fig, axes = plt.subplots(n_clusters,4,figsize=(6.5,1.2*n_clusters),sharex='col',layout='constrained',squeeze=False)
 # for row in range(n_clusters):
 #     axes[row,1].sharey(axes[row,2])
@@ -147,46 +174,24 @@ model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
 #     pickle.dump(cluster_pick_obses,f)
 
 # ## Plot sub-clusters
-pick_cluster = 0
-# # ## load cluster and divide into more clusters
-with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_results.pickle','rb') as f:
-    results = pickle.load(f)
-with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_obses.pickle','rb') as f:
-    obses = pickle.load(f)
+# pick_cluster = 0
+# # # ## load cluster and divide into more clusters
+# with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_results.pickle','rb') as f:
+#     results = pickle.load(f)
+# with open('Data/Processed/SIS_3D_based_cluster'+str(pick_cluster+1)+'_obses.pickle','rb') as f:
+#     obses = pickle.load(f)
 
-n_clusters = 5
-model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
-with open('Data/Processed/SIS_3D_based_'+str(n_clusters)+'clusters_of_cluster'+str(pick_cluster+1)+'of3.pickle','wb') as f:
-    pickle.dump(model,f)
-fig, axes = plt.subplots(n_clusters,4,figsize=(6.5,1.1*n_clusters),sharex='col',layout='constrained',squeeze=False)
-for row in range(n_clusters):
-    axes[row,1].sharey(axes[row,2])
-    axes[row,2].sharey(axes[row,3])
-cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=False,line=True,y_value="rebound peak incidence")
-fig.align_ylabels()
-plt.savefig('Figures/SIS_3D_based_'+str(n_clusters)+'clusters_of_cluster'+str(pick_cluster+1)+'of3_rebound_size.png',dpi=300)
-
-# ##### One-shot line plot #####
-# params['BETA'] = 44
-# params['SEASONALITY'] = 0.02
-# params['S_REL'] = np.array([1,0.95,0.9])
-# result = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-# # obs = observations(result,params,OBS_AGE,incidence=True)
-# # pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
-# # corr = np.correlate(pre_obs, pre_obs, mode='same')
-# # acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
-# # acorr = acorr + np.linspace(0.1, 0, len(acorr))
-# # lag = np.abs(acorr).argmax() + 1
-# # print(lag/12)
-# # mx = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
-# # plt.plot(result.t,obs)
-# # plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
-# # plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
-# # plt.ylim(0,1.1*mx)
-# fig, ax = plt.subplots(1,1,figsize=(6.5,4.5))
-# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result)
-# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=10)
-# plt.show()
+# n_clusters = 5
+# model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
+# with open('Data/Processed/SIS_3D_based_'+str(n_clusters)+'clusters_of_cluster'+str(pick_cluster+1)+'of3.pickle','wb') as f:
+#     pickle.dump(model,f)
+# fig, axes = plt.subplots(n_clusters,4,figsize=(6.5,1.1*n_clusters),sharex='col',layout='constrained',squeeze=False)
+# for row in range(n_clusters):
+#     axes[row,1].sharey(axes[row,2])
+#     axes[row,2].sharey(axes[row,3])
+# cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=False,line=True,y_value="rebound peak incidence")
+# fig.align_ylabels()
+# plt.savefig('Figures/SIS_3D_based_'+str(n_clusters)+'clusters_of_cluster'+str(pick_cluster+1)+'of3_rebound_size.png',dpi=300)
 
 #### line plots with different parameter values, showing incidence and susceptibility #####
 # params['BETA'] = 70
