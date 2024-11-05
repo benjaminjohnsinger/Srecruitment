@@ -3,6 +3,7 @@
 
 import numpy as np
 import scipy as sp
+import pandas as pd
 import time
 import itertools as it
 import matplotlib.pyplot as plt
@@ -10,6 +11,7 @@ from matplotlib.gridspec import GridSpec
 from matplotlib import cm as pltcm
 import pickle
 import colorsys
+import datetime
 
 from vaccination import birth_vax, all_vax
 import contact_model as cm
@@ -17,27 +19,27 @@ from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.test_population import *
 from Parameters.generic_disease import *
 
+from utils import *
+from demography import *
 from clustering import *
 from plotting import *
 
-## Period of simulation in months
-PERIOD = 12*50
+## Period of simulation
+START = pd.to_datetime('1970-01-01')
+END = pd.to_datetime('2024-09-01')
+PERIOD = pd.date_range(start=START, end=END, freq='MS')
+
 
 ## Contacts and force of infection
 IMPORT = 0.01*np.ones(N_S)
 # Contact matrix for all contact types
 CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',')
-CONTACT /= 12.99 # transform to contact proportions
 # Lockdown and other mobility changes
-T_LOCKDOWN = 37*12
-LOCKDOWN_DURATION = 12
+T_LOCKDOWN = date_to_t('2020-03-01')
+LOCKDOWN_DURATION = 365
 LOCKDOWN_REDUCTION = 0.4
-shape_step = lambda t : cm.STEP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)
-shape_static = lambda t : 1
-shape_piecewise = lambda t : cm.piecewise(t,np.array([0,36*12,37*12,38*12,39*12]),np.array([1,0.7,0.8,0.9,1]))
-shape_ramp = lambda t : cm.RAMP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)
-def contact(t,shape,seasonality=SEASONALITY,offset=OFFSET,c_rate=CONTACT):
-    return shape(t)*(1+seasonality*np.cos(2*np.pi*(t/12-offset)))*c_rate
+def contact(t,seasonality,offset):
+    return cm.STEP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
@@ -46,57 +48,61 @@ STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 ## Integrate the system
 # POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+LOCKDOWN_DURATION+12*12,0.2),np.ones(1)*PERIOD))
-POINTS = np.arange(0,PERIOD+1,1)
-T_VAX = PERIOD
+# POINTS = np.array([date_to_t('1960-01-01') + pd.DateOffset(months=x) for x in range(PERIOD)])
+T_VAX = date_to_t('2035-01-01')
+
+POINTS = date_to_t(PERIOD)
 
 # Parameters for the ODE
-params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_RATE, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
+params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': births, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
 'IMPORT': IMPORT, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
-'contact':lambda t, seasonality, offset : contact(t,shape_step,seasonality,offset)}
+'contact': contact}
 
-##### One-shot line plot #####
-# params['BETA'] = 50
-# params['SEASONALITY'] = 0.061
-# params['S_REL'] = np.array([1,0.55,0.1])
-# result = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-# # params['contact'] = lambda t, seasonality, offset : contact(t,shape_ramp,seasonality,offset)
-# # result_ramp = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-# # obs = observations(result,params,OBS_AGE,incidence=True)
-# # pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
-# # corr = np.correlate(pre_obs, pre_obs, mode='same')
-# # acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
-# # acorr = acorr + np.linspace(0.1, 0, len(acorr))
-# # lag = np.abs(acorr).argmax() + 1
-# # print(lag/12)
-# # mx = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
-# # plt.plot(result.t,obs)
-# # plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
-# # plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
-# # plt.ylim(0,1.1*mx)
-# fig, ax = plt.subplots(1,1,figsize=(10,5.6))
-# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result)
-# # mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result_ramp,color='#FF832B')
-# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=10)
-# plt.savefig('Figures/examle_trajectory_slide.png',dpi=300)
+#### One-shot line plot #####
+params['BETA'] = 1/8
+params['SEASONALITY'] = 0.061
+params['S_REL'] = np.array([1,0.55,0.1])
+result = sp.integrate.solve_ivp(sis_deltas,(POINTS[0],POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# print(result)
+# params['contact'] = lambda t, seasonality, offset : contact(t,shape_ramp,seasonality,offset)
+# result_ramp = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# obs = observations(result,params,OBS_AGE,incidence=True)
+# pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
+# corr = np.correlate(pre_obs, pre_obs, mode='same')
+# acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
+# acorr = acorr + np.linspace(0.1, 0, len(acorr))
+# lag = np.abs(acorr).argmax() + 1
+# print(lag/12)
+# mx = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
+# plt.plot(result.t,np.sum(result.y,axis=0))
+# plt.show()
+# plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
+# plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
+# plt.ylim(0,1.1*mx)
+fig, ax = plt.subplots(1,1,figsize=(10,5.6))
+mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,window=3*365)
+# mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result_ramp,color='#FF832B')
+lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=10)
+plt.savefig('Figures/examle_trajectory_slide_test.png',dpi=300)
 
 # params['WANE'] = 1/12*np.array([0.0,1.0,0.0])
 # params['BETA'] = 30
 
 ####### Computing observations ########
-with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
-    results = pickle.load(f)
-with open('Data/Processed/SIS_3D_based_params.pickle','rb') as f:
-    param_dict = pickle.load(f)
-obses = {}
-for key,result in results.items():
-    if np.all(np.array(key[1:]) == 0):
-        print(key)
-    params = param_dict[key]
-    params['contact'] = lambda t, seasonality, offset : contact(t,shape_static,seasonality,offset)
-    obs = observations(result,params,OBS_AGE,incidence=False,cap=False)
-    obses[key] = obs
-with open('Data/Processed/SIS_3D_based_obs_full.pickle','wb') as f:
-    pickle.dump(obses,f)
+# with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
+#     results = pickle.load(f)
+# with open('Data/Processed/SIS_3D_based_params.pickle','rb') as f:
+#     param_dict = pickle.load(f)
+# obses = {}
+# for key,result in results.items():
+#     if np.all(np.array(key[1:]) == 0):
+#         print(key)
+#     params = param_dict[key]
+#     params['contact'] = lambda t, seasonality, offset : contact(t,shape_static,seasonality,offset)
+#     obs = observations(result,params,OBS_AGE,incidence=False,cap=False)
+#     obses[key] = obs
+# with open('Data/Processed/SIS_3D_based_obs_full.pickle','wb') as f:
+#     pickle.dump(obses,f)
 
 # # ######## Plotting clusters ########
 # with open('Data/Processed/SIS_3D_based.pickle','rb') as f:

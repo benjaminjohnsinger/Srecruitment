@@ -53,7 +53,7 @@ def susceptibility(result,params,N_C=2):
             sus[i_t,:] += S_REL[i]*S_AGE*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
     return(sus)
             
-def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None):
+def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,window=5*365):
     if params is not None:
         NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, SEASONALITY, OFFSET, contact = params.values()
     if result is None:
@@ -67,25 +67,25 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
         pop_size_by_age = np.array([np.sum(result.y[range(i_age,(3*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
         for i_age in range(NAG):
             ax.plot(times,obs[:,i_age]/pop_size_by_age[:,i_age], label=AGE_GROUP_NAMES[i_age], color=cmap(i_age/(NAG-1)))
-        mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[np.argmax(times>T_LOCKDOWN-5*12):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])
+        mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[np.argmax(times>T_LOCKDOWN-window):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+window)])
     else:
         if obs is None:
             obs = observations(result,params,OBS_AGE,incidence=True)
         if relative:
-            pre_mx = np.max(obs[np.argmax(times>T_LOCKDOWN-5*12):np.argmax(times>T_LOCKDOWN)])
+            pre_mx = np.max(obs[np.argmax(times>T_LOCKDOWN-window):np.argmax(times>T_LOCKDOWN)])
             ax.plot(times, obs/pre_mx, label=label,color=color,linewidth=linewidth,alpha=alpha)
-            mx = 1.1*np.max(obs[np.argmax(times>T_LOCKDOWN-5*12):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])/pre_mx
+            mx = 1.1*np.max(obs[np.argmax(times>T_LOCKDOWN-window):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+window)])/pre_mx
         else:
             ax.plot(times, obs, label=label,color=color,linewidth=linewidth,alpha=alpha)
-            mx = 1.1*np.max(obs[np.argmax(times>T_LOCKDOWN-5*12):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+5*12)])
+            mx = 1.1*np.max(obs[np.argmax(times>T_LOCKDOWN-window):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+window)])
     return(mx)
 
 def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,year_skip=1,title='Incidence of disease with 1-year lockdown'):
-    ax.set_xlim(T_LOCKDOWN-year_window*12,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*12)
+    ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
     ax.set_ylim(0,mx)
     ax.set_ylabel('Observed incidence')
     ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
-    ax.set_xticks(np.arange(T_LOCKDOWN-year_window*12,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*12+12,12*year_skip),[str(int(x)-year_window-1) for x in np.arange(0,year_window*2+2,year_skip)])
+    ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365+365,365*year_skip),[str(int(x)-year_window-1) for x in np.arange(0,year_window*2+2,year_skip)])
     ax.set_xlabel('Time (years)')
     ax.set_title(title)
 
@@ -103,16 +103,16 @@ def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,resul
     else:
         total_sus = np.sum(sus,axis=1)
         if relative:
-            pre_mx_sus = np.mean(total_sus[np.argmax(result.t>T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN)])
+            pre_mx_sus = np.mean(total_sus[np.argmax(result.t>T_LOCKDOWN-5*365):np.argmax(result.t>T_LOCKDOWN)])
             rel_sus = total_sus/pre_mx_sus
             ax.plot(result.t,rel_sus, label=label,color=color,linestyle=style)
         else:
             ax.plot(result.t,total_sus, label=label,color=color,linestyle=style)
 
 def lockdown_susceptibility_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,ymin=0.875,ymax=1.1,year_window=5):
-    ax.set_xlim(T_LOCKDOWN-year_window*12,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*12)
+    ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
     ax.set_ylabel('Relative susceptibility')
-    ax.set_xticks(np.arange(T_LOCKDOWN-year_window*12,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*12,12),[str(int(x)-year_window) for x in np.arange(0,2*year_window+1,1)])
+    ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365,365),[str(int(x)-year_window) for x in np.arange(0,2*year_window+1,1)])
     ax.set_xlabel('Time (years)')
     ax.set_title('Population susceptibility with 1-year lockdown')
     yin, yax = ax.get_ylim()
@@ -132,11 +132,11 @@ def age_infect_plot(ax,state0,params,AGE_GROUP_NAMES,period,points,T_LOCKDOWN,LO
     rel_infs = infs/np.sum(infs,axis=1)[:,np.newaxis]
     for i in range(NAG):
         ax.plot(result.t,rel_infs[:,i], label=AGE_GROUP_NAMES[i], color=cmap(i/(NAG-1)),zorder=1)
-    ax.set_xlim(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12)
+    ax.set_xlim(T_LOCKDOWN-5*365,T_LOCKDOWN+LOCKDOWN_DURATION+5*365)
     ax.set_title('Infections caused by each age group')
     ax.set_ylabel('Infection rate')
     ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,1,color='gray',zorder=0,alpha=0.2)
-    ax.set_xticks(np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12,12),[str(int(x)-5) for x in np.arange(0,11,1)])
+    ax.set_xticks(np.arange(T_LOCKDOWN-5*365,T_LOCKDOWN+LOCKDOWN_DURATION+5*365,365),[str(int(x)-5) for x in np.arange(0,11,1)])
     ax.set_xlabel('Time (years)')
     ax.set_ylim(0,1)
     # ax.legend()
@@ -169,7 +169,7 @@ def sim_grid(state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,
         # Run simulation
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points, args=(params_n,))
         results[p_n] = result
-        params_dict[p_n] = {key: value for key, value in params_n.items() if key != 'contact'}
+        params_dict[p_n] = params_n
     return(params_dict,results)
 
 def param_line_plot(ax,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=None,

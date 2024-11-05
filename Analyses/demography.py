@@ -21,24 +21,35 @@ BIRTHS_2023_2024 = BIRTHS_2023_2024.drop(columns=["Geography_Type","Strata","Str
 BIRTHS_2023_2024 = BIRTHS_2023_2024.rename(columns={"Count":"Births"})
 BIRTHS = pd.concat([BIRTHS, BIRTHS_2023_2024])
 
-# plot, with dates after 2022 in a different color, with legend and labels
-fig, ax = plt.subplots(figsize=(6,6))
-BIRTHS.plot(ax=ax,color="#648FFF")
-BIRTHS.loc['2023':].plot(ax=ax,color="#DC267F")
-plt.legend(['Resident births','Provisional data'])
-ax.get_legend().get_lines()[0].set_color('#648FFF')
-ax.get_legend().get_lines()[1].set_color('#DC267F')
-# add detail panel to plot with data from 2016 onwards
-axins = ax.inset_axes([0.42, 0.13, 0.42, 0.3])
-BIRTHS.loc['2016':].plot(ax=axins,color="#648FFF")
-BIRTHS.loc['2023':].plot(ax=axins,color="#DC267F")
-axins.get_legend().remove()
-axins.set_xticks(['2016-01-01','2020-01-01','2024-01-01'])
-axins.set_yticks([])
-ax.indicate_inset_zoom(axins)
+def births(t):
+    """
+    Return number of births at time t, with t the number of days since 1970-01-01
+    """
+    date = pd.to_datetime("1970-01-01") + pd.DateOffset(days=t)
+    # round to the first day of the month
+    date = pd.to_datetime(str(date.year) + "-" + str(date.month) + "-01", format="%Y-%m-%d")
+    return BIRTHS.loc[date,"Births"]/30.44
 
-ax.set_ylabel('Monthly births')
-ax.set_xlabel('Date')
-ax.set_title('Monthly births in California')
-plt.tight_layout()
-plt.savefig('Figures/births_CA.png',dpi=300)
+
+
+# # plot, with dates after 2022 in a different color, with legend and labels
+# fig, ax = plt.subplots(figsize=(6,6))
+# BIRTHS.plot(ax=ax,color="#648FFF")
+# BIRTHS.loc['2023':].plot(ax=ax,color="#DC267F")
+# plt.legend(['Resident births','Provisional data'])
+# ax.get_legend().get_lines()[0].set_color('#648FFF')
+# ax.get_legend().get_lines()[1].set_color('#DC267F')
+# # add detail panel to plot with data from 2016 onwards
+# axins = ax.inset_axes([0.42, 0.13, 0.42, 0.3])
+# BIRTHS.loc['2016':].plot(ax=axins,color="#648FFF")
+# BIRTHS.loc['2023':].plot(ax=axins,color="#DC267F")
+# axins.get_legend().remove()
+# axins.set_xticks(['2016-01-01','2020-01-01','2024-01-01'])
+# axins.set_yticks([])
+# ax.indicate_inset_zoom(axins)
+
+# ax.set_ylabel('Monthly births')
+# ax.set_xlabel('Date')
+# ax.set_title('Monthly births in California')
+# plt.tight_layout()
+# plt.savefig('Figures/births_CA.png',dpi=300)

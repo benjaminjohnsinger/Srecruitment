@@ -4,7 +4,7 @@
 import numpy as np
 
 ## Population size and age distribution
-POP_SIZE = 3.9e7 # California population in 2022
+POP_SIZE = 3.9e7 - 3e6 # California population in 2022, minus change in population brought about by birth model
 AGE_POP = np.genfromtxt('Data/Processed/US_Census_population_by_age.csv', delimiter=',') # US in 2022
 KP_AGE_GROUPS = [
     range(3),
@@ -21,8 +21,8 @@ KP_AGE_POP = AGE_PROPORTION*POP_SIZE
 NAG = len(KP_AGE_GROUPS)
 
 # Rate of aging out of each age group. Last rate informed by US life expectancy at age 65.
-AGING_RATE = 1/np.array([3,9,4*12,13*12,22*12,25*12,18.35*12])
+AGING_RATE = 1/np.array([3/12*365,9/12*365,4*365,13*365,22*365,25*365,18.35*365])
 
 # Birth rate (for California in 2022)
-BIRTH_RATE = 3.99e5/(POP_SIZE*12)
+BIRTH_RATE = 3.99e5/(POP_SIZE*365)
 # AGING_RATE = BIRTH_RATE/AGE_PROPORTION # Stable population distribution
