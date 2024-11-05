@@ -19,10 +19,10 @@ MOBILITY_CA = MOBILITY.loc[MOBILITY['iso_3166_2_code'] == 'US-CA']
 MOBILITY_CA['residential_percent_change_from_baseline_ma'] = 1 - MOBILITY_CA['residential_percent_change_from_baseline'].rolling(window=7).mean()/100
 
 fig, ax = plt.subplots(figsize=(6,6))
-MOBILITY_CA.plot('date','residential_percent_change_from_baseline_ma',ax=ax,legend=False)
+MOBILITY_CA.plot('date','residential_percent_change_from_baseline_ma',ax=ax,legend=False,color="#648FFF")
 ax.set_xlabel('Date')
-ax.set_ylabel('Residential mobility')
-ax.set_title('California residential mobility')
+ax.set_ylabel('Relative non-residential visits')
+ax.set_title('California mobility outside of residential locations')
 plt.tight_layout()
 plt.savefig('Figures/mobility_CA_residential_7day_average.png',dpi=300)
 
@@ -36,7 +36,7 @@ MONTHLY_ARRIVALS.index = pd.to_datetime(MONTHLY_ARRIVALS.index, format='%m/%d/%Y
 MONTHLY_ARRIVALS = MONTHLY_ARRIVALS.sort_index()
 
 fig, ax = plt.subplots(figsize=(6,6))
-MONTHLY_ARRIVALS.plot(ax=ax,legend=False)
+MONTHLY_ARRIVALS.plot(ax=ax,legend=False,color="#648FFF")
 ax.set_ylabel('Monthly arrivals')
 ax.set_xlabel('Date')
 ax.set_title('Monthly arrivals at LAX')
