@@ -9,7 +9,7 @@ from plotting import age_of_first_infection
 def cluster_sims(results,obses,T_LOCKDOWN,n_clusters,pre=True,width=5,scaled=False,metric='euclidean'):
     obs_cut_and_scaled = {}
     for o_key,obs in obses.items():
-        obs_temp = obs[(results[o_key].t>=T_LOCKDOWN-width*12) & (results[o_key].t<T_LOCKDOWN+(1-pre)*(width+1)*12)]
+        obs_temp = obs[(results[o_key].t>=T_LOCKDOWN-width*365) & (results[o_key].t<T_LOCKDOWN+(1-pre)*(width+1)*365)]
         if scaled:
             obs_temp = obs_temp/np.max(obs_temp)
         obs_cut_and_scaled[o_key] = obs_temp

@@ -27,7 +27,7 @@ from plotting import *
 ## Period of simulation
 START = pd.to_datetime('1970-01-01')
 END = pd.to_datetime('2024-09-01')
-PERIOD = pd.date_range(start=START, end=END, freq='MS')
+PERIOD = pd.date_range(start=START, end=END, freq='D')
 
 
 ## Contacts and force of infection
@@ -35,7 +35,7 @@ IMPORT = 0.01*np.ones(N_S)
 # Contact matrix for all contact types
 CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',')
 # Lockdown and other mobility changes
-T_LOCKDOWN = date_to_t('2020-03-01')
+T_LOCKDOWN = date_to_t('2007-01-01')
 LOCKDOWN_DURATION = 365
 LOCKDOWN_REDUCTION = 0.4
 def contact(t,seasonality,offset):
@@ -51,7 +51,7 @@ STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 # POINTS = np.array([date_to_t('1960-01-01') + pd.DateOffset(months=x) for x in range(PERIOD)])
 T_VAX = date_to_t('2035-01-01')
 
-POINTS = date_to_t(PERIOD)
+POINTS = np.array(date_to_t(PERIOD))
 
 # Parameters for the ODE
 params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': births, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
@@ -88,26 +88,26 @@ plt.savefig('Figures/examle_trajectory_slide_test.png',dpi=300)
 # params['WANE'] = 1/12*np.array([0.0,1.0,0.0])
 # params['BETA'] = 30
 
-####### Computing observations ########
-# with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
+# # ####### Computing observations ########
+# with open('Data/Processed/SIS_3D_little.pickle','rb') as f:
 #     results = pickle.load(f)
-# with open('Data/Processed/SIS_3D_based_params.pickle','rb') as f:
+# with open('Data/Processed/SIS_3D_little_params.pickle','rb') as f:
 #     param_dict = pickle.load(f)
 # obses = {}
 # for key,result in results.items():
 #     if np.all(np.array(key[1:]) == 0):
 #         print(key)
 #     params = param_dict[key]
-#     params['contact'] = lambda t, seasonality, offset : contact(t,shape_static,seasonality,offset)
-#     obs = observations(result,params,OBS_AGE,incidence=False,cap=False)
+#     # params['contact'] = lambda t, seasonality, offset : contact(t,shape_static,seasonality,offset)
+#     obs = observations(result,params,OBS_AGE,incidence=True)
 #     obses[key] = obs
-# with open('Data/Processed/SIS_3D_based_obs_full.pickle','wb') as f:
+# with open('Data/Processed/SIS_3D_little_obs.pickle','wb') as f:
 #     pickle.dump(obses,f)
 
 # # ######## Plotting clusters ########
-# with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
+# with open('Data/Processed/SIS_3D_little.pickle','rb') as f:
 #     results = pickle.load(f)
-# with open('Data/Processed/SIS_3D_based_obs.pickle','rb') as f:
+# with open('Data/Processed/SIS_3D_little_obs.pickle','rb') as f:
 #     obses = pickle.load(f)
 
 # # #### plot age-based clusters
@@ -126,18 +126,18 @@ plt.savefig('Figures/examle_trajectory_slide_test.png',dpi=300)
 # fig.align_ylabels()
 # plt.savefig('Figures/SIS_3D_2_age_clusters.png',dpi=500)
 
-# # # ## plot n clusters
+# # # # ## plot n clusters
 # n_clusters = 3
-# model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters)
+# model = cluster_sims(results,obses,T_LOCKDOWN,n_clusters,width=5)
 # fig, axes = plt.subplots(n_clusters,4,figsize=(6.5,1.2*n_clusters),sharex='col',layout='constrained',squeeze=False)
 # for row in range(n_clusters):
 #     axes[row,1].sharey(axes[row,2])
 #     axes[row,2].sharey(axes[row,3])
-# cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=False,line=True,
-# base_values=[40,1/30,1/4],factors=[0.7,3,1],grid_mode=("scale","scale","based_vec"),
+# cluster_plot(axes,results,obses,model.n_clusters,model.labels_,model.cluster_centers_,color=True,line=False,
+# base_values=[1/10,1/913,1/4],factors=[0.7,3,1],grid_mode=("scale","scale","based_vec"),
 # N=20)
 # fig.align_ylabels()
-# plt.savefig('Figures/SIS_3D_based_'+str(n_clusters)+'clusters.png',dpi=500)
+# plt.savefig('Figures/SIS_3D_little_'+str(n_clusters)+'clusters.png',dpi=500)
 
 # ### plot all sims and select clusters
 # model = cluster_sims(results,obses,T_LOCKDOWN,6)
@@ -242,14 +242,14 @@ plt.savefig('Figures/examle_trajectory_slide_test.png',dpi=300)
 
 # # ##### run multi-dimensional GRID SIMS #####
 # start = time.time()
-# param_dict, results = sim_grid(STATE0,params,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
+# param_dict, results = sim_grid(STATE0,params,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
 # grid_params=(("BETA",),("WANE",),("S_REL",)),
-# N=20,factors=(0.7,3,1),grid_mode=("scale","scale","based_vec"))
+# N=2,factors=(0.7,3,1),grid_mode=("scale","scale","based_vec"))
 # print(f"Simulation took {time.time()-start:.2f} seconds")
 # # Save the results
-# with open('Data/Processed/SIS_3D_based.pickle','wb') as f:
+# with open('Data/Processed/SIS_3D_little.pickle','wb') as f:
 #     pickle.dump(results,f)
-# with open('Data/Processed/SIS_3D_based_params.pickle','wb') as f:
+# with open('Data/Processed/SIS_3D_little_params.pickle','wb') as f:
 #     pickle.dump(param_dict,f)
 
 # ##### Plotting multi-dimensional grid sims #####
