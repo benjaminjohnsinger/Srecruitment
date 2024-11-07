@@ -4,7 +4,7 @@
 import numpy as np
 
 ## Population size and age distribution
-POP_SIZE = 3.9e7
+POP_SIZE = 3.25e7
 AGE_POP = np.genfromtxt('Data/Processed/US_Census_population_by_age.csv', delimiter=',') # US in 2022
 KP_AGE_GROUPS = [
     range(3),

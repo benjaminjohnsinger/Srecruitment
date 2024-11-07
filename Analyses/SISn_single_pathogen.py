@@ -26,7 +26,7 @@ from plotting import *
 
 ## Period of simulation
 START = pd.to_datetime('1970-01-01')
-END = pd.to_datetime('2020-04-01')
+END = pd.to_datetime('2024-04-01')
 PERIOD = pd.date_range(start=START, end=END, freq='MS')
 
 ## Contacts and force of infection
@@ -34,7 +34,7 @@ IMPORT = 0.01*np.ones(N_S)
 # Contact matrix for all contact types
 CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',')
 # Lockdown and other mobility changes
-T_LOCKDOWN = date_to_t('2007-01-01')
+T_LOCKDOWN = date_to_t('2014-01-01')
 LOCKDOWN_DURATION = 365
 LOCKDOWN_REDUCTION = 0.4
 def contact(t,seasonality,offset):
@@ -45,7 +45,7 @@ STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = KP_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
-STATE1 = np.copy(STATE0)
+STATE1 = np.copy(STATE0) 
 STATE1[NAG:2*NAG] = KP_AGE_POP-1
 
 ## Integrate the system
@@ -56,7 +56,7 @@ T_VAX = date_to_t('2035-01-01')
 POINTS = np.array(date_to_t(PERIOD))
 
 # Parameters for the ODE
-params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': births, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
+params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
 'IMPORT': IMPORT, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
@@ -77,7 +77,7 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': births
 # print(res.x)
 
 #### One-shot line plot #####
-# params['BETA'] = 1/8
+params['BETA'] = 1/12
 # params['SEASONALITY'] = 0.061
 # params['S_REL'] = np.array([1,0.55,0.1])
 result = sp.integrate.solve_ivp(sis_deltas,(POINTS[0],POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
@@ -94,19 +94,19 @@ result = sp.integrate.solve_ivp(sis_deltas,(POINTS[0],POINTS[-1]),STATE0,args=(p
 # print(lag/12)
 # mx = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
 # plt.plot(result.t,np.sum(result.y,axis=0))
-fig, ax = plt.subplots(2,2,figsize=(10,5.6))
+# fig, ax = plt.subplots(2,2,figsize=(10,5.6))
 # sum of each age group
 # print(np.array([np.sum(result.y[range(i,7*NAG,NAG),:],axis=0) for i in range(NAG)]))
-print(np.sum(np.abs(KP_AGE_POP-np.array([np.sum(result.y[range(i,7*NAG,NAG),-1]) for i in range(NAG)]))))
-plt.show()
+# print(np.sum(np.abs(KP_AGE_POP-np.array([np.sum(result.y[range(i,7*NAG,NAG),-1]) for i in range(NAG)]))))
+# plt.show()
 # plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
 # plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
 # plt.ylim(0,1.1*mx)
-# fig, ax = plt.subplots(1,1,figsize=(10,5.6))
-# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,window=3*365)
-# # mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result_ramp,color='#FF832B')
-# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=10)
-# plt.savefig('Figures/examle_trajectory_slide_test.png',dpi=300)
+fig, ax = plt.subplots(1,1,figsize=(10,5.6))
+mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,window=3*365)
+# mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result_ramp,color='#FF832B')
+lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=10)
+plt.savefig('Figures/examle_trajectory_slide_test.png',dpi=300)
 
 # params['WANE'] = 1/12*np.array([0.0,1.0,0.0])
 # params['BETA'] = 30

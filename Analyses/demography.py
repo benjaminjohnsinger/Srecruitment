@@ -21,14 +21,32 @@ BIRTHS_2023_2024 = BIRTHS_2023_2024.drop(columns=["Geography_Type","Strata","Str
 BIRTHS_2023_2024 = BIRTHS_2023_2024.rename(columns={"Count":"Births"})
 BIRTHS = pd.concat([BIRTHS, BIRTHS_2023_2024])
 
+# reformat births index to be number of days since 1970-01-01
+BIRTHS.index = (BIRTHS.index - pd.to_datetime("1970-01-01")).days
+
+## POPULATION
+# load population data
+POPULATION = pd.read_csv("Data/Raw/California_population_1900_2023.csv", delimiter=",")
+# use Date column to create a datetime index based on YYYY-MM-DD format
+POPULATION.index = pd.to_datetime(POPULATION["Date"], format="%Y-%m-%d")
+# drop Date column
+POPULATION = POPULATION.drop(columns=["Date","Annual % Change"])
+# reformat population index to be number of days since 1970-01-01
+POPULATION.index = (POPULATION.index - pd.to_datetime("1970-01-01")).days
+
 def births(t):
     """
     Return number of births at time t, with t the number of days since 1970-01-01
     """
-    date = pd.to_datetime("1970-01-01") + pd.DateOffset(days=t)
-    # round to the first day of the month
-    date = pd.to_datetime(str(date.year) + "-" + str(date.month) + "-01", format="%Y-%m-%d")
-    return BIRTHS.loc[date,"Births"]/30.44
+    return BIRTHS.iloc[(BIRTHS.index<=t).argmin()]["Births"]/30.44
+
+def birth_rate(t):
+    """
+    Return number of births at time t, with t the number of days since 1970-01-01
+    """
+    bths = BIRTHS.iloc[(BIRTHS.index<=t).argmin()]["Births"]/30.44
+    pop = POPULATION.iloc[(POPULATION.index<=t).argmin()]["Population"]
+    return bths/pop
 
 
 
