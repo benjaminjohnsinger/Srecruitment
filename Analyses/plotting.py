@@ -28,7 +28,7 @@ def observations(result,params,OBS_AGE,incidence=False,cap=False,N_C=2):
             obs[i_t,:] += OBS_AGE*P_OBS[i]*class_foi*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
     if incidence:
         obs = np.sum(obs,axis=1)/pop_size
-    return(obs)
+    return(30.44*obs)
 
 def infections_by_age(result,params,N_C=2):
     NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, SEASONALITY, OFFSET, contact = params.values()
