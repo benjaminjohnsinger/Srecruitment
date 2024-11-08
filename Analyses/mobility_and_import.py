@@ -18,27 +18,36 @@ MOBILITY_CA = MOBILITY.loc[MOBILITY['iso_3166_2_code'] == 'US-CA']
 # moving average of residential mobility
 MOBILITY_CA['residential_percent_change_from_baseline_ma'] = 1 - MOBILITY_CA['residential_percent_change_from_baseline'].rolling(window=7).mean()/100
 
-fig, ax = plt.subplots(figsize=(6,6))
-MOBILITY_CA.plot('date','residential_percent_change_from_baseline_ma',ax=ax,legend=False,color="#648FFF")
-ax.set_xlabel('Date')
-ax.set_ylabel('Relative non-residential visits')
-ax.set_title('California mobility outside of residential locations')
-plt.tight_layout()
-plt.savefig('Figures/mobility_CA_residential_7day_average.png',dpi=300)
+MOBILITY_CA['date'] = pd.to_datetime(MOBILITY_CA['date'])
+MOBILITY_CA.index = (MOBILITY_CA['date'] - pd.to_datetime('1970-01-01')).dt.days
+
+# fig, ax = plt.subplots(figsize=(6,6))
+# MOBILITY_CA.plot('date','residential_percent_change_from_baseline_ma',ax=ax,legend=False,color="#648FFF")
+# ax.set_xlabel('Date')
+# ax.set_ylabel('Relative non-residential visits')
+# ax.set_title('California mobility outside of residential locations')
+# plt.tight_layout()
+# plt.savefig('Figures/mobility_CA_residential_7day_average.png',dpi=300)
 
 ## IMPORT
 # load flights data
 FLIGHTS = pd.read_csv('Data/Raw/Los_Angeles_International_Airport_-_Passenger_Traffic_By_Terminal.csv', delimiter=',')
 
-# same but only for 'Arrival_Departure' euql 'Arrival'
 MONTHLY_ARRIVALS = FLIGHTS.loc[FLIGHTS['Arrival_Departure'] == 'Arrival'].groupby('ReportPeriod').sum('Passenger_Count')
 MONTHLY_ARRIVALS.index = pd.to_datetime(MONTHLY_ARRIVALS.index, format='%m/%d/%Y %H:%M:%S %p')
 MONTHLY_ARRIVALS = MONTHLY_ARRIVALS.sort_index()
+MONTHLY_ARRIVALS.index = (MONTHLY_ARRIVALS.index - pd.to_datetime('1970-01-01')).days
 
-fig, ax = plt.subplots(figsize=(6,6))
-MONTHLY_ARRIVALS.plot(ax=ax,legend=False,color="#648FFF")
-ax.set_ylabel('Monthly arrivals')
-ax.set_xlabel('Date')
-ax.set_title('Monthly arrivals at LAX')
-plt.tight_layout()
-plt.savefig('Figures/arrivals_LAX.png',dpi=300)
+def arrivals(t):
+    """
+    Return daily of arrivals at time t, with t the number of days since 1970-01-01
+    """
+    return MONTHLY_ARRIVALS.iloc[(MONTHLY_ARRIVALS.index<=t).argmin()]["Passenger_Count"]/30.44
+
+# fig, ax = plt.subplots(figsize=(6,6))
+# MONTHLY_ARRIVALS.plot(ax=ax,legend=False,color="#648FFF")
+# ax.set_ylabel('Monthly arrivals')
+# ax.set_xlabel('Date')
+# ax.set_title('Monthly arrivals at LAX')
+# plt.tight_layout()
+# plt.savefig('Figures/arrivals_LAX.png',dpi=300)

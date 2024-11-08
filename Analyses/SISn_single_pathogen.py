@@ -21,6 +21,7 @@ from Parameters.generic_disease import *
 
 from utils import *
 from demography import *
+from mobility_and_import import *
 from clustering import *
 from plotting import *
 
@@ -30,7 +31,7 @@ END = pd.to_datetime('2024-04-01')
 PERIOD = pd.date_range(start=START, end=END, freq='MS')
 
 ## Contacts and force of infection
-IMPORT = 0.01*np.ones(N_S)
+IMPORT_RATE = 1e-6*np.ones(N_S)
 # Contact matrix for all contact types
 CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',')
 # Lockdown and other mobility changes
@@ -57,7 +58,7 @@ POINTS = np.array(date_to_t(PERIOD))
 
 # Parameters for the ODE
 params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
-'IMPORT': IMPORT, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+'arrivals': arrivals, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
 # # using optimizer, find initial age distribution that leads to age distribuiton matching KP_AGE_POP after simulating through to 2020 census (april 1)
@@ -77,9 +78,9 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # print(res.x)
 
 #### One-shot line plot #####
-params['BETA'] = 1/12
-# params['SEASONALITY'] = 0.061
-# params['S_REL'] = np.array([1,0.55,0.1])
+params['BETA'] = 1/8
+params['SEASONALITY'] = 0.061
+params['S_REL'] = np.array([1,0.6,0.2])
 result = sp.integrate.solve_ivp(sis_deltas,(POINTS[0],POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
 
 # print(result)
