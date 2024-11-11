@@ -9,12 +9,9 @@ import pandas as pd
 import itertools as it
 from plotting import *
 from math import comb
+from utils import *
 
-w = np.array([0.   , 0.12166667, 0.   ])
-print(np.mean(w))
-print(np.sum(w==0.0))
-print(np.mean(w)*len(w)/np.sum(w!=0))
-
+print(sp.stats.poisson.logpmf(200,275))
 
 # N=5
 # x = range(N,0,-(N//4+1))

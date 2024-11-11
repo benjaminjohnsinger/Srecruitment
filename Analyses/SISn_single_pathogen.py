@@ -24,18 +24,20 @@ from demography import *
 from mobility_and_import import *
 from clustering import *
 from plotting import *
+from fit_MCMC import *
 
 ## Period of simulation
-START = pd.to_datetime('1970-01-01')
-END = pd.to_datetime('2024-04-01')
+EPOCH = pd.to_datetime('1970-01-01')
+START = pd.to_datetime('2016-01-01')
+END = pd.to_datetime('2024-01-01')
 PERIOD = pd.date_range(start=START, end=END, freq='MS')
 
 ## Contacts and force of infection
-IMPORT_RATE = 1e-6*np.ones(N_S)
+IMPORT_RATE = 1e-5*np.ones(N_S)
 # Contact matrix for all contact types
 CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',')
 # Lockdown and other mobility changes
-T_LOCKDOWN = date_to_t('2014-01-01')
+T_LOCKDOWN = date_to_t('2020-03-01')
 LOCKDOWN_DURATION = 365
 LOCKDOWN_REDUCTION = 0.4
 def contact(t,seasonality,offset):
@@ -61,6 +63,27 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 'arrivals': arrivals, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
+
+# params['SEASONALITY'] = 0.06
+# params['BETA'] = 0.14
+# params['S_REL'] = np.array([1,0.7,0.4])
+
+with open('Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle','rb') as f:
+    case_data = pickle.load(f)
+
+np.random.seed(241108)
+priors_tanh = {'BETA': sp.stats.norm(-1,1),'SEASONALITY': sp.stats.norm(-1,1),'S_REL': sp.stats.norm(0,1)}
+proposal_widths = {'BETA': 0.01,'SEASONALITY': 0.01,'S_REL': 0.01}
+mcmc_trajectory, acceptance_rate = mcmc(case_data, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_tanh, proposal_widths, 10000)
+print(acceptance_rate)
+with open('Data/Processed/mcmc_trajectory.pickle','wb') as f:
+    pickle.dump(mcmc_trajectory,f)
+fig, axes = plt.subplots(3,1,figsize=(6.5,6.5))
+axes[0].plot(mcmc_trajectory[:,0])
+axes[1].plot(mcmc_trajectory[:,1])
+axes[2].plot(mcmc_trajectory[:,2])
+plt.show()
+
 # # using optimizer, find initial age distribution that leads to age distribuiton matching KP_AGE_POP after simulating through to 2020 census (april 1)
 # params['BETA'] = 0
 # def age_diff(age_pop):
@@ -77,38 +100,45 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # print(res)
 # print(res.x)
 
-#### One-shot line plot #####
-params['BETA'] = 1/8
-params['SEASONALITY'] = 0.061
-params['S_REL'] = np.array([1,0.6,0.2])
-result = sp.integrate.solve_ivp(sis_deltas,(POINTS[0],POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# # #### One-shot line plot #####
+# params['BETA'] = 0.15
+# params['SEASONALITY'] = 0.06
+# params['S_REL'] = np.array([1,0.6,0.2])
+# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
 
-# print(result)
-# params['contact'] = lambda t, seasonality, offset : contact(t,shape_ramp,seasonality,offset)
-# result_ramp = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-# obs = observations(result,params,OBS_AGE,incidence=True)
-# pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
-# corr = np.correlate(pre_obs, pre_obs, mode='same')
-# acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
-# acorr = acorr + np.linspace(0.1, 0, len(acorr))
-# lag = np.abs(acorr).argmax() + 1
-# print(lag/12)
-# mx = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
-# plt.plot(result.t,np.sum(result.y,axis=0))
-# fig, ax = plt.subplots(2,2,figsize=(10,5.6))
-# sum of each age group
-# print(np.array([np.sum(result.y[range(i,7*NAG,NAG),:],axis=0) for i in range(NAG)]))
-# print(np.sum(np.abs(KP_AGE_POP-np.array([np.sum(result.y[range(i,7*NAG,NAG),-1]) for i in range(NAG)]))))
+# # print(result)
+# # params['contact'] = lambda t, seasonality, offset : contact(t,shape_ramp,seasonality,offset)
+# # result_ramp = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# obs_full = observations(result,params,OBS_AGE,incidence=False)
+# obs = np.sum(obs_full,axis=1)
+# obs_noisy = np.random.poisson(obs)
+# # incidence = obs_noisy/np.sum(result.y,axis=0)
+# # save noisy incidence
+# with open('Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle','wb') as f:
+#     pickle.dump(obs_noisy,f)
+
+# # # pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
+# # # corr = np.correlate(pre_obs, pre_obs, mode='same')
+# # # acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
+# # # acorr = acorr + np.linspace(0.1, 0, len(acorr))
+# # # lag = np.abs(acorr).argmax() + 1
+# # # print(lag/12)
+# # # mx = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
+# # # plt.plot(result.t,np.sum(result.y,axis=0))
+# # # fig, ax = plt.subplots(2,2,figsize=(10,5.6))
+# # # sum of each age group
+# # # print(np.array([np.sum(result.y[range(i,7*NAG,NAG),:],axis=0) for i in range(NAG)]))
+# # # print(np.sum(np.abs(KP_AGE_POP-np.array([np.sum(result.y[range(i,7*NAG,NAG),-1]) for i in range(NAG)]))))
+# # # plt.show()
+# # # plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
+# # # plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
+# # # plt.ylim(0,1.1*mx)
+# fig, ax = plt.subplots(1,1,figsize=(10,5.6))
+# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,window=2*365,obs=obs_noisy)
+# # mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result_ramp,color='#FF832B')
+# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+# # plt.savefig('Figures/noisy_trajectory_BETAp15_SEASp06_IMMp4.png',dpi=300)
 # plt.show()
-# plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
-# plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
-# plt.ylim(0,1.1*mx)
-fig, ax = plt.subplots(1,1,figsize=(10,5.6))
-mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,window=3*365)
-# mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result_ramp,color='#FF832B')
-lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=10)
-plt.savefig('Figures/examle_trajectory_slide_test.png',dpi=300)
-
 # params['WANE'] = 1/12*np.array([0.0,1.0,0.0])
 # params['BETA'] = 30
 

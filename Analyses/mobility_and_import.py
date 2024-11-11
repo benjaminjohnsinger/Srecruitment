@@ -27,6 +27,7 @@ MOBILITY_CA.index = (MOBILITY_CA['date'] - pd.to_datetime('1970-01-01')).dt.days
 # ax.set_ylabel('Relative non-residential visits')
 # ax.set_title('California mobility outside of residential locations')
 # plt.tight_layout()
+# plt.show()
 # plt.savefig('Figures/mobility_CA_residential_7day_average.png',dpi=300)
 
 ## IMPORT

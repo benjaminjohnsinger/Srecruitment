@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from math import comb
 import pickle
 
-from utils import date_to_t
+from utils import date_to_t, t_to_date
 
 from SISn_ODEs import single_pathogen_deltas as deltas_SIS
 
@@ -63,24 +63,25 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
     if times is None:
         times = result.t
+    dates = [t_to_date(t) for t in times]
     if by_age:
         if obs is None:
             obs = observations(result,params,OBS_AGE,incidence=False)
         cmap = plt.get_cmap('viridis')
         pop_size_by_age = np.array([np.sum(result.y[range(i_age,(3*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
         for i_age in range(NAG):
-            ax.plot(times,obs[:,i_age]/pop_size_by_age[:,i_age], label=AGE_GROUP_NAMES[i_age], color=cmap(i_age/(NAG-1)))
-        mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[np.argmax(times>T_LOCKDOWN-window):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+window)])
+            ax.plot(dates,obs[:,i_age]/pop_size_by_age[:,i_age], label=AGE_GROUP_NAMES[i_age], color=cmap(i_age/(NAG-1)))
+        mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[np.argmin(times<=T_LOCKDOWN-window):np.argmin(times<=T_LOCKDOWN+LOCKDOWN_DURATION+window)])
     else:
         if obs is None:
             obs = observations(result,params,OBS_AGE,incidence=True)
         if relative:
-            pre_mx = np.max(obs[np.argmax(times>T_LOCKDOWN-window):np.argmax(times>T_LOCKDOWN)])
-            ax.plot(times, obs/pre_mx, label=label,color=color,linewidth=linewidth,alpha=alpha)
-            mx = 1.1*np.max(obs[np.argmax(times>T_LOCKDOWN-window):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+window)])/pre_mx
+            pre_mx = np.max(obs[np.argmin(times<=T_LOCKDOWN-window):np.argmin(times<=T_LOCKDOWN)])
+            ax.plot(dates, obs/pre_mx, label=label,color=color,linewidth=linewidth,alpha=alpha)
+            mx = 1.1*np.max(obs[np.argmin(times<=T_LOCKDOWN-window):np.argmin(times<=T_LOCKDOWN+LOCKDOWN_DURATION+window)])/pre_mx
         else:
-            ax.plot(times, obs, label=label,color=color,linewidth=linewidth,alpha=alpha)
-            mx = 1.1*np.max(obs[np.argmax(times>T_LOCKDOWN-window):np.argmax(times>T_LOCKDOWN+LOCKDOWN_DURATION+window)])
+            ax.plot(dates, obs, label=label,color=color,linewidth=linewidth,alpha=alpha)
+            mx = 1.1*np.max(obs[np.argmin(times<=T_LOCKDOWN-window):np.argmin(times<=T_LOCKDOWN+LOCKDOWN_DURATION+window)])
     return(mx)
 
 def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,year_skip=1,title='Incidence of disease with 1-year lockdown'):
@@ -88,7 +89,7 @@ def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,y
     ax.set_ylim(0,mx)
     ax.set_ylabel('Observed incidence')
     ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
-    ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365+365,365*year_skip),[str(int(x)-year_window-1) for x in np.arange(0,year_window*2+2,year_skip)])
+    # ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365+365,365*year_skip),[str(int(x)-year_window-1) for x in np.arange(0,year_window*2+2,year_skip)])
     ax.set_xlabel('Time (years)')
     ax.set_title(title)
 
