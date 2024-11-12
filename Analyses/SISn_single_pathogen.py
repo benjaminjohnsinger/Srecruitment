@@ -9,6 +9,7 @@ import itertools as it
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib import cm as pltcm
+import corner
 import pickle
 import colorsys
 import datetime
@@ -23,6 +24,7 @@ from utils import *
 from demography import *
 from mobility_and_import import *
 from clustering import *
+from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
@@ -68,21 +70,44 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # params['BETA'] = 0.14
 # params['S_REL'] = np.array([1,0.7,0.4])
 
-with open('Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle','rb') as f:
-    case_data = pickle.load(f)
+# with open('Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle','rb') as f:
+#     case_data = pickle.load(f)
 
-np.random.seed(241108)
-priors_tanh = {'BETA': sp.stats.norm(-1,1),'SEASONALITY': sp.stats.norm(-1,1),'S_REL': sp.stats.norm(0,1)}
-proposal_widths = {'BETA': 0.01,'SEASONALITY': 0.01,'S_REL': 0.01}
-mcmc_trajectory, acceptance_rate = mcmc(case_data, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_tanh, proposal_widths, 10000)
-print(acceptance_rate)
-with open('Data/Processed/mcmc_trajectory.pickle','wb') as f:
-    pickle.dump(mcmc_trajectory,f)
-fig, axes = plt.subplots(3,1,figsize=(6.5,6.5))
-axes[0].plot(mcmc_trajectory[:,0])
-axes[1].plot(mcmc_trajectory[:,1])
-axes[2].plot(mcmc_trajectory[:,2])
-plt.show()
+# np.random.seed(241108)
+# priors_tanh = {'BETA': sp.stats.norm(-1,1),'SEASONALITY': sp.stats.norm(-1,1),'S_REL': sp.stats.norm(0,1)}
+# proposal_widths = {'BETA': 0.01,'SEASONALITY': 0.01,'S_REL': 0.01}
+# mcmc_trajectory, acceptance_rate = mcmc(case_data, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_tanh, proposal_widths, 50000)
+# print(acceptance_rate)
+with open('Data/Processed/mcmc_trajectory.pickle','rb') as f:
+    mcmc_trajectory = pickle.load(f)
+
+burn_in = 5000
+
+figure = corner.corner(mcmc_trajectory[burn_in:],labels=['Transmissibility','Seasonality','Immunity'])
+plt.savefig('Figures/SIS_MCMC_corner.png',dpi=300)
+
+# fig, axes = plt.subplots(2,2,figsize=(6.5,6.5))
+# axes[0,0].hist2d(mcmc_trajectory[burn_in:,0],mcmc_trajectory[burn_in:,1],bins=20)
+# # outline the cell corresponding to the true values - 0.06 and 0.15 - in red
+# axes[0,0].plot([0.15,0.15,0.1501,0.1501,0.15],[0.05995,0.06005,0.06005,0.05995,0.05995],color='red')
+# axes[0,0].set_xlabel('Transmissibility')
+# axes[0,0].set_ylabel('Seasonality')
+# axes[0,1].hist2d(mcmc_trajectory[burn_in:,0],mcmc_trajectory[burn_in:,2],bins=20)
+# axes[0,1].plot([0.15,0.15,0.1501,0.1501,0.15],[0.39995,0.40005,0.40005,0.39995,0.39995],color='red')
+# axes[0,1].set_xlabel('Transmissibility')
+# axes[0,1].set_ylabel('Immunity')
+# axes[1,0].hist2d(mcmc_trajectory[burn_in:,1],mcmc_trajectory[burn_in:,2],bins=20)
+# axes[1,0].plot([0.05995,0.05995,0.06005,0.06005,0.05995],[0.39995,0.40005,0.40005,0.39995,0.39995],color='red')
+# axes[1,0].set_xlabel('Seasonality')
+# axes[1,0].set_ylabel('Immunity')
+# axes[1,1].plot(mcmc_trajectory[:,0],label='Transmissibility')
+# axes[1,1].plot(mcmc_trajectory[:,1],label='Seasonality')
+# axes[1,1].plot(mcmc_trajectory[:,2],label='Immunity')
+# axes[1,1].legend()
+# axes[1,1].set_xlabel('Iteration')
+# axes[1,1].set_ylabel('Parameter value')
+# plt.tight_layout()
+# plt.show()
 
 # # using optimizer, find initial age distribution that leads to age distribuiton matching KP_AGE_POP after simulating through to 2020 census (april 1)
 # params['BETA'] = 0

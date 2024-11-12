@@ -7,55 +7,15 @@ import pandas as pd
 import itertools as it
 import matplotlib.pyplot as plt
 from math import comb
+import corner
 import pickle
 
-from utils import date_to_t, t_to_date
+from utils import *
 
 from SISn_ODEs import single_pathogen_deltas as deltas_SIS
 
-def observations(result,params,OBS_AGE,incidence=False,cap=False,N_C=2):
-    NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params.values()
-    obs = np.zeros((len(result.t),NAG))
-    pop_size = np.sum(result.y,axis=0)
-    for i_t,t in enumerate(result.t):
-        foi = BETA*np.dot(contact(t,SEASONALITY,OFFSET),np.sum((np.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
-        for i in range(N_S):
-            if cap:
-                class_foi = np.minimum(1,S_REL[i]*foi)
-            else:
-                class_foi = S_REL[i]*foi
-            # S_REL*foi tells you what proportion of the population gets infected, the maximum is all of them
-            obs[i_t,:] += OBS_AGE*P_OBS[i]*class_foi*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
-    if incidence:
-        obs = np.sum(obs,axis=1)/pop_size
-    return(30.44*obs)
 
-def infections_by_age(result,params,N_C=2):
-    NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params.values()
-    infs = np.zeros((len(result.t),NAG))
-    for i_t,t in enumerate(result.t):
-        infs[i_t,:] = np.sum(np.array([BETA*result.y[(N_C*i+2)*NAG:(N_C*i+3)*NAG,i_t]*I_REL[i]*np.dot(contact(t,SEASONALITY,OFFSET),np.sum([S_REL[j]*result.y[(N_C*j+1)*NAG:(N_C*j+2)*NAG,i_t] for j in range(N_S)],axis=0)) for i in range(N_S)]),axis=0)
-    return(infs)
-
-def age_of_first_infection(result,MEDIAN_AGE,NAG=7,sd=False):
-    ages = np.zeros(len(result.t))
-    ages_sd = np.zeros(len(result.t))
-    for i_t in range(len(result.t)):
-        age_distribution = MEDIAN_AGE*result.y[2*NAG:3*NAG,i_t]/np.sum(result.y[2*NAG:3*NAG,i_t])
-        ages[i_t] = np.mean(age_distribution)
-        ages_sd[i_t] = np.std(age_distribution)
-    if sd:
-        return(ages,ages_sd)
-    return(ages)
-
-def susceptibility(result,params,N_C=2):
-    NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params.values()
-    sus = np.zeros((len(result.t),NAG))
-    for i_t,t in enumerate(result.t):
-        for i in range(N_S):
-            sus[i_t,:] += S_REL[i]*S_AGE*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
-    return(sus)
-            
+##### Simple line plots #####
 def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,window=5*365):
     if params is not None:
         NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params.values()
@@ -145,41 +105,11 @@ def age_infect_plot(ax,state0,params,AGE_GROUP_NAMES,period,points,T_LOCKDOWN,LO
     ax.set_ylim(0,1)
     # ax.legend()
 
-def sim_grid(state0,params,points,T_LOCKDOWN,LOCKDOWN_DURATION,
-            grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),N=10,factors=(1,1),deltas=deltas_SIS):
-    N_params = len(grid_params)
-    results = {}
-    params_dict = {}
-    for p_n in it.product(range(N),repeat=N_params):
-        if all([p==0 for p in p_n[1:]]):
-            print(p_n)
-        # Scale parameters for exploration
-        params_n = params.copy()
-        for i,p in enumerate(p_n):
-            for pname in grid_params[i]:
-                if grid_mode[i] == "scale":
-                    params_n[pname] = params[pname]*(1+(p/N-1/2))**factors[i]
-                elif grid_mode[i] == "fade_vec":
-                    vec_len = len(params[pname])
-                    vec = np.array([(1-j*(p/(N*(vec_len-1))))**factors[i] for j in range(vec_len)])
-                    vec = vec.reshape(params[pname].shape)
-                    params_n[pname] = vec
-                elif grid_mode[i] == "based_vec":
-                    vec_len = len(params[pname])
-                    base_value = params[pname][0]-params[pname][1]
-                    vec = np.array([(1-j*(base_value+(1/(vec_len-1)-base_value)*p/N))**factors[i] for j in range(vec_len)])
-                    vec = vec.reshape(params[pname].shape)
-                    params_n[pname] = vec
-        # Run simulation
-        result = sp.integrate.solve_ivp(deltas, (points[0],points[-1]), state0, method='RK45', t_eval=points, args=(params_n,))
-        results[p_n] = result
-        params_dict[p_n] = params_n
-    return(params_dict,results)
-
+##### Sim grid based plots #####
 def param_line_plot(ax,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=None,
-grid_params=("WANE_UP","WANE_SAME"),grid_mode="scale",factor=1,label_mode="mean",
-y_values=("peak incidence","time to rebound"),y_labels=("Peak incidence","Time to rebound (years)"),x_label="Waning",
-colors=("#648FFF","#DC267F")):
+    grid_params=("WANE_UP","WANE_SAME"),grid_mode="scale",factor=1,label_mode="mean",
+    y_values=("peak incidence","time to rebound"),y_labels=("Peak incidence","Time to rebound (years)"),x_label="Waning",
+    colors=("#648FFF","#DC267F")):
     N = max([max(p) for p in results.keys()])+1
     # Line plots of chosen value before and after lockdown
     values = np.zeros((N,len(y_values)))
@@ -241,9 +171,9 @@ colors=("#648FFF","#DC267F")):
     ax.set_xlabel(x_label)
 
 def grid_plot(ax,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=None,
-grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),factors=(1,1),label_mode=("diff_mean","nz_mean"),
-z_value="peak incidence",z_label="Observed incidence",x_labels=("Growth","Waning"),
-save=False,file=None,fix=False,vmin=None,vmax=None):
+    grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),factors=(1,1),label_mode=("diff_mean","nz_mean"),
+    z_value="peak incidence",z_label="Observed incidence",x_labels=("Growth","Waning"),
+    save=False,file=None,fix=False,vmin=None,vmax=None):
     N_params = len(grid_params)
     N = max([max(p) for p in results.keys()])+1
     z_values = np.zeros(np.repeat(N,N_params))
@@ -345,11 +275,12 @@ save=False,file=None,fix=False,vmin=None,vmax=None):
                 axis.set_ylabel(x_labels[i])
         return(im)
 
+##### Clustering plots #####
 def cluster_plot(axes,results,obses,n_clusters,labels,cluster_centers,relative=False,color=False,line=True,clusters=None, color_values_all=None,
-parameters=["BETA","WANE","S_REL"],param_labels=["Infectiousness","Waning","Acquired\nimmunity"],
-grid_mode=["scale","scale","based_vec"],base_values=[40,1/30,1/4],factors=[0.7,3,1],N=25,
-y_value=("time to rebound"),y_label="Time to rebound",
-t_lockdown="2007-01-01",LOCKDOWN_DURATION=365):
+    parameters=["BETA","WANE","S_REL"],param_labels=["Infectiousness","Waning","Acquired\nimmunity"],
+    grid_mode=["scale","scale","based_vec"],base_values=[40,1/30,1/4],factors=[0.7,3,1],N=25,
+    y_value=("time to rebound"),y_label="Time to rebound",
+    t_lockdown="2007-01-01",LOCKDOWN_DURATION=365):
     if clusters is None:
         clusters = set(labels)
     T_LOCKDOWN = date_to_t(pd.to_datetime(t_lockdown))
@@ -434,3 +365,14 @@ t_lockdown="2007-01-01",LOCKDOWN_DURATION=365):
         axes[len(clusters)-1,0].set_xlabel("Time (years)")
         for n_p,label in enumerate(param_labels):
             axes[len(clusters)-1,n_p+1].set_xlabel(f"{label}")
+
+##### Fitting plots #####
+def mcmc_trajectory_plot(axes,trajectory,param_names):
+    for i in range(trajectory.shape[1]):
+        axes[i].plot(trajectory[:,i])
+        axes[i].set_ylabel(param_names[i])
+
+def mcmc_corner_plot(trajectory,param_names,burn_in):
+    fig = corner.corner(trajectory[burn_in:,:],labels=param_names,quantiles=[0.16,0.5,0.84],show_titles=True)
+
+

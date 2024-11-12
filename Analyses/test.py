@@ -13,10 +13,24 @@ from utils import *
 from sas7bdat import SAS7BDAT
 import pickle
 
-# with SAS7BDAT('Data/Raw/KPSC/clinical.sas7bdat') as f:
-#     clinical_data = f.to_data_frame()
+with SAS7BDAT('Data/Raw/KPSC/clinical.sas7bdat') as f:
+    clinical_data = f.to_data_frame()
 
-age_group_dict = {'Infants':range(1), 'Young children':range(1,5), 'Older children':range(5,18), 'Young adults':range(18,40), 'Middle-aged adults':range(40,65), 'Older adults':range(65,100)}
+# bar chart of CODE
+code_counts = clinical_data["CODE"].value_counts()
+code_counts = code_counts.sort_values(ascending=False)
+print(code_counts)
+
+fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
+ax.bar(range(len(code_counts)),code_counts,color='silver')
+ax.set_xticks(range(len(code_counts)))
+ax.set_xticklabels(code_counts.index)
+ax.set_title('Number of cases by code')
+ax.set_ylabel('Number of cases')
+plt.tight_layout()
+plt.savefig('Figures/KPSC_code_counts.png')
+
+# age_group_dict = {'Infants':range(1), 'Young children':range(1,5), 'Older children':range(5,18), 'Young adults':range(18,40), 'Middle-aged adults':range(40,65), 'Older adults':range(65,100)}
 
 # rota_vax_by_age = np.zeros(6)
 # flu_vax_by_age = np.zeros(6)
@@ -24,27 +38,29 @@ age_group_dict = {'Infants':range(1), 'Young children':range(1,5), 'Older childr
 # for age_group_n,age_group in enumerate(age_group_dict.keys()):
 #     rota_vax_by_age[age_group_n] = np.mean(clinical_data.loc[[age in age_group_dict[age_group] for age in clinical_data["age"]],"rota_vac"])
 #     flu_vax_by_age[age_group_n] = np.mean(clinical_data.loc[[age in age_group_dict[age_group] for age in clinical_data["age"]],"flu_vac"])
-rota_vax_by_age = [7.32078280e-01,9.06606591e-01,6.04187094e-01,7.92712761e-04,3.60311619e-05,1.55745789e-05]
-flu_vax_by_age = [0.38035097,0.67629991,0.52047387,0.50746089,0.65703239,0.85448068]
+# rota_vax_by_age = [7.32078280e-01,9.06606591e-01,6.04187094e-01,7.92712761e-04,3.60311619e-05,1.55745789e-05]
+# flu_vax_by_age = [0.38035097,0.67629991,0.52047387,0.50746089,0.65703239,0.85448068]
 
-age_names = ['<1y','1-4y','5-17y','18-39y','40-64y','>=65y']
+# age_names = ['<1y','1-4y','5-17y','18-39y','40-64y','>=65y']
 
 
-fig, ax = plt.subplots(2,1,figsize=(6.5,6.5),sharex=True)
-ax[0].bar(range(6),rota_vax_by_age,color='silver')
-# ax[0].set_xticks(range(6))
-# ax[0].set_xticklabels(age_group_dict.keys())
-ax[0].set_title('Rotavirus vaccination by age group')
-ax[0].set_ylabel('Proportion vaccinated')
+# fig, ax = plt.subplots(2,1,figsize=(6.5,6.5),sharex=True)
+# ax[0].bar(range(6),rota_vax_by_age,color='silver')
+# # ax[0].set_xticks(range(6))
+# # ax[0].set_xticklabels(age_group_dict.keys())
+# ax[0].set_title('Rotavirus vaccination by age group')
+# ax[0].set_ylabel('Proportion vaccinated')
 
-ax[1].bar(range(6),flu_vax_by_age,color='silver')
-ax[1].set_xticks(range(6))
-ax[1].set_xticklabels(age_names)
-ax[1].set_title('Influenza vaccination by age group')
-ax[1].set_ylabel('Proportion vaccinated')
+# ax[1].bar(range(6),flu_vax_by_age,color='silver')
+# ax[1].set_xticks(range(6))
+# ax[1].set_xticklabels(age_names)
+# ax[1].set_title('Influenza vaccination by age group')
+# ax[1].set_ylabel('Proportion vaccinated')
 
-plt.tight_layout()
-plt.savefig('Figures/KPSC_vaccination_by_age_group.png')
+# plt.tight_layout()
+# plt.savefig('Figures/KPSC_vaccination_by_age_group.png')
+
+
 
 # with SAS7BDAT('Data/Raw/KPSC/demographics.sas7bdat') as f:
 #     demographics_data = f.to_data_frame()
