@@ -27,8 +27,8 @@ hospitalizations["Year"] = hospitalizations["Date"].dt.year
 
 # get only influenza hospitalizations, i.e. CODE starts with J09, J10, or J11
 flu_hospitalizations = hospitalizations[hospitalizations["CODE"].str.contains('J09|J10|J11')]
-# get only RSV hospitalizations, i.e. CODE is J12.1
-rsv_hospitalizations = hospitalizations[hospitalizations["CODE"].str.contains('J12.1')]
+# get only RSV hospitalizations, i.e. CODE is J12.1, J21.0, or B97.4 as used in Pitzer et al. 2015
+rsv_hospitalizations = hospitalizations[hospitalizations["CODE"].str.contains('J12.1|J21.0|B97.4')]
 # get only COVID-19 hospitalizations, i.e. CODE is U07.1
 covid_hospitalizations = hospitalizations[hospitalizations["CODE"].str.contains('U07.1')]
 
@@ -62,25 +62,25 @@ monthly_rsv_hospitalizations = monthly_rsv_hospitalizations.sort_values(by="Date
 monthly_covid_hospitalizations = monthly_covid_hospitalizations.sort_values(by="Date")
 
 # # save to csv
-# monthly_flu_hospitalizations.to_csv('Data/Processed/KPSC_flu_hosp.csv',index=False)
-# monthly_rsv_hospitalizations.to_csv('Data/Processed/KPSC_rsv_hosp.csv',index=False)
-# monthly_covid_hospitalizations.to_csv('Data/Processed/KPSC_covid_hosp.csv',index=False)
+monthly_flu_hospitalizations.to_csv('Data/Processed/KPSC_flu_hosp.csv',index=False)
+monthly_rsv_hospitalizations.to_csv('Data/Processed/KPSC_rsv_hosp.csv',index=False)
+monthly_covid_hospitalizations.to_csv('Data/Processed/KPSC_covid_hosp.csv',index=False)
 
-monthly_flu_hospitalizations["Relative"] = monthly_flu_hospitalizations["Count"]/monthly_flu_hospitalizations["Count"].max()
-monthly_rsv_hospitalizations["Relative"] = monthly_rsv_hospitalizations["Count"]/monthly_rsv_hospitalizations["Count"].max()
-monthly_covid_hospitalizations["Relative"] = monthly_covid_hospitalizations["Count"]/monthly_covid_hospitalizations["Count"].max()
+# monthly_flu_hospitalizations["Relative"] = monthly_flu_hospitalizations["Count"]/monthly_flu_hospitalizations["Count"].max()
+# monthly_rsv_hospitalizations["Relative"] = monthly_rsv_hospitalizations["Count"]/monthly_rsv_hospitalizations["Count"].max()
+# monthly_covid_hospitalizations["Relative"] = monthly_covid_hospitalizations["Count"]/monthly_covid_hospitalizations["Count"].max()
 
-fig, ax = plt.subplots(2,1,figsize=(6.5,6.5),sharex=True)
-ax[0].plot(monthly_flu_hospitalizations["Date"],monthly_flu_hospitalizations["Count"],color='#648FFF',label='Flu')
-ax[0].plot(monthly_rsv_hospitalizations["Date"],monthly_rsv_hospitalizations["Count"],color='#DC267F',label='RSV')
-ax[0].plot(monthly_covid_hospitalizations["Date"],monthly_covid_hospitalizations["Count"],color='#FFB000',label='COVID-19')
-ax[0].set_title('Hospitalizations by month')
-ax[0].set_ylabel('Number of hospitalizations')
-ax[0].legend()
-ax[1].plot(monthly_flu_hospitalizations["Date"],monthly_flu_hospitalizations["Relative"],color='#648FFF',label='Flu')
-ax[1].plot(monthly_rsv_hospitalizations["Date"],monthly_rsv_hospitalizations["Relative"],color='#DC267F',label='RSV')
-ax[1].plot(monthly_covid_hospitalizations["Date"],monthly_covid_hospitalizations["Relative"],color='#FFB000',label='COVID-19')
-ax[1].set_xlabel('Date')
-ax[1].set_ylabel('Proportion of maximum hospitalizations')
-plt.tight_layout()
-plt.savefig('Figures/KPSC_flu_COVID_and_RSV_hospitalizations_by_month_relative.png')
+# fig, ax = plt.subplots(2,1,figsize=(6.5,6.5),sharex=True)
+# ax[0].plot(monthly_flu_hospitalizations["Date"],monthly_flu_hospitalizations["Count"],color='#648FFF',label='Flu')
+# ax[0].plot(monthly_rsv_hospitalizations["Date"],monthly_rsv_hospitalizations["Count"],color='#DC267F',label='RSV')
+# ax[0].plot(monthly_covid_hospitalizations["Date"],monthly_covid_hospitalizations["Count"],color='#FFB000',label='COVID-19')
+# ax[0].set_title('Hospitalizations by month')
+# ax[0].set_ylabel('Number of hospitalizations')
+# ax[0].legend()
+# ax[1].plot(monthly_flu_hospitalizations["Date"],monthly_flu_hospitalizations["Relative"],color='#648FFF',label='Flu')
+# ax[1].plot(monthly_rsv_hospitalizations["Date"],monthly_rsv_hospitalizations["Relative"],color='#DC267F',label='RSV')
+# ax[1].plot(monthly_covid_hospitalizations["Date"],monthly_covid_hospitalizations["Relative"],color='#FFB000',label='COVID-19')
+# ax[1].set_xlabel('Date')
+# ax[1].set_ylabel('Proportion of maximum hospitalizations')
+# plt.tight_layout()
+# plt.savefig('Figures/KPSC_flu_COVID_and_RSV_hospitalizations_by_month_relative.png')
