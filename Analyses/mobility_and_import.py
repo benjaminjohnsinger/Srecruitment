@@ -4,6 +4,8 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from numba import jit
+from utils import date_to_t
 
 # MOBILITY
 # load mobility data and concatenate
@@ -39,11 +41,19 @@ MONTHLY_ARRIVALS.index = pd.to_datetime(MONTHLY_ARRIVALS.index, format='%m/%d/%Y
 MONTHLY_ARRIVALS = MONTHLY_ARRIVALS.sort_index()
 MONTHLY_ARRIVALS.index = (MONTHLY_ARRIVALS.index - pd.to_datetime('1970-01-01')).days
 
+IDX = np.array(MONTHLY_ARRIVALS.index)
+MONTHLY_ARRIVALS_NP = np.array(MONTHLY_ARRIVALS['Passenger_Count'])
+
+@jit
 def arrivals(t):
     """
     Return daily of arrivals at time t, with t the number of days since 1970-01-01
     """
-    return MONTHLY_ARRIVALS.iloc[(MONTHLY_ARRIVALS.index<=t).argmin()]["Passenger_Count"]/30.44
+    return MONTHLY_ARRIVALS_NP[np.argmin(IDX<=t)]/30.44
+
+# arrivals_by_month = np.array([arrivals(t) for t in np.array(date_to_t(pd.date_range(start=pd.to_datetime('2016-01-01'), end=pd.to_datetime('2024-01-01'), freq='MS')))])
+# plt.plot(arrivals_by_month)
+# plt.show()
 
 # fig, ax = plt.subplots(figsize=(6,6))
 # MONTHLY_ARRIVALS.plot(ax=ax,legend=False,color="#648FFF")

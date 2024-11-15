@@ -2,6 +2,7 @@
 ## Blank canvas epi parameters with SIS model in mind
 
 import numpy as np
+from numba import jit
 
 NAG = 7
 
@@ -32,6 +33,7 @@ OFFSET = 0
 # Infectiousness per contact
 BETA = 1/10
 # Vaccination paramters
-S_VAX, BCOV = 2, 0
+S_VAX, BCOV = 2, 0 
+@jit
 def ACOV(t,T_VAX):
-    return 0
+    return 0.0

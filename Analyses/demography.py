@@ -1,5 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+from numba import jit
+from utils import date_to_t
 
 ## BIRTHS
 # load births data
@@ -34,20 +37,26 @@ POPULATION = POPULATION.drop(columns=["Date","Annual % Change"])
 # reformat population index to be number of days since 1970-01-01
 POPULATION.index = (POPULATION.index - pd.to_datetime("1970-01-01")).days
 
+# BIRTHS and POPULATION as numpy vectors
+BIRTHS_IDX =np.array(BIRTHS.index)
+POPULATION_IDX = np.array(POPULATION.index)
+BIRTHS_NP = np.array(BIRTHS["Births"])
+POPULATION_NP = np.array(POPULATION["Population"])
+
 def births(t):
     """
-    Return number of births at time t, with t the number of days since 1970-01-01
+    Return number of births per day at time t, with t the number of days since 1970-01-01
     """
     return BIRTHS.iloc[(BIRTHS.index<=t).argmin()]["Births"]/30.44
 
+@jit
 def birth_rate(t):
     """
-    Return number of births at time t, with t the number of days since 1970-01-01
+    Return number of births per person per day at time t, with t the number of days since 1970-01-01
     """
-    bths = BIRTHS.iloc[(BIRTHS.index<=t).argmin()]["Births"]/30.44
-    pop = POPULATION.iloc[(POPULATION.index<=t).argmin()]["Population"]
+    bths = BIRTHS_NP[np.argmin(BIRTHS_IDX<=t)]/30.44
+    pop = POPULATION_NP[np.argmin(POPULATION_IDX<=t)]
     return bths/pop
-
 
 
 # # plot, with dates after 2022 in a different color, with legend and labels

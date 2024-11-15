@@ -13,9 +13,11 @@ import corner
 import pickle
 import colorsys
 import datetime
+from numba import jit
 
 from vaccination import birth_vax, all_vax
 import contact_model as cm
+from SISn_ODEs import single_pathogen_deltas_unjit as deltas_unjit
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.test_population import *
 from Parameters.generic_disease import *
@@ -37,11 +39,12 @@ PERIOD = pd.date_range(start=START, end=END, freq='MS')
 ## Contacts and force of infection
 IMPORT_RATE = 1e-5*np.ones(N_S)
 # Contact matrix for all contact types
-CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',')
+CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
 # Lockdown and other mobility changes
 T_LOCKDOWN = date_to_t('2020-03-01')
 LOCKDOWN_DURATION = 365
 LOCKDOWN_REDUCTION = 0.4
+@jit
 def contact(t,seasonality,offset):
     return cm.STEP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
 
@@ -65,26 +68,46 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 'arrivals': arrivals, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
+# start = time.time()
+# z=deltas_unjit(0,STATE0,params)
+# end = time.time()
+# print("unjitted: ",end-start)
+# start = time.time()
+# y=sis_deltas(0,STATE0,*params.values())
+# end = time.time()
+# print("jitted: ",end-start)
+# STATE0[12] += 1
+# start = time.time()
+# z=deltas_unjit(1,STATE0,params)
+# end = time.time()
+# print("reunjitted: ",end-start)
+# start = time.time()
+# x=sis_deltas(1,STATE0,*params.values())
+# end = time.time()
+# print("rejitted: ",end-start)
 
-# params['SEASONALITY'] = 0.06
+params['SEASONALITY'] = 0.06
 # params['BETA'] = 0.14
 # params['S_REL'] = np.array([1,0.7,0.4])
 
-# with open('Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle','rb') as f:
-#     case_data = pickle.load(f)
+with open('Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle','rb') as f:
+    case_data = pickle.load(f)
 
-# np.random.seed(241108)
-# priors_tanh = {'BETA': sp.stats.norm(-1,1),'SEASONALITY': sp.stats.norm(-1,1),'S_REL': sp.stats.norm(0,1)}
-# proposal_widths = {'BETA': 0.01,'SEASONALITY': 0.01,'S_REL': 0.01}
-# mcmc_trajectory, acceptance_rate = mcmc(case_data, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_tanh, proposal_widths, 50000)
-# print(acceptance_rate)
-with open('Data/Processed/mcmc_trajectory.pickle','rb') as f:
-    mcmc_trajectory = pickle.load(f)
+np.random.seed(241108)
+priors_tanh = {'BETA': sp.stats.norm(-1,1),'S_REL1': sp.stats.norm(-1,1),'S_REL2': sp.stats.norm(-1,1)}
+proposal_widths = {'BETA': 0.01,'S_REL1': 0.005,'S_REL2': 0.005}
+mcmc_trajectory, acceptance_rate = mcmc(case_data, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','S_REL1','S_REL2'], priors_tanh, proposal_widths, 1000)
+print(acceptance_rate)
+with open('Data/Processed/mcmc_trajectory.pickle','wb') as f:
+    pickle.dump(mcmc_trajectory,f)
 
-burn_in = 5000
+# # burn_in = 5000
 
-figure = corner.corner(mcmc_trajectory[burn_in:],labels=['Transmissibility','Seasonality','Immunity'])
-plt.savefig('Figures/SIS_MCMC_corner.png',dpi=300)
+# plt.plot(mcmc_trajectory)
+# plt.show()
+
+# figure = corner.corner(mcmc_trajectory[burn_in:],labels=['Transmissibility','Seasonality','Immunity'])
+# plt.savefig('Figures/SIS_MCMC_corner.png',dpi=300)
 
 # fig, axes = plt.subplots(2,2,figsize=(6.5,6.5))
 # axes[0,0].hist2d(mcmc_trajectory[burn_in:,0],mcmc_trajectory[burn_in:,1],bins=20)
@@ -125,11 +148,16 @@ plt.savefig('Figures/SIS_MCMC_corner.png',dpi=300)
 # print(res)
 # print(res.x)
 
-# # #### One-shot line plot #####
-# params['BETA'] = 0.15
+# #### One-shot line plot #####
 # params['SEASONALITY'] = 0.06
+# result0 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+# params['BETA'] = 0.06
+# params['S_REL'] = np.array([1,0.74,0.5])
+# result = sp.integrate.solve_ivp(deltas_unjit,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# params['BETA'] = 0.15
 # params['S_REL'] = np.array([1,0.6,0.2])
-# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# result2 = sp.integrate.solve_ivp(deltas_unjit,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+
 
 # # print(result)
 # # params['contact'] = lambda t, seasonality, offset : contact(t,shape_ramp,seasonality,offset)
@@ -159,9 +187,10 @@ plt.savefig('Figures/SIS_MCMC_corner.png',dpi=300)
 # # # plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
 # # # plt.ylim(0,1.1*mx)
 # fig, ax = plt.subplots(1,1,figsize=(10,5.6))
-# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,window=2*365,obs=obs_noisy)
-# # mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result_ramp,color='#FF832B')
-# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+# mx0 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result0,window=2*365,color='black')
+# # mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,window=2*365)
+# # mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result2,window=2*365,color='#FF832B')
+# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx0,year_window=2)
 # # plt.savefig('Figures/noisy_trajectory_BETAp15_SEASp06_IMMp4.png',dpi=300)
 # plt.show()
 # params['WANE'] = 1/12*np.array([0.0,1.0,0.0])

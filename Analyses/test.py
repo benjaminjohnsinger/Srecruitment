@@ -16,19 +16,22 @@ import pickle
 with SAS7BDAT('Data/Raw/KPSC/clinical.sas7bdat') as f:
     clinical_data = f.to_data_frame()
 
-# bar chart of CODE
-code_counts = clinical_data["CODE"].value_counts()
-code_counts = code_counts.sort_values(ascending=False)
-print(code_counts)
+# sample 10k rows and save to csv
+clinical_data.sample(10000).to_csv('Data/Processed/KPSC_clinical_sample.csv',index=False)
 
-fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
-ax.bar(range(len(code_counts)),code_counts,color='silver')
-ax.set_xticks(range(len(code_counts)))
-ax.set_xticklabels(code_counts.index)
-ax.set_title('Number of cases by code')
-ax.set_ylabel('Number of cases')
-plt.tight_layout()
-plt.savefig('Figures/KPSC_code_counts.png')
+# # bar chart of CODE
+# code_counts = clinical_data["CODE"].value_counts()
+# code_counts = code_counts.sort_values(ascending=False)
+# print(code_counts)
+
+# fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
+# ax.bar(range(len(code_counts)),code_counts,color='silver')
+# ax.set_xticks(range(len(code_counts)))
+# ax.set_xticklabels(code_counts.index)
+# ax.set_title('Number of cases by code')
+# ax.set_ylabel('Number of cases')
+# plt.tight_layout()
+# plt.savefig('Figures/KPSC_code_counts.png')
 
 # age_group_dict = {'Infants':range(1), 'Young children':range(1,5), 'Older children':range(5,18), 'Young adults':range(18,40), 'Middle-aged adults':range(40,65), 'Older adults':range(65,100)}
 

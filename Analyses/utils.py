@@ -44,22 +44,21 @@ def to_increment(vec):
     else:
         return vec
 
-def scalars_to_params(scalar_values_dict, NAG=7, N_S=3, N_C=2):
-    param_dict = {}
+def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
     for name in scalar_values_dict.keys():
         if name in ["NAG","N_S","BIRTH_RATE","S_VAX","ACOV","BCOV","T_VAX","IMPORT_RATE","BETA","SEASONALITY","OFFSET"]:
-            param_dict[name] = scalar_values_dict[name]
+            params[name] = scalar_values_dict[name]
         elif name in ["WANE","REC_UP","REC_SAME","P_OBS"]:
-            param_dict[name] = scalar_values_dict[name]*np.ones(N_S)
+            params[name] = scalar_values_dict[name]*np.ones(N_S)
         elif name in ["S_REL","I_REL","S_AGE","OBS_AGE"]:
-            param_dict[name] = increment_to_vec(scalar_values_dict[name],N_S)
+            params[name] = increment_to_vec(scalar_values_dict[name],N_S)
         elif name == "ACQUIRED_IMMUNITY":
-            param_dict["S_REL"] = increment_to_vec(scalar_values_dict[name],N_S)
-    if any([re.search(r"S_REL\d+",name) for name in scalar_values_dict.keys()]):
-        param_dict["S_REL"] = np.concatenate(np.ones(1),np.array([scalar_values_dict["S_REL"+str(i)] for i in range(1,N_S)]))
-    if any([re.search(r"ACQUIRED_IMMUNITY\d+",name) for name in scalar_values_dict.keys()]):]):
-        param_dict["S_REL"] = np.concatenate(np.ones(1),np.array([1-scalar_values_dict["ACQUIRED_IMMUNITY"+str(i)] for i in range(1,N_S)]))
-    return param_dict
+            params["S_REL"] = increment_to_vec(scalar_values_dict[name],N_S)
+        elif re.search(r"S_REL\d+",name):
+            params["S_REL"][int(name[5:])] = scalar_values_dict[name]
+        elif re.search(r"ACQUIRED_IMMUNITY\d+",name):
+            params["S_REL"][int(name[17:])] = scalar_values_dict[name]
+    return params
 
 def params_to_scalars(param_dict,scalar_names):
     scalar_dict = {}
@@ -72,13 +71,11 @@ def params_to_scalars(param_dict,scalar_names):
             scalar_dict[name] = 1-param_dict[name][1]
         elif name == "ACQUIRED_IMMUNITY":
             scalar_dict[name] = 1-param_dict["S_REL"][1]
-    for i in range(1,param_dict["N_S"]):
-        if any([re.search(r"S_REL\d+",name) for name in scalar_names]):
-            scalar_dict["S_REL"+str(i)] = 1-param_dict["S_REL"][i]
-        elif any([re.search(r"ACQUIRED_IMMUNITY\d+",name) for name in scalar_names]):
-            scalar_dict["ACQUIRED_IMMUNITY"+str(i)] = 1-param_dict["S_REL"][i]
+        elif re.search(r"S_REL\d+",name):
+            scalar_dict[name] = param_dict["S_REL"][int(name[5:])]
+        elif re.search(r"ACQUIRED_IMMUNITY\d+",name):
+            scalar_dict[name] = param_dict["S_REL"][int(name[17:])]
     return scalar_dict
-
 
 ####### Generating interesting quantities from ODE results #######
 
