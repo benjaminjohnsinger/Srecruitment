@@ -7,15 +7,12 @@ import numpy as np
 
 # SC_COUNTY_POPS = {"Los Angeles":10081570,"Kern":887641,"Orange":3168044,"San Diego":3316073,"San Bernardino":2149031,"Riverside":2411439,"Ventura":847263}
 
-print(21042.0+35138.0+133997.0+734577.0+1431222.0+1447198.0+786872.0)
-print(19761.0+33526.0+129692.0+716100.0+1227570.0+1297508.0+600336.0)
-
 POP_SIZE = 4024493 # KPSC insured population size in 2015
 
 AGE_POP = np.genfromtxt('Data/Processed/US_Census_population_by_age.csv', delimiter=',') # US in 2022
 AGE_GROUPS = [
-    range(3),
-    range(3,12),
+    # range(3),
+    range(0,12),
     range(12,5*12),
     range(5*12,18*12),
     range(18*12,40*12),

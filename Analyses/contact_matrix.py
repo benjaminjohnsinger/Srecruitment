@@ -16,10 +16,11 @@ AGE_POP_norm = AGE_POP/np.sum(AGE_POP)
 # Define age groups
 PREM_AGE_GROUPS = [range(i*5*12,(i+1)*5*12) for i in range(15)]
 PREM_AGE_GROUPS.append(range(75*12,100*12))
-KP_AGE_GROUPS = [range(3),range(3,12),range(12,5*12),range(5*12,18*12),range(18*12,40*12),range(40*12,65*12),range(65*12,100*12)]
+KP_AGE_GROUPS = [range(0,12),range(12,5*12),range(5*12,18*12),range(18*12,40*12),range(40*12,65*12),range(65*12,100*12)]
+NAG = len(KP_AGE_GROUPS)
 
 # Create matrix of population overlap between age groups
-AGE_MAP = np.zeros((7,16))
+AGE_MAP = np.zeros((NAG,16))
 for age in range(1200):
     AGE_MAP[np.where([age in group for group in KP_AGE_GROUPS])[0][0],np.where([age in group for group in PREM_AGE_GROUPS])[0][0]] += AGE_POP_norm[age]
 # Columns sum to 1

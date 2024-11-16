@@ -19,7 +19,7 @@ from vaccination import birth_vax, all_vax
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas_unjit as deltas_unjit
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
-from Parameters.test_population import *
+from Parameters.census_population import *
 from Parameters.generic_disease import *
 
 from utils import *
@@ -30,10 +30,13 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
+# print all numpy array elements
+np.set_printoptions(threshold=np.inf)
+
 ## Period of simulation
 EPOCH = pd.to_datetime('1970-01-01')
-START = pd.to_datetime('2016-01-01')
-END = pd.to_datetime('2024-01-01')
+START = pd.to_datetime('2015-10-01')
+END = pd.to_datetime('2023-09-30')
 PERIOD = pd.date_range(start=START, end=END, freq='MS')
 
 ## Contacts and force of infection
@@ -50,11 +53,11 @@ def contact(t,seasonality,offset):
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
-STATE0[NAG:2*NAG] = KP_AGE_POP-1 # Everyone is susceptible except
+STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 STATE1 = np.copy(STATE0) 
-STATE1[NAG:2*NAG] = KP_AGE_POP-1
+STATE1[NAG:2*NAG] = CENSUS_AGE_POP-1
 
 ## Integrate the system
 # POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+LOCKDOWN_DURATION+12*12,0.2),np.ones(1)*PERIOD))
@@ -90,18 +93,25 @@ params['SEASONALITY'] = 0.06
 # params['BETA'] = 0.14
 # params['S_REL'] = np.array([1,0.7,0.4])
 
-with open('Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle','rb') as f:
-    case_data = pickle.load(f)
+# with open('Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle','rb') as f:
+#     case_data = pickle.load(f)
+
+case_data = pd.read_csv('Data/Processed/KPSC_rsv_hosp_incidence_by_age.csv')
+# case_data = pd.read_csv('Data/Processed/KPSC_flu_hosp.csv')['Count']
+case_data = np.array(case_data)
+# print(case_data)
 
 np.random.seed(241108)
 priors_tanh = {'BETA': sp.stats.norm(-1,1),'S_REL1': sp.stats.norm(-1,1),'S_REL2': sp.stats.norm(-1,1)}
 proposal_widths = {'BETA': 0.01,'S_REL1': 0.005,'S_REL2': 0.005}
-mcmc_trajectory, acceptance_rate = mcmc(case_data, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','S_REL1','S_REL2'], priors_tanh, proposal_widths, 1000)
+mcmc_trajectory, acceptance_rate = mcmc(case_data, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','S_REL1','S_REL2'], priors_tanh, proposal_widths, 20, True, True)
 print(acceptance_rate)
-with open('Data/Processed/mcmc_trajectory.pickle','wb') as f:
-    pickle.dump(mcmc_trajectory,f)
+plt.plot(mcmc_trajectory)
+plt.show()
+# with open('Data/Processed/mcmc_trajectory.pickle','wb') as f:
+#     pickle.dump(mcmc_trajectory,f)
 
-# # burn_in = 5000
+# burn_in = 5000
 
 # plt.plot(mcmc_trajectory)
 # plt.show()
@@ -132,16 +142,16 @@ with open('Data/Processed/mcmc_trajectory.pickle','wb') as f:
 # plt.tight_layout()
 # plt.show()
 
-# # using optimizer, find initial age distribution that leads to age distribuiton matching KP_AGE_POP after simulating through to 2020 census (april 1)
+# # using optimizer, find initial age distribution that leads to age distribuiton matching CENSUS_AGE_POP after simulating through to 2020 census (april 1)
 # params['BETA'] = 0
 # def age_diff(age_pop):
 #     STATE0 = np.zeros((2*N_S+2)*NAG)
 #     STATE0[NAG:2*NAG] = age_pop
 #     result = sp.integrate.solve_ivp(sis_deltas,(POINTS[0],POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
 #     final_age_pop = result.y[NAG:2*NAG,-1]
-#     return np.sum(np.square(final_age_pop-KP_AGE_POP))
+#     return np.sum(np.square(final_age_pop-CENSUS_AGE_POP))
 
-# res = sp.optimize.minimize(age_diff,KP_AGE_POP,bounds=[(0,4e7)]*NAG)
+# res = sp.optimize.minimize(age_diff,CENSUS_AGE_POP,bounds=[(0,4e7)]*NAG)
 # # save results
 # with open('Data/Processed/inital_age_optimize_result.pickle','wb') as f:
 #     pickle.dump(res,f)
@@ -153,7 +163,7 @@ with open('Data/Processed/mcmc_trajectory.pickle','wb') as f:
 # result0 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 # params['BETA'] = 0.06
 # params['S_REL'] = np.array([1,0.74,0.5])
-# result = sp.integrate.solve_ivp(deltas_unjit,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
+# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 # params['BETA'] = 0.15
 # params['S_REL'] = np.array([1,0.6,0.2])
 # result2 = sp.integrate.solve_ivp(deltas_unjit,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
@@ -180,8 +190,10 @@ with open('Data/Processed/mcmc_trajectory.pickle','wb') as f:
 # # # plt.plot(result.t,np.sum(result.y,axis=0))
 # # # fig, ax = plt.subplots(2,2,figsize=(10,5.6))
 # # # sum of each age group
-# # # print(np.array([np.sum(result.y[range(i,7*NAG,NAG),:],axis=0) for i in range(NAG)]))
-# # # print(np.sum(np.abs(KP_AGE_POP-np.array([np.sum(result.y[range(i,7*NAG,NAG),-1]) for i in range(NAG)]))))
+# print(np.sum(result.y[range(0,result.y.shape[0],NAG),:],axis=0))
+# plt.plot(np.array([np.sum(result.y[range(i,result.y.shape[0],NAG),:],axis=0) for i in range(NAG)]).T)
+# plt.show()
+# # # print(np.sum(np.abs(CENSUS_AGE_POP-np.array([np.sum(result.y[range(i,7*NAG,NAG),-1]) for i in range(NAG)]))))
 # # # plt.show()
 # # # plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
 # # # plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
