@@ -20,7 +20,7 @@ import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas_unjit as deltas_unjit
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
-from Parameters.generic_disease import *
+from Parameters.RSV import *
 
 from utils import *
 from demography import *
@@ -36,7 +36,7 @@ np.set_printoptions(threshold=np.inf)
 ## Period of simulation
 EPOCH = pd.to_datetime('1970-01-01')
 START = pd.to_datetime('2015-10-01')
-END = pd.to_datetime('2023-09-30')
+END = pd.to_datetime('2023-10-01')
 PERIOD = pd.date_range(start=START, end=END, freq='MS')
 
 ## Contacts and force of infection
@@ -49,7 +49,7 @@ LOCKDOWN_DURATION = 365
 LOCKDOWN_REDUCTION = 0.4
 @jit
 def contact(t,seasonality,offset):
-    return cm.STEP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
+    return cm.RAMP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
@@ -71,43 +71,26 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 'arrivals': arrivals, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
-# start = time.time()
-# z=deltas_unjit(0,STATE0,params)
-# end = time.time()
-# print("unjitted: ",end-start)
-# start = time.time()
-# y=sis_deltas(0,STATE0,*params.values())
-# end = time.time()
-# print("jitted: ",end-start)
-# STATE0[12] += 1
-# start = time.time()
-# z=deltas_unjit(1,STATE0,params)
-# end = time.time()
-# print("reunjitted: ",end-start)
-# start = time.time()
-# x=sis_deltas(1,STATE0,*params.values())
-# end = time.time()
-# print("rejitted: ",end-start)
+# #### One-shot line plot #####
+result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
+mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+ax.legend(ax.lines,['<1y','1-4y','5-17y','18-39y','40-64y','>=65y'],loc='upper left')
+plt.savefig('Figures/RSV_abs.png',dpi=300)
 
-params['SEASONALITY'] = 0.06
-# params['BETA'] = 0.14
-# params['S_REL'] = np.array([1,0.7,0.4])
+# case_data = pd.read_csv('Data/Processed/KPSC_rsv_hosp_incidence_by_age.csv')
+# # case_data = pd.read_csv('Data/Processed/KPSC_flu_hosp.csv')['Count']
+# case_data = np.array(case_data)
+# # print(case_data)
 
-# with open('Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle','rb') as f:
-#     case_data = pickle.load(f)
-
-case_data = pd.read_csv('Data/Processed/KPSC_rsv_hosp_incidence_by_age.csv')
-# case_data = pd.read_csv('Data/Processed/KPSC_flu_hosp.csv')['Count']
-case_data = np.array(case_data)
-# print(case_data)
-
-np.random.seed(241108)
-priors_tanh = {'BETA': sp.stats.norm(-1,1),'S_REL1': sp.stats.norm(-1,1),'S_REL2': sp.stats.norm(-1,1)}
-proposal_widths = {'BETA': 0.01,'S_REL1': 0.005,'S_REL2': 0.005}
-mcmc_trajectory, acceptance_rate = mcmc(case_data, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','S_REL1','S_REL2'], priors_tanh, proposal_widths, 20, True, True)
-print(acceptance_rate)
-plt.plot(mcmc_trajectory)
-plt.show()
+# np.random.seed(241108)
+# priors_tanh = {'BETA': sp.stats.norm(-1,1),'S_REL1': sp.stats.norm(-1,1),'S_REL2': sp.stats.norm(-1,1)}
+# proposal_widths = {'BETA': 0.01,'S_REL1': 0.005,'S_REL2': 0.005}
+# mcmc_trajectory, acceptance_rate = mcmc(case_data, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','S_REL1','S_REL2'], priors_tanh, proposal_widths, 20, True, True)
+# print(acceptance_rate)
+# plt.plot(mcmc_trajectory)
+# plt.show()
 # with open('Data/Processed/mcmc_trajectory.pickle','wb') as f:
 #     pickle.dump(mcmc_trajectory,f)
 
@@ -157,57 +140,6 @@ plt.show()
 #     pickle.dump(res,f)
 # print(res)
 # print(res.x)
-
-# #### One-shot line plot #####
-# params['SEASONALITY'] = 0.06
-# result0 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-# params['BETA'] = 0.06
-# params['S_REL'] = np.array([1,0.74,0.5])
-# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-# params['BETA'] = 0.15
-# params['S_REL'] = np.array([1,0.6,0.2])
-# result2 = sp.integrate.solve_ivp(deltas_unjit,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-
-
-# # print(result)
-# # params['contact'] = lambda t, seasonality, offset : contact(t,shape_ramp,seasonality,offset)
-# # result_ramp = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-# obs_full = observations(result,params,OBS_AGE,incidence=False)
-# obs = np.sum(obs_full,axis=1)
-# obs_noisy = np.random.poisson(obs)
-# # incidence = obs_noisy/np.sum(result.y,axis=0)
-# # save noisy incidence
-# with open('Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle','wb') as f:
-#     pickle.dump(obs_noisy,f)
-
-# # # pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
-# # # corr = np.correlate(pre_obs, pre_obs, mode='same')
-# # # acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
-# # # acorr = acorr + np.linspace(0.1, 0, len(acorr))
-# # # lag = np.abs(acorr).argmax() + 1
-# # # print(lag/12)
-# # # mx = np.max(obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)])
-# # # plt.plot(result.t,np.sum(result.y,axis=0))
-# # # fig, ax = plt.subplots(2,2,figsize=(10,5.6))
-# # # sum of each age group
-# print(np.sum(result.y[range(0,result.y.shape[0],NAG),:],axis=0))
-# plt.plot(np.array([np.sum(result.y[range(i,result.y.shape[0],NAG),:],axis=0) for i in range(NAG)]).T)
-# plt.show()
-# # # print(np.sum(np.abs(CENSUS_AGE_POP-np.array([np.sum(result.y[range(i,7*NAG,NAG),-1]) for i in range(NAG)]))))
-# # # plt.show()
-# # # plt.xlim(T_LOCKDOWN-12*12,T_LOCKDOWN)
-# # # plt.xticks(np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+1,12),np.arange(0,13))
-# # # plt.ylim(0,1.1*mx)
-# fig, ax = plt.subplots(1,1,figsize=(10,5.6))
-# mx0 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result0,window=2*365,color='black')
-# # mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,window=2*365)
-# # mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result2,window=2*365,color='#FF832B')
-# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx0,year_window=2)
-# # plt.savefig('Figures/noisy_trajectory_BETAp15_SEASp06_IMMp4.png',dpi=300)
-# plt.show()
-# params['WANE'] = 1/12*np.array([0.0,1.0,0.0])
-# params['BETA'] = 30
-
 # # ####### Computing observations ########
 # with open('Data/Processed/SIS_3D_little.pickle','rb') as f:
 #     results = pickle.load(f)

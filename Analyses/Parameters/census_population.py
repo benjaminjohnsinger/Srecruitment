@@ -20,7 +20,14 @@ AGE_GROUPS = [
     range(65*12,100*12)]
 NAG = len(AGE_GROUPS)
 MEDIAN_AGE = [np.median(AGE_GROUPS[i]) for i in range(len(AGE_GROUPS))]
-AGE_GROUP_NAMES = ['Newborns','Infants','Young children','Older children','Young adults','Middle-aged adults','Older adults']
+AGE_GROUP_NAMES = [
+    # 'Newborns',
+    'Infants',
+    'Young children',
+    'Older children',
+    'Young adults',
+    'Middle-aged adults',
+    'Older adults']
 
 # Age group proportions for California in 2022
 AGE_PROPORTION = np.array([np.sum(AGE_POP[group]) for group in AGE_GROUPS])/np.sum(AGE_POP)
