@@ -4,7 +4,7 @@
 import numpy as np
 from numba import jit
 
-NAG = 6
+NAG = 25
 
 ## Parameters that vary by susceptibility class
 # Number of susceptibility classes
@@ -23,13 +23,13 @@ P_OBS = 0.032*np.array([1,0.75,0,0])
 # Age-specific susceptibility
 S_AGE = np.ones(NAG)
 # Age-specific probability of detection
-OBS_AGE = np.array([0.35,0.2,0.1,0.1,0.1,0.1])
+OBS_AGE = np.concatenate((np.array([0.5,0.3,0.2,0.1,0.1,0.1]),0.1*np.ones(NAG-6)))
 ## Other 
 # Seasonality parameters
 SEASONALITY = 0.2
 OFFSET = 0
 # Infectiousness
-BETA = 0.0685 # = 8.9/(10*12.99)
+BETA = 0.0562 # = 8.9/(10*15.85)
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
 @jit

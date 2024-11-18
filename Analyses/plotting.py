@@ -12,11 +12,12 @@ import pickle
 
 from utils import *
 
+N_C=2
 from SISn_ODEs import single_pathogen_deltas as deltas_SIS
 
 
 ##### Simple line plots #####
-def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,window=5*365):
+def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,start_t=date_to_t(pd.to_datetime('2015-10-01')),end_t=date_to_t(pd.to_datetime('2023-09-30'))):
     if params is not None:
         NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params.values()
     if result is None:
@@ -27,25 +28,25 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
     if by_age:
         if obs is None:
             obs = observations(result,params,OBS_AGE,incidence=False)
-        cmap = plt.get_cmap('viridis')
-        pop_size_by_age = np.array([np.sum(result.y[range(i_age,(3*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+        cmap = plt.get_cmap('hsv')
+        pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
         for i_age in range(NAG):
-            ax.plot(dates,obs[:,i_age]/pop_size_by_age[:,i_age], label=AGE_GROUP_NAMES[i_age], color=cmap(i_age/(NAG-1)))
-        mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[np.argmin(times<=T_LOCKDOWN-window):np.argmin(times<=T_LOCKDOWN+LOCKDOWN_DURATION+window)])
+            ax.plot(dates,obs[:,i_age]/pop_size_by_age[:,i_age], label=AGE_GROUP_NAMES[i_age], color=cmap(-0.02+i_age/NAG))
+        mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[np.argmin(times<=start_t):np.argmin(times<=end_t)])
     else:
         if obs is None:
             obs = observations(result,params,OBS_AGE,incidence=True)
         if relative:
-            pre_mx = np.max(obs[np.argmin(times<=T_LOCKDOWN-window):np.argmin(times<=T_LOCKDOWN)])
+            pre_mx = np.max(obs[np.argmin(times<=start_t):np.argmin(times<=T_LOCKDOWN)])
             ax.plot(dates, obs/pre_mx, label=label,color=color,linewidth=linewidth,alpha=alpha)
-            mx = 1.1*np.max(obs[np.argmin(times<=T_LOCKDOWN-window):np.argmin(times<=T_LOCKDOWN+LOCKDOWN_DURATION+window)])/pre_mx
+            mx = 1.1*np.max(obs[np.argmin(times<=start_t):np.argmin(times<=end_t)])/pre_mx
         else:
             ax.plot(dates, obs, label=label,color=color,linewidth=linewidth,alpha=alpha)
-            mx = 1.1*np.max(obs[np.argmin(times<=T_LOCKDOWN-window):np.argmin(times<=T_LOCKDOWN+LOCKDOWN_DURATION+window)])
+            mx = 1.1*np.max(obs[np.argmin(times<=start_t):np.argmin(times<=end_t)])
     return(mx)
 
 def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,year_skip=1,title='Incidence of disease with 1-year lockdown'):
-    ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
+    # ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
     ax.set_ylim(0,mx)
     ax.set_ylabel('Observed incidence')
     ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)

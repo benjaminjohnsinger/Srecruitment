@@ -4,7 +4,7 @@
 import numpy as np
 from numba import jit
 
-NAG = 6
+NAG = 7
 
 ## Parameters that vary by susceptibility class
 # Number of susceptibility classes

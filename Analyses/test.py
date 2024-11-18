@@ -3,21 +3,29 @@
 ## BJS August 2024
 
 import numpy as np
-import matplotlib.pyplot as plt
-import scipy as sp
-import pandas as pd
-import itertools as it
-from plotting import *
-from math import comb
-from utils import *
-from sas7bdat import SAS7BDAT
-import pickle
+# import matplotlib.pyplot as plt
+# import scipy as sp
+# import pandas as pd
+# import itertools as it
+# from plotting import *
+# from math import comb
+# from utils import *
+# from sas7bdat import SAS7BDAT
+# import pickle
 
-with SAS7BDAT('Data/Raw/KPSC/clinical.sas7bdat') as f:
-    clinical_data = f.to_data_frame()
+print(np.sum(np.array([0.00000000e+00,0.00000000e+00,0.00000000e+00,0.00000000e+00,0.00000000e+00,0.00000000e+00,0.00000000e+00,1.00050052e+04,8.30484011e+03,1.87321224e+03,5.58351161e+01,4.28455975e-01,1.67069413e-03,6.20424525e-06,2.92637579e+02,2.74118090e+02,7.09693608e+01,1.37167853e+01,1.07012980e+01,1.06713644e+01,1.06579077e+01,1.84619366e+03,4.77663778e+03,5.15030817e+03,1.04305304e+04,1.78012040e+04,1.91596837e+04,1.07178628e+04,2.78841796e+01,6.68586045e+01,7.16395379e+01,2.42260553e+02,3.67618026e+02,3.28200210e+02,1.11709479e+02,1.97472715e+03,2.92368497e+04,2.42394648e+05,9.36936487e+05,1.56437910e+06,1.57971969e+06,7.44055459e+05,1.84081403e+01,2.05811181e+02,1.66926286e+03,1.14129778e+04,1.70822361e+04,1.42951212e+04,3.97385592e+03,0.00000000e+00,0.00000000e+00,0.00000000e+00,0.00000000e+00,0.00000000e+00,0.00000000e+00,0.00000000e+00])))
+print(np.sum(np.array([14164.85592336,42865.11544626,251230.04007045,959091.80710918,1599641.28439574,1613513.36343163,758869.5449999])))
 
-# sample 10k rows and save to csv
-clinical_data.sample(10000).to_csv('Data/Processed/KPSC_clinical_sample.csv',index=False)
+# contact_matrix = np.genfromtxt('Data/Processed/contact_matrices/Pitzer_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
+# # first eigenvalue
+# eigenvalues = np.linalg.eigvals(contact_matrix)
+# print(np.max(eigenvalues))
+
+# with SAS7BDAT('Data/Raw/KPSC/clinical.sas7bdat') as f:
+#     clinical_data = f.to_data_frame()
+
+# # sample 10k rows and save to csv
+# clinical_data.sample(10000).to_csv('Data/Processed/KPSC_clinical_sample.csv',index=False)
 
 # # bar chart of CODE
 # code_counts = clinical_data["CODE"].value_counts()

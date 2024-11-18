@@ -43,6 +43,11 @@ PERIOD = pd.date_range(start=START, end=END, freq='MS')
 IMPORT_RATE = 1e-5*np.ones(N_S)
 # Contact matrix for all contact types
 CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
+print(CONTACT.shape)
+print(NAG)
+print(OBS_AGE.shape)
+print(CENSUS_AGE_POP.shape)
+
 # Lockdown and other mobility changes
 T_LOCKDOWN = date_to_t('2020-03-01')
 LOCKDOWN_DURATION = 365
@@ -71,28 +76,42 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 'arrivals': arrivals, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
-# #### One-shot line plot #####
+# # # #### One-shot line plot #####
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
 mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
 lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
-ax.legend(ax.lines,['<1y','1-4y','5-17y','18-39y','40-64y','>=65y'],loc='upper left')
-plt.savefig('Figures/RSV_abs.png',dpi=300)
+ax.legend()
+# ax.legend(ax.lines,['<1y','1-4y','5-17y','18-39y','40-64y','>=65y'],loc='upper left')
+plt.savefig('Figures/RSV_test.png',dpi=300)
 
-# case_data = pd.read_csv('Data/Processed/KPSC_rsv_hosp_incidence_by_age.csv')
-# # case_data = pd.read_csv('Data/Processed/KPSC_flu_hosp.csv')['Count']
-# case_data = np.array(case_data)
-# # print(case_data)
+# with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle","rb") as f:
+#     results = pickle.load(f)
 
-# np.random.seed(241108)
-# priors_tanh = {'BETA': sp.stats.norm(-1,1),'S_REL1': sp.stats.norm(-1,1),'S_REL2': sp.stats.norm(-1,1)}
-# proposal_widths = {'BETA': 0.01,'S_REL1': 0.005,'S_REL2': 0.005}
-# mcmc_trajectory, acceptance_rate = mcmc(case_data, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','S_REL1','S_REL2'], priors_tanh, proposal_widths, 20, True, True)
-# print(acceptance_rate)
-# plt.plot(mcmc_trajectory)
+# # case_data = pd.read_csv('Data/Processed/KPSC_rsv_hosp_incidence_by_age.csv')
+# # # case_data = pd.read_csv('Data/Processed/KPSC_flu_hosp.csv')['Count']
+# # case_data = np.array(case_data)
+# # # print(case_data)
+
+# points_trimmed = np.array(date_to_t(PERIOD[PERIOD < '2020-01-01']))
+
+# plt.plot(POINTS,results)
+# plt.plot(points_trimmed,results[0:len(points_trimmed)])
 # plt.show()
-# with open('Data/Processed/mcmc_trajectory.pickle','wb') as f:
-#     pickle.dump(mcmc_trajectory,f)
+
+# # np.random.seed(241108)
+# # priors_tanh = {'BETA': sp.stats.norm(-1,1),'SEASONALITY': sp.stats.norm(-1,1),'S_REL': sp.stats.norm(-1,1)}
+# # proposal_widths = {'BETA': 0.01,'SEASONALITY': 0.005,'S_REL': 0.005}
+# # mcmc_trajectory, acceptance_rate = mcmc(results, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_tanh, proposal_widths, 3000, False, False)
+# # print(acceptance_rate)
+# # plt.plot(mcmc_trajectory)
+# plt.show()
+# with open('Data/Processed/mcmc_trajectory2.pickle','rb') as f:
+#     mcmc_trajectory = pickle.load(f)
+# with open('Data/Processed/mcmc_trajectory_pre_lockdown.pickle','rb') as f:
+#     mcmc_trajectory_pre_lockdown = pickle.load(f)
+
+# print(np.mean(mcmc_trajectory_pre_lockdown[5000:],axis=0))
 
 # burn_in = 5000
 
@@ -125,21 +144,6 @@ plt.savefig('Figures/RSV_abs.png',dpi=300)
 # plt.tight_layout()
 # plt.show()
 
-# # using optimizer, find initial age distribution that leads to age distribuiton matching CENSUS_AGE_POP after simulating through to 2020 census (april 1)
-# params['BETA'] = 0
-# def age_diff(age_pop):
-#     STATE0 = np.zeros((2*N_S+2)*NAG)
-#     STATE0[NAG:2*NAG] = age_pop
-#     result = sp.integrate.solve_ivp(sis_deltas,(POINTS[0],POINTS[-1]),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-#     final_age_pop = result.y[NAG:2*NAG,-1]
-#     return np.sum(np.square(final_age_pop-CENSUS_AGE_POP))
-
-# res = sp.optimize.minimize(age_diff,CENSUS_AGE_POP,bounds=[(0,4e7)]*NAG)
-# # save results
-# with open('Data/Processed/inital_age_optimize_result.pickle','wb') as f:
-#     pickle.dump(res,f)
-# print(res)
-# print(res.x)
 # # ####### Computing observations ########
 # with open('Data/Processed/SIS_3D_little.pickle','rb') as f:
 #     results = pickle.load(f)

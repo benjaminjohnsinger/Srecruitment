@@ -10,7 +10,7 @@ import time
 import types
 
 def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, age=False, incidence=False, start_t=date_to_t(pd.to_datetime('1970-01-01'))):
-    result = sp.integrate.solve_ivp(sis_deltas,(start_t,POINTS[-1]),STATE0,args=[param for param in params.values() if type(param) != types.FunctionType],t_eval=POINTS,method='RK45')
+    result = sp.integrate.solve_ivp(sis_deltas,(start_t,POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
     NAG = params["NAG"]
     N_S = params["N_S"]
     if incidence:
@@ -51,7 +51,6 @@ def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, variables, prio
     current_params = init_params.copy()
     log_likelihood_priors = np.sum([priors_tanh[variable].logpdf(p_to_real(params_to_scalars(current_params,variables)[variable])) for variable in variables])
     log_likelihood_current = likelihood(data, current_params, POINTS, STATE0, OBS_AGE, age=age, incidence=incidence) + log_likelihood_priors
-    print(log_likelihood_current)
 
     for i in range(n_iter):
         if i % 100 == 0:
@@ -63,7 +62,6 @@ def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, variables, prio
         proposal_params = scalars_to_params(scalars,proposal_params)
         log_likelihood_priors = np.sum([priors_tanh[variable].logpdf(p_to_real(params_to_scalars(proposal_params,variables)[variable])) for variable in variables])
         log_likelihood_proposal = likelihood(data, proposal_params, POINTS, STATE0, OBS_AGE, age=age, incidence=incidence) + log_likelihood_priors
-        print(log_likelihood_proposal)
         log_likelihood_diff = log_likelihood_proposal - log_likelihood_current
         param_trajectory[i+1] = param_trajectory[i]
         if log_likelihood_diff > 0 or np.log(np.random.rand()) < log_likelihood_diff:
