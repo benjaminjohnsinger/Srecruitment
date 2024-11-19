@@ -19,8 +19,8 @@ from vaccination import birth_vax, all_vax
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas_unjit as deltas_unjit
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
-from Parameters.census_population import *
-from Parameters.RSV import *
+from Parameters.Pitzer_population import *
+from Parameters.Pitzer_RSV import *
 
 from utils import *
 from demography import *
@@ -42,7 +42,7 @@ PERIOD = pd.date_range(start=START, end=END, freq='MS')
 ## Contacts and force of infection
 IMPORT_RATE = 1e-5*np.ones(N_S)
 # Contact matrix for all contact types
-CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
+CONTACT = np.genfromtxt('Data/Processed/contact_matrices/Pitzer_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
 print(CONTACT.shape)
 print(NAG)
 print(OBS_AGE.shape)
@@ -78,12 +78,20 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 
 # # # #### One-shot line plot #####
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+obs = observations(result,params,OBS_AGE,incidence=False)
+# sum pre-lockdown cases in age groups
+pre_lockdown_cases = np.sum(obs[np.argmax(result.t>=T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN)],axis=0)
+# bar plot of cases by age group
 fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
-mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
-ax.legend()
-# ax.legend(ax.lines,['<1y','1-4y','5-17y','18-39y','40-64y','>=65y'],loc='upper left')
-plt.savefig('Figures/RSV_test.png',dpi=300)
+ax.hist(np.arange(0,25),weights=pre_lockdown_cases,bins=25)
+plt.show()
+
+# fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
+# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+# ax.legend()
+# # ax.legend(ax.lines,['<1y','1-4y','5-17y','18-39y','40-64y','>=65y'],loc='upper left')
+# plt.savefig('Figures/Pitzer_RSV_test.png',dpi=300)
 
 # with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle","rb") as f:
 #     results = pickle.load(f)

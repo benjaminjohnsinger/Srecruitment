@@ -29,7 +29,8 @@ OBS_AGE = np.concatenate((np.array([0.5,0.3,0.2,0.1,0.1,0.1]),0.1*np.ones(NAG-6)
 SEASONALITY = 0.2
 OFFSET = 0
 # Infectiousness
-BETA = 0.0562 # = 8.9/(10*15.85)
+# BETA = 8.88/(10*15.85)
+BETA = 0.2 # this gives results much closer to Fig 2, but about 3.5 bigger than what I think the value should be
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
 @jit
