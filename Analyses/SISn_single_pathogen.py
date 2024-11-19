@@ -76,15 +76,15 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 'arrivals': arrivals, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
-# # # #### One-shot line plot #####
-result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-obs = observations(result,params,OBS_AGE,incidence=False)
-# sum pre-lockdown cases in age groups
-pre_lockdown_cases = np.sum(obs[np.argmax(result.t>=T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN)],axis=0)
-# bar plot of cases by age group
-fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
-ax.hist(np.arange(0,25),weights=pre_lockdown_cases,bins=25)
-plt.show()
+# # # # #### One-shot line plot #####
+# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+# obs = observations(result,params,OBS_AGE,incidence=False)
+# # sum pre-lockdown cases in age groups
+# pre_lockdown_cases = np.sum(obs[np.argmax(result.t>=T_LOCKDOWN-5*12):np.argmax(result.t>T_LOCKDOWN)],axis=0)
+# # bar plot of cases by age group
+# fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
+# ax.hist(np.arange(0,25),weights=pre_lockdown_cases,bins=25)
+# plt.show()
 
 # fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
 # mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
@@ -93,8 +93,8 @@ plt.show()
 # # ax.legend(ax.lines,['<1y','1-4y','5-17y','18-39y','40-64y','>=65y'],loc='upper left')
 # plt.savefig('Figures/Pitzer_RSV_test.png',dpi=300)
 
-# with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle","rb") as f:
-#     results = pickle.load(f)
+with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle","rb") as f:
+    cases = pickle.load(f)
 
 # # case_data = pd.read_csv('Data/Processed/KPSC_rsv_hosp_incidence_by_age.csv')
 # # # case_data = pd.read_csv('Data/Processed/KPSC_flu_hosp.csv')['Count']
@@ -107,12 +107,15 @@ plt.show()
 # plt.plot(points_trimmed,results[0:len(points_trimmed)])
 # plt.show()
 
-# # np.random.seed(241108)
-# # priors_tanh = {'BETA': sp.stats.norm(-1,1),'SEASONALITY': sp.stats.norm(-1,1),'S_REL': sp.stats.norm(-1,1)}
-# # proposal_widths = {'BETA': 0.01,'SEASONALITY': 0.005,'S_REL': 0.005}
-# # mcmc_trajectory, acceptance_rate = mcmc(results, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_tanh, proposal_widths, 3000, False, False)
-# # print(acceptance_rate)
-# # plt.plot(mcmc_trajectory)
+np.random.seed(241108)
+priors_tanh = {'BETA': sp.stats.norm(-1,1),'SEASONALITY': sp.stats.norm(-1,1),'S_REL': sp.stats.norm(-1,1)}
+proposal_widths = {'BETA': 0.01,'SEASONALITY': 0.01,'S_REL': 0.01}
+mcmc_trajectory, acceptance_rate = mcmc(results, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_tanh, proposal_widths, 30000, False, False)
+print(acceptance_rate)
+plt.plot(mcmc_trajectory)
+with open('Data/Processed/mcmc_trajectory2.pickle','wb') as f:
+    pickle.dump(mcmc_trajectory,f)
+
 # plt.show()
 # with open('Data/Processed/mcmc_trajectory2.pickle','rb') as f:
 #     mcmc_trajectory = pickle.load(f)
