@@ -19,8 +19,8 @@ from vaccination import birth_vax, all_vax
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas_unjit as deltas_unjit
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
-from Parameters.Pitzer_population import *
-from Parameters.Pitzer_RSV import *
+from Parameters.census_population import *
+from Parameters.generic_disease import *
 
 from utils import *
 from demography import *
@@ -42,7 +42,7 @@ PERIOD = pd.date_range(start=START, end=END, freq='MS')
 ## Contacts and force of infection
 IMPORT_RATE = 1e-5*np.ones(N_S)
 # Contact matrix for all contact types
-CONTACT = np.genfromtxt('Data/Processed/contact_matrices/Pitzer_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
+CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
 print(CONTACT.shape)
 print(NAG)
 print(OBS_AGE.shape)
@@ -110,7 +110,7 @@ with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle","rb") as f
 np.random.seed(241108)
 priors_tanh = {'BETA': sp.stats.norm(-1,1),'SEASONALITY': sp.stats.norm(-1,1),'S_REL': sp.stats.norm(-1,1)}
 proposal_widths = {'BETA': 0.01,'SEASONALITY': 0.01,'S_REL': 0.01}
-mcmc_trajectory, acceptance_rate = mcmc(results, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_tanh, proposal_widths, 30000, False, False)
+mcmc_trajectory, acceptance_rate = mcmc(cases, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_tanh, proposal_widths, 30000, False, False)
 print(acceptance_rate)
 plt.plot(mcmc_trajectory)
 with open('Data/Processed/mcmc_trajectory2.pickle','wb') as f:
