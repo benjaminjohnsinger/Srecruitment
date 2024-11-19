@@ -54,7 +54,7 @@ LOCKDOWN_DURATION = 365
 LOCKDOWN_REDUCTION = 0.4
 @jit
 def contact(t,seasonality,offset):
-    return cm.RAMP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
+    return cm.STEP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
@@ -101,26 +101,26 @@ with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4.pickle","rb") as f
 # # case_data = np.array(case_data)
 # # # print(case_data)
 
-# points_trimmed = np.array(date_to_t(PERIOD[PERIOD < '2020-01-01']))
-
-# plt.plot(POINTS,results)
-# plt.plot(points_trimmed,results[0:len(points_trimmed)])
-# plt.show()
+points_trimmed = np.array(date_to_t(PERIOD[PERIOD < '2020-01-01']))
 
 np.random.seed(241108)
 priors_tanh = {'BETA': sp.stats.norm(-1,1),'SEASONALITY': sp.stats.norm(-1,1),'S_REL': sp.stats.norm(-1,1)}
 proposal_widths = {'BETA': 0.01,'SEASONALITY': 0.01,'S_REL': 0.01}
-mcmc_trajectory, acceptance_rate = mcmc(cases, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_tanh, proposal_widths, 30000, False, False)
+mcmc_trajectory, acceptance_rate = mcmc(cases, params, points_trimmed, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_tanh, proposal_widths, 100, False, False)
 print(acceptance_rate)
 plt.plot(mcmc_trajectory)
-with open('Data/Processed/mcmc_trajectory2.pickle','wb') as f:
+plt.show()
+with open('Data/Processed/mcmc_trajectory_pre_lockdown.pickle','wb') as f:
     pickle.dump(mcmc_trajectory,f)
 
 # plt.show()
-# with open('Data/Processed/mcmc_trajectory2.pickle','rb') as f:
+# with open('Data/Processed/mcmc_trajectory.pickle','rb') as f:
 #     mcmc_trajectory = pickle.load(f)
 # with open('Data/Processed/mcmc_trajectory_pre_lockdown.pickle','rb') as f:
 #     mcmc_trajectory_pre_lockdown = pickle.load(f)
+# plt.plot(mcmc_trajectory)
+# plt.plot(mcmc_trajectory_pre_lockdown)
+# plt.show()
 
 # print(np.mean(mcmc_trajectory_pre_lockdown[5000:],axis=0))
 
