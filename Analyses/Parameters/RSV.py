@@ -1,10 +1,10 @@
-## Pitzer RSV parameters
-## Parameters from Pitzer et al. 2015 in PLOS Pathogens
+## RSV parameters
+## Parameters from Pitzer et al. 2015 edited to roughly fit KPSC observations
 
 import numpy as np
 from numba import jit
 
-NAG = 7
+NAG = 6
 
 ## Parameters that vary by susceptibility class
 # Number of susceptibility classes
@@ -23,7 +23,7 @@ P_OBS = 0.06*np.array([1,0.75,0])
 # Age-specific susceptibility
 S_AGE = np.ones(NAG)
 # Age-specific probability of detection
-OBS_AGE = np.array([0.5,0.37,0.12,0.005,0.005,0.01,0.1])
+OBS_AGE = np.array([0.4,0.2,0.005,0.005,0.01,0.5])
 ## Other 
 # Seasonality parameters
 SEASONALITY = 0.2
