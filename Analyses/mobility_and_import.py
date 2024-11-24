@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from numba import jit
 from utils import date_to_t
 
-# MOBILITY
+# # MOBILITY
 # load mobility data and concatenate
 MOBILITY2020 = pd.read_csv('Data/Raw/Google_mobility_reports/2020_US_Region_Mobility_Report.csv', delimiter=',')
 MOBILITY2021 = pd.read_csv('Data/Raw/Google_mobility_reports/2021_US_Region_Mobility_Report.csv', delimiter=',')
@@ -16,12 +16,56 @@ MOBILITY = pd.concat([MOBILITY2020, MOBILITY2021, MOBILITY2022])
 
 # extract California data
 MOBILITY_CA = MOBILITY.loc[MOBILITY['iso_3166_2_code'] == 'US-CA']
+# MOBILITY_CA['date'] = pd.to_datetime(MOBILITY_CA['date'])
+MOBILITY_CA = MOBILITY_CA.sort_values(by='date')
+MOBILITY_CA.index = (pd.to_datetime(MOBILITY_CA['date'])-pd.to_datetime('1970-01-01')).dt.days
 
-# moving average of residential mobility
-MOBILITY_CA['residential_percent_change_from_baseline_ma'] = 1 - MOBILITY_CA['residential_percent_change_from_baseline'].rolling(window=7).mean()/100
 
-MOBILITY_CA['date'] = pd.to_datetime(MOBILITY_CA['date'])
-MOBILITY_CA.index = (MOBILITY_CA['date'] - pd.to_datetime('1970-01-01')).dt.days
+work_mobility = 1+MOBILITY_CA['workplaces_percent_change_from_baseline']/100
+other_mobility = 1+(1/100)*(1/4)*(MOBILITY_CA['retail_and_recreation_percent_change_from_baseline'] + MOBILITY_CA['grocery_and_pharmacy_percent_change_from_baseline'] + MOBILITY_CA['parks_percent_change_from_baseline'] + MOBILITY_CA['transit_stations_percent_change_from_baseline'])
+
+work_contact_model = -0.2273 + 1.3280*work_mobility
+other_contact_model = -0.0488 + 1.0398*other_mobility
+
+work_contact_model_quadratic = 1.3169 - 4.7718*work_mobility + 5.7062*work_mobility**2
+other_contact_model_quadratic = 2.9441 - 9.2762*other_mobility + 8.5566*other_mobility**2
+
+# moving average of mobility
+ma_work_mobility = work_mobility.rolling(window=28).mean()
+ma_other_mobility = other_mobility.rolling(window=28).mean()
+ma_work_contacts = work_contact_model.rolling(window=28).mean()
+ma_other_contacts = other_contact_model.rolling(window=28).mean()
+ma_work_contacts_quadratic = work_contact_model_quadratic.rolling(window=28).mean()
+ma_other_contacts_quadratic = other_contact_model_quadratic.rolling(window=28).mean()
+
+work_quadratic_model_of_ma = 1.3169 - 4.7718*ma_work_mobility + 5.7062*ma_work_mobility**2
+other_quadratic_model_of_ma = 2.9441 - 9.2762*ma_other_mobility + 8.5566*ma_other_mobility**2
+
+# find the time at which ma_work_contacts_quadratic first becomes greater than 1, after January 1 2021
+t = np.array(ma_work_contacts_quadratic.index)
+t = t[t > date_to_t(pd.to_datetime('2021-01-01'))]
+t = t[np.argmax(ma_work_contacts_quadratic[t] > 0.95)]
+print(t)
+
+fig, ax = plt.subplots(figsize=(6,6))
+ma_work_mobility.plot(ax=ax,legend=False,color="#648FFF")
+ma_work_contacts.plot(ax=ax,legend=False,color="#DC267F",linestyle='--')
+ma_work_contacts_quadratic.plot(ax=ax,legend=False,color="#FFB000",linestyle='--')
+ax.legend(['Workplaces','Workplaces linear model','Workplaces quadratic model'])
+ax.set_xlabel('Date')
+ax.set_ylabel('Relative mobility')
+ax.set_title('California mobility')
+ax.set_ylim(0.35,1.2)
+# ax.vlines(t,0.4,1.2,linestyle=':',color='black')
+ax.hlines(1,*ax.get_xlim(),linestyle=":",color='black')
+plt.tight_layout()
+plt.savefig('Figures/mobility_CA_28day_average_work_models_test.png',dpi=300)
+
+# # moving average of residential mobility
+# MOBILITY_CA['residential_percent_change_from_baseline_ma'] = 1 - MOBILITY_CA['residential_percent_change_from_baseline'].rolling(window=7).mean()/100
+
+# MOBILITY_CA['date'] = pd.to_datetime(MOBILITY_CA['date'])
+# MOBILITY_CA.index = (MOBILITY_CA['date'] - pd.to_datetime('1970-01-01')).dt.days
 
 # fig, ax = plt.subplots(figsize=(6,6))
 # MOBILITY_CA.plot('date','residential_percent_change_from_baseline_ma',ax=ax,legend=False,color="#648FFF")
@@ -29,7 +73,7 @@ MOBILITY_CA.index = (MOBILITY_CA['date'] - pd.to_datetime('1970-01-01')).dt.days
 # ax.set_ylabel('Relative non-residential visits')
 # ax.set_title('California mobility outside of residential locations')
 # plt.tight_layout()
-# plt.show()
+# # plt.show()
 # plt.savefig('Figures/mobility_CA_residential_7day_average.png',dpi=300)
 
 ## IMPORT

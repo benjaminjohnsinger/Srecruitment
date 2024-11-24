@@ -50,7 +50,7 @@ def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,y
     # ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
     ax.set_ylim(0,mx)
     ax.set_ylabel('Observed incidence')
-    ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
+    # ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
     # ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365+365,365*year_skip),[str(int(x)-year_window-1) for x in np.arange(0,year_window*2+2,year_skip)])
     ax.set_xlabel('Time (years)')
     ax.set_title(title)
@@ -84,9 +84,9 @@ def lockdown_susceptibility_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,ymin=0.875,ym
     yin, yax = ax.get_ylim()
     if not (ymax is None or ymin is None):
         ax.set_ylim(ymin,ymax)
-        ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],ymin,ymax,color='gray',alpha=0.2)
-    else:
-        ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],yin,yax,color='gray',alpha=0.2)
+    #     ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],ymin,ymax,color='gray',alpha=0.2)
+    # else:
+    #     ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],yin,yax,color='gray',alpha=0.2)
 
 def age_infect_plot(ax,state0,params,AGE_GROUP_NAMES,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,delts=deltas_SIS):
     cmap = plt.get_cmap('viridis')
@@ -408,7 +408,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
     if hospitalizations:
         positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
     else:
-        positive_tests = pd.read_csv('Data/Processed/KPSC_positive_tests_matched_all_clinical.csv')
+        positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_all_clinical.csv')
     names = pathogen_names[pathogen]
     cases = positive_tests[positive_tests['pathogen'].isin(names) & positive_tests['CODE'].isin(respiratory_codes)]
     cases = cases.drop_duplicates(subset=cases.columns.difference(['CODE','dxgroup']))
@@ -461,4 +461,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         ax.set_ylabel("Incidence per 10k")
     else:
         ax.set_ylabel("Cases")
+    if legend:
+        # set legend title to "Age groups"
+        ax.legend(title="Age groups")
     ax.set_xlabel("Date")
