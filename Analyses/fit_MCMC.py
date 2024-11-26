@@ -38,36 +38,31 @@ def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, age=False, incidence=F
             log_likelihood += sp.stats.poisson.logpmf(int(cases[i]),int(trajectory[i]))
     return log_likelihood
 
-def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, variables, priors_tanh, proposal_widths, n_iter, age=False, incidence=False):
+def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, variables, priors_logit, proposal_cov, n_iter, age=False, incidence=False):
     n_v = len(variables)
-    acceptance = np.zeros((int(np.ceil(n_iter/n_v)),n_v))
+    acceptance = np.zeros(n_iter)
     param_trajectory = np.zeros((n_iter+1,n_v))
-    param_trajectory[0] = [params_to_scalars(init_params,variables)[variable] for variable in variables]
-    # for i in range(n_v):
-    #     if isinstance(init_params[variables[i]],np.ndarray):
-    #         param_trajectory[0,i] = 1-init_params[variables[i]][1]
-    #     else:
-    #         param_trajectory[0,i] = init_params[variables[i]]
+    param_trajectory[0] = list(params_to_scalars(init_params,variables).values())
     current_params = init_params.copy()
-    log_likelihood_priors = np.sum([priors_tanh[variable].logpdf(p_to_real(params_to_scalars(current_params,variables)[variable])) for variable in variables])
+    log_likelihood_priors = np.sum([priors_logit[variable].logpdf(p_to_real(params_to_scalars(current_params,variables)[variable])) for variable in variables])
     log_likelihood_current = likelihood(data, current_params, POINTS, STATE0, OBS_AGE, age=age, incidence=incidence) + log_likelihood_priors
-
+    start = time.time()
     for i in range(n_iter):
-        if i % 100 == 0:
-            print(i)
+        if i % (n_iter//20) == 0:
+            print(f"Progress: {i/n_iter*100:.0f}%, acceptance rate: {np.mean(acceptance[:i])*100:.4f}%, time elapsed: {time.time()-start:.2f}s")
         proposal_params = current_params.copy()
-        vary = variables[i%n_v]
-        scalars = params_to_scalars(proposal_params,variables)
-        scalars[vary] = real_to_p(p_to_real(scalars[vary]) + np.random.normal(0,proposal_widths[vary]))
-        proposal_params = scalars_to_params(scalars,proposal_params)
-        log_likelihood_priors = np.sum([priors_tanh[variable].logpdf(p_to_real(params_to_scalars(proposal_params,variables)[variable])) for variable in variables])
+        scalars = np.array(list(params_to_scalars(proposal_params,variables).values()))
+        scalars = real_to_p(p_to_real(scalars) + np.random.multivariate_normal(np.zeros(n_v),proposal_cov))
+        scalar_dict = {variables[j]:scalars[j] for j in range(n_v)}
+        proposal_params = scalars_to_params(scalar_dict,proposal_params)
+        log_likelihood_priors = np.sum([priors_logit[variable].logpdf(p_to_real(params_to_scalars(proposal_params,variables)[variable])) for variable in variables])
         log_likelihood_proposal = likelihood(data, proposal_params, POINTS, STATE0, OBS_AGE, age=age, incidence=incidence) + log_likelihood_priors
         log_likelihood_diff = log_likelihood_proposal - log_likelihood_current
         param_trajectory[i+1] = param_trajectory[i]
         if log_likelihood_diff > 0 or np.log(np.random.rand()) < log_likelihood_diff:
             current_params = proposal_params
             log_likelihood_current = log_likelihood_proposal
-            acceptance[i//n_v,i%n_v] = 1
-            param_trajectory[i+1,i%n_v] = scalars[vary]
+            acceptance[i] = 1
+            param_trajectory[i+1,:] = scalars
     
-    return param_trajectory, np.mean(acceptance,axis=0)
+    return param_trajectory, np.mean(acceptance)

@@ -27,7 +27,7 @@ MOBILITY_CA = MOBILITY_CA.sort_values(by='date')
 MOBILITY_CA.index = (pd.to_datetime(MOBILITY_CA['date'])-pd.to_datetime('1970-01-01')).dt.days
 MOBILITY_WORK = 1+MOBILITY_CA['workplaces_percent_change_from_baseline']/100
 MOBILITY_WORK_MA = MOBILITY_WORK.rolling(window=28).mean()
-MOBILITY_WORK_MA = MOBILITY_WORK_MA.fillna(method='bfill')
+MOBILITY_WORK_MA = MOBILITY_WORK_MA.bfill()
 RELATIVE_CONTACT_WORK = 1.3169 - 4.7718*MOBILITY_WORK_MA + 5.7062*MOBILITY_WORK_MA**2
 IDX = np.array(MOBILITY_CA.index)
 RELATIVE_CONTACT_WORK_NP = np.array(RELATIVE_CONTACT_WORK)

@@ -21,13 +21,13 @@ def real_to_p(number):
     """
     Map real number to (0,1) interval
     """
-    return (np.tanh(number)+1)/2
+    return 1/(1+np.exp(-number))
 
 def p_to_real(probability):
     """
     Map (0,1) interval to real number
     """
-    return np.arctanh(2*probability-1)
+    return np.log(probability/(1-probability))
 
 def increment_to_vec(increment,length):
     """
