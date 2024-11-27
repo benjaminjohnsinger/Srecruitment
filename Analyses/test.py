@@ -13,52 +13,64 @@ from utils import *
 # from sas7bdat import SAS7BDAT
 # import pickle
 
-def rectangular_beta(x,a,b,theta):
-    return theta*sp.special.gamma(a+b)/(sp.special.gamma(a)*sp.special.gamma(b))*x**(a-1)*(1-x)**(b-1) + 1-theta
+# print(np.sum([0.584,0.416,0.010]))
 
-def piecewise(x,young_immunity,old_immunity,young_old):
-    return np.maximum(0,np.minimum(1,1+young_old)*young_immunity**x)+np.maximum(0,np.minimum(1,1-young_old)*old_immunity**(6-x))
+# def rectangular_beta(x,a,b,theta):
+#     return theta*sp.special.gamma(a+b)/(sp.special.gamma(a)*sp.special.gamma(b))*x**(a-1)*(1-x)**(b-1) + 1-theta
 
-y = np.array([0.5,0.3,0.2,0.01,0.01,0.01,0.3])/0.5
-# medians = np.array([1/1080,7/1080,36/1080,140/1080,351/1080,631/1080,877/1080])
-medians=np.arange(7)
-def distance(params):
-    # a, b, theta = params
-    yi, oi, yo = params
-    # function = sp.stats.beta(params[0],params[1]).pdf
-    # function = lambda x: a*b*x**(a-1)*(1-x**a)**(b-1)
-    # function = lambda x: sp.stats.betabinom(a,b,6).pmf(x)/np.max(sp.stats.betabinom(a,b,6).pmf(np.arange(7)))
-    # function = lambda x: rectangular_beta(x,a,b,theta)
-    function = lambda x: piecewise(x,yi,oi,yo)
-    values = [function(median) for median in medians]
-    # values = [function(i) for i in range(7)]
-    return np.sqrt(np.sum((values-y)**2))
+# def piecewise(NAG,young_immunity,old_immunity,young_old):
+#     x = np.arange(NAG)
+#     OBS = np.minimum(1,2*young_old)*young_immunity**x+np.minimum(1,2-2*young_old)*old_immunity**(NAG-1-x)
+#     return OBS/np.max(OBS)
 
-print(piecewise(medians,0.54,-0.01,0.4))
+# # x = np.linspace(-1,1,100)
+# # # map to 0 to 1
+# # y = (x+1)/2
+# # # map back to -1 to 1
+# # z = 2*y-1
 
-result = sp.optimize.minimize(distance,[0.5,0.5,0.4],method='Nelder-Mead')
-print(result.x)
-# a,b,theta = result.x
-yi,oi,yo = result.x
-# print(sp.stats.beta(result.x[0],result.x[1]).pdf(medians))
-# ksf = lambda x: a*b*x**(a-1)*(1-x**a)**(b-1)
-# function = lambda x: sp.stats.betabinom(a,b,6).pmf(x)/np.max(sp.stats.betabinom(a,b,6).pmf(np.arange(7)))
-# print([function(i) for i in range(7)])
-# print([rectangular_beta(i,a,b,theta) for i in medians])
-print([piecewise(i,yi,oi,yo) for i in medians])
 
-# plt.plot(np.linspace(0,1,1000),sp.stats.beta(result.x[0],result.x[1]).pdf(np.linspace(0,1,1000)),color='k')
-# plt.plot(np.linspace(0,1,1000),ksf(np.linspace(0,1,1000)))
-# plt.plot(np.arange(7),[function(i) for i in range(7)],color='black')
-# plt.plot(np.linspace(0,1,1000),[rectangular_beta(i,a,b,theta) for i in np.linspace(0,1,1000)],color='black')
-plt.plot(np.linspace(0,6,1000),[piecewise(i,yi,oi,yo) for i in np.linspace(0,6,1000)],color='black')
-plt.scatter(medians,y,color='#648FFF')
-# plt.scatter(medians,sp.stats.beta(result.x[0],result.x[1]).pdf(medians),color='red',marker='+',zorder=10)
-# plt.scatter(medians,[rectangular_beta(i,a,b,theta) for i in medians],color='red',marker='+',zorder=10)
-plt.scatter(medians,[piecewise(i,yi,oi,yo) for i in medians],color='red',marker='+',zorder=10)
-# plt.xticks(np.arange(7),[f'{i+1}/1080' for i in [0,6,35,139,350,630,876]])
-# plt.ylim([-0.05,1.05])
-plt.savefig('Figures/discretized_piecwise_exp_fit_to_normalized_age_obs_guess_RSV.png',dpi=300)
+# y = np.array([0.4,0.2,0.01,0.01,0.01,0.3])/0.4
+# print(y)
+# # medians = np.array([1/1080,7/1080,36/1080,140/1080,351/1080,631/1080,877/1080])
+# medians=np.arange(6)
+# NAG = 6
+# def distance(params):
+#     # a, b, theta = params
+#     yi, oi, yo = params
+#     # function = sp.stats.beta(params[0],params[1]).pdf
+#     # function = lambda x: a*b*x**(a-1)*(1-x**a)**(b-1)
+#     # function = lambda x: sp.stats.betabinom(a,b,6).pmf(x)/np.max(sp.stats.betabinom(a,b,6).pmf(np.arange(7)))
+#     # function = lambda x: rectangular_beta(x,a,b,theta)
+#     values = piecewise(NAG,yi,oi,yo)
+#     # values = [function(i) for i in range(7)]
+#     return np.sqrt(np.sum((values-y)**2))
+
+# print(piecewise(NAG,0.6,0.01,0.7))
+
+# result = sp.optimize.minimize(distance,[0.6,0.01,0.7],bounds=[(0,1),(0,1),(0,1)])
+# print(result.x)
+# # a,b,theta = result.x
+# yi,oi,yo = result.x
+# # print(sp.stats.beta(result.x[0],result.x[1]).pdf(medians))
+# # ksf = lambda x: a*b*x**(a-1)*(1-x**a)**(b-1)
+# # function = lambda x: sp.stats.betabinom(a,b,6).pmf(x)/np.max(sp.stats.betabinom(a,b,6).pmf(np.arange(7)))
+# # print([function(i) for i in range(7)])
+# # print([rectangular_beta(i,a,b,theta) for i in medians])
+# print(piecewise(NAG,yi,oi,yo))
+
+# # plt.plot(np.linspace(0,1,1000),sp.stats.beta(result.x[0],result.x[1]).pdf(np.linspace(0,1,1000)),color='k')
+# # plt.plot(np.linspace(0,1,1000),ksf(np.linspace(0,1,1000)))
+# # plt.plot(np.arange(7),[function(i) for i in range(7)],color='black')
+# # plt.plot(np.linspace(0,1,1000),[rectangular_beta(i,a,b,theta) for i in np.linspace(0,1,1000)],color='black')
+# # plt.plot(np.linspace(0,6,1000),piecewise(NAG,yi,oi,yo),color='black')
+# plt.scatter(medians,y,color='#648FFF')
+# # plt.scatter(medians,sp.stats.beta(result.x[0],result.x[1]).pdf(medians),color='red',marker='+',zorder=10)
+# # plt.scatter(medians,[rectangular_beta(i,a,b,theta) for i in medians],color='red',marker='+',zorder=10)
+# plt.scatter(medians,piecewise(NAG,yi,oi,yo),color='red',marker='+',zorder=10)
+# # plt.xticks(np.arange(7),[f'{i+1}/1080' for i in [0,6,35,139,350,630,876]])
+# # plt.ylim([-0.05,1.05])
+# plt.savefig('Figures/discretized_piecwise_exp_fit_to_normalized_age_obs_guess_RSV.png',dpi=300)
 
 
 # incubation_median_RSV = 4.4
@@ -69,15 +81,15 @@ plt.savefig('Figures/discretized_piecwise_exp_fit_to_normalized_age_obs_guess_RS
 # admittance_logsd_RSV = 0.762
 # admittance_distribution_RSV = sp.stats.lognorm(admittance_logsd_RSV,scale=np.exp(admittance_logmean_RSV))
 
-# incubation_median_fluA = 1.4
-# incubation_dispersion_fluA = 1.51
-# incubation_distribution_fluA = sp.stats.lognorm(np.log(incubation_dispersion_fluA),scale=incubation_median_fluA)
+# # incubation_median_fluA = 1.4
+# # incubation_dispersion_fluA = 1.51
+# # incubation_distribution_fluA = sp.stats.lognorm(np.log(incubation_dispersion_fluA),scale=incubation_median_fluA)
 
-# admittance_mu_flu = 1.92
-# admittance_sigma_flu = 0.914
-# admittance_Q_flu = 0.126
-# admittance_distribution_flu = sp.stats.gengamma(admittance_Q_flu,admittance_mu_flu,admittance_sigma_flu)
-# print(admittance_distribution_flu.ppf([0.25,0.5,0.75]))
+# # admittance_mu_flu = 1.92
+# # admittance_sigma_flu = 0.914
+# # admittance_Q_flu = 0.126
+# # admittance_distribution_flu = sp.stats.gengamma(admittance_Q_flu,admittance_mu_flu,admittance_sigma_flu)
+# # print(admittance_distribution_flu.ppf([0.25,0.5,0.75]))
 
 
 # # generate 100k samples of incubation plus admittance
@@ -93,11 +105,12 @@ plt.savefig('Figures/discretized_piecwise_exp_fit_to_normalized_age_obs_guess_RS
 
 # x=np.linspace(0,30.44,1000)
 # p_this_month = [np.mean(day+infection_to_admittance<=30.44) for day in x]
-# p_next_month = [np.mean(day+infection_to_admittance>30.44) for day in x]
+# p_next_month = [np.mean((day+infection_to_admittance>30.44)&(day+infection_to_admittance<=60.88)) for day in x]
 # p_two_months = [np.mean(day+infection_to_admittance>60.88) for day in x]
 # plt.plot(x,p_this_month,color='black')
 # plt.plot(x,p_next_month,color='black',linestyle='--')
 # plt.plot(x,p_two_months,color='black',linestyle=':')
+# print(np.mean(p_this_month))
 # print(np.mean(p_next_month))
 # print(np.mean(p_two_months))
 # # annotate with means

@@ -3,53 +3,118 @@ import numpy as np
 from matplotlib import pyplot as plt
 from sas7bdat import SAS7BDAT
 from matplotlib.cm import hsv
+import pickle
 
-with SAS7BDAT('Data/Raw/KPSC/clinical_20241115.sas7bdat') as f:
-    clinical_data = f.to_data_frame()
 
-with SAS7BDAT('Data/Raw/KPSC/clinical.sas7bdat') as f:
-    clinical_data_no_mo = f.to_data_frame()
+pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE B"],
+"Influenza A": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B"],
+"Influenza A H1": ["INFLUENZA A H1N1 2009","INFLUENZA A VIRUS SUBTYPE H1"],
+"Influenza A H3": ["INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3"],
+"Influenza B": ["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"],
+"Influenza": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B","INFLUENZA B","INFLUENZA VIRUS B"],
+"Metapneumovirus": ["HUMAN METAPNEUMOVIRUS VIRUS",],
+"Adenovirus": ["ADENOVIRUS",],
+"Parainfuenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
+"Parainfluenza 3": ["PARAINFLUENZA VIRUS 3"]}
+AGE_GROUP_NAMES = ['<1y','1-4y','5-17y','18-39y','40-64y','>=65y']
+respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv')
+positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
+for incidence in [False, True]:
+    for AGE_GROUPS in [None, [range(0,12),range(12,5*12),range(5*12,18*12),range(18*12,40*12),range(40*12,65*12),range(65*12,90*12)]]:
+        for pathogen in pathogen_names.keys():
+            print(pathogen)
+            if incidence:
+                # load age population data
+                age_by_year = pd.read_csv("Data/Processed/KPSC_population_by_age.csv")
+                # add first two columns - remove this once year added
+                age_by_year["Infants"] = age_by_year["Infants"] + age_by_year["Newborns"]
+                age_by_year.drop(columns=["Newborns"],inplace=True)
+                if AGE_GROUPS is not None:
+                    age_by_year.columns = AGE_GROUP_NAMES
+                age_by_year["Year"] = np.arange(2015,2023)
+                age_by_year = age_by_year.set_index("Year")
+                # repeat last row for 2023
+                age_by_year.loc[2023] = age_by_year.loc[2022]
+            names = pathogen_names[pathogen]
+            cases = positive_tests[positive_tests['pathogen'].isin(names) & positive_tests['CODE'].isin(respiratory_codes)]
+            cases = cases.drop_duplicates(subset=cases.columns.difference(['CODE','dxgroup']))
+            cases["Date"] = pd.to_datetime(cases["Hospitalization date"])
+            cases["Month"] = cases["Date"].dt.month
+            cases["Year"] = cases["Date"].dt.year
+            if AGE_GROUPS is not None:
+                for i in range(len(AGE_GROUPS)):
+                    cases.loc[cases["age"].isin(AGE_GROUPS[i]),"age_group"] = AGE_GROUP_NAMES[i]
+                cases = cases.groupby(["Year","Month","age_group"]).size().reset_index(name='Count')
+            else:
+                cases = cases.groupby(["Year","Month"]).size().reset_index(name='Count')
 
-with SAS7BDAT('Data/Raw/KPSC/testing.sas7bdat') as f:
-    test_data = f.to_data_frame()
+            for date in pd.date_range(start='2015-10-01',end='2023-09-30',freq='MS'):
+                year = date.year
+                month = date.month
+                if AGE_GROUPS is not None:
+                    for age_group in AGE_GROUP_NAMES:
+                        if not ((cases["Year"]==year) & (cases["Month"]==month) & (cases["age_group"]==age_group)).any():
+                            cases = pd.concat([cases,pd.DataFrame({"Year":[year],"Month":[month],"age_group":[age_group],"Count":[0]})])
+                if not ((cases["Year"]==year) & (cases["Month"]==month)).any():
+                    cases = pd.concat([cases,pd.DataFrame({"Year":[year],"Month":[month],"Count":[0]})])
+            cases["Date"] = pd.to_datetime(cases["Year"].astype(str) + '-' + cases["Month"].astype(str) + '-01')
+            cases = cases.sort_values(by="Date")
+            cases = cases.set_index("Date")
+            cases = cases.drop(columns=["Year","Month"])
+            if AGE_GROUPS is not None:
+                cases = cases.pivot(columns="age_group",values="Count")
+                cases = cases[AGE_GROUP_NAMES]
+                if incidence:
+                    cases = cases.div(age_by_year.loc[cases.index.year].values)
+            elif incidence:
+                cases = cases.div(np.sum(age_by_year.loc[cases.index.year].values,axis=1).reshape(-1,1))
+            filename = f'Data/Processed/KPSC_{pathogen}_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}.csv'
+            print(cases.shape)
+            cases.to_csv(filename,index=True)
 
-# save sample of clinical data
-clinical_data.sample(10000).to_csv('Data/Processed/KPSC_clinical_sample.csv',index=False)
 
-print(clinical_data.head())
+# with SAS7BDAT('Data/Raw/KPSC/clinical_20241115.sas7bdat') as f:
+#     clinical_data = f.to_data_frame()
 
-# for each row in clinical_data, find the row in clinical_data_no_mo with the same age, StudyID, and dx_days, and copy the value of the YEAR column
-clinical_data["YEAR"] = np.nan
-for i in range(len(clinical_data)):
-    row = clinical_data.iloc[i]
-    match = clinical_data_no_mo[(clinical_data_no_mo["age"] == row["age"]) & (clinical_data_no_mo["StudyID"] == row["StudyID"]) & (clinical_data_no_mo["dx_days"] == row["dx_days"])]
-    clinical_data.at[i,"YEAR"] = match["YEAR"].values[0]
+# with SAS7BDAT('Data/Raw/KPSC/clinical.sas7bdat') as f:
+#     clinical_data_no_mo = f.to_data_frame()
 
-# save to csv
-clinical_data.to_csv('Data/Processed/KPSC_clinical_with_year_and_age_in_months.csv',index=False)
+# with SAS7BDAT('Data/Raw/KPSC/testing.sas7bdat') as f:
+#     test_data = f.to_data_frame()
+
+# # save sample of clinical data
+# clinical_data.sample(10000).to_csv('Data/Processed/KPSC_clinical_sample.csv',index=False)
+
+# print(clinical_data.head())
+
+# # for each row in clinical_data, find the row in clinical_data_no_mo with the same age, StudyID, and dx_days, and copy the value of the YEAR column
+# clinical_data["YEAR"] = clinical_data.apply(lambda row: clinical_data_no_mo[(clinical_data_no_mo["age"] == row["age"]) & (clinical_data_no_mo["StudyID"] == row["StudyID"]) & (clinical_data_no_mo["dx_days"] == row["dx_days"])]["YEAR"].values[0],axis=1)
+
+# # save to csv
+# clinical_data.to_csv('Data/Processed/KPSC_clinical_with_year_and_age_in_months.csv',index=False)
 
 # # load clinical data sample
 # clinical_data = pd.read_csv('Data/Processed/KPSC_clinical_sample.csv')
 # print(clinical_data.head())
 
-# date is 1st of October of each year (in YEAR column), plus dx_days
-clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
+# # date is 1st of October of each year (in YEAR column), plus dx_days
+# clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
 
-test_data = test_data[test_data["StudyID"].isin(clinical_data["StudyID"])]
-positive_tests = test_data[test_data["result_val"] == 'Positive']
-positive_tests["Date"] = pd.to_datetime(positive_tests["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(positive_tests["lab_days"],unit='D')
-positive_tests = clinical_data.merge(positive_tests[["StudyID","Date","pathogen","lab_type","lab_days"]],on="StudyID",how="left")
-positive_tests = positive_tests.rename(columns={"Date_x":"Clinical date","Date_y":"Test date"})
-positive_tests = positive_tests[np.abs((pd.to_datetime(positive_tests["Clinical date"]) - pd.to_datetime(positive_tests["Test date"])).dt.days) <= 14]
+# test_data = test_data[test_data["StudyID"].isin(clinical_data["StudyID"])]
+# positive_tests = test_data[test_data["result_val"] == 'Positive']
+# positive_tests["Date"] = pd.to_datetime(positive_tests["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(positive_tests["lab_days"],unit='D')
+# positive_tests = clinical_data.merge(positive_tests[["StudyID","Date","pathogen","lab_type","lab_days"]],on="StudyID",how="left")
+# positive_tests = positive_tests.rename(columns={"Date_x":"Clinical date","Date_y":"Test date"})
+# positive_tests = positive_tests[np.abs((pd.to_datetime(positive_tests["Clinical date"]) - pd.to_datetime(positive_tests["Test date"])).dt.days) <= 14]
 
-# save to csv
-positive_tests.to_csv('Data/Processed/KPSC_positive_matched_all_clinical.csv',index=False)
-# load
-positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_all_clinical.csv')
-hospitalizations = clinical_data[(clinical_data["setting"] == 'Hospital admission')]
+# # save to csv
+# positive_tests.to_csv('Data/Processed/KPSC_positive_matched_all_clinical.csv',index=False)
+# # load
+# positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_all_clinical.csv')
+# hospitalizations = clinical_data[(clinical_data["setting"] == 'Hospital admission')]
 
-# save hostpitalizations to csv
-hospitalizations.to_csv('Data/Processed/KPSC_clinical_hospitalizations.csv',index=False)
+# # save hostpitalizations to csv
+# hospitalizations.to_csv('Data/Processed/KPSC_clinical_hospitalizations.csv',index=False)
 
 
 # respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv',dtype=str)

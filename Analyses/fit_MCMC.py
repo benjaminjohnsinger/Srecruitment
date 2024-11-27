@@ -9,15 +9,15 @@ from utils import *
 import time
 import types
 
-def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, age=False, incidence=False, start_t=date_to_t(pd.to_datetime('1970-01-01'))):
+def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, age=False, incidence=False, start_t=date_to_t(pd.to_datetime('1970-01-01')),delay_obs=[0.584,0.406,0.010]):
     result = sp.integrate.solve_ivp(sis_deltas,(start_t,POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
     NAG = params["NAG"]
     N_S = params["N_S"]
     if incidence:
         if age:
-            cases = data*np.array([np.sum(result.y[range(i,(N_S*N_C+1)*NAG,NAG),:],axis=0) for i in range(NAG)]).T
+            cases = data*np.array([np.sum(result.y[range(i,(N_S*N_C+1)*NAG,NAG),2:],axis=0) for i in range(NAG)]).T
         else:
-            cases = data*np.sum(result.y,axis=0)
+            cases = data*np.sum(result.y[:,2:],axis=0)
     else:
         cases = data.copy()
     trajectory = observations(result,params,OBS_AGE,incidence=False)
@@ -25,38 +25,49 @@ def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, age=False, incidence=F
         trajectory = np.sum(trajectory,axis=1)
     log_likelihood = 0
     if age:
-        for i in range(len(POINTS)):
+        for i in range(2,len(POINTS)):
             for j in range(params["NAG"]):
+                sim_observation = int(delay_obs[0]*trajectory[i,j]+delay_obs[1]*trajectory[i-1,j]+delay_obs[2]*trajectory[i-2,j])
                 # If less than one case predicted but more than zero observed, round up predicted case count
-                if trajectory[i,j] < 1 and cases[i,j] >= 1:
-                    log_likelihood += sp.stats.poisson.logpmf(int(cases[i,j]),1)
+                if sim_observation < 1 and cases[i-2,j] >= 1:
+                    log_likelihood += sp.stats.poisson.logpmf(int(cases[i-2,j]),1)
                 # otherwise round down both numbers
                 else:
-                    log_likelihood += sp.stats.poisson.logpmf(int(cases[i,j]),int(trajectory[i,j]))
+                    log_likelihood += sp.stats.poisson.logpmf(int(cases[i-2,j]),sim_observation)
     else:
-        for i in range(len(POINTS)):
-            log_likelihood += sp.stats.poisson.logpmf(int(cases[i]),int(trajectory[i]))
+        for i in range(2,len(POINTS)):
+            sim_observation = int(delay_obs[0]*trajectory[i]+delay_obs[1]*trajectory[i-1]+delay_obs[2]*trajectory[i-2])
+            if trajectory[i] < 1 and cases[i-2] >= 1:
+                log_likelihood += sp.stats.poisson.logpmf(int(cases[i-2]),1)
+            else:
+                log_likelihood += sp.stats.poisson.logpmf(int(cases[i-2]),sim_observation)
     return log_likelihood
 
-def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, variables, priors_logit, proposal_cov, n_iter, age=False, incidence=False):
+## OBS_AGE parameters must be last three in initial_scalars
+def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, variables, initial_scalars, log_priors, proposal_cov, n_iter, age=False, incidence=False,n_messages=20):
     n_v = len(variables)
+    NAG = init_params["NAG"]
     acceptance = np.zeros(n_iter)
     param_trajectory = np.zeros((n_iter+1,n_v))
-    param_trajectory[0] = list(params_to_scalars(init_params,variables).values())
+    param_trajectory[0] = initial_scalars
     current_params = init_params.copy()
-    log_likelihood_priors = np.sum([priors_logit[variable].logpdf(p_to_real(params_to_scalars(current_params,variables)[variable])) for variable in variables])
+    log_likelihood_priors = log_priors(initial_scalars)
     log_likelihood_current = likelihood(data, current_params, POINTS, STATE0, OBS_AGE, age=age, incidence=incidence) + log_likelihood_priors
     start = time.time()
     for i in range(n_iter):
-        if i % (n_iter//20) == 0:
-            print(f"Progress: {i/n_iter*100:.0f}%, acceptance rate: {np.mean(acceptance[:i])*100:.4f}%, time elapsed: {time.time()-start:.2f}s")
+        if i % (n_iter//n_messages) == 0:
+            print(f"Progress: {i/n_iter*100:.0f}%, acceptance rate: {np.mean(acceptance[i-(n_iter//n_messages):i])*100:.4f}%, time elapsed: {time.time()-start:.2f}s")
         proposal_params = current_params.copy()
-        scalars = np.array(list(params_to_scalars(proposal_params,variables).values()))
+        scalars = param_trajectory[i]
         scalars = real_to_p(p_to_real(scalars) + np.random.multivariate_normal(np.zeros(n_v),proposal_cov))
         scalar_dict = {variables[j]:scalars[j] for j in range(n_v)}
         proposal_params = scalars_to_params(scalar_dict,proposal_params)
-        log_likelihood_priors = np.sum([priors_logit[variable].logpdf(p_to_real(params_to_scalars(proposal_params,variables)[variable])) for variable in variables])
-        log_likelihood_proposal = likelihood(data, proposal_params, POINTS, STATE0, OBS_AGE, age=age, incidence=incidence) + log_likelihood_priors
+        if age:
+            proposal_OBS_AGE = age_detection(NAG,*scalars[-3:])
+        else:
+            proposal_OBS_AGE = OBS_AGE
+        log_likelihood_priors = log_priors(scalars)
+        log_likelihood_proposal = likelihood(data, proposal_params, POINTS, STATE0, proposal_OBS_AGE, age=age, incidence=incidence) + log_likelihood_priors
         log_likelihood_diff = log_likelihood_proposal - log_likelihood_current
         param_trajectory[i+1] = param_trajectory[i]
         if log_likelihood_diff > 0 or np.log(np.random.rand()) < log_likelihood_diff:

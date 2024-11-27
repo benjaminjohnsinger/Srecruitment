@@ -55,7 +55,7 @@ np.set_printoptions(threshold=np.inf)
 
 ## Period of simulation
 EPOCH = pd.to_datetime('1970-01-01')
-START = pd.to_datetime('2015-10-01')
+START = pd.to_datetime('2015-09-01')
 END = pd.to_datetime('2023-10-01')
 PERIOD = pd.date_range(start=START, end=END, freq='MS')
 
@@ -96,8 +96,20 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 'contact': contact}
 
 # # # # #### One-shot line plot #####
+# params["BETA"] = 0.15
+# params["SEASONALITY"] = 0.06
+# params["OFFSET"] = 0.1
+# params["WANE"] = np.array([0.0,1/(10*365),0.0])
+# AGE_DISEASE_REDUCTION = 0.1
+# OBS_AGE = np.linspace(1,(1-(NAG-1)*AGE_DISEASE_REDUCTION),NAG)
 # result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-# # fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
+# obs = observations(result,params,OBS_AGE,incidence=False)
+# # obs = np.sum(obs,axis=1)
+# noisy_obs = np.random.poisson(obs)
+# noisy_incidence = noisy_obs/CENSUS_AGE_POP
+# with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASONALITYp06_OFFSETp1_WANE10y_ADRp1.pickle","wb") as f:
+#     pickle.dump(noisy_incidence,f)
+#  # fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
 # mx = lockdown_incidence_plot(axes[1],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
 # lockdown_incidence_format(axes[1],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
 # # axes[1].legend()
@@ -128,8 +140,7 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # plt.savefig('Figures/KPSC_RSV_age_w_mobility_sims.png',dpi=300)
 # # plt.savefig('Figures/RSV_piecewise_test.png',dpi=300)
 
-# with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASp06_IMMp4_update.pickle","rb") as f:
-#     cases = pickle.load(f)
+incidence = np.array(pd.read_csv("Data/Processed/KPSC_RSV_incidence_age.csv",index_col=0))
 
 # # # # case_data = pd.read_csv('Data/Processed/KPSC_rsv_hosp_incidence_by_age.csv')
 # # # # # case_data = pd.read_csv('Data/Processed/KPSC_flu_hosp.csv')['Count']
@@ -138,27 +149,31 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 
 # # # points_trimmed = np.array(date_to_t(PERIOD[PERIOD < '2020-01-01']))
 
-# np.random.seed(241108)
-# priors_logit = {'BETA': sp.stats.norm(-1,1.5),'SEASONALITY': sp.stats.norm(-1,1.5),'S_REL': sp.stats.norm(-1,1.5)}
-# proposal_cov = np.diag([0.0001,0.0001,0.0001])
-# mcmc_trajectory, acceptance_rate = mcmc(cases, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, ['BETA','SEASONALITY','S_REL'], priors_logit, proposal_cov, 5000, False, False)
-# print(acceptance_rate)
-# plt.plot(mcmc_trajectory)
-# plt.savefig('Figures/mcmc_trajectory_multivariate.png',dpi=300)
-# with open('Data/Processed/mcmc_trajectory_multivariate.pickle','wb') as f:
-#     pickle.dump(mcmc_trajectory,f)
+np.random.seed(241108)
+variables = ["BETA","SEASONALITY","OFFSET","WANE",'OBS_AGE_YOUNG','OBS_AGE_OLD','OBS_AGE_YOUNG_OLD']
+initial_scalars = np.array([0.27,0.1,0.1,1/(30*365),0.388,0.003,0.629])
+log_priors_distribution = sp.stats.multivariate_normal([-1,-1,-1,-1,0,0,0],np.diag([1.5,1.5,1.5,1.5,1.5,1.5,1.5]))
+log_priors = lambda x : log_priors_distribution.logpdf(x)
+proposal_cov = np.diag([0.00001,0.00001,0.00001,0.00001,0.00001,0.00001,0.00001])
+mcmc_trajectory, acceptance_rate = mcmc(incidence, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, variables, initial_scalars, log_priors, proposal_cov, 20000, True, True)
+print(acceptance_rate)
+print(np.mean(mcmc_trajectory,axis=0))
+plt.plot(mcmc_trajectory)
+plt.savefig('Figures/mcmc_trajectory_RSV_test.png',dpi=300)
+with open('Data/Processed/mcmc_trajectory_RSV_test.pickle','wb') as f:
+    pickle.dump(mcmc_trajectory,f)
 
 # # plt.show()
-# with open('Data/Processed/mcmc_trajectory.pickle','rb') as f:
+# with open('Data/Processed/mcmc_trajectory_multivariate.pickle','rb') as f:
 #     mcmc_trajectory = pickle.load(f)
 # # with open('Data/Processed/mcmc_trajectory_pre_lockdown.pickle','rb') as f:
 # #     mcmc_trajectory_pre_lockdown = pickle.load(f)
 # # plt.plot(mcmc_trajectory)
 # # plt.show()
 
-# # print(np.mean(mcmc_trajectory_pre_lockdown[5000:],axis=0))
+# print(np.mean(mcmc_trajectory[1000:],axis=0))
 
-# burn_in = 5000
+# burn_in = 1000
 
 # # plt.plot(mcmc_trajectory)
 # # plt.show()
@@ -190,7 +205,7 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # trajectory_ax.set_xlabel('Iteration')
 # trajectory_ax.set_ylabel('Parameter value')
 # # plt.tight_layout()
-# plt.savefig('Figures/example_MCMC_trajectory.png',dpi=300)
+# plt.savefig('Figures/example_MCMC_trajectory_multivariate.png',dpi=300)
 
 # # ####### Computing observations ########
 # with open('Data/Processed/SIS_3D_little.pickle','rb') as f:

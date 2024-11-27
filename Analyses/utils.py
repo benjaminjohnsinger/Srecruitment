@@ -44,13 +44,35 @@ def to_increment(vec):
     else:
         return vec
 
+def age_detection(NAG,young_immunity,old_immunity,young_old):
+    """
+    Calculate age-specific relative probabilty of detection from parameters.
+    young_immunity: immunity gained by aging an age group
+    old_immunity: immunity lost by aging an age group
+    young_old: half the ratio of young to old susceptibility
+    """
+    x = np.arange(NAG)
+    OBS = np.minimum(1,2*young_old)*young_immunity**x+np.minimum(1,2*(1-young_old))*old_immunity**(NAG-1-x)
+    return OBS/np.max(OBS)
+
 def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
     for name in scalar_values_dict.keys():
         if name in ["NAG","N_S","BIRTH_RATE","S_VAX","ACOV","BCOV","T_VAX","IMPORT_RATE","BETA","SEASONALITY","OFFSET"]:
             params[name] = scalar_values_dict[name]
-        elif name in ["WANE","REC_UP","REC_SAME","P_OBS"]:
-            params[name] = scalar_values_dict[name]*np.ones(N_S)
-        elif name in ["S_REL","I_REL","S_AGE","OBS_AGE"]:
+        elif name == "WANE":
+            params[name] = scalar_values_dict[name]*np.array([0]+[1]*(N_S-2)+[0])
+        elif name == "REC_UP":
+            params[name] = scalar_values_dict[name]*np.array([1]*(N_S-1)+[0])
+        elif name == "REC_SAME":
+            params[name] = scalar_values_dict[name]*np.array([0]*(N_S-1)+[1])
+        elif name == "REC":
+            params["REC_UP"] = scalar_values_dict[name]*np.array([1]*(N_S-1)+[0])
+            params["REC_SAME"] = scalar_values_dict[name]*np.array([0]*(N_S-1)+[1])
+        elif name == "P_OBS":
+            params[name] = scalar_values_dict[name]*params[name]/np.max(params[name])
+        elif name == "P_OBS_REL":
+            params["P_OBS"] = np.max(params[name])*increment_to_vec(scalar_values_dict[name],N_S)
+        elif name in ["S_REL","I_REL","S_AGE"]:
             params[name] = increment_to_vec(scalar_values_dict[name],N_S)
         elif name == "ACQUIRED_IMMUNITY":
             params["S_REL"] = increment_to_vec(scalar_values_dict[name],N_S)
@@ -58,6 +80,14 @@ def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
             params["S_REL"][int(name[5:])] = scalar_values_dict[name]
         elif re.search(r"ACQUIRED_IMMUNITY\d+",name):
             params["S_REL"][int(name[17:])] = scalar_values_dict[name]
+        elif re.search(r"P_OBS\d+",name):
+            params["P_OBS"][int(name[5:])] = scalar_values_dict[name]
+    #     elif re.search(r"OBS_AGE\d+",name):
+    #         params["OBS_AGE"][int(name[8:])] = scalar_values_dict[name]
+    # if "OBS_AGE_YOUNG" in scalar_values_dict.keys() or "OBS_AGE_OLD" in scalar_values_dict.keys() or "OBS_AGE_YOUNG_OLD" in scalar_values_dict.keys():
+    #     if not all([key in scalar_values_dict.keys() for key in ["OBS_AGE_YOUNG","OBS_AGE_OLD","OBS_AGE_YOUNG_OLD"]]):
+    #         raise ValueError("If you want to set OBS_AGE with parameters, you need to set all of OBS_AGE_YOUNG, OBS_AGE_OLD, and OBS_AGE_YOUNG_OLD")
+    #     params["OBS_AGE"] = age_immunity(np.arange(NAG),scalar_values_dict["OBS_AGE_YOUNG"],scalar_values_dict["OBS_AGE_OLD"],scalar_values_dict["OBS_AGE_YOUNG_OLD"])
     return params
 
 def params_to_scalars(param_dict,scalar_names):
@@ -65,10 +95,14 @@ def params_to_scalars(param_dict,scalar_names):
     for name in scalar_names:
         if name in ["NAG","N_S","BIRTH_RATE","S_VAX","ACOV","BCOV","T_VAX","IMPORT_RATE","BETA","SEASONALITY","OFFSET"]:
             scalar_dict[name] = param_dict[name]
+        elif name == "WANE":
+            scalar_dict[name] = param_dict[name][1]
         elif name in ["WANE","REC_UP","REC_SAME","P_OBS"]:
             scalar_dict[name] = param_dict[name][0]
         elif name in ["S_REL","I_REL","S_AGE","OBS_AGE"]:
             scalar_dict[name] = 1-param_dict[name][1]
+        elif name == "P_OBS_REL":
+            scalar_dict[name] = param_dict["P_OBS"][1]/np.max(param_dict["P_OBS"])
         elif name == "ACQUIRED_IMMUNITY":
             scalar_dict[name] = 1-param_dict["S_REL"][1]
         elif re.search(r"S_REL\d+",name):

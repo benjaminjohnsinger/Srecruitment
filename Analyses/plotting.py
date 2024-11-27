@@ -444,8 +444,8 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         if incidence:
             cases = cases.div(age_by_year.loc[cases.index.year].values)
     elif incidence:
-        cases = cases.div(np.sum(age_by_year.loc[cases.index.year].values,axis=1)) # check this
-    
+        cases = cases.div(np.sum(age_by_year.loc[cases.index.year].values,axis=1))
+
     if incidence:
         cases *= 10000
     if title is None:
