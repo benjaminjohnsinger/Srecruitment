@@ -150,17 +150,17 @@ incidence = np.array(pd.read_csv("Data/Processed/KPSC_RSV_incidence_age.csv",ind
 # # # points_trimmed = np.array(date_to_t(PERIOD[PERIOD < '2020-01-01']))
 
 np.random.seed(241108)
-variables = ["BETA","SEASONALITY","OFFSET","WANE",'OBS_AGE_YOUNG','OBS_AGE_OLD','OBS_AGE_YOUNG_OLD']
-initial_scalars = np.array([0.27,0.1,0.1,1/(30*365),0.388,0.003,0.629])
-log_priors_distribution = sp.stats.multivariate_normal([-1,-1,-1,-1,0,0,0],np.diag([1.5,1.5,1.5,1.5,1.5,1.5,1.5]))
+variables = ["BETA","SEASONALITY","OFFSET","WANE","P_OBS",'OBS_AGE_YOUNG','OBS_AGE_OLD','OBS_AGE_YOUNG_OLD']
+initial_scalars = np.array([0.27,0.1,0.1,1/(30*365),0.03,0.388,0.003,0.629])
+log_priors_distribution = sp.stats.multivariate_normal([-1]*5+[0]*3,np.diag([1.5]*8))
 log_priors = lambda x : log_priors_distribution.logpdf(x)
-proposal_cov = np.diag([0.00001,0.00001,0.00001,0.00001,0.00001,0.00001,0.00001])
+proposal_cov = np.diag([1e-6]*8)
 mcmc_trajectory, acceptance_rate = mcmc(incidence, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, variables, initial_scalars, log_priors, proposal_cov, 20000, True, True)
 print(acceptance_rate)
 print(np.mean(mcmc_trajectory,axis=0))
 plt.plot(mcmc_trajectory)
-plt.savefig('Figures/mcmc_trajectory_RSV_test.png',dpi=300)
-with open('Data/Processed/mcmc_trajectory_RSV_test.pickle','wb') as f:
+plt.savefig('Figures/mcmc_trajectory_RSV_test_8param.png',dpi=300)
+with open('Data/Processed/mcmc_trajectory_RSV_test_8param.pickle','wb') as f:
     pickle.dump(mcmc_trajectory,f)
 
 # # plt.show()
