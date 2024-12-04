@@ -18,7 +18,7 @@ from SISn_ODEs import single_pathogen_deltas as deltas_SIS
 
 
 ##### Simple line plots #####
-def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,start_t=date_to_t(pd.to_datetime('2015-10-01')),end_t=date_to_t(pd.to_datetime('2023-09-30'))):
+def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,start_t=date_to_t(pd.to_datetime('2015-10-01')),end_t=date_to_t(pd.to_datetime('2023-09-30')),factor=1):
     if params is not None:
         NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params.values()
     if result is None:
@@ -28,7 +28,9 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
     dates = [t_to_date(t) for t in times]
     if by_age:
         if obs is None:
-            obs = observations(result,params,OBS_AGE,incidence=False)
+            obs = factor*observations(result,params,OBS_AGE,incidence=False)
+        else:
+            obs = factor*obs
         cmap = plt.get_cmap('hsv')
         pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
         for i_age in range(NAG):
@@ -36,7 +38,9 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
         mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[np.argmin(times<=start_t):np.argmin(times<=end_t)])
     else:
         if obs is None:
-            obs = observations(result,params,OBS_AGE,incidence=True)
+            obs = factor*observations(result,params,OBS_AGE,incidence=True)
+        else:
+            obs = factor*obs
         if relative:
             pre_mx = np.max(obs[np.argmin(times<=start_t):np.argmin(times<=T_LOCKDOWN)])
             ax.plot(dates, obs/pre_mx, label=label,color=color,linewidth=linewidth,alpha=alpha)
@@ -48,7 +52,7 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
 
 def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,year_skip=1,title='Incidence of disease with 1-year lockdown'):
     # ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
-    ax.set_ylim(0,mx)
+    # ax.set_ylim(0,mx)
     ax.set_ylabel('Observed incidence')
     # ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
     # ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365+365,365*year_skip),[str(int(x)-year_window-1) for x in np.arange(0,year_window*2+2,year_skip)])
@@ -388,16 +392,17 @@ pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL V
 "Adenovirus": ["ADENOVIRUS",],
 "Parainfuenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
 "Parainfluenza 3": ["PARAINFLUENZA VIRUS 3"]}
-hsv_colors = colormaps.hsv(-0.02+np.arange(6)/6)
-def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=None,incidence=False, color=hsv_colors, title=None, legend=True):
+hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
+hsv_colors[3] = colormaps.hsv((3/7)+0.04)
+def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=None,incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None):
     print(pathogen)
     respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv')
     if incidence:
         # load age population data
         age_by_year = pd.read_csv("Data/Processed/KPSC_population_by_age.csv")
-        # add first two columns - remove this once year added
-        age_by_year["Infants"] = age_by_year["Infants"] + age_by_year["Newborns"]
-        age_by_year.drop(columns=["Newborns"],inplace=True)
+        # # add first two columns - remove this once year added
+        # age_by_year["Infants"] = age_by_year["Infants"] + age_by_year["Newborns"]
+        # age_by_year.drop(columns=["Newborns"],inplace=True)
         if AGE_GROUPS is not None:
             age_by_year.columns = AGE_GROUP_NAMES
         age_by_year["Year"] = np.arange(2015,2023)
@@ -416,28 +421,63 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         cases["Date"] = pd.to_datetime(cases["Hospitalization date"])
     else:
         cases["Date"] = pd.to_datetime(cases["Clinical date"])
-    cases["Month"] = cases["Date"].dt.month
-    cases["Year"] = cases["Date"].dt.year
+    if aggregation is not None:
+        cases["Year"] = cases["Date"].dt.year
+        if aggregation == "Month":
+            cases["Month"] = cases["Date"].dt.month
+        elif aggregation == "Week":
+            cases["Week"] = cases["Date"].dt.isocalendar().week
     if AGE_GROUPS is not None:
         for i in range(len(AGE_GROUPS)):
-            cases.loc[cases["age"].isin(AGE_GROUPS[i]),"age_group"] = AGE_GROUP_NAMES[i]
-        cases = cases.groupby(["Year","Month","age_group"]).size().reset_index(name='Count')
+            cases.loc[cases["age_in_mo"].isin(AGE_GROUPS[i]),"age_group"] = AGE_GROUP_NAMES[i]
+        if aggregation is None:
+            cases = cases.groupby(["Date","age_group"]).size().reset_index(name='Count')
+        else:
+            cases = cases.groupby(["Year",aggregation,"age_group"]).size().reset_index(name='Count')
     else:
-        cases = cases.groupby(["Year","Month"]).size().reset_index(name='Count')
+        if aggregation is None:
+            cases = cases.groupby(["Date"]).size().reset_index(name='Count')
+        else:
+            cases = cases.groupby(["Year",aggregation]).size().reset_index(name='Count')
 
-    for date in pd.date_range(start='2015-10-01',end='2023-09-30',freq='MS'):
+    if aggregation is None:
+        frequency = "D"
+    elif aggregation == "Month":
+        frequency = "MS"
+    elif aggregation == "Week":
+        frequency = "W-MON"
+
+    for date in pd.date_range(start='2015-09-28',end='2023-12-31',freq=frequency):
         year = date.year
-        month = date.month
+        if aggregation=="Month":
+            agg = date.month
+        elif aggregation=="Week":
+            agg = date.isocalendar().week
         if AGE_GROUPS is not None:
             for age_group in AGE_GROUP_NAMES:
-                if not ((cases["Year"]==year) & (cases["Month"]==month) & (cases["age_group"]==age_group)).any():
-                    cases = pd.concat([cases,pd.DataFrame({"Year":[year],"Month":[month],"age_group":[age_group],"Count":[0]})])
-        if not ((cases["Year"]==year) & (cases["Month"]==month)).any():
-            cases = pd.concat([cases,pd.DataFrame({"Year":[year],"Month":[month],"Count":[0]})])
-    cases["Date"] = pd.to_datetime(cases["Year"].astype(str) + '-' + cases["Month"].astype(str) + '-01')
+                if aggregation is None:
+                    if not ((cases["Date"]==date) & (cases["age_group"]==age_group)).any():
+                        cases = pd.concat([cases,pd.DataFrame({"Date":[date],"age_group":[age_group],"Count":[0]})])
+                else:
+                    if not (((cases["Year"]==year) & (cases[aggregation]==agg)) & (cases["age_group"]==age_group)).any():
+                        cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"age_group":[age_group],"Count":[0]})])
+        if aggregation is None:
+            if not (cases["Date"]==date).any():
+                cases = pd.concat([cases,pd.DataFrame({"Date":[date],"Count":[0]})])
+        else:
+            if not ((cases["Year"]==year) & (cases[aggregation]==agg)).any():
+                cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"Count":[0]})])
+    if aggregation is not None:
+        if aggregation == "Month":
+            cases["Date"] = pd.to_datetime(cases["Year"].astype(str) + '-' + cases["Month"].astype(str) + '-01')
+        elif aggregation == "Week":
+            cases["Date"] = cases["Year"].astype(str) + '-' + cases["Week"].astype(str)
+            cases["Date"] = pd.to_datetime(cases["Date"].add('-1').astype(str),format='%Y-%W-%w')
     cases = cases.sort_values(by="Date")
     cases = cases.set_index("Date")
-    cases = cases.drop(columns=["Year","Month"])
+    print(cases.tail())
+    if aggregation is not None:
+        cases = cases.drop(columns=["Year",aggregation])
     if AGE_GROUPS is not None:
         cases = cases.pivot(columns="age_group",values="Count")
         cases = cases[AGE_GROUP_NAMES]

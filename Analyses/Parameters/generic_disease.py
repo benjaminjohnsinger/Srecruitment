@@ -20,18 +20,18 @@ ACQUIRED_IMMUNITY = 0.25
 S_REL = np.linspace(1,(1-(N_S-1)*ACQUIRED_IMMUNITY),N_S)
 I_REL = np.ones((N_S,1))
 # Probability of detection of cases for each susceptibility class
-P_OBS = 0.01*np.ones(N_S)
+P_OBS = 0.02*np.ones(N_S)
 ## Parameters that vary by age group
 # Age-specific susceptibility
 S_AGE = np.ones(NAG)
 # Age-specific probability of detection
 AGE_DISEASE_REDUCTION = 0
 # OBS_AGE = np.linspace(1,(1-(NAG-1)*AGE_DISEASE_REDUCTION),NAG)
-OBS_AGE = age_detection(np.arange(NAG),0.5,0.5,0.5)
-## Other 
+OBS_AGE = np.array([1,0.54545455,0.36363636,0.36363636,0.54545455,1])
+## Other
 # Seasonality parameters
 SEASONALITY = 0.05
-OFFSET = 0.001
+OFFSET = 0.2
 # Infectiousness per contact
 BETA = 1/10
 # Vaccination paramters

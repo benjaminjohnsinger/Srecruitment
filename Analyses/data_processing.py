@@ -16,19 +16,16 @@ pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL V
 "Adenovirus": ["ADENOVIRUS",],
 "Parainfuenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
 "Parainfluenza 3": ["PARAINFLUENZA VIRUS 3"]}
-AGE_GROUP_NAMES = ['<1y','1-4y','5-17y','18-39y','40-64y','>=65y']
+AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-17y','18-39y','40-64y','>=65y']
 respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv')
 positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
 for incidence in [False, True]:
-    for AGE_GROUPS in [None, [range(0,12),range(12,5*12),range(5*12,18*12),range(18*12,40*12),range(40*12,65*12),range(65*12,90*12)]]:
+    for AGE_GROUPS in [[range(0,3), range(3,12),range(12,5*12),range(5*12,18*12),range(18*12,40*12),range(40*12,65*12),range(65*12,90*12)]]:
         for pathogen in pathogen_names.keys():
             print(pathogen)
             if incidence:
                 # load age population data
                 age_by_year = pd.read_csv("Data/Processed/KPSC_population_by_age.csv")
-                # add first two columns - remove this once year added
-                age_by_year["Infants"] = age_by_year["Infants"] + age_by_year["Newborns"]
-                age_by_year.drop(columns=["Newborns"],inplace=True)
                 if AGE_GROUPS is not None:
                     age_by_year.columns = AGE_GROUP_NAMES
                 age_by_year["Year"] = np.arange(2015,2023)
@@ -43,7 +40,7 @@ for incidence in [False, True]:
             cases["Year"] = cases["Date"].dt.year
             if AGE_GROUPS is not None:
                 for i in range(len(AGE_GROUPS)):
-                    cases.loc[cases["age"].isin(AGE_GROUPS[i]),"age_group"] = AGE_GROUP_NAMES[i]
+                    cases.loc[cases["age_in_mo"].isin(AGE_GROUPS[i]),"age_group"] = AGE_GROUP_NAMES[i]
                 cases = cases.groupby(["Year","Month","age_group"]).size().reset_index(name='Count')
             else:
                 cases = cases.groupby(["Year","Month"]).size().reset_index(name='Count')
@@ -73,11 +70,11 @@ for incidence in [False, True]:
             cases.to_csv(filename,index=True)
 
 
-# with SAS7BDAT('Data/Raw/KPSC/clinical_20241115.sas7bdat') as f:
+# with SAS7BDAT('Data/Raw/KPSC/clinical_20241202.sas7bdat') as f:
 #     clinical_data = f.to_data_frame()
 
-# with SAS7BDAT('Data/Raw/KPSC/clinical.sas7bdat') as f:
-#     clinical_data_no_mo = f.to_data_frame()
+# # with SAS7BDAT('Data/Raw/KPSC/clinical.sas7bdat') as f:
+# #     clinical_data_no_mo = f.to_data_frame()
 
 # with SAS7BDAT('Data/Raw/KPSC/testing.sas7bdat') as f:
 #     test_data = f.to_data_frame()
@@ -115,37 +112,39 @@ for incidence in [False, True]:
 
 # # save hostpitalizations to csv
 # hospitalizations.to_csv('Data/Processed/KPSC_clinical_hospitalizations.csv',index=False)
+# # load
+# hospitalizations = pd.read_csv('Data/Processed/KPSC_clinical_hospitalizations.csv')
 
 
 # respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv',dtype=str)
 # gastroenteritis_codes = pd.read_csv('Data/Processed/gastroenteritis_codes.csv',dtype=str)
-# # # get only hospitalizations with respiratory or gastroenteritis codes
-# # respiratory_hospitalizations = hospitalizations[hospitalizations["CODE"].isin(respiratory_codes)]
-# # gastroenteritis_hospitalizations = hospitalizations[hospitalizations["CODE"].isin(gastroenteritis_codes)]
-# # # save
-# # respiratory_hospitalizations.to_csv('Data/Processed/KPSC_clinical_respiratory_hospitalizations.csv',index=False)
-# # gastroenteritis_hospitalizations.to_csv('Data/Processed/KPSC_clinical_gastroenteritis_hospitalizations.csv',index=False)
-# # respiratory_hospitalizations = pd.read_csv('Data/Processed/KPSC_clinical_respiratory_hospitalizations.csv')
-# # gastroenteritis_hospitalizations = pd.read_csv('Data/Processed/KPSC_clinical_gastroenteritis_hospitalizations.csv')
+# # # # get only hospitalizations with respiratory or gastroenteritis codes
+# respiratory_hospitalizations = hospitalizations[hospitalizations["CODE"].isin(respiratory_codes)]
+# gastroenteritis_hospitalizations = hospitalizations[hospitalizations["CODE"].isin(gastroenteritis_codes)]
+# # # # save
+# respiratory_hospitalizations.to_csv('Data/Processed/KPSC_clinical_respiratory_hospitalizations.csv',index=False)
+# gastroenteritis_hospitalizations.to_csv('Data/Processed/KPSC_clinical_gastroenteritis_hospitalizations.csv',index=False)
+# # # respiratory_hospitalizations = pd.read_csv('Data/Processed/KPSC_clinical_respiratory_hospitalizations.csv')
+# # # gastroenteritis_hospitalizations = pd.read_csv('Data/Processed/KPSC_clinical_gastroenteritis_hospitalizations.csv')
 
-# # # filter test data to only include tests with StudyID matching a value in hospitalizations
-# # # test_data = test_data[test_data["StudyID"].isin(hospitalizations["StudyID"])]
-# # # test_data["Date"] = pd.to_datetime(test_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(test_data["lab_days"],unit='D')
-# # # save test data
-# # # test_data.to_csv('Data/Processed/KPSC_hospitalized_tests.csv',index=False)
-# # # load test data
-# # test_data = pd.read_csv('Data/Processed/KPSC_hospitalized_tests.csv')
-# # positive_tests = test_data[test_data["result_val"] == 'Positive']
+# # # # filter test data to only include tests with StudyID matching a value in hospitalizations
+# # test_data = test_data[test_data["StudyID"].isin(hospitalizations["StudyID"])]
+# # test_data["Date"] = pd.to_datetime(test_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(test_data["lab_days"],unit='D')
+# # # # # save test data
+# # test_data.to_csv('Data/Processed/KPSC_hospitalized_tests.csv',index=False)
+# # # # load test data
+# test_data = pd.read_csv('Data/Processed/KPSC_hospitalized_tests.csv')
+# positive_tests = test_data[test_data["result_val"] == 'Positive']
 
-# # # find date of from hospitalizations for each study ID and match to positive tests
-# # positive_tests = hospitalizations.merge(positive_tests[["StudyID","Date","pathogen","lab_type","lab_days"]],on="StudyID",how="left")
-# # # rename columns
-# # positive_tests = positive_tests.rename(columns={"Date_x":"Hospitalization date","Date_y":"Test date"})
-# # # keep only rows where Hospitalization date is within 14 days of Test date
-# # positive_tests = positive_tests[np.abs((pd.to_datetime(positive_tests["Hospitalization date"]) - pd.to_datetime(positive_tests["Test date"])).dt.days) <= 14]
+# # # # find date of from hospitalizations for each study ID and match to positive tests
+# positive_tests = hospitalizations.merge(positive_tests[["StudyID","Date","pathogen","lab_type","lab_days"]],on="StudyID",how="left")
+# # # # rename columns
+# positive_tests = positive_tests.rename(columns={"Date_x":"Hospitalization date","Date_y":"Test date"})
+# # # # keep only rows where Hospitalization date is within 14 days of Test date
+# positive_tests = positive_tests[np.abs((pd.to_datetime(positive_tests["Hospitalization date"]) - pd.to_datetime(positive_tests["Test date"])).dt.days) <= 14]
 
-# # save to csv
-# # positive_tests.to_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv',index=False)
+# # # save to csv
+# positive_tests.to_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv',index=False)
 # # load
 # positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
 # rota_names = ["ROTAVIRUS",]

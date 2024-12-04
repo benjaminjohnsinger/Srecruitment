@@ -11,8 +11,8 @@ POP_SIZE = 4024493 # KPSC insured population size in 2015
 
 AGE_POP = np.genfromtxt('Data/Processed/US_Census_population_by_age.csv', delimiter=',') # US in 2022
 AGE_GROUPS = [
-    # range(3),
-    range(0,12),
+    range(3),
+    range(3,12),
     range(12,5*12),
     range(5*12,18*12),
     range(18*12,40*12),
@@ -20,14 +20,15 @@ AGE_GROUPS = [
     range(65*12,90*12)]
 # AGE_GROUPS = [range(0,6),range(6,12),range(12,2*12),range(2*12,3*12),range(3*12,4*12),range(4*12,5*12),range(5*12,10*12),range(10*12,15*12),range(15*12,20*12),range(20*12,25*12),range(25*12,30*12),range(30*12,35*12),range(35*12,40*12),range(40*12,45*12),range(45*12,50*12),range(50*12,55*12),range(55*12,60*12),range(60*12,65*12),range(65*12,70*12),range(70*12,75*12),range(75*12,80*12),range(80*12,85*12),range(85*12,90*12),range(90*12,95*12),range(95*12,100*12)]
 MEDIAN_AGE = [np.median(group) for group in AGE_GROUPS]
-AGE_GROUP_NAMES = [
-    # 'Newborns',
-    'Infants',
-    'Young children',
-    'Older children',
-    'Young adults',
-    'Middle-aged adults',
-    'Older adults']
+# AGE_GROUP_NAMES = [
+#     'Newborns',
+#     'Infants',
+#     'Young children',
+#     'Older children',
+#     'Young adults',
+#     'Middle-aged adults',
+#     'Older adults']
+AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-17y','18-39y','40-64y','>=65y']
 # AGE_GROUP_NAMES = ['0y','1y','2y','3y','4y','5y','10y','15y','20y','25y','30y','35y','40y','45y','50y','55y','60y','65y','70y','75y','80y','85y','90y','95y','100y']
 
 # Age group proportions for California in 2022

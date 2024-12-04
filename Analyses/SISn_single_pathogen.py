@@ -36,82 +36,87 @@ np.set_printoptions(threshold=np.inf)
 # AGE_GROUPS = [range(0,1),range(1,5),range(5,18),range(18,40),range(40,65),range(65,100)]
 # AGE_GROUP_NAMES = ['<1y','1-4y','5-17y','18-39y','40-64y','>=65y']
 
-# fig, axes = plt.subplots(3,1,figsize=(6.5,8.5))
-# kpsc_positive_test_plot(axes[0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False)
-# plt.savefig('Figures/KPSC_RSV_age.png',dpi=300)
-
-# fig, axes = plt.subplots(3,2,figsize=(8.5,6.5), sharex=True)
-# kpsc_positive_test_plot(axes[0,0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False)
-# kpsc_positive_test_plot(axes[1,0],pathogen="Influenza A",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False)
-# kpsc_positive_test_plot(axes[2,0],pathogen="Influenza B",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=True)
-# kpsc_positive_test_plot(axes[0,1],pathogen="Metapneumovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False)
-# kpsc_positive_test_plot(axes[1,1],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False)
-# kpsc_positive_test_plot(axes[2,1],pathogen="Parainfluenza 3",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False)
+# fig, axes = plt.subplots(3,2,figsize=(6.5,8.5), sharex=True)
+# kpsc_positive_test_plot(axes[0,0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Week")
+# kpsc_positive_test_plot(axes[1,0],pathogen="Influenza A",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=True,aggregation="Week")
+# kpsc_positive_test_plot(axes[2,0],pathogen="Influenza B",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Week")
+# kpsc_positive_test_plot(axes[0,1],pathogen="Metapneumovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Week")
+# kpsc_positive_test_plot(axes[1,1],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Week")
+# kpsc_positive_test_plot(axes[2,1],pathogen="Parainfluenza 3",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Week")
 # # kpsc_positive_test_plot(axes[0,1],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False)
 # # kpsc_positive_test_plot(axes[1,1],pathogen="Influenza A",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False)
 # # kpsc_positive_test_plot(axes[2,1],pathogen="Influenza B",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True)
 # plt.tight_layout()
-# plt.savefig('Figures/KPSC_interesting_pathogens_age.png',dpi=300)
+# plt.savefig('Figures/KPSC_interesting_pathogens_age_in_mo_weekly.png',dpi=300)
 
-## Period of simulation
-EPOCH = pd.to_datetime('1970-01-01')
-START = pd.to_datetime('2015-09-01')
-END = pd.to_datetime('2023-10-01')
-PERIOD = pd.date_range(start=START, end=END, freq='MS')
+fig, ax = plt.subplots(figsize=(20,6.5))
+kpsc_positive_test_plot(ax,pathogen="Parainfluenza 3",incidence=False,legend=False)
+plt.show()
+# plt.savefig('Figures/KPSC_RSV_daily.png',dpi=300)
 
-## Contacts and force of infection
-IMPORT_RATE = 1e-5*np.ones(N_S)
-# Contact matrix for all contact types
-CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
-print(CONTACT.shape)
-print(NAG)
-print(OBS_AGE.shape)
-print(CENSUS_AGE_POP.shape)
 
-# Lockdown and other mobility changes
-T_LOCKDOWN = date_to_t('2020-03-01')
-LOCKDOWN_DURATION = 365
-LOCKDOWN_REDUCTION = 0.4
-Ts = np.array([date_to_t(EPOCH),T_LOCKDOWN,date_to_t('2021-05-01'),date_to_t('2021-12-01'),date_to_t('2022-03-01')])
-Fs = np.array([1,0.4,1,0.4,1])
-@jit
-def contact(t,seasonality,offset):
-    return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
+# ## Period of simulation
+# EPOCH = pd.to_datetime('1970-01-01')
+# START = pd.to_datetime('2015-08-01')
+# END = pd.to_datetime('2023-10-01')
+# PERIOD = pd.date_range(start=START, end=END, freq='MS')
 
-## Initial conditions
-STATE0 = np.zeros((2*N_S+2)*NAG)
-STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
-STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
+# ## Contacts and force of infection
+# IMPORT_RATE = 1e-5*np.ones(N_S)
+# # Contact matrix for all contact types
+# CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
+# print(CONTACT.shape)
+# print(NAG)
+# print(OBS_AGE.shape)
+# print(CENSUS_AGE_POP.shape)
 
-## Integrate the system
-# POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+LOCKDOWN_DURATION+12*12,0.2),np.ones(1)*PERIOD))
-# POINTS = np.array([date_to_t('1960-01-01') + pd.DateOffset(months=x) for x in range(PERIOD)])
-T_VAX = date_to_t('2035-01-01')
+# # Lockdown and other mobility changes
+# T_LOCKDOWN = date_to_t('2020-03-01')
+# LOCKDOWN_DURATION = 365
+# LOCKDOWN_REDUCTION = 0.4
+# Ts = np.array([date_to_t(EPOCH),T_LOCKDOWN,date_to_t('2021-05-01'),date_to_t('2021-12-01'),date_to_t('2022-03-01')])
+# Fs = np.array([1,0.4,1,0.4,1])
+# @jit
+# def contact(t,seasonality,offset):
+#     return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
 
-POINTS = np.array(date_to_t(PERIOD))
+# ## Initial conditions
+# STATE0 = np.zeros((2*N_S+2)*NAG)
+# STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
+# STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
-# Parameters for the ODE
-params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
-'arrivals': arrivals, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
-'contact': contact}
+# ## Integrate the system
+# # POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+LOCKDOWN_DURATION+12*12,0.2),np.ones(1)*PERIOD))
+# # POINTS = np.array([date_to_t('1960-01-01') + pd.DateOffset(months=x) for x in range(PERIOD)])
+# T_VAX = date_to_t('2035-01-01')
+
+# POINTS = np.array(date_to_t(PERIOD))
+
+# # Parameters for the ODE
+# params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
+# 'arrivals': arrivals, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+# 'contact': contact}
 
 # # # # #### One-shot line plot #####
-# params["BETA"] = 0.15
-# params["SEASONALITY"] = 0.06
-# params["OFFSET"] = 0.1
-# params["WANE"] = np.array([0.0,1/(10*365),0.0])
-# AGE_DISEASE_REDUCTION = 0.1
-# OBS_AGE = np.linspace(1,(1-(NAG-1)*AGE_DISEASE_REDUCTION),NAG)
+# with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASONALITYp06_OFFSETp1_WANE10y_ADRp1.pickle","rb") as f:
+#     incidence = pickle.load(f)
+# params["BETA"] = 1.08866943e-01
+# params["SEASONALITY"] = 4.93736811e-02
+# params["OFFSET"] = 2.08699043e-01
+# params["WANE"] = np.array([0.0,2.56826067e-04,0.0])
+# params["P_OBS"] =  1.52269977e-02*np.ones(N_S)
+# OBS_AGE = age_detection(NAG,4.29832752e-01,5.83702885e-01,3.59139248e-01)
 # result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-# obs = observations(result,params,OBS_AGE,incidence=False)
-# # obs = np.sum(obs,axis=1)
-# noisy_obs = np.random.poisson(obs)
-# noisy_incidence = noisy_obs/CENSUS_AGE_POP
-# with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASONALITYp06_OFFSETp1_WANE10y_ADRp1.pickle","wb") as f:
-#     pickle.dump(noisy_incidence,f)
-#  # fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
-# mx = lockdown_incidence_plot(axes[1],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-# lockdown_incidence_format(axes[1],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+# # obs = observations(result,params,OBS_AGE,incidence=False)
+# # # obs = np.sum(obs,axis=1)
+# # noisy_obs = np.random.poisson(obs)
+# # noisy_incidence = noisy_obs/CENSUS_AGE_POP
+# # with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASONALITYp06_OFFSETp1_WANE10y_ADRp1.pickle","wb") as f:
+# #     pickle.dump(noisy_incidence,f)
+# fig, ax = plt.subplots(1),1,figsize=(6.5,6.5))
+# mx = lockdown_incidence_plot(axes[1],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000)
+# # mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=np.sum(incidence,axis=1),label="Simulation",by_age=False,color='black')
+# lockdown_incidence_format(axes[1],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2,title="Simulation with piecewise contact reduction")
 # # axes[1].legend()
 # axes[1].set_ylabel('Simulated incidence per 10k')
 # # plot google_prestige_work
@@ -120,48 +125,47 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # axes2.plot(POINTS,[cm.piecewise(point,Ts,Fs) for point in POINTS],color='black',linestyle='--',label='Google workplace mobility')
 # axes[1].legend(axes[1].lines,['<1y','1-4y','5-17y','18-39y','40-64y','>=65y'],loc='upper left',title='Age group')
 # # axes[1].vlines(18952,0,mx,linestyle=':',color='black')
-# # multiply y tick labels by 10000
-# axes[1].set_yticklabels([str(int(float(t.get_text())*10000)) for t in axes[1].get_yticklabels()])
 # axes[1].set_xlim(POINTS[0],POINTS[-1])
 # @jit
 # def contact(t,seasonality,offset):
 #     return cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
 # params['contact'] = contact
 # result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-# mx = lockdown_incidence_plot(axes[2],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-# lockdown_incidence_format(axes[2],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+# mx = lockdown_incidence_plot(axes[2],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000)
+# lockdown_incidence_format(axes[2],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2,title="Simulation with workplace mobility contact model")
 # axes[2].set_ylabel('Simulated incidence per 10k')
 # axes3 = axes[2].twinx()
 # axes3.plot(POINTS,[cm.google_prestige_work(point) for point in POINTS],color='black',linestyle='--',label='Google workplace mobility')
 # # axes[2].legend(axes[2].lines,['<1y','1-4y','5-17y','18-39y','40-64y','>=65y'],loc='upper left',title='Age group')   
-# axes[2].set_yticklabels([str(int(float(t.get_text())*10000)) for t in axes[2].get_yticklabels()])
 # axes[2].set_xlim(POINTS[0],POINTS[-1])
 # plt.tight_layout()
-# plt.savefig('Figures/KPSC_RSV_age_w_mobility_sims.png',dpi=300)
-# # plt.savefig('Figures/RSV_piecewise_test.png',dpi=300)
+# # plt.savefig('Figures/8param_fit_test.png',dpi=300)
+# plt.savefig('Figures/RSV_mobility_tests.png',dpi=300)
 
-incidence = np.array(pd.read_csv("Data/Processed/KPSC_RSV_incidence_age.csv",index_col=0))
+# incidence = np.array(pd.read_csv("Data/Processed/KPSC_RSV_incidence_age.csv",index_col=0))
+# with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASONALITYp06_OFFSETp1_WANE10y_ADRp1.pickle","rb") as f:
+#     incidence = pickle.load(f)
 
-# # # # case_data = pd.read_csv('Data/Processed/KPSC_rsv_hosp_incidence_by_age.csv')
-# # # # # case_data = pd.read_csv('Data/Processed/KPSC_flu_hosp.csv')['Count']
-# # # # case_data = np.array(case_data)
-# # # # # print(case_data)
+# # # # # case_data = pd.read_csv('Data/Processed/KPSC_rsv_hosp_incidence_by_age.csv')
+# # # # # # case_data = pd.read_csv('Data/Processed/KPSC_flu_hosp.csv')['Count']
+# # # # # case_data = np.array(case_data)
+# # # # # # print(case_data)
 
-# # # points_trimmed = np.array(date_to_t(PERIOD[PERIOD < '2020-01-01']))
+# # # # points_trimmed = np.array(date_to_t(PERIOD[PERIOD < '2020-01-01']))
 
-np.random.seed(241108)
-variables = ["BETA","SEASONALITY","OFFSET","WANE","P_OBS",'OBS_AGE_YOUNG','OBS_AGE_OLD','OBS_AGE_YOUNG_OLD']
-initial_scalars = np.array([0.27,0.1,0.1,1/(30*365),0.03,0.388,0.003,0.629])
-log_priors_distribution = sp.stats.multivariate_normal([-1]*5+[0]*3,np.diag([1.5]*8))
-log_priors = lambda x : log_priors_distribution.logpdf(x)
-proposal_cov = np.diag([1e-6]*8)
-mcmc_trajectory, acceptance_rate = mcmc(incidence, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, variables, initial_scalars, log_priors, proposal_cov, 20000, True, True)
-print(acceptance_rate)
-print(np.mean(mcmc_trajectory,axis=0))
-plt.plot(mcmc_trajectory)
-plt.savefig('Figures/mcmc_trajectory_RSV_test_8param.png',dpi=300)
-with open('Data/Processed/mcmc_trajectory_RSV_test_8param.pickle','wb') as f:
-    pickle.dump(mcmc_trajectory,f)
+# np.random.seed(241108)
+# variables = ["BETA","SEASONALITY","OFFSET","WANE","P_OBS",'OBS_AGE_YOUNG','OBS_AGE_OLD','OBS_AGE_YOUNG_OLD']
+# initial_scalars = np.array([1e-01,5e-02,2e-01,1/(10*365),2e-02,0.5,0.5,0.5])
+# log_priors_distribution = sp.stats.multivariate_normal([-1]*5+[0]*3,np.diag([1.5]*8))
+# log_priors = lambda x : log_priors_distribution.logpdf(x)
+# proposal_cov = np.diag([1e-6]*8)
+# mcmc_trajectory, acceptance_rate = mcmc(incidence, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, variables, initial_scalars, log_priors, proposal_cov, 40000, True, True)
+# print(acceptance_rate)
+# print(np.mean(mcmc_trajectory,axis=0))
+# plt.plot(mcmc_trajectory)
+# plt.savefig('Figures/mcmc_trajectory_8param_test.png',dpi=300)
+# with open('Data/Processed/mcmc_trajectory_8param_test.pickle','wb') as f:
+#     pickle.dump(mcmc_trajectory,f)
 
 # # plt.show()
 # with open('Data/Processed/mcmc_trajectory_multivariate.pickle','rb') as f:

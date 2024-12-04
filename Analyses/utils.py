@@ -55,6 +55,8 @@ def age_detection(NAG,young_immunity,old_immunity,young_old):
     OBS = np.minimum(1,2*young_old)*young_immunity**x+np.minimum(1,2*(1-young_old))*old_immunity**(NAG-1-x)
     return OBS/np.max(OBS)
 
+# print(age_detection(6,0.5,0.5,0.5))
+
 def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
     for name in scalar_values_dict.keys():
         if name in ["NAG","N_S","BIRTH_RATE","S_VAX","ACOV","BCOV","T_VAX","IMPORT_RATE","BETA","SEASONALITY","OFFSET"]:
