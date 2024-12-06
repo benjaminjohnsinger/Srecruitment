@@ -44,7 +44,7 @@ def to_increment(vec):
     else:
         return vec
 
-def age_detection(NAG,young_immunity,old_immunity,young_old):
+def age_detection(NAG,young_immunity,old_immunity,young_old,linear=True,min_obs=0.05):
     """
     Calculate age-specific relative probabilty of detection from parameters.
     young_immunity: immunity gained by aging an age group
@@ -52,10 +52,13 @@ def age_detection(NAG,young_immunity,old_immunity,young_old):
     young_old: half the ratio of young to old susceptibility
     """
     x = np.arange(NAG)
-    OBS = np.minimum(1,2*young_old)*young_immunity**x+np.minimum(1,2*(1-young_old))*old_immunity**(NAG-1-x)
+    if not linear:
+        OBS = np.minimum(1,2*young_old)*young_immunity**x+np.minimum(1,2*(1-young_old))*old_immunity**(NAG-1-x)
+    elif linear:
+        OBS = np.max((min_obs*np.ones(NAG),np.minimum(1,2*young_old)-young_immunity*x,np.minimum(1,2*(1-young_old))-old_immunity*(NAG-1-x)),axis=0)
     return OBS/np.max(OBS)
 
-# print(age_detection(6,0.5,0.5,0.5))
+# print(age_detection(7,0.2,0.85,0.1,linear=True))
 
 def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
     for name in scalar_values_dict.keys():
@@ -115,7 +118,7 @@ def params_to_scalars(param_dict,scalar_names):
 
 ####### Generating interesting quantities from ODE results #######
 
-def observations(result,params,OBS_AGE,incidence=False,cap=False,N_C=2):
+def observations(result,params,OBS_AGE,incidence=False,cap=False,N_C=2,time_conversion=30.44):
     """
     Generate observed cases or incidence from ODE results
     """
@@ -133,7 +136,7 @@ def observations(result,params,OBS_AGE,incidence=False,cap=False,N_C=2):
             obs[i_t,:] += OBS_AGE*P_OBS[i]*class_foi*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
     if incidence:
         obs = np.sum(obs,axis=1)/pop_size
-    return(30.44*obs)
+    return(time_conversion*obs)
 
 def infections_by_age(result,params,N_C=2):
     """

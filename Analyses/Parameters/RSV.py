@@ -28,7 +28,7 @@ P_OBS = P_OBS_MAX*P_OBS_REL
 # Age-specific susceptibility
 S_AGE = np.ones(NAG)
 # Age-specific relative probability of detection
-OBS_AGE = np.array([1,0.6,0.2,0.03,0.03,0.15,1])
+OBS_AGE = np.array([1,0.75,0.5,0.05,0.05,0.15,1])
 # OBS_AGE = np.array([1.,0.38763672,0.15026224,0.05825276,0.02450205,0.66893976])
 ## Other
 # Seasonality parameters
@@ -37,7 +37,7 @@ SEASONALITY = 9.32959247e-02
 OFFSET = 0.85
 # OFFSET = 9.08955903e-02
 # Infectiousness
-BETA = 0.15
+BETA = 0.14
 # BETA = 1.23970813e-01
 # BETA = 0.14
 # Vaccination paramters

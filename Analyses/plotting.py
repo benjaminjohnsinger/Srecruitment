@@ -475,7 +475,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
             cases["Date"] = pd.to_datetime(cases["Date"].add('-1').astype(str),format='%Y-%W-%w')
     cases = cases.sort_values(by="Date")
     cases = cases.set_index("Date")
-    print(cases.tail())
+    print(cases.t)
     if aggregation is not None:
         cases = cases.drop(columns=["Year",aggregation])
     if AGE_GROUPS is not None:

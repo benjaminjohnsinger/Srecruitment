@@ -5,7 +5,7 @@ import numpy as np
 from numba import jit
 from utils import age_detection
 
-NAG = 6
+NAG = 7
 
 ## Parameters that vary by susceptibility class
 # Number of susceptibility classes
@@ -13,8 +13,8 @@ N_S = 3
 # Waning rates for susceptibles into lower susceptibilty class - for index plus one, i.e. [0,1,0] means only last class wanes
 WANE = 1/30*np.array([0.0,1.0,0.0])/365
 # Recovery rates for each susceptibility class
-REC_UP = 5*np.array([1.0,1.0,0.0])/365 # Recovery to higher susceptibility class
-REC_SAME = 5*np.array([0.0,0.0,1.0])/365 # Recovery to same susceptibility class
+REC_UP = np.array([1/5,1/5,0.0]) # Recovery to higher susceptibility class
+REC_SAME = np.array([0.0,0.0,1/5]) # Recovery to same susceptibility class
 # Relative susceptability and infectiousness, for each susceptibility class
 ACQUIRED_IMMUNITY = 0.25
 S_REL = np.linspace(1,(1-(N_S-1)*ACQUIRED_IMMUNITY),N_S)
@@ -27,7 +27,7 @@ S_AGE = np.ones(NAG)
 # Age-specific probability of detection
 AGE_DISEASE_REDUCTION = 0
 # OBS_AGE = np.linspace(1,(1-(NAG-1)*AGE_DISEASE_REDUCTION),NAG)
-OBS_AGE = np.array([1,0.54545455,0.36363636,0.36363636,0.54545455,1])
+OBS_AGE = np.array([1,0.6,0.2,0.05,0.1,0.4,0.7])
 ## Other
 # Seasonality parameters
 SEASONALITY = 0.05
