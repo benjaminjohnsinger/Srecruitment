@@ -9,38 +9,32 @@ from utils import *
 import time
 import types
 
-def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, age=False, incidence=False, start_t=date_to_t(pd.to_datetime('1970-01-01')),delay_obs=[0.584,0.406,0.010]):
+from Parameters.census_population import *
+
+def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=False, incidence=False, start_t=date_to_t(pd.to_datetime('1970-01-01'))):
     result = sp.integrate.solve_ivp(sis_deltas,(start_t,POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-    NAG = params["NAG"]
-    N_S = params["N_S"]
-    if incidence:
-        if age:
-            cases = data*np.array([np.sum(result.y[range(i,(N_S*N_C+1)*NAG,NAG),2:],axis=0) for i in range(NAG)]).T
-        else:
-            cases = data*np.sum(result.y[:,2:],axis=0)
-    else:
-        cases = data.copy()
     trajectory = observations(result,params,OBS_AGE,incidence=False)
     if not age:
         trajectory = np.sum(trajectory,axis=1)
-    log_likelihood = 0
-    if age:
-        for i in range(2,len(POINTS)):
-            for j in range(params["NAG"]):
-                sim_observation = int(delay_obs[0]*trajectory[i,j]+delay_obs[1]*trajectory[i-1,j]+delay_obs[2]*trajectory[i-2,j])
-                # If less than one case predicted but more than zero observed, round up predicted case count
-                if sim_observation < 1 and cases[i-2,j] >= 1:
-                    log_likelihood += sp.stats.poisson.logpmf(int(cases[i-2,j]),1)
-                # otherwise round down both numbers
-                else:
-                    log_likelihood += sp.stats.poisson.logpmf(int(cases[i-2,j]),sim_observation)
+
+    if incidence:
+        if age:
+            NAG = params["NAG"]
+            cases = np.round(data*np.array([np.sum(result.y[range(i,(N_S*N_C+1)*NAG,NAG),:],axis=0) for i in range(NAG)]).T)
+        else:
+            cases = data*np.sum(result.y,axis=0)
     else:
-        for i in range(2,len(POINTS)):
-            sim_observation = int(delay_obs[0]*trajectory[i]+delay_obs[1]*trajectory[i-1]+delay_obs[2]*trajectory[i-2])
-            if trajectory[i] < 1 and cases[i-2] >= 1:
-                log_likelihood += sp.stats.poisson.logpmf(int(cases[i-2]),1)
-            else:
-                log_likelihood += sp.stats.poisson.logpmf(int(cases[i-2]),sim_observation)
+        cases = data.copy()
+
+    # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
+    # rounded for input to poisson likelihood
+    expected_obs = np.round(np.sum([np.roll(trajectory,i)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0))
+    # cut off the first few days of the trajectory since they are not used in the likelihood
+    expected_obs = expected_obs[-len(cases):]
+    # eliminate zeros where they cause problems for the poisson likelihood
+    expected_obs[(expected_obs==0) & (cases>=1)] = 1
+
+    log_likelihood = sp.stats.poisson.logpmf(cases,expected_obs).sum()
     return log_likelihood
 
 ## OBS_AGE parameters must be last three in initial_scalars

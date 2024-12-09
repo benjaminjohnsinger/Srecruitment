@@ -11,7 +11,17 @@ import scipy as sp
 # from math import comb
 from utils import *
 # from sas7bdat import SAS7BDAT
-# import pickle
+import pickle
+
+expected = np.array([[9.2,2.6,5.9],[0.3,7.6,2.9]])
+expected = np.round(expected)
+observed = np.array([[10,3,4],[3,4,8]])
+
+print(expected)
+expected[(expected < 1) & (observed >= 1)] = 1
+print(expected)
+
+print(sp.stats.poisson.logpmf(observed,expected))
 
 # print(np.sum([0.584,0.416,0.010]))
 
@@ -94,14 +104,16 @@ from utils import *
 
 # # generate 100k samples of incubation plus admittance
 # np.random.seed(241125)
-# N = int(1e6)
+# N = int(1e8)
 # infection_to_admittance = incubation_distribution_RSV.rvs(N) + admittance_distribution_RSV.rvs(N)
-# # shape, loc, scale = sp.stats.lognorm.fit(infection_to_admittance)
-# # fit = sp.stats.lognorm(shape, loc=loc, scale=scale)
-# # plt.hist(infection_to_admittance,bins=1000,color='silver',density=True)
-# # plt.plot(np.linspace(0,50,1000),fit.pdf(np.linspace(0,50,1000)))
-# # plt.xlim([0,50])
-# # plt.show()
+# shape, loc, scale = sp.stats.lognorm.fit(infection_to_admittance)
+# fit = sp.stats.lognorm(shape, loc=loc, scale=scale)
+# n, bins, patches = plt.hist(infection_to_admittance,bins=np.arange(0,90),color='silver',density=True)
+# np.savetxt('Data/Processed/RSV_incubation_admittance_distribution.csv',n,delimiter=',')
+# plt.plot(np.linspace(0,90,90),fit.pdf(np.linspace(0,90,90)))
+# plt.xlim([0,90])
+# plt.show()
+
 
 # x=np.linspace(0,30.44,1000)
 # p_this_month = [np.mean(day+infection_to_admittance<=30.44) for day in x]
