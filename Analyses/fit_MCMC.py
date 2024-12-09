@@ -9,8 +9,6 @@ from utils import *
 import time
 import types
 
-from Parameters.census_population import *
-
 def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=False, incidence=False, start_t=date_to_t(pd.to_datetime('1970-01-01'))):
     result = sp.integrate.solve_ivp(sis_deltas,(start_t,POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
     trajectory = observations(result,params,OBS_AGE,incidence=False)
@@ -27,12 +25,11 @@ def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=Fal
         cases = data.copy()
 
     # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
-    # rounded for input to poisson likelihood
-    expected_obs = np.round(np.sum([np.roll(trajectory,i)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0))
+    expected_obs = np.sum([np.roll(trajectory,i)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
     # cut off the first few days of the trajectory since they are not used in the likelihood
     expected_obs = expected_obs[-len(cases):]
     # eliminate zeros where they cause problems for the poisson likelihood
-    expected_obs[(expected_obs==0) & (cases>=1)] = 1
+    expected_obs[(expected_obs==0) & (cases>=1)] = np.min(expected_obs[expected_obs>0])
 
     log_likelihood = sp.stats.poisson.logpmf(cases,expected_obs).sum()
     return log_likelihood

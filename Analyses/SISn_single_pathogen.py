@@ -103,12 +103,14 @@ with open("Data/Processed/SIS_noisy_obs_daily_BETAp08_SEASONALITYp1_OFFSETp85_WA
 with open("Data/Processed/SIS_obs_daily_BETAp08_SEASONALITYp1_OFFSETp85_WANE10y_POBSp01_OBSAGEp2p85p1.pickle","rb") as f:
     trajectory = pickle.load(f)
 
-print(cases)
+print(np.any(trajectory==0))
+
+# print(cases)
 # print(trajectory)
 
-p_time_to_hosp = np.genfromtxt('Data/Processed/RSV_incubation_admittance_distribution.csv', delimiter=',', dtype=np.float64)
+# p_time_to_hosp = np.genfromtxt('Data/Processed/RSV_incubation_admittance_distribution.csv', delimiter=',', dtype=np.float64)
 
-print(SIS_likelihood(cases, params, POINTS, STATE0, OBS_AGE, p_time_to_hosp, obs=trajectory, age=True, incidence=True))
+# print(SIS_likelihood(cases, params, POINTS, STATE0, OBS_AGE, p_time_to_hosp, obs=trajectory, age=True, incidence=True))
 
 # mean_time = np.sum([p_time_to_hosp[i]*i for i in range(len(p_time_to_hosp))])
 # print(mean_time)
@@ -121,7 +123,7 @@ print(SIS_likelihood(cases, params, POINTS, STATE0, OBS_AGE, p_time_to_hosp, obs
 # admittance_logsd_RSV = 0.762
 # admittance_distribution_RSV = sp.stats.lognorm(admittance_logsd_RSV,scale=np.exp(admittance_logmean_RSV))
 
-# N = 1000
+# N = 10000
 # # total_trajectory = np.sum(trajectory,axis=1)
 # # expected_trajectory = np.zeros(total_trajectory.shape)
 # # tarray = np.zeros((N,len(POINTS)),dtype=int)
@@ -142,25 +144,27 @@ print(SIS_likelihood(cases, params, POINTS, STATE0, OBS_AGE, p_time_to_hosp, obs
 # plt.plot(POINTS,sp.stats.poisson.rvs(expected_trajectory),color='red')
 # fig, axes = plt.subplots(1,3,figsize=(6.5,3.25))
 # print(total_trajectory[10],total_trajectory[100],total_trajectory[200])
-# axes[0].hist(tarray[:,10],density=True,bins=np.arange(np.max(tarray[:,10])+1)-0.5)
-# axes[0].scatter(range(np.max(tarray[:,10])+1),sp.stats.poisson.pmf(range(np.max(tarray[:,10])+1),expected_trajectory[10]),color='red',marker='+')
+# axes[0].hist(tarray[:,10],density=True,bins=np.arange(np.max(tarray[:,10])+1)-0.5,label='Simulaiton')
+# axes[0].scatter(range(np.max(tarray[:,10])+1),sp.stats.poisson.pmf(range(np.max(tarray[:,10])+1),expected_trajectory[10]),color='red',marker='+',label='Poisson')
+# axes[0].legend()
 # axes[1].hist(tarray[:,100],density=True,bins=np.arange(np.max(tarray[:,100])+1)-0.5)
 # axes[1].scatter(range(np.max(tarray[:,100])+1),sp.stats.poisson.pmf(range(np.max(tarray[:,100])+1),expected_trajectory[100]),color='red',marker='+')
 # axes[2].hist(tarray[:,200],density=True,bins=np.arange(np.max(tarray[:,200])+1)-0.5)
 # axes[2].scatter(range(np.max(tarray[:,200])+1),sp.stats.poisson.pmf(range(np.max(tarray[:,200])+1),expected_trajectory[200]),color='red',marker='+')
-plt.show()
+# plt.tight_layout()
+# plt.savefig('Figures/RSV_observation_distribution.png',dpi=300)
 
 
 # # # # # #### One-shot line plot #####
 # # with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASONALITYp06_OFFSETp1_WANE10y_ADRp1.pickle","rb") as f:
 # #     incidence = pickle.load(f)
-params["BETA"] = 0.08
-params["SEASONALITY"] = 0.1
-params["OFFSET"] = 0.85
-params["WANE"] = 1/10*np.array([0.0,1.0,0.0])/365
-params["P_OBS"] =  0.01*np.ones(N_S)
-OBS_AGE = age_detection(NAG,0.2,0.85,0.1)
-result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+# params["BETA"] = 0.08
+# params["SEASONALITY"] = 0.1
+# params["OFFSET"] = 0.85
+# params["WANE"] = 1/10*np.array([0.0,1.0,0.0])/365
+# params["P_OBS"] =  0.01*np.ones(N_S)
+# OBS_AGE = age_detection(NAG,0.2,0.85,0.1)
+# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 # obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=1)
 # # obs = np.sum(obs,axis=1)
 # noisy_obs = np.random.poisson(obs)
