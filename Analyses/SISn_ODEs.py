@@ -42,7 +42,7 @@ def single_pathogen_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE, REC
                 + (all_vax(t,i,ACOV,S_VAX,T_VAX,NAG,N_S,2)*state).reshape((2*N_S+2,NAG)).sum(axis=0)[age]
             # Infectious class i = infection - recovery + aging in - aging out - vaccination + importations
             delta[(2*i+2)*NAG+age] = S_REL[i]*S_AGE[age]*BETA*(np.dot(contact(t,SEASONALITY,OFFSET),np.sum(np.array([state[j] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=np.float64).reshape((N_S,NAG))*I_REL,axis=0))/pop_size)[age]*state[(2*i+1)*NAG+age]\
+                + IMPORT_RATE*S_REL[i]*S_AGE[age]*BETA*np.sum(contact(t,SEASONALITY,OFFSET)[age])*arrivals(t)*state[(2*i+1)*NAG+age]\
                 - (REC_UP[i]+REC_SAME[i])*state[(2*i+2)*NAG+age]\
-                - AGING_RATE[age]*state[(2*i+2)*NAG+age] + (age>0)*AGING_RATE[age-1]*state[(2*i+2)*NAG+age-1]\
-                + IMPORT_RATE[i]*arrivals(t) 
+                - AGING_RATE[age]*state[(2*i+2)*NAG+age] + (age>0)*AGING_RATE[age-1]*state[(2*i+2)*NAG+age-1]
     return delta

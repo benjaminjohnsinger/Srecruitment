@@ -57,12 +57,12 @@ np.set_printoptions(threshold=np.inf)
 
 ## Period of simulation
 EPOCH = pd.to_datetime('1970-01-01')
-START = pd.to_datetime('2015-07-03')
+START = pd.to_datetime('2015-08-01')
 END = pd.to_datetime('2023-10-01')
 PERIOD = pd.date_range(start=START, end=END, freq='D')
 
 ## Contacts and force of infection
-IMPORT_RATE = 1e-5*np.ones(N_S)
+IMPORT_RATE = 1e-4
 # Contact matrix for all contact types
 CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
 print(CONTACT.shape)
@@ -103,56 +103,55 @@ with open("Data/Processed/SIS_noisy_obs_daily_BETAp08_SEASONALITYp1_OFFSETp85_WA
 with open("Data/Processed/SIS_obs_daily_BETAp08_SEASONALITYp1_OFFSETp85_WANE10y_POBSp01_OBSAGEp2p85p1.pickle","rb") as f:
     trajectory = pickle.load(f)
 
-print(np.any(trajectory==0))
-
 # print(cases)
 # print(trajectory)
 
-# p_time_to_hosp = np.genfromtxt('Data/Processed/RSV_incubation_admittance_distribution.csv', delimiter=',', dtype=np.float64)
+p_time_to_hosp = np.genfromtxt('Data/Processed/RSV_incubation_admittance_distribution.csv', delimiter=',', dtype=np.float64)
 
 # print(SIS_likelihood(cases, params, POINTS, STATE0, OBS_AGE, p_time_to_hosp, obs=trajectory, age=True, incidence=True))
 
 # mean_time = np.sum([p_time_to_hosp[i]*i for i in range(len(p_time_to_hosp))])
 # print(mean_time)
 
-# incubation_median_RSV = 4.4
-# incubation_dispersion_RSV = 1.24
-# incubation_distribution_RSV = sp.stats.lognorm(np.log(incubation_dispersion_RSV),scale=incubation_median_RSV)
+incubation_median_RSV = 4.4
+incubation_dispersion_RSV = 1.24
+incubation_distribution_RSV = sp.stats.lognorm(np.log(incubation_dispersion_RSV),scale=incubation_median_RSV)
 
-# admittance_logmean_RSV = 1.85
-# admittance_logsd_RSV = 0.762
-# admittance_distribution_RSV = sp.stats.lognorm(admittance_logsd_RSV,scale=np.exp(admittance_logmean_RSV))
+admittance_logmean_RSV = 1.85
+admittance_logsd_RSV = 0.762
+admittance_distribution_RSV = sp.stats.lognorm(admittance_logsd_RSV,scale=np.exp(admittance_logmean_RSV))
 
-# N = 10000
-# # total_trajectory = np.sum(trajectory,axis=1)
-# # expected_trajectory = np.zeros(total_trajectory.shape)
-# # tarray = np.zeros((N,len(POINTS)),dtype=int)
-# # for t in range(len(POINTS)):
-# #     # print("progress: ",t/len(POINTS))
-# #     expected_trajectory[t] = np.sum([total_trajectory[t-i]*p_time_to_hosp[i] for i in range(len(p_time_to_hosp)) if t-i >= 0])
-#     # for i in range(N):
-#     #     for case in range(sp.stats.binom.rvs(int(np.floor(total_trajectory[t]/0.01 + np.random.random())),0.01)):
-#     #         wait = incubation_distribution_RSV.rvs() + admittance_distribution_RSV.rvs()
-#     #         tarray[i,min(t+int(wait),len(POINTS)-1)] += 1
-# # vectorized version of for loop above
-# expected_trajectory = np.sum([np.roll(trajectory,i)*p_time_to_hosp[i] for i in range(len(p_time_to_hosp))],axis=0)
-# # probabalistic_trajectory = sp.stats.binom.rvs(tarray,0.01)
-# # probabalistic_trajectory = np.sum(tarray,axis=0)
-# # probabalistic_trajectory = probabalistic_trajectory/N
+N = 10000
+total_trajectory = np.sum(trajectory,axis=1)
+expected_trajectory = np.zeros(total_trajectory.shape)
+tarray = np.zeros((N,len(POINTS)),dtype=int)
+for t in range(len(POINTS)):
+    print("progress: ",t/len(POINTS))
+    expected_trajectory[t] = np.sum([total_trajectory[t-i]*p_time_to_hosp[i] for i in range(len(p_time_to_hosp)) if t-i >= 0])
+    for i in range(N):
+        for case in range(sp.stats.binom.rvs(int(np.floor(total_trajectory[t]/0.01 + np.random.random())),0.01)):
+            wait = incubation_distribution_RSV.rvs() + admittance_distribution_RSV.rvs()
+            tarray[i,min(t+int(wait),len(POINTS)-1)] += 1
+# probabalistic_trajectory = sp.stats.binom.rvs(tarray,0.01)
+# probabalistic_trajectory = np.sum(tarray,axis=0)
+# probabalistic_trajectory = probabalistic_trajectory/N
 # plt.plot(POINTS[60:],expected_trajectory[60:])
-# # plt.plot(POINTS,probabalistic_trajectory,color='green')
+# plt.plot(POINTS,probabalistic_trajectory,color='green')
 # plt.plot(POINTS,sp.stats.poisson.rvs(expected_trajectory),color='red')
-# fig, axes = plt.subplots(1,3,figsize=(6.5,3.25))
-# print(total_trajectory[10],total_trajectory[100],total_trajectory[200])
-# axes[0].hist(tarray[:,10],density=True,bins=np.arange(np.max(tarray[:,10])+1)-0.5,label='Simulaiton')
-# axes[0].scatter(range(np.max(tarray[:,10])+1),sp.stats.poisson.pmf(range(np.max(tarray[:,10])+1),expected_trajectory[10]),color='red',marker='+',label='Poisson')
-# axes[0].legend()
-# axes[1].hist(tarray[:,100],density=True,bins=np.arange(np.max(tarray[:,100])+1)-0.5)
-# axes[1].scatter(range(np.max(tarray[:,100])+1),sp.stats.poisson.pmf(range(np.max(tarray[:,100])+1),expected_trajectory[100]),color='red',marker='+')
-# axes[2].hist(tarray[:,200],density=True,bins=np.arange(np.max(tarray[:,200])+1)-0.5)
-# axes[2].scatter(range(np.max(tarray[:,200])+1),sp.stats.poisson.pmf(range(np.max(tarray[:,200])+1),expected_trajectory[200]),color='red',marker='+')
-# plt.tight_layout()
-# plt.savefig('Figures/RSV_observation_distribution.png',dpi=300)
+fig, axes = plt.subplots(1,3,figsize=(6.5,3.25))
+print(total_trajectory[100],total_trajectory[200],total_trajectory[300])
+# save tarray
+with open("Data/Processed/RSV_observation_distribution.pickle","wb") as f:
+    pickle.dump(tarray,f)
+axes[0].hist(tarray[:,100],density=True,bins=np.arange(np.max(tarray[:,100])+1)-0.5,label='Simulaiton')
+axes[0].scatter(range(np.max(tarray[:,100])+1),sp.stats.poisson.pmf(range(np.max(tarray[:,100])+1),expected_trajectory[100]),color='red',marker='+',label='Poisson')
+axes[0].legend()
+axes[1].hist(tarray[:,200],density=True,bins=np.arange(np.max(tarray[:,200])+1)-0.5)
+axes[1].scatter(range(np.max(tarray[:,200])+1),sp.stats.poisson.pmf(range(np.max(tarray[:,200])+1),expected_trajectory[200]),color='red',marker='+')
+axes[2].hist(tarray[:,300],density=True,bins=np.arange(np.max(tarray[:,300])+1)-0.5)
+axes[2].scatter(range(np.max(tarray[:,300])+1),sp.stats.poisson.pmf(range(np.max(tarray[:,300])+1),expected_trajectory[300]),color='red',marker='+')
+plt.tight_layout()
+plt.savefig('Figures/RSV_observation_distribution.png',dpi=300)
 
 
 # # # # # #### One-shot line plot #####
