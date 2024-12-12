@@ -20,7 +20,7 @@ from vaccination import birth_vax, all_vax
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
-from Parameters.RSV import *
+from Parameters.generic_disease import *
 
 from utils import *
 from demography import *
@@ -49,9 +49,9 @@ np.set_printoptions(threshold=np.inf)
 # plt.tight_layout()
 # plt.savefig('Figures/KPSC_interesting_pathogens_age_in_mo_weekly.png',dpi=300)
 
-fig, ax = plt.subplots(3,1,figsize=(6.5,8.5))
-kpsc_positive_test_plot(ax[0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation=None)
-kpsc_positive_test_plot(ax[1],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
+# fig, ax = plt.subplots(3,1,figsize=(6.5,8.5))
+# kpsc_positive_test_plot(ax[0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation=None)
+# kpsc_positive_test_plot(ax[1],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
 # plt.show()
 # plt.savefig('Figures/KPSC_RSV_daily.png',dpi=300)
 
@@ -63,7 +63,7 @@ kpsc_positive_test_plot(ax[1],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAM
 # PERIOD = pd.date_range(start=START, end=END, freq='D')
 
 # ## Contacts and force of infection
-# IMPORT_RATE = 1e-5
+# IMPORT_RATE = 1e-12
 # # Contact matrix for all contact types
 # CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
 # print(CONTACT.shape)
@@ -81,19 +81,23 @@ kpsc_positive_test_plot(ax[1],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAM
 # def contact(t,seasonality,offset):
 #     return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
 
+# # ## Integrate the system
+# # # POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+LOCKDOWN_DURATION+12*12,0.2),np.ones(1)*PERIOD))
+# # # POINTS = np.array([date_to_t('1960-01-01') + pd.DateOffset(months=x) for x in range(PERIOD)])
+# T_VAX = date_to_t('2035-01-01')
+
+# POINTS = np.array(date_to_t(PERIOD))
+
+
 from Parameters.times_and_contacts import *
+T_LOCKDOWN = date_to_t('2020-03-19')
+LOCKDOWN_DURATION = 365
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
-## Integrate the system
-# POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+LOCKDOWN_DURATION+12*12,0.2),np.ones(1)*PERIOD))
-# POINTS = np.array([date_to_t('1960-01-01') + pd.DateOffset(months=x) for x in range(PERIOD)])
-T_VAX = date_to_t('2035-01-01')
-
-POINTS = np.array(date_to_t(PERIOD))
 
 # Parameters for the ODE
 params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
@@ -102,13 +106,13 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 
 p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 
-# incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
-# # restrict to times before END
-# incidence.index = pd.to_datetime(incidence.index)
-# incidence = incidence.loc[:END]
-# incidence = np.array(incidence)
-# print(incidence.shape)
-# print(POINTS.shape)
+incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
+# restrict to times before END
+incidence.index = pd.to_datetime(incidence.index)
+incidence = incidence.loc[:END]
+incidence = np.array(incidence)
+print(incidence.shape)
+print(POINTS.shape)
 
 # def likelihood(x):
 #     sim_params = params.copy()
@@ -118,19 +122,20 @@ p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribu
 #     sim_params["SEASONALITY"] = x[5]
 #     sim_params["OFFSET"] = x[6]
 #     sim_params["BETA"] = x[7]
+#     sim_params["IMPORT_RATE"] = x[8]
 #     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-# opt = sp.optimize.minimize(likelihood,[0.1,0.03,0.25,0.85,0.5,0.1,0.85,0.14],method='Nelder-Mead')
+# opt = sp.optimize.minimize(likelihood,[0.1,0.03,0.25,0.85,0.5,0.1,0.85,0.14,1e-5],method='Nelder-Mead')
 # print(opt)
 
 
-# with open("Data/Processed/SIS_noisy_obs_daily_BETAp08_SEASONALITYp1_OFFSETp85_WANE10y_POBSp01_OBSAGEp2p85p1.pickle","rb") as f:
-#     noisy_incidence = pickle.load(f)
-# params["BETA"] = 0.08
-# params["SEASONALITY"] = 0.1
-# params["OFFSET"] = 0.85
-# params["WANE"] = 1/10*np.array([0.0,1.0,0.0])/365
-# params["P_OBS"] =  0.01*np.ones(N_S)
-# OBS_AGE = age_detection(NAG,0.2,0.85,0.1)
+with open("Data/Processed/SIS_noisy_obs_daily_BETAp08_SEASONALITYp1_OFFSETp85_WANE10y_POBSp01_OBSAGEp2p85p1.pickle","rb") as f:
+    noisy_incidence = pickle.load(f)
+params["BETA"] = 0.08
+params["SEASONALITY"] = 0.1
+params["OFFSET"] = 0.85
+params["WANE"] = 1/10*np.array([0.0,1.0,0.0])/365
+params["P_OBS"] =  0.01*np.ones(N_S)
+OBS_AGE = age_detection(NAG,0.2,0.85,0.1)
 
 
 # p_time_to_obs = np.zeros(90)
@@ -140,27 +145,24 @@ p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribu
 
 # # # # # # # #### One-shot line plot #####
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
-# fig, ax = plt.subplots(figsize=(6.5,8.5))
-T_LOCKDOWN = date_to_t('2020-03-19')
-LOCKDOWN_DURATION = 365
-mx = lockdown_incidence_plot(ax[2],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000)
-# lockdown_incidence_format(ax[2],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
-ax[2].set_ylabel('Simulated incidence per 10k')
-ax[2].set_xlim(POINTS[89],POINTS[-1])
-# copy y limit from ax[1]
-ax[2].set_ylim(ax[1].get_ylim())
-plt.savefig('Figures/RSV_fit_test.png',dpi=300)
+obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=1)
+# # fig, ax = plt.subplots(figsize=(6.5,8.5))
+# mx = lockdown_incidence_plot(ax[2],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000)
+# # lockdown_incidence_format(ax[2],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+# ax[2].set_ylabel('Simulated incidence per 10k')
+# ax[2].set_xlim(POINTS[89],POINTS[-1])
+# # copy y limit from ax[1]
+# ax[2].set_ylim(ax[1].get_ylim())
+# plt.savefig('Figures/RSV_fit_test.png',dpi=300)
 
-# params["BETA"] = 8.710e-02
-# params["P_OBS"] = 1.535e-02*np.ones(N_S)
-# params["SEASONALITY"] = 9.969e-02
-# params["OFFSET"] = -1.369e-01
-# params["WANE"] = 1/30*np.array([0.0,3.918e-01,0.0])/365
-# OBS_AGE = age_detection(NAG,2.418,8.514e-01,4.772e-01)
-# print(OBS_AGE)
-# result2 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-# obs2 = observations(result2,params,OBS_AGE,incidence=False,time_conversion=1)
+params["BETA"] = 8.710e-02
+params["P_OBS"] = 1.535e-02*np.ones(N_S)
+params["SEASONALITY"] = 9.969e-02
+params["OFFSET"] = -1.369e-01
+params["WANE"] = 1/30*np.array([0.0,3.918e-01,0.0])/365
+OBS_AGE = age_detection(NAG,2.418,8.514e-01,4.772e-01)
+result2 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+obs2 = observations(result2,params,OBS_AGE,incidence=False,time_conversion=1)
 
 # # # obs = np.sum(obs,axis=1)
 # # noisy_obs = np.random.poisson(obs)
@@ -168,24 +170,29 @@ plt.savefig('Figures/RSV_fit_test.png',dpi=300)
 # # noisy_incidence = noisy_obs/pop_size_by_age
 # # with open("Data/Processed/SIS_noisy_obs_daily_BETAp08_SEASONALITYp1_OFFSETp85_WANE10y_POBSp01_OBSAGEp2p85p1.pickle","wb") as f:
 # #     pickle.dump(noisy_incidence,f)
-# fig, ax = plt.subplots(2,1,figsize=(6.5,8.5))
-# mx = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result1,obs=obs1,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000)
-# mx2 = lockdown_incidence_plot(ax[1],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result2,obs=obs2,label="Fit",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,color='#DC267F')
+fig, ax = plt.subplots(2,1,figsize=(6.5,8.5))
+mx = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000)
+mx2 = lockdown_incidence_plot(ax[1],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result2,obs=obs2,label="Fit",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,color='#DC267F')
 # # plot monthly moving average of noisy incidence
-# moving_average = np.array([np.mean(noisy_incidence[i-30:i],axis=0)*10000 for i in range(30,len(noisy_incidence))])
+moving_average = np.array([np.mean(noisy_incidence[i-30:i],axis=0)*10000 for i in range(30,len(noisy_incidence))])
 # # plot the age stratified incidence in shades of grey
 # # define grayscale color map
-# cmap = pltcm.get_cmap('Greys')
-# for i in range(NAG):
-#     ax[0].plot(POINTS[30:],moving_average[:,i],color=cmap((i+1)/(NAG+1)),linestyle='--')
-#     ax[1].plot(POINTS[30:],moving_average[:,i],color=cmap((i+1)/(NAG+1)),linestyle='--')
+hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
+hsv_colors[3] = colormaps.hsv((3/7)+0.04)
+for i in range(NAG):
+    ax[0].plot(POINTS[30:],moving_average[:,i],color=hsv_colors[i],linestyle='--')
+    ax[1].plot(POINTS[30:],moving_average[:,i],color=hsv_colors[i],linestyle='--')
 # # mx2 = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=noisy_incidence,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,color='#DC267F')
-# lockdown_incidence_format(ax[0],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
-# lockdown_incidence_format(ax[1],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+lockdown_incidence_format(ax[0],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+lockdown_incidence_format(ax[1],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
 # # ax.legend()
 # plt.show()
-# plt.savefig('Figures/RSV_test_fit_beta_8param_age.png',dpi=300)
-# # axes[1].legend()
+ax[0].set_title('Simulation with noisy observations')
+ax[1].set_title('Fit to noisy observations')
+ax[0].set_ylabel('Simulated incidence per 10k')
+ax[1].set_ylabel('Simulated incidence per 10k')
+plt.savefig('Figures/test.png',dpi=300)
+# # # axes[1].legend()
 # axes[1].set_ylabel('Simulated incidence per 10k')
 # # plot google_prestige_work
 # axes2 = axes[1].twinx()

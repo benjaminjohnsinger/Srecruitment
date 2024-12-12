@@ -11,7 +11,7 @@ END = pd.to_datetime('2023-10-01') # end of KPSC data
 PERIOD = pd.date_range(start=START, end=END, freq='D')
 
 ## Contacts and force of infection
-IMPORT_RATE = 1e-4
+IMPORT_RATE = 1e-12
 # Contact matrix for all contact types
 CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
 

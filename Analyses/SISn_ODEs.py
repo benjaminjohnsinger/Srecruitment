@@ -18,10 +18,15 @@ def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_U
             - AGING_RATE*state[(2*i+1)*NAG:(2*i+2)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(2*i+1)*NAG:(2*i+2)*NAG-1]))\
             + (all_vax(t,i,ACOV,S_VAX,T_VAX,NAG,N_S,2)*state).reshape((2*N_S+2,NAG)).sum(axis=0)
         # Infectious class i = infection - recovery + aging in - aging out - vaccination + importations
+        print(arrivals(t))
+        print(np.sum(contact(t,SEASONALITY,OFFSET),axis=0))
+        print(IMPORT_RATE*S_REL[i]*S_AGE*BETA*np.sum(contact(t,SEASONALITY,OFFSET),axis=0)*arrivals(t)*state[(2*i+1)*NAG:(2*i+2)*NAG])
+        print(S_REL[i]*S_AGE*BETA*(np.dot(contact(t,SEASONALITY,OFFSET),np.sum(np.array(([state[(2*j+2)*NAG:(2*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(2*i+1)*NAG:(2*i+2)*NAG])
         delta[(2*i+2)*NAG:(2*i+3)*NAG] = S_REL[i]*S_AGE*BETA*(np.dot(contact(t,SEASONALITY,OFFSET),np.sum(np.array(([state[(2*j+2)*NAG:(2*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(2*i+1)*NAG:(2*i+2)*NAG]\
             - (REC_UP[i]+REC_SAME[i])*state[(2*i+2)*NAG:(2*i+3)*NAG]\
             - AGING_RATE*state[(2*i+2)*NAG:(2*i+3)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(2*i+2)*NAG:(2*i+3)*NAG-1]))\
-            + IMPORT_RATE*arrivals(t)
+            + IMPORT_RATE*S_REL[i]*S_AGE*BETA*np.sum(contact(t,SEASONALITY,OFFSET),axis=0)*arrivals(t)*state[(2*i+1)*NAG:(2*i+2)*NAG]
+            # + IMPORT_RATE*arrivals(t)
     return delta
 
 # ## Numba compliant version
