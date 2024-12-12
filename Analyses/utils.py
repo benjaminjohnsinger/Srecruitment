@@ -58,7 +58,7 @@ def age_detection(NAG,young_immunity,old_immunity,young_old,linear=True,min_obs=
         OBS = np.max((min_obs*np.ones(NAG),np.minimum(1,2*young_old)-young_immunity*x,np.minimum(1,2*(1-young_old))-old_immunity*(NAG-1-x)),axis=0)
     return OBS/np.max(OBS)
 
-# print(age_detection(7,0.2,0.85,0.1,linear=True))
+# print(age_detection(7, 4.206e-01,3.817e-01,6.305e-01,linear=True))
 
 def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
     for name in scalar_values_dict.keys():

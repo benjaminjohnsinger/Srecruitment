@@ -9,16 +9,20 @@ from utils import *
 import time
 import types
 
-def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=False, incidence=False, start_t=date_to_t(pd.to_datetime('1970-01-01'))):
+def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01'))):
+    # run simulation
     result = sp.integrate.solve_ivp(sis_deltas,(start_t,POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-    trajectory = observations(result,params,OBS_AGE,incidence=False)
+    # convert into observed cases
+    trajectory = observations(result,params,OBS_AGE,incidence=False,time_conversion=1)
     if not age:
         trajectory = np.sum(trajectory,axis=1)
 
+    # format data into cases, rescaled appropriately by population age distribution
     if incidence:
         if age:
             NAG = params["NAG"]
-            cases = np.round(data*np.array([np.sum(result.y[range(i,(N_S*N_C+1)*NAG,NAG),:],axis=0) for i in range(NAG)]).T)
+            N_S = params["N_S"]
+            cases = np.round(data*np.array([np.sum(result.y[range(i,(N_S*N_C+1)*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)]).T)
         else:
             cases = data*np.sum(result.y,axis=0)
     else:
@@ -28,11 +32,11 @@ def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=Fal
     expected_obs = np.sum([np.roll(trajectory,i)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
     # cut off the first few days of the trajectory since they are not used in the likelihood
     expected_obs = expected_obs[-len(cases):]
-    # eliminate zeros where they cause problems for the poisson likelihood
-    expected_obs[(expected_obs==0) & (cases>=1)] = np.min(expected_obs[expected_obs>0])
+    # # eliminate zeros where they cause problems for the poisson likelihood
+    # expected_obs[(expected_obs==0) & (cases>=1)] = np.min(expected_obs[expected_obs>0])
 
-    log_likelihood = sp.stats.poisson.logpmf(cases,expected_obs).sum()
-    return log_likelihood
+    # calculate the log likelihood
+    return sp.stats.poisson.logpmf(cases,expected_obs).sum()
 
 ## OBS_AGE parameters must be last three in initial_scalars
 def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, variables, initial_scalars, log_priors, proposal_cov, n_iter, age=False, incidence=False,n_messages=20):

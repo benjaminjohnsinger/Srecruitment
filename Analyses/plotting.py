@@ -447,7 +447,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
     elif aggregation == "Week":
         frequency = "W-MON"
 
-    for date in pd.date_range(start='2015-09-28',end='2023-12-31',freq=frequency):
+    for date in pd.date_range(start='2015-10-01',end='2023-10-01',freq=frequency):
         year = date.year
         if aggregation=="Month":
             agg = date.month
@@ -475,7 +475,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
             cases["Date"] = pd.to_datetime(cases["Date"].add('-1').astype(str),format='%Y-%W-%w')
     cases = cases.sort_values(by="Date")
     cases = cases.set_index("Date")
-    print(cases.t)
+
     if aggregation is not None:
         cases = cases.drop(columns=["Year",aggregation])
     if AGE_GROUPS is not None:
