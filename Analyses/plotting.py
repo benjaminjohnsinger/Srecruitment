@@ -16,9 +16,12 @@ from utils import *
 N_C=2
 from SISn_ODEs import single_pathogen_deltas as deltas_SIS
 
+##### General plotting parameters #####
+hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
+hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 
 ##### Simple line plots #####
-def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,start_t=date_to_t(pd.to_datetime('2015-10-01')),end_t=date_to_t(pd.to_datetime('2023-09-30')),factor=1):
+def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,start_t=date_to_t(pd.to_datetime('2015-10-01')),end_t=date_to_t(pd.to_datetime('2023-09-30')),factor=1,p_time_to_obs=[1]):
     if params is not None:
         NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params.values()
     if result is None:
@@ -27,20 +30,21 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
         times = result.t
     dates = [t_to_date(t) for t in times]
     if by_age:
+        pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+        obs = np.sum([np.roll(obs,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
         if obs is None:
             obs = factor*observations(result,params,OBS_AGE,incidence=False)
         else:
             obs = factor*obs
-        cmap = plt.get_cmap('hsv')
-        pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
         for i_age in range(NAG):
-            ax.plot(dates,obs[:,i_age]/pop_size_by_age[:,i_age], label=AGE_GROUP_NAMES[i_age], color=cmap(-0.02+i_age/NAG))
+            ax.plot(dates,obs[:,i_age]/pop_size_by_age[:,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)
         mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[np.argmin(times<=start_t):np.argmin(times<=end_t)])
     else:
         if obs is None:
             obs = factor*observations(result,params,OBS_AGE,incidence=True)
         else:
             obs = factor*obs
+        obs = np.sum([np.roll(obs,i)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
         if relative:
             pre_mx = np.max(obs[np.argmin(times<=start_t):np.argmin(times<=T_LOCKDOWN)])
             ax.plot(dates, obs/pre_mx, label=label,color=color,linewidth=linewidth,alpha=alpha)
@@ -392,8 +396,6 @@ pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL V
 "Adenovirus": ["ADENOVIRUS",],
 "Parainfuenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
 "Parainfluenza 3": ["PARAINFLUENZA VIRUS 3"]}
-hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
-hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=None,incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None):
     print(pathogen)
     respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv')
@@ -484,7 +486,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         if incidence:
             cases = cases.div(age_by_year.loc[cases.index.year].values)
     elif incidence:
-        cases = cases.div(np.sum(age_by_year.loc[cases.index.year].values,axis=1))
+        cases["Count"] = cases["Count"]/np.sum(age_by_year.loc[cases.index.year].values,axis=1)
 
     if incidence:
         cases *= 10000

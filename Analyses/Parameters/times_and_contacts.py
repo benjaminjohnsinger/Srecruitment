@@ -11,7 +11,7 @@ END = pd.to_datetime('2023-10-01') # end of KPSC data
 PERIOD = pd.date_range(start=START, end=END, freq='D')
 
 ## Contacts and force of infection
-IMPORT_RATE = 1e-12
+# IMPORT_RATE = 1e-12
 # Contact matrix for all contact types
 CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
 
@@ -21,6 +21,7 @@ date_to_t('2020-03-19'), # Newsom announces stay-at-home order
 date_to_t('2021-04-27'), # CDC amends mask guidance to allow vaccinated individuals to go maskless
 date_to_t('2021-12-15'), # CDC reinstates mask guidance
 date_to_t('2022-03-01')]) # End of mask mandate in California
+# date_to_t('2022-01-01')])
 Fs = np.array([1,0.2,1,0.2,1]) # 0.2 minimum relative contact rate between COMIX and POLYMOD
 @jit
 def contact(t,seasonality,offset):

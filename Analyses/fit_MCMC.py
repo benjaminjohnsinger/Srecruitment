@@ -29,7 +29,7 @@ def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=Tru
         cases = data.copy()
 
     # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
-    expected_obs = np.sum([np.roll(trajectory,i)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
+    expected_obs = np.sum([np.roll(trajectory,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
     # cut off the first few days of the trajectory since they are not used in the likelihood
     expected_obs = expected_obs[-len(cases):]
     # # eliminate zeros where they cause problems for the poisson likelihood
