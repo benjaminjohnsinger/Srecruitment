@@ -21,7 +21,7 @@ date_to_t('2020-03-19'), # Newsom announces stay-at-home order
 date_to_t('2021-04-27'), # CDC amends mask guidance to allow vaccinated individuals to go maskless
 date_to_t('2021-12-15'), # CDC reinstates mask guidance
 date_to_t('2022-03-01')]) # End of mask mandate in California
-# date_to_t('2022-01-01')])
+# date_to_t('2021-12-20')])
 Fs = np.array([1,0.2,1,0.2,1]) # 0.2 minimum relative contact rate between COMIX and POLYMOD
 @jit
 def contact(t,seasonality,offset):

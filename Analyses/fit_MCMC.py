@@ -36,10 +36,11 @@ def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=Tru
     # expected_obs[(expected_obs==0) & (cases>=1)] = np.min(expected_obs[expected_obs>0])
 
     # calculate the log likelihood
-    return sp.stats.poisson.logpmf(cases,expected_obs).sum()
+    likelihood = sp.stats.poisson.logpmf(cases,expected_obs).sum()
+    return likelihood
 
 ## OBS_AGE parameters must be last three in initial_scalars
-def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, variables, initial_scalars, log_priors, proposal_cov, n_iter, age=False, incidence=False,n_messages=20):
+def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, p_time_to_obs, variables, initial_scalars, log_priors, proposal_cov, n_iter, age=False, incidence=False,n_messages=20):
     n_v = len(variables)
     NAG = init_params["NAG"]
     acceptance = np.zeros(n_iter)
@@ -47,7 +48,7 @@ def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, variables, init
     param_trajectory[0] = initial_scalars
     current_params = init_params.copy()
     log_likelihood_priors = log_priors(initial_scalars)
-    log_likelihood_current = likelihood(data, current_params, POINTS, STATE0, OBS_AGE, age=age, incidence=incidence) + log_likelihood_priors
+    log_likelihood_current = likelihood(data, current_params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=age, incidence=incidence) + log_likelihood_priors
     start = time.time()
     for i in range(n_iter):
         if i % (n_iter//n_messages) == 0:
@@ -62,7 +63,7 @@ def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, variables, init
         else:
             proposal_OBS_AGE = OBS_AGE
         log_likelihood_priors = log_priors(scalars)
-        log_likelihood_proposal = likelihood(data, proposal_params, POINTS, STATE0, proposal_OBS_AGE, age=age, incidence=incidence) + log_likelihood_priors
+        log_likelihood_proposal = likelihood(data, proposal_params, POINTS, STATE0, proposal_OBS_AGE, p_time_to_obs, age=age, incidence=incidence) + log_likelihood_priors
         log_likelihood_diff = log_likelihood_proposal - log_likelihood_current
         param_trajectory[i+1] = param_trajectory[i]
         if log_likelihood_diff > 0 or np.log(np.random.rand()) < log_likelihood_diff:

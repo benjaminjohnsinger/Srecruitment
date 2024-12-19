@@ -24,7 +24,7 @@ BIRTHS_2023_2024 = BIRTHS_2023_2024.drop(columns=["Geography_Type","Strata","Str
 BIRTHS_2023_2024 = BIRTHS_2023_2024.rename(columns={"Count":"Births"})
 BIRTHS = pd.concat([BIRTHS, BIRTHS_2023_2024])
 
-# reformat births index to be number of days since 1970-01-01
+# reformat births index to be number of days since '1970-01-01'
 BIRTHS.index = (BIRTHS.index - pd.to_datetime("1970-01-01")).days
 
 ## POPULATION
@@ -62,21 +62,33 @@ def birth_rate(t):
 # # plot, with dates after 2022 in a different color, with legend and labels
 # fig, ax = plt.subplots(figsize=(6,6))
 # BIRTHS.plot(ax=ax,color="#648FFF")
-# BIRTHS.loc['2023':].plot(ax=ax,color="#DC267F")
+# BIRTHS.loc[(pd.to_datetime('2023-01-01')-pd.to_datetime('1970-01-01')).days:].plot(ax=ax,color="#DC267F")
 # plt.legend(['Resident births','Provisional data'])
 # ax.get_legend().get_lines()[0].set_color('#648FFF')
 # ax.get_legend().get_lines()[1].set_color('#DC267F')
 # # add detail panel to plot with data from 2016 onwards
 # axins = ax.inset_axes([0.42, 0.13, 0.42, 0.3])
-# BIRTHS.loc['2016':].plot(ax=axins,color="#648FFF")
-# BIRTHS.loc['2023':].plot(ax=axins,color="#DC267F")
+# BIRTHS.loc[(pd.to_datetime('2016-01-01')-pd.to_datetime('1970-01-01')).days:].plot(ax=axins,color="#648FFF")
+# BIRTHS.loc[(pd.to_datetime('2023-01-01')-pd.to_datetime('1970-01-01')).days:].plot(ax=axins,color="#DC267F")
 # axins.get_legend().remove()
-# axins.set_xticks(['2016-01-01','2020-01-01','2024-01-01'])
+# axins.set_xticks([(pd.to_datetime('2016-01-01')-pd.to_datetime('1970-01-01')).days,(pd.to_datetime('2020-01-01')-pd.to_datetime('1970-01-01')).days,(pd.to_datetime('2024-01-01')-pd.to_datetime('1970-01-01')).days])
 # axins.set_yticks([])
+# # axins.set_ylim(0,40000)
 # ax.indicate_inset_zoom(axins)
+
+# # years as x ticks - every 10 years
+# years = pd.date_range(start='1960-01-01', end='2025-01-01', freq='10YE')
+# # years = years[years.year!=2020]
+# ax.set_xticks((years-pd.to_datetime('1970-01-01')).days)
+# ax.set_xticklabels(years.year)
+# # and for axins, restricting to range from 2016 to 2024
+# years = pd.date_range(start='2016-01-01', end='2025-01-01', freq='2YE')
+# axins.set_xticks((years-pd.to_datetime('1970-01-01')).days)
+# axins.set_xticklabels(years.year)
 
 # ax.set_ylabel('Monthly births')
 # ax.set_xlabel('Date')
 # ax.set_title('Monthly births in California')
+# ax.set_ylim(0,55250)
 # plt.tight_layout()
 # plt.savefig('Figures/births_CA.png',dpi=300)
