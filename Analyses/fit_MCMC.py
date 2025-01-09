@@ -9,6 +9,7 @@ from utils import *
 import time
 import types
 
+## POINTS must start (at least) len(p_time_to_obs) days before the first observation to avoid issues from np.roll behaviour
 def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01'))):
     # run simulation
     result = sp.integrate.solve_ivp(sis_deltas,(start_t,POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
@@ -30,22 +31,21 @@ def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=Tru
 
     # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
     expected_obs = np.sum([np.roll(trajectory,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
-    # cut off the first few days of the trajectory since they are not used in the likelihood
+    # cut off the first few days of the trajectory since they are not used in the likelihood (and the roll function is wrapping around)
     expected_obs = expected_obs[-len(cases):]
-    # # eliminate zeros where they cause problems for the poisson likelihood
-    # expected_obs[(expected_obs==0) & (cases>=1)] = np.min(expected_obs[expected_obs>0])
 
     # calculate the log likelihood
     likelihood = sp.stats.poisson.logpmf(cases,expected_obs).sum()
     return likelihood
 
-## OBS_AGE parameters must be last three in initial_scalars
+## OBS_AGE parameters must be last three in initial_scalars, POINTS must start (at least) len(p_time_to_obs) days before the first observation
 def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, p_time_to_obs, variables, initial_scalars, log_priors, proposal_cov, n_iter, age=False, incidence=False,n_messages=20):
     n_v = len(variables)
     NAG = init_params["NAG"]
     acceptance = np.zeros(n_iter)
     param_trajectory = np.zeros((n_iter+1,n_v))
     param_trajectory[0] = initial_scalars
+    likelihoods = np.zeros(n_iter)
     current_params = init_params.copy()
     log_likelihood_priors = log_priors(initial_scalars)
     log_likelihood_current = likelihood(data, current_params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=age, incidence=incidence) + log_likelihood_priors
@@ -71,5 +71,6 @@ def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, p_time_to_obs, 
             log_likelihood_current = log_likelihood_proposal
             acceptance[i] = 1
             param_trajectory[i+1,:] = scalars
+        likelihoods[i] = log_likelihood_current
     
-    return param_trajectory, np.mean(acceptance)
+    return param_trajectory, np.mean(acceptance), likelihoods

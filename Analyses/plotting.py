@@ -29,6 +29,8 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
     if times is None:
         times = result.t
     dates = [t_to_date(t) for t in times]
+    start_index = np.argmin(times<=start_t)
+    end_index = np.argmin(times<=end_t)
     if by_age:
         pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
         if obs is None:
@@ -37,8 +39,8 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
             obs = factor*obs
         obs = np.sum([np.roll(obs,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
         for i_age in range(NAG):
-            ax.plot(dates,obs[:,i_age]/pop_size_by_age[:,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)
-        mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[np.argmin(times<=start_t):np.argmin(times<=end_t)])
+            ax.plot(dates[start_index:end_index],obs[start_index:end_index,i_age]/pop_size_by_age[start_index:end_index,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)
+        mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[start_index:end_index])
     else:
         if obs is None:
             obs = factor*observations(result,params,OBS_AGE,incidence=True)
@@ -46,12 +48,12 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
             obs = factor*obs
         obs = np.sum([np.roll(obs,i)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
         if relative:
-            pre_mx = np.max(obs[np.argmin(times<=start_t):np.argmin(times<=T_LOCKDOWN)])
-            ax.plot(dates, obs/pre_mx, label=label,color=color,linewidth=linewidth,alpha=alpha)
-            mx = 1.1*np.max(obs[np.argmin(times<=start_t):np.argmin(times<=end_t)])/pre_mx
+            pre_mx = np.max(obs[start_index:np.argmin(times<=T_LOCKDOWN)])
+            ax.plot(dates[start_index:end_index], obs[start_index:end_index]/pre_mx[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
+            mx = 1.1*np.max(obs[start_index:end_index])/pre_mx
         else:
-            ax.plot(dates, obs, label=label,color=color,linewidth=linewidth,alpha=alpha)
-            mx = 1.1*np.max(obs[np.argmin(times<=start_t):np.argmin(times<=end_t)])
+            ax.plot(dates[start_index:end_index], obs[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
+            mx = 1.1*np.max(obs[start_index:end_index])
     return(mx)
 
 def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,year_skip=1,title='Incidence of disease with 1-year lockdown'):
