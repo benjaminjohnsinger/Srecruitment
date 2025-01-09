@@ -6,7 +6,7 @@ from utils import *
 
 ## Period of simulation
 EPOCH = pd.to_datetime('1970-01-01')
-START = pd.to_datetime('2015-07-04') # 89 days before start of KPSC data
+START = pd.to_datetime('2015-07-04') # 89 days before start of KPSC data, to account for delay in detection
 END = pd.to_datetime('2023-10-01') # end of KPSC data
 PERIOD = pd.date_range(start=START, end=END, freq='D')
 

@@ -37,6 +37,7 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
             obs = factor*observations(result,params,OBS_AGE,incidence=False)
         else:
             obs = factor*obs
+        # using roll to account for detection delays, note that frist len(p_time_to_obs) days should not be used due to wrap-around
         obs = np.sum([np.roll(obs,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
         for i_age in range(NAG):
             ax.plot(dates[start_index:end_index],obs[start_index:end_index,i_age]/pop_size_by_age[start_index:end_index,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)

@@ -46,9 +46,9 @@ np.set_printoptions(threshold=np.inf)
 # plt.tight_layout()
 # plt.savefig('Figures/KPSC_data_sort_of_interesting_slide.png',dpi=300)
 
-# fig, ax = plt.subplots(2,1,figsize=(13.3,7.5),sharey=True)
-# kpsc_positive_test_plot(ax[0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
-# ax[0].set_xlabel('Time (years)')
+fig, ax = plt.subplots(2,1,figsize=(13.3,7.5),sharey=True)
+kpsc_positive_test_plot(ax[0],pathogen="Influenza A",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
+ax[0].set_xlabel('Time (years)')
 # kpsc_positive_test_plot(ax[1],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
 # plt.show()
 # plt.savefig('Figures/KPSC_RSV_daily.png',dpi=300)
@@ -102,40 +102,50 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 'arrivals': arrivals, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
-# incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
+incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
 
-# def likelihood(x):
-#     sim_params = params.copy()
-#     sim_params["WANE"] = np.array([0.0,x[0],0.0])
-#     sim_params["SEASONALITY"] = x[1]
-#     sim_params["OFFSET"] = x[2]
-#     sim_params["BETA"] = x[3]
-#     sim_params["IMPORT_RATE"] = x[4]
-#     sim_params["P_OBS"] =  x[5]*np.array([1,0.46,0.31])
-#     sim_params["S_REL"] = np.array([1,x[6],x[7]])
-#     obs_age = age_detection(NAG,x[8],x[9],x[10])
-#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-# opt = sp.optimize.minimize(likelihood,[1/(30*365),0.25,0.85,0.14,1e-12,0.03,0.559,0.333,0.5,0.95,0.5],method='Nelder-Mead')
-# print(opt)
+def likelihood(x):
+    sim_params = params.copy()
+    sim_params["WANE"] = np.array([0.0,x[0],0.0])
+    sim_params["SEASONALITY"] = x[1]
+    sim_params["OFFSET"] = x[2]
+    sim_params["BETA"] = x[3]
+    sim_params["IMPORT_RATE"] = x[4]
+    sim_params["P_OBS"] =  x[5]*np.ones(3)
+    sim_params["S_REL"] = np.array([1,x[6],x[7]])
+    obs_age = age_detection(NAG,x[8],x[9],x[10])
+    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+opt = sp.optimize.minimize(likelihood,[1/270,0.1,0.8,0.1,1e-12,0.03,0.8,0.32,0.05,0.8,0.1],method='Nelder-Mead')
+print(opt)
 
 # print(likelihood([1/30,0.25,0.85,0.5,0.1,0.85,0.14,1e-12,0.03]))
 
-# # with open("Data/Processed/SIS_noisy_obs_daily_BETAp08_SEASONALITYp1_OFFSETp85_WANE10y_POBSp01_OBSAGEp2p85p1.pickle","rb") as f:
-# #     noisy_incidence = pickle.load(f)
-# # params["BETA"] = 0.08
-# # params["SEASONALITY"] = 0.1
-# # params["OFFSET"] = 0.85
-# # params["WANE"] = 1/10*np.array([0.0,1.0,0.0])/365
-# # params["P_OBS"] =  0.01*np.ones(N_S)
-# # OBS_AGE = age_detection(NAG,0.2,0.85,0.1)
+# with open("Data/Processed/SIS_noisy_obs_daily_BETAp08_SEASONALITYp1_OFFSETp85_WANE10y_POBSp01_OBSAGEp2p85p1.pickle","rb") as f:
+#     noisy_incidence = pickle.load(f)
+# params["BETA"] = 0.08
+# params["SEASONALITY"] = 0.1
+# params["OFFSET"] = 0.85
+# params["WANE"] = 1/10*np.array([0.0,1.0,0.0])/365
+# params["P_OBS"] =  0.01*np.ones(N_S)
+# OBS_AGE = age_detection(NAG,0.2,0.85,0.1)
+
+pms = opt.x
+params["WANE"] = np.array([0.0,pms[0],0.0])
+params["SEASONALITY"] = pms[1]
+params["OFFSET"] = pms[2]
+params["BETA"] = pms[3]
+params["IMPORT_RATE"] = pms[4]
+params["P_OBS"] =  pms[5]*np.ones(3)
+params["S_REL"] = np.array([1,pms[6],pms[6]])
+OBS_AGE = age_detection(NAG,pms[8],pms[9],pms[10])
 
 # # # # # # # # # #### One-shot line plot #####
-fig, ax = plt.subplots(figsize=(6.5,8.5))
+# fig, ax = plt.subplots(figsize=(6.5,8.5))
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-obs = observations(result,params,OBS_AGE,incidence=True,time_conversion=30.44)
-mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
-plt.show()
+obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
+mx = lockdown_incidence_plot(ax[1],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+lockdown_incidence_format(ax[1],T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+plt.savefig('Figures/InfluenzA_fit_test.png',dpi=300)
 # # params["WANE"] = np.array([0,1.195e-01,0])/365
 # # params["P_OBS"] = 3.396e-02*np.array([1,0.46,0.31])
 # # OBS_AGE = np.array([1,0.8229,0.6458,0.4687,0.2916,0.1375,0.8626])
@@ -150,15 +160,6 @@ plt.show()
 # ,1.53783669e-12,3.67742977e-02
 # ,3.17488852e-01,7.53475678e-01,5.81731678e-01]
 # # # print(likelihood(pms))
-# pms = opt.x
-# params["WANE"] = np.array([0.0,pms[0],0.0])
-# params["SEASONALITY"] = pms[1]
-# params["OFFSET"] = pms[2]
-# params["BETA"] = pms[3]
-# params["IMPORT_RATE"] = pms[4]
-# params["P_OBS"] =  pms[5]*np.array([1,0.46,0.31])
-# OBS_AGE = age_detection(NAG,pms[6],pms[7],pms[8])
-# params["S_REL"] = np.array([1,pms[9],pms[10]])
 
 
 # result2 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
