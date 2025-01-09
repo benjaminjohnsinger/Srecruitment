@@ -1,5 +1,5 @@
 ## RSV parameters
-## Parameters from Pitzer et al. 2015 edited to roughly fit KPSC observations
+## Parameters from literature cited by Pitzer et al. 2015, and guesses to match KPSC data
 
 import numpy as np
 from numba import jit
