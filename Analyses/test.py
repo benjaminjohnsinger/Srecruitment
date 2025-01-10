@@ -13,15 +13,15 @@ from utils import *
 # from sas7bdat import SAS7BDAT
 import pickle
 
-expected = np.array([[9.2,2.6,5.9],[0.3,7.6,2.9]])
-expected = np.round(expected)
-observed = np.array([[10,3,4],[3,4,8]])
+# expected = np.array([[9.2,2.6,5.9],[0.3,7.6,2.9]])
+# expected = np.round(expected)
+# observed = np.array([[10,3,4],[3,4,8]])
 
-print(expected)
-expected[(expected < 1) & (observed >= 1)] = 1
-print(expected)
+# print(expected)
+# expected[(expected < 1) & (observed >= 1)] = 1
+# print(expected)
 
-print(sp.stats.poisson.logpmf(observed,expected))
+# print(sp.stats.poisson.logpmf(observed,expected))
 
 # print(np.sum([0.584,0.416,0.010]))
 
@@ -91,28 +91,31 @@ print(sp.stats.poisson.logpmf(observed,expected))
 # admittance_logsd_RSV = 0.762
 # admittance_distribution_RSV = sp.stats.lognorm(admittance_logsd_RSV,scale=np.exp(admittance_logmean_RSV))
 
-# # incubation_median_fluA = 1.4
-# # incubation_dispersion_fluA = 1.51
-# # incubation_distribution_fluA = sp.stats.lognorm(np.log(incubation_dispersion_fluA),scale=incubation_median_fluA)
+incubation_median_fluA = 1.4
+incubation_dispersion_fluA = 1.51
+incubation_distribution_fluA = sp.stats.lognorm(np.log(incubation_dispersion_fluA),scale=incubation_median_fluA)
 
-# # admittance_mu_flu = 1.92
-# # admittance_sigma_flu = 0.914
-# # admittance_Q_flu = 0.126
-# # admittance_distribution_flu = sp.stats.gengamma(admittance_Q_flu,admittance_mu_flu,admittance_sigma_flu)
-# # print(admittance_distribution_flu.ppf([0.25,0.5,0.75]))
+admittance_mu_flu = 1.92
+admittance_sigma_flu = 0.914
+admittance_Q_flu = 0.126
+a = admittance_Q_flu**(-2)
+c = admittance_Q_flu/admittance_sigma_flu
+scale = np.exp(admittance_mu_flu-np.log(a)/c)
+admittance_distribution_flu = sp.stats.gengamma(a,c,scale=scale)
+print(admittance_distribution_flu.ppf([0.25,0.5,0.75]))
 
 
 # # generate 100k samples of incubation plus admittance
-# np.random.seed(241125)
-# N = int(1e8)
-# infection_to_admittance = incubation_distribution_RSV.rvs(N) + admittance_distribution_RSV.rvs(N)
-# shape, loc, scale = sp.stats.lognorm.fit(infection_to_admittance)
-# fit = sp.stats.lognorm(shape, loc=loc, scale=scale)
-# n, bins, patches = plt.hist(infection_to_admittance,bins=np.arange(0,90),color='silver',density=True)
-# np.savetxt('Data/Processed/RSV_incubation_admittance_distribution.csv',n,delimiter=',')
-# plt.plot(np.linspace(0,90,90),fit.pdf(np.linspace(0,90,90)))
-# plt.xlim([0,90])
-# plt.show()
+np.random.seed(241125)
+N = int(1e8)
+infection_to_admittance = incubation_distribution_fluA.rvs(N) + admittance_distribution_flu.rvs(N)
+shape, loc, scale = sp.stats.lognorm.fit(infection_to_admittance)
+fit = sp.stats.lognorm(shape, loc=loc, scale=scale)
+n, bins, patches = plt.hist(infection_to_admittance,bins=np.arange(0,90),color='silver',density=True)
+np.savetxt('Data/Processed/Influenza_A_incubation_admittance_distribution.csv',n,delimiter=',')
+plt.plot(np.linspace(0,90,90),fit.pdf(np.linspace(0,90,90)))
+plt.xlim([0,90])
+plt.show()
 
 
 # x=np.linspace(0,30.44,1000)
