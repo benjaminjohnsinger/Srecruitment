@@ -33,19 +33,6 @@ from fit_MCMC import *
 # print all numpy array elements
 np.set_printoptions(threshold=np.inf)
 
-# AGE_GROUPS = [range(0,1),range(1,5),range(5,18),range(18,40),range(40,65),range(65,100)]
-# AGE_GROUP_NAMES = ['<1y','1-4y','5-17y','18-39y','40-64y','>=65y']
-
-# fig, axes = plt.subplots(3,2,figsize=(13.3,7.5),sharex=True)
-# kpsc_positive_test_plot(axes[0,0],pathogen="Metapneumovirus", hospitalizations=True, incidence=True, legend=False,aggregation="Month",color='#648FFF')
-# kpsc_positive_test_plot(axes[1,0],pathogen="Adenovirus", hospitalizations=True, incidence=True, legend=False,aggregation="Month",color='#648FFF')
-# kpsc_positive_test_plot(axes[2,0],pathogen="Parainfluenza 3", hospitalizations=True, incidence=True, legend=False,aggregation="Month",color='#648FFF')
-# kpsc_positive_test_plot(axes[0,1],pathogen="Metapneumovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, hospitalizations=True, incidence=True, legend=False,aggregation="Month")
-# kpsc_positive_test_plot(axes[1,1],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, hospitalizations=True, incidence=True, legend=False,aggregation="Month")
-# kpsc_positive_test_plot(axes[2,1],pathogen="Parainfluenza 3",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, hospitalizations=True, incidence=True, legend=True,aggregation="Month")
-# plt.tight_layout()
-# plt.savefig('Figures/KPSC_data_sort_of_interesting_slide.png',dpi=300)
-
 fig, ax = plt.subplots(2,1,figsize=(13.3,7.5),sharey=True)
 kpsc_positive_test_plot(ax[0],pathogen="Influenza A",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
 ax[0].set_xlabel('Time (years)')

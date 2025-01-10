@@ -91,28 +91,30 @@ import pickle
 # admittance_logsd_RSV = 0.762
 # admittance_distribution_RSV = sp.stats.lognorm(admittance_logsd_RSV,scale=np.exp(admittance_logmean_RSV))
 
-incubation_median_fluA = 1.4
+incubation_median_fluA = 1.4 # Lessler 2009
 incubation_dispersion_fluA = 1.51
 incubation_distribution_fluA = sp.stats.lognorm(np.log(incubation_dispersion_fluA),scale=incubation_median_fluA)
 
-admittance_mu_flu = 1.92
+incubation_median_fluB = 0.6
+incubation_dispersion_fluB = 1.51
+incubation_distribution_fluB = sp.stats.lognorm(np.log(incubation_dispersion_fluB),scale=incubation_median_fluB)
+
+admittance_mu_flu = 1.92 
 admittance_sigma_flu = 0.914
 admittance_Q_flu = 0.126
 a = admittance_Q_flu**(-2)
 c = admittance_Q_flu/admittance_sigma_flu
 scale = np.exp(admittance_mu_flu-np.log(a)/c)
 admittance_distribution_flu = sp.stats.gengamma(a,c,scale=scale)
-print(admittance_distribution_flu.ppf([0.25,0.5,0.75]))
-
 
 # # generate 100k samples of incubation plus admittance
 np.random.seed(241125)
 N = int(1e8)
-infection_to_admittance = incubation_distribution_fluA.rvs(N) + admittance_distribution_flu.rvs(N)
+infection_to_admittance = incubation_distribution_fluB.rvs(N) + admittance_distribution_flu.rvs(N)
 shape, loc, scale = sp.stats.lognorm.fit(infection_to_admittance)
 fit = sp.stats.lognorm(shape, loc=loc, scale=scale)
 n, bins, patches = plt.hist(infection_to_admittance,bins=np.arange(0,90),color='silver',density=True)
-np.savetxt('Data/Processed/Influenza_A_incubation_admittance_distribution.csv',n,delimiter=',')
+np.savetxt('Data/Processed/Influenza_B_incubation_admittance_distribution.csv',n,delimiter=',')
 plt.plot(np.linspace(0,90,90),fit.pdf(np.linspace(0,90,90)))
 plt.xlim([0,90])
 plt.show()

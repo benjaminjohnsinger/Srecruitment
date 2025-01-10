@@ -399,7 +399,7 @@ pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL V
 "Adenovirus": ["ADENOVIRUS",],
 "Parainfuenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
 "Parainfluenza 3": ["PARAINFLUENZA VIRUS 3"]}
-def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=None,incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None):
+def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=None,incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None, save_data=False):
     print(pathogen)
     respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv')
     if incidence:
@@ -491,6 +491,10 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
     elif incidence:
         cases["Count"] = cases["Count"]/np.sum(age_by_year.loc[cases.index.year].values,axis=1)
 
+    if save_data:
+        filename = f'Data/Processed/KPSC_{pathogen}_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_{["daily","weekly","monthly"][["D","W-MON","MS"].index(frequency)]}.csv'
+        cases.to_csv(filename)
+
     if incidence:
         cases *= 10000
     if title is None:
@@ -510,3 +514,33 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         # set legend title to "Age groups"
         ax.legend(title="Age groups")
     ax.set_xlabel("Date")
+
+## plot cumulative cases in each age group in each season
+def season_sizes(cases):
+    seasons = [pd.to_datetime('20'+str(x)+'-10-01') for x in range(15,24)]
+    season_cumulative = np.zeros((len(seasons)-1,7))
+    season_relative = np.zeros((len(seasons)-1,7))
+    for seas in range(len(seasons)-1):
+        season_cumulative[seas,:] = cases[(cases.index>seasons[seas]) & (cases.index<seasons[seas+1])].sum(axis=0)
+    return(pd.DataFrame(season_cumulative))
+
+def season_plot(ax,pathogen,incidence=False,relative=False):
+    cases = pd.read_csv('Data/Processed/KPSC_'+pathogen+'_cases_age_daily.csv',index_col=0)
+    cases.index = pd.to_datetime(cases.index)
+    season_cumulative = season_sizes(cases)
+    print(pathogen,np.sum(season_cumulative,axis=1))
+    if relative and not incidence:
+        season_relative = season_cumulative.div(season_cumulative.sum(axis=1),axis=0)
+    if relative and incidence:
+        incidence_data = pd.read_csv('Data/Processed/KPSC_'+pathogen+'_incidence_age_daily.csv',index_col=0)
+        incidence_data.index = pd.to_datetime(incidence_data.index)
+        season_incidence = season_sizes(incidence_data)
+        season_relative = season_incidence.div(season_incidence.sum(axis=1),axis=0)
+    if incidence or relative:
+        for i in range(season_cumulative.shape[0]):
+            if np.sum(season_cumulative.iloc[i,:])<=37:
+                season_relative.iloc[i,:] = 0
+        season_relative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
+    else:
+        season_cumulative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
+    
