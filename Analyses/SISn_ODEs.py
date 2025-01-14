@@ -16,7 +16,7 @@ def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_U
             + REC_UP[i-1]*state[(2*i)*NAG:(2*i+1)*NAG] + REC_SAME[i]*state[(2*i+2)*NAG:(2*i+3)*NAG]\
             - WANE[i-1]*state[(2*i+1)*NAG:(2*i+2)*NAG] + WANE[i]*state[(2*i+3)*NAG:(2*i+4)*NAG]\
             - AGING_RATE*state[(2*i+1)*NAG:(2*i+2)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(2*i+1)*NAG:(2*i+2)*NAG-1]))\
-            + (all_vax(t,i,ACOV,S_VAX,T_VAX,NAG,N_S,2)*state).reshape((2*N_S+2,NAG)).sum(axis=0)\
+            + (all_vax(t,i,ACOV,S_VAX,NAG,N_S,2)*state).reshape((2*N_S+2,NAG)).sum(axis=0)\
             - IMPORT_RATE*S_REL[i]*S_AGE*BETA*np.sum(contact(t,SEASONALITY,OFFSET),axis=0)*arrivals(t)*state[(2*i+1)*NAG:(2*i+2)*NAG]
         # Infectious class i = infection - recovery + aging in - aging out - vaccination + importations
         delta[(2*i+2)*NAG:(2*i+3)*NAG] = S_REL[i]*S_AGE*BETA*(np.dot(contact(t,SEASONALITY,OFFSET),np.sum(np.array(([state[(2*j+2)*NAG:(2*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(2*i+1)*NAG:(2*i+2)*NAG]\

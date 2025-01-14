@@ -42,6 +42,7 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
         for i_age in range(NAG):
             ax.plot(dates[start_index:end_index],obs[start_index:end_index,i_age]/pop_size_by_age[start_index:end_index,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)
         mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[start_index:end_index])
+        print(dates[start_index],dates[end_index])
     else:
         if obs is None:
             obs = factor*observations(result,params,OBS_AGE,incidence=True)
