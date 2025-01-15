@@ -43,30 +43,35 @@ import pickle
 
 ############### Processing KPSC data into time series of test-confirmed cases ###############
 
-# with SAS7BDAT('Data/Raw/KPSC/clinical_20241202.sas7bdat') as f:
-#     clinical_data = f.to_data_frame()
-
 # # with SAS7BDAT('Data/Raw/KPSC/testing.sas7bdat') as f:
 # #     test_data = f.to_data_frame()
 
-# # # date is 1st of October of each year (in YEAR column), plus dx_days
-# clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
+with SAS7BDAT('Data/Raw/KPSC/clinical_20241202.sas7bdat') as f:
+    clinical_data = f.to_data_frame()
+# # date is 1st of October of each year (in YEAR column), plus dx_days
+clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
 
-# clinical_data["Month"] = clinical_data["Date"].dt.to_period('M')
-# # sort by age in months, then translate into age groups
-# AGE_GROUPS = [range(0,3), range(3,12),range(12,5*12),range(5*12,18*12),range(18*12,40*12),range(40*12,65*12),range(65*12,90*12)]
+clinical_data["Year"] = clinical_data["YEAR"].astype(int)
+# sort by age in months, then translate into age groups
+AGE_GROUPS = [range(0,3), range(3,12),range(12,5*12),range(5*12,18*12),range(18*12,40*12),range(40*12,65*12),range(65*12,90*12)]
 AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-17y','18-39y','40-64y','>=65y']
-# age_detection = lambda x, groups, names: names[np.argmax([x in group for group in groups])]
-# clinical_data["AGE_GROUP"] = clinical_data["age_in_mo"].apply(age_detection, args=(AGE_GROUPS,AGE_GROUP_NAMES))
-# # get proportion of clinical cases with flu_vac == 1 in each month, for each age group.
-# vaccination_proportion = clinical_data.groupby(["Month","AGE_GROUP"])["flu_vac"].mean().unstack()
-# vaccination_proportion = vaccination_proportion.reindex(pd.period_range(start=vaccination_proportion.index.min(),end=vaccination_proportion.index.max(),freq='M'))
-# vaccination_proportion = vaccination_proportion.fillna(0)
-# # save to csv
-# vaccination_proportion.to_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv')
+assign_age_group = lambda x: AGE_GROUP_NAMES[np.argmax([x in group for group in AGE_GROUPS])]
+clinical_data["AGE_GROUP"] = clinical_data["age_in_mo"].apply(assign_age_group)
+# get proportion of clinical cases with flu_vac == 1 in each month, for each age group.
+vaccination_proportion = clinical_data.groupby(["Year","AGE_GROUP"])["flu_vac"].mean().unstack()
+vaccination_proportion = vaccination_proportion.reindex(pd.period_range(start=vaccination_proportion.index.min(),end=vaccination_proportion.index.max(),freq='M'))
+vaccination_proportion = vaccination_proportion.fillna(0)
+# save to csv
+vaccination_proportion.to_csv('Data/Processed/KPSC_vaccinated_proportion_ages_annual.csv')
 # #load
-vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv')
-print(vaccination_proportion)
+# vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
+
+# # rate of vaccination is monthly change in vaccinated propportion divided by 30.44 days per month, plus vaccination proportion divided by 365 days
+# vaccination_proportion = vaccination_proportion.sum(axis=1)
+# vaccination_rate = vaccination_proportion.diff()/30.44 + vaccination_proportion/365
+# plt.plot(vaccination_rate)
+# plt.show()
+
 #reorder columns to match order in AGE_GROUP_NAMES
 vaccination_proportion = vaccination_proportion[AGE_GROUP_NAMES]
 # plot
@@ -74,16 +79,16 @@ fig, ax = plt.subplots(figsize=(6.5,6.5))
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 vaccination_proportion.plot(ax=ax,color=hsv_colors)
-# plot dashed vertical lines at october each year
-for year in range(9):
-    ax.axvline(year*12,color='black',alpha=0.3)
+# # plot dashed vertical lines at october each year
+# for year in range(9):
+#     ax.axvline(year,color='black',alpha=0.3)
 ax.set_ylim(0,1)
 # x labels based on years - first index is october 2015
-ax.set_xticks(range(3,len(vaccination_proportion),12),[year for year in range(2016,2024)])
+# ax.set_xticks(range(3,len(vaccination_proportion),12),[year for year in range(2016,2024)])
 ax.set_title("Proportion of clinical cases with recent (<1y) flu vaccine")
 ax.set_ylabel("Proportion")
-ax.set_xlabel("Month")
-plt.savefig('Figures/KPSC_vaccinated_proportion_age.png',dpi=300)
+ax.set_xlabel("Year")
+plt.savefig('Figures/KPSC_vaccinated_proportion_age_annual.png',dpi=300)
 
 # test_data = test_data[test_data["StudyID"].isin(clinical_data["StudyID"])]
 # positive_tests = test_data[test_data["result_val"] == 'Positive']

@@ -20,7 +20,7 @@ from vaccination import birth_vax, all_vax
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
-from Parameters.InfluenzaB import *
+from Parameters.InfluenzaA import *
 
 from utils import *
 from demography import *
@@ -75,6 +75,12 @@ np.set_printoptions(threshold=np.inf)
 
 
 from Parameters.times_and_contacts import *
+
+v = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
+def ACOV(t,N):
+    coverage = v**(-2)*(v.diff()/30.44 + v/365 + birth_rate(t)/N)
+    return coverage
+
 T_LOCKDOWN = date_to_t('2019-03-19')
 LOCKDOWN_DURATION = 365
 p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
@@ -132,7 +138,7 @@ result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,
 obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
 mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
 lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
-plt.savefig('Figures/InfluenzB_test.png',dpi=300)
+plt.savefig('Figures/InfluenzaA_test.png',dpi=300)
 # # params["WANE"] = np.array([0,1.195e-01,0])/365
 # # params["P_OBS"] = 3.396e-02*np.array([1,0.46,0.31])
 # # OBS_AGE = np.array([1,0.8229,0.6458,0.4687,0.2916,0.1375,0.8626])

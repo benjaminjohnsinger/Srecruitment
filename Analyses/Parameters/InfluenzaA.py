@@ -35,8 +35,5 @@ OFFSET = 0.8
 BETA = 0.1
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
-@jit
-def ACOV(t):
-    return 0
 
 IMPORT_RATE = 1e-12

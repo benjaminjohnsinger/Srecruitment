@@ -1,5 +1,8 @@
 import numpy as np
+import pandas as pd
 from numba import jit
+
+from matplotlib import pyplot as plt
 
 # Vaccination of infants (a proportion)
 # S_VAX is the susceptibility class of vaccinated individuals
@@ -16,11 +19,12 @@ def birth_vax(t,s_class,S_VAX=2,COVERAGE=0,T_VAX=0):
             return 1-COVERAGE
         else:
             return 0
+
 # Annual mass vaccination (a rate)
 # S_VAX is the susceptibility class of vaccinated individuals
 # coverage is the time-varying proportion of the population vaccinated each month - this can be an age-dependent vector
 @jit
-def all_vax(t,s_class,coverage,S_VAX=2,NAG=7,N_S=3,N_C=3):
+def all_vax(t,s_class,coverage,S_VAX=2,NAG=7,N_S=3,N_C=3,cov_args=0.0):
     if s_class != S_VAX:
         # (3-N_C) here is a really hacky way of making this work with SIS model, which needs to reference an extra empty compartment
         vec = np.zeros((N_C*N_S+1+(3-N_C))*NAG)
@@ -30,5 +34,23 @@ def all_vax(t,s_class,coverage,S_VAX=2,NAG=7,N_S=3,N_C=3):
         for i in range(N_S):
             if i != s_class:
                 vec[(i*N_C+1)*NAG:(i*N_C+2)*NAG] = 1
-    return coverage(t)*vec
+    return coverage(t,cov_args)*vec
 
+# Flu vaccination coverage
+VAX_FLU = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
+VAX_FLU.index = pd.to_datetime(VAX_FLU.index,format='%Y-%m')
+VAX_FLU.index = (VAX_FLU.index - pd.to_datetime('1970-01-01')).days
+VAX_FLU_IDX = np.array(VAX_FLU.index)
+print(VAX_FLU_IDX)
+VAX_FLU_NP = np.array(VAX_FLU)
+@jit
+def flu_coverage(t):
+    return VAX_FLU_NP[np.argmin(VAX_FLU_IDX<=t)]
+# plot flu vaccination coverage over time
+times = np.arange(0,20000,30)
+plt.plot(times, [flu_coverage(t) for t in times])
+plt.show()
+
+# # Flu vaccination rate
+# @jit
+# def flu_rate(t):

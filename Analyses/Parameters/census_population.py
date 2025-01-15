@@ -45,5 +45,5 @@ AGING_RATE = 1/np.array([3/12*365,9/12*365,4*365,13*365,22*365,25*365,12.43*365]
 # AGING_RATE = 1/np.array([len(group)/12*365 for group in AGE_GROUPS])
 
 # Birth rate (for California in 2022)
-BIRTH_RATE = 3.99e5/(POP_SIZE*365)
+# BIRTH_RATE = 3.99e5/(POP_SIZE*365)
 # AGING_RATE = BIRTH_RATE/AGE_PROPORTION # Stable population distribution
