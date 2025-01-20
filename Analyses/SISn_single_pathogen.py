@@ -16,7 +16,7 @@ import datetime
 from numba import jit
 from sklearn import decomposition
 
-from vaccination import birth_vax, all_vax
+from vaccination import birth_vax, all_vax, flu_rate, flu_eff_coverage
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
@@ -76,11 +76,6 @@ np.set_printoptions(threshold=np.inf)
 
 from Parameters.times_and_contacts import *
 
-v = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
-def ACOV(t,N):
-    coverage = v**(-2)*(v.diff()/30.44 + v/365 + birth_rate(t)/N)
-    return coverage
-
 T_LOCKDOWN = date_to_t('2019-03-19')
 LOCKDOWN_DURATION = 365
 p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
@@ -91,7 +86,7 @@ STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 # Parameters for the ODE
-params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV, 'T_VAX': T_VAX,
+params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV, 'T_VAX': T_VAX,
 'arrivals': arrivals, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
@@ -133,12 +128,26 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # OBS_AGE = age_detection(NAG,pms[8],pms[9],pms[10])
 
 # # # # # # # # # #### One-shot line plot #####
-fig, ax = plt.subplots(figsize=(6.5,4.5))
+fig, ax = plt.subplots(2,1,figsize=(6.5,4.5))
+# params['contact'] = lambda t,seasonality,offset: contact(t,seasonality,offset)*(1-flu_eff_coverage(t,S_REL))
+params['BETA'] = 0
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
-mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
-plt.savefig('Figures/InfluenzaA_test.png',dpi=300)
+vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
+hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
+hsv_colors[3] = colormaps.hsv((3/7)+0.04)
+pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+# for i in range(NAG):
+#     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+#     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+ax[0].plot(result.t,[np.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/np.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
+ax[1].plot(result.t,np.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/np.sum(pop_size_by_age,axis=1),color="#648FFF")
+plt.savefig('Figures/flu_vaccination_coverage4_monthly_overall.png',dpi=300)
+
+# obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
+# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+# plt.show()
+# plt.savefig('Figures/InfluenzaA_test.png',dpi=300)
 # # params["WANE"] = np.array([0,1.195e-01,0])/365
 # # params["P_OBS"] = 3.396e-02*np.array([1,0.46,0.31])
 # # OBS_AGE = np.array([1,0.8229,0.6458,0.4687,0.2916,0.1375,0.8626])
@@ -437,35 +446,31 @@ plt.savefig('Figures/InfluenzaA_test.png',dpi=300)
 # plt.savefig('Figures/SIS_3D_based_'+str(n_clusters)+'clusters_of_cluster'+str(pick_cluster+1)+'of3_rebound_size.png',dpi=300)
 
 #### line plots with different parameter values, showing incidence and susceptibility #####
-# params['BETA'] = 70
+# # params['BETA'] = 70
 # # params['SEASONALITY'] = 0.061
-# params['S_REL'] = np.array([1,0.8,0.6])
+# # params['S_REL'] = np.array([1,0.8,0.6])
 # fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
 # mx = np.zeros(4)
 # colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
 # # Plot the incidence
-# for i in range(2):
-#     params['BETA'] = [30,50][i]
-#     result = sp.integrate.solve_ivp(sis_deltas,(0,PERIOD),STATE0,args=(params,),t_eval=POINTS,method='RK45')
-#     # plot each susceptible compartment
+# for i in range(4):
+#     params['BETA'] = [0.26,0.27,0.28,0.29][i]
+#     result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 # #     ax[i//2,i%2].plot(result.t[1:],np.sum(result.y[NAG:2*NAG,:],axis=0)[1:],label='S1',color=colors[0])
 # #     ax[i//2,i%2].plot(result.t[1:],np.sum(result.y[3*NAG:4*NAG,:],axis=0)[1:],label='S2',color=colors[1])
 # #     ax[i//2,i%2].plot(result.t[1:],np.sum(result.y[5*NAG:6*NAG,:],axis=0)[1:],label='S3',color=colors[2])
 # #     ax[i//2,i%2].set_title(f"Aquired immunity: {0.1*(i+2):.2f}")
 # # ax[0,0].legend()
 # # plt.show()
-#     obs = observations(result,params,OBS_AGE,incidence=True)
-#     print(params['P_OBS'])
-#     print(OBS_AGE)
-#     print(np.max(obs))
-#     pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
-#     corr = np.correlate(pre_obs, pre_obs, mode='same')
-#     acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
-#     acorr = acorr + np.linspace(0.1, 0, len(acorr))
-#     lag = np.abs(acorr).argmax() + 1
-#     print(lag)
-#     mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{[50,70][i]:.2f}',color=colors[i],relative=False,obs=obs)
-#     lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{[50,70][i]:.2f}',color=colors[i],relative=False)
+#     obs = observations(result,params,OBS_AGE,incidence=True,time_conversion=30.44)*10000    # plot each susceptible compartment
+#     # pre_obs = obs[(result.t>T_LOCKDOWN-12*12) & (result.t<T_LOCKDOWN)]
+#     # corr = np.correlate(pre_obs, pre_obs, mode='same')
+#     # acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
+#     # acorr = acorr + np.linspace(0.1, 0, len(acorr))
+#     # lag = np.abs(acorr).argmax() + 1
+#     # print(lag)
+#     mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{[0.265,0.27,0.275,0.28][i]:.3f}',color=colors[i],relative=False,obs=obs)
+#     lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{[0.265,0.27,0.275,0.28][i]:.3f}',color=colors[i],relative=False)
 
 # lockdown_incidence_format(ax[0],T_LOCKDOWN,LOCKDOWN_DURATION,max(mx),year_window=10)
 # lockdown_susceptibility_format(ax[1],T_LOCKDOWN,LOCKDOWN_DURATION,ymax=None,year_window=10)
@@ -475,7 +480,7 @@ plt.savefig('Figures/InfluenzaA_test.png',dpi=300)
 # # ax[1].set_ylim(1.5e7,2.2e7)
 # ax[1].legend(title="Transm.")
 # plt.tight_layout()
-# plt.savefig('Figures/test.png',dpi=300)
+# plt.savefig('Figures/fluA_betas_w_monthly_vax.png',dpi=300)
 
 # # ##### run multi-dimensional GRID SIMS #####
 # start = time.time()

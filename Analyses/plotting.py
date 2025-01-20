@@ -58,7 +58,7 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
             mx = 1.1*np.max(obs[start_index:end_index])
     return(mx)
 
-def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,year_skip=1,title='Incidence of disease with 1-year lockdown'):
+def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,year_skip=1,title='Incidence of disease'):
     # ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
     # ax.set_ylim(0,mx)
     ax.set_ylabel('Observed incidence')
@@ -88,11 +88,11 @@ def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,resul
             ax.plot(result.t,total_sus, label=label,color=color,linestyle=style)
 
 def lockdown_susceptibility_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,ymin=0.875,ymax=1.1,year_window=5):
-    ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
+    # ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
     ax.set_ylabel('Relative susceptibility')
-    ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365,365),[str(int(x)-year_window) for x in np.arange(0,2*year_window+1,1)])
+    # ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365,365),[str(int(x)-year_window) for x in np.arange(0,2*year_window+1,1)])
     ax.set_xlabel('Time (years)')
-    ax.set_title('Population susceptibility with 1-year lockdown')
+    ax.set_title('Population susceptibility')
     yin, yax = ax.get_ylim()
     if not (ymax is None or ymin is None):
         ax.set_ylim(ymin,ymax)
