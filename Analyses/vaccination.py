@@ -26,7 +26,7 @@ def birth_vax(t,s_class,S_VAX=2,COVERAGE=0,T_VAX=0):
 # S_VAX is the susceptibility class of vaccinated individuals
 # coverage is the time-varying proportion of the population vaccinated each month - this can be an age-dependent vector
 
-def all_vax(t,s_class,rate,S_VAX=2,NAG=7,N_S=3,N_C=3,cov_args=[np.ones(2),np.ones(2)]):
+def all_vax(t,s_class,rate,S_VAX=2,NAG=7,N_S=3,N_C=3,cov_args=[np.ones(2),np.ones(7),np.ones(7)]):
     if s_class != S_VAX:
         # (3-N_C) here is a really hacky way of making this work with SIS model, which needs to reference an extra empty compartment
         vec = np.zeros((N_C*N_S+1+(3-N_C))*NAG)
@@ -36,11 +36,11 @@ def all_vax(t,s_class,rate,S_VAX=2,NAG=7,N_S=3,N_C=3,cov_args=[np.ones(2),np.one
         for i in range(N_S):
             if i != s_class:
                 vec[(i*N_C+1)*NAG:(i*N_C+2)*NAG] = 1
-    rate_val = rate(t,cov_args[0]*cov_args[1])
+    rate_val = rate(t,cov_args[0],cov_args[1],cov_args[2])
     if isinstance(rate_val,(int,float)):
         return rate_val*vec
     else:
-        return np.repeat(rate_val,N_C*N_S+1+(3-N_C))*vec
+        return np.tile(rate_val,N_C*N_S+1+(3-N_C))*vec
 
 # Flu vaccination coverage
 VAX_FLU = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
@@ -58,8 +58,8 @@ EFF_IDX = np.array([(pd.to_datetime('2008-10-01') + pd.DateOffset(years=i) - pd.
 
 # Effective coverage of the flu vaccine, i.e. proportion of people protected each year
 
-def flu_eff_coverage(t,S_REL):
-    max_eff = (S_REL[-2]-S_REL[-1])/S_REL[-2] # this is assuming that most people are in the last two susceptibility classes
+def flu_eff_coverage(t,protection):
+    max_eff = (protection[-2]-protection[-1])/protection[-2] # this is assuming that most people are in the last two susceptibility classes
     raw_eff = EFF[np.argmin(EFF_IDX<=t)]
     adj_eff = raw_eff/max_eff
     if adj_eff > 1:
@@ -70,22 +70,22 @@ def flu_eff_coverage(t,S_REL):
     if t < 16709: # 16709 is the number of days since 1970-01-01 to 2015-10-01
         day_in_season = (t - 16709)%365
         time_2015 = 16709 + day_in_season
-        return adj_eff*VAX_FLU_NP[np.argmin(VAX_FLU_IDX<=time_2015)]
+        return adj_eff*VAX_FLU_NP[np.argmax(VAX_FLU_IDX>=time_2015)]
     # if time is after 2022-10-01, corresponding month in 2022-10-01 to 2023-09-30 is used
     elif t > 19266:
         day_in_season = (t - 19266)%365
         time_2022 = 19266 + day_in_season
-        return adj_eff*VAX_FLU_NP[np.argmin(VAX_FLU_IDX<=time_2022)]
+        return adj_eff*VAX_FLU_NP[np.argmax(VAX_FLU_IDX>=time_2022)]
     else:
-        return adj_eff*VAX_FLU_NP[np.argmin(VAX_FLU_IDX<=t)]
+        return adj_eff*VAX_FLU_NP[np.argmax(VAX_FLU_IDX>=t)]
 
 # # Flu vaccination rate
 
-def flu_rate(t,S_REL):
-    v = flu_eff_coverage(t,S_REL)
-    v_next_month = flu_eff_coverage(t+31,S_REL)
-    v_last_month = flu_eff_coverage(t-31,S_REL)
-    # v = np.mean(np.array([flu_eff_coverage(t+30.44*i,S_REL) for i in range(12)]),axis=0)
-    # rate = -np.log(1-v)/365
-    rate = (1/(1-v))*(((v-v_last_month)/31+(v_next_month-v)/31)/2 + (1/365)*(v/(1-v)))
-    return rate
+def flu_rate(t,protection,pops,aging_rate):
+    v = flu_eff_coverage(t,protection)
+    v_next_month = flu_eff_coverage(t+31,protection)
+    pop_shift = np.concatenate((np.zeros(1),pops[:-1]))
+    v_shift = np.concatenate((np.zeros(1),v[:-1]))
+    age_rate_shift = np.concatenate((np.zeros(1),aging_rate[:-1]))
+    rate = (1/(1-v))*((v_next_month-v)/31 + (1/365)*v + age_rate_shift*(pop_shift/pops)*(v-v_shift))
+    return np.maximum(0,rate)

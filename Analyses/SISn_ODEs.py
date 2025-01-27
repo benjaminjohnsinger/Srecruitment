@@ -8,6 +8,7 @@ import numpy as np
 def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact):
     delta = np.zeros(state.shape)
     pop_size = np.sum(state,dtype=np.float64)
+    age_pops = np.array([np.sum(state[range(i_age,(2*N_S+1)*NAG,NAG)],axis=0) for i_age in range(NAG)])
     # Susceptible, infected - waning, aging, infection, recovery for all susceptibility classes
     for i in range(N_S):
         # Susceptibile class i = birth - infection + recovery - waning out + waning in + aging in - aging out +/- vaccination
@@ -16,7 +17,7 @@ def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_U
             + REC_UP[i-1]*state[(2*i)*NAG:(2*i+1)*NAG] + REC_SAME[i]*state[(2*i+2)*NAG:(2*i+3)*NAG]\
             - WANE[i-1]*state[(2*i+1)*NAG:(2*i+2)*NAG] + WANE[i]*state[(2*i+3)*NAG:(2*i+4)*NAG]\
             - AGING_RATE*state[(2*i+1)*NAG:(2*i+2)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(2*i+1)*NAG:(2*i+2)*NAG-1]))\
-            + (all_vax(t,i,ACOV,S_VAX,NAG,N_S,2,S_REL*P_OBS)*state).reshape((2*N_S+2,NAG)).sum(axis=0)\
+            + (all_vax(t,i,ACOV,S_VAX,NAG,N_S,2,[S_REL*P_OBS,age_pops,AGING_RATE])*state).reshape((2*N_S+2,NAG)).sum(axis=0)\
             - IMPORT_RATE*S_REL[i]*S_AGE*BETA*np.sum(contact(t,SEASONALITY,OFFSET),axis=0)*arrivals(t)*state[(2*i+1)*NAG:(2*i+2)*NAG]
         # Infectious class i = infection - recovery + aging in - aging out - vaccination + importations
         delta[(2*i+2)*NAG:(2*i+3)*NAG] = S_REL[i]*S_AGE*BETA*(np.dot(contact(t,SEASONALITY,OFFSET),np.sum(np.array(([state[(2*j+2)*NAG:(2*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(2*i+1)*NAG:(2*i+2)*NAG]\

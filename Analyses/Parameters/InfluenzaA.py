@@ -3,7 +3,8 @@
 
 import numpy as np
 from numba import jit
-from utils import age_detection
+from matplotlib import pyplot as plt
+# from utils import age_detection
 
 NAG = 7
 
@@ -16,11 +17,23 @@ WANE = np.array([0.0,1/270,0.0]) # Ferguson 2003
 # Recovery rates for each susceptibility class
 REC_UP = np.array([1/3,1/3,0.0]) # Bjornstad 2016
 REC_SAME = np.array([0.0,0.0,1/3]) # Bjornstad 2016
+# Immunity as determined by vaccine effectiveness
+R = 0.29/0.43 # ratio of protection against disease to protection against infection (Basta et al 2008)
+# R = 4
+ESP = 0.6 # maximum vaccine effectiveness (against infection and subsequent disease) is 60% (CDC)
+factor = ((1 - R) + np.sqrt(1 + R**2 + 2*R*(1-2*ESP)))/2
+print(factor)
 # Relative susceptability and infectiousness, for each susceptibility class
-S_REL = np.array([1,0.9,0.8]) # maximum flu vaccine effectiveness is 60% (CDC)
+S1 = 0.5
+S2 = S1*(1-ESP)/factor
+S_REL = np.array([1,S1,S2])
+print(S_REL)
 I_REL = np.array([[1],[1],[1]])
 # Probability of detection of cases for each susceptibility class
-P_OBS_REL = np.array([1,0.89,0.4]) # simplest assumption in absence of data
+D1 = 0.5
+D2 = D1*factor
+P_OBS_REL = np.array([1,D1,D2]) # simplest assumption in absence of data
+print(P_OBS_REL)
 P_OBS_MAX = 0.03
 P_OBS = P_OBS_MAX*P_OBS_REL
 ## Parameters that vary by age group
@@ -40,4 +53,4 @@ S_VAX, BCOV = 2, 0
 def ACOV(t,S_REL):
     return 0
 
-IMPORT_RATE = 1e-12
+IMPORT_RATE = 1e-14

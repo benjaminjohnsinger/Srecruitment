@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from numba import jit
-from utils import date_to_t
+from utils import date_to_t, t_to_date
 
 # # # MOBILITY
 # # load mobility data and concatenate
@@ -88,12 +88,24 @@ MONTHLY_ARRIVALS.index = (MONTHLY_ARRIVALS.index - pd.to_datetime('1970-01-01'))
 IDX = np.array(MONTHLY_ARRIVALS.index)
 MONTHLY_ARRIVALS_NP = np.array(MONTHLY_ARRIVALS['Passenger_Count'])
 
+print(t_to_date(IDX[0]))
+
 @jit
 def arrivals(t):
     """
     Return daily of arrivals at time t, with t the number of days since 1970-01-01
     """
-    return MONTHLY_ARRIVALS_NP[np.argmin(IDX<=t)]/30.44
+    # This code is used to repeat seasonal patterns outside of data scope
+    if t < 13149: # 16709 is the number of days since 1970-01-01 to 2006-10-01, the start of the data
+        day_in_season = (t - 13149)%365
+        time_2006 = 13149 + day_in_season
+        return MONTHLY_ARRIVALS_NP[np.argmax(IDX>=time_2006)]/30.44
+    elif t > 19266:
+        day_in_season = (t - 19266)%365
+        time_2022 = 19266 + day_in_season
+        return MONTHLY_ARRIVALS_NP[np.argmax(IDX>=time_2022)]/30.44
+    else:
+        return MONTHLY_ARRIVALS_NP[np.argmax(IDX>=t)]/30.44
 
 # arrivals_by_month = np.array([arrivals(t) for t in np.array(date_to_t(pd.date_range(start=pd.to_datetime('2016-01-01'), end=pd.to_datetime('2024-01-01'), freq='MS')))])
 # plt.plot(arrivals_by_month)

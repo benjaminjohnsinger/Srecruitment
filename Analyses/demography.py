@@ -37,6 +37,7 @@ POPULATION = POPULATION.drop(columns=["Date","Annual % Change"])
 # reformat population index to be number of days since 1970-01-01
 POPULATION.index = (POPULATION.index - pd.to_datetime("1970-01-01")).days
 
+
 # BIRTHS and POPULATION as numpy vectors
 BIRTHS_IDX =np.array(BIRTHS.index)
 POPULATION_IDX = np.array(POPULATION.index)
@@ -54,10 +55,9 @@ def birth_rate(t):
     """
     Return number of births per person per day at time t, with t the number of days since 1970-01-01
     """
-    bths = BIRTHS_NP[np.argmin(BIRTHS_IDX<=t)]/30.44
-    pop = POPULATION_NP[np.argmin(POPULATION_IDX<=t)]
+    bths = BIRTHS_NP[np.argmax(BIRTHS_IDX>=t)]/30.44
+    pop = POPULATION_NP[np.argmax(POPULATION_IDX>=t)]
     return bths/pop
-
 
 # # plot, with dates after 2022 in a different color, with legend and labels
 # fig, ax = plt.subplots(figsize=(6,6))

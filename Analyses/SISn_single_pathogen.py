@@ -76,7 +76,7 @@ np.set_printoptions(threshold=np.inf)
 
 from Parameters.times_and_contacts import *
 
-T_LOCKDOWN = date_to_t('2019-03-19')
+T_LOCKDOWN = date_to_t('2020-03-19')
 LOCKDOWN_DURATION = 365
 p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 
@@ -84,6 +84,10 @@ p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribu
 STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
+
+# times = np.arange(date_to_t('2015-08-01'),date_to_t('2025-10-01'))
+# plt.plot(times,[np.mean(contact(t,SEASONALITY,OFFSET)) for t in times])
+# plt.show()
 
 # Parameters for the ODE
 params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV, 'T_VAX': T_VAX,
@@ -136,12 +140,12 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 # hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 # pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
-# # for i in range(NAG):
-# #     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# #     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# ax[0].plot(result.t,[np.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/np.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
-# ax[1].plot(result.t,np.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/np.sum(pop_size_by_age,axis=1),color="#648FFF")
-# plt.savefig('Figures/flu_vaccination_coverage4_monthly_overall.png',dpi=300)
+# for i in range(NAG): 
+#     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+#     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+# # ax[0].plot(result.t,[np.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/np.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
+# # ax[1].plot(result.t,np.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/np.sum(pop_size_by_age,axis=1),color="#648FFF")
+# plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
 
 # obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
 # mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
@@ -454,7 +458,7 @@ mx = np.zeros(4)
 colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
 # Plot the incidence
 for i in range(4):
-    p = [0.1,0.101,0.102,0.103][i]
+    p = [0.216,0.219,0.222,0.225][i]
     params['BETA'] = p
     result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 #     ax[i//2,i%2].plot(result.t[1:],np.sum(result.y[NAG:2*NAG,:],axis=0)[1:],label='S1',color=colors[0])
@@ -470,7 +474,7 @@ for i in range(4):
     # acorr = acorr + np.linspace(0.1, 0, len(acorr))
     # lag = np.abs(acorr).argmax() + 1
     # print(lag)
-    mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{p:.4f}',color=colors[i],relative=False,obs=obs)
+    mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{p:.4f}',color=colors[i],relative=False,obs=obs,end_t=date_to_t(pd.to_datetime('2025-09-30')))
     lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{p:.4f}',color=colors[i],relative=False)
 
 lockdown_incidence_format(ax[0],T_LOCKDOWN,LOCKDOWN_DURATION,max(mx),year_window=10)
@@ -481,7 +485,7 @@ ax[1].set_ylabel("Effective population susceptibility")
 # ax[1].set_ylim(1.5e7,2.2e7)
 ax[1].legend(title="Transm.")
 plt.tight_layout()
-plt.savefig('Figures/fluA_betas_w_monthly_vax_both_immunity.png',dpi=300)
+plt.savefig('Figures/fluA_betas_w_monthly_vax_both_lowS1.png',dpi=300)
 
 # # ##### run multi-dimensional GRID SIMS #####
 # start = time.time()
