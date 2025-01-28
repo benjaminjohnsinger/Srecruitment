@@ -122,7 +122,7 @@ def observations(result,params,OBS_AGE,incidence=False,cap=False,N_C=2,time_conv
     """
     Generate observed cases or incidence from ODE results
     """
-    NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params.values()
+    NAG, N_S, BETA, contact, SEASONALITY, OFFSET, S_REL, I_REL, P_OBS = params["NAG"], params["N_S"], params["BETA"], params["contact"], params["SEASONALITY"], params["OFFSET"], params["S_REL"], params["I_REL"], params["P_OBS"]
     obs = np.zeros((len(result.t),NAG))
     pop_size = np.sum(result.y,axis=0)
     for i_t,t in enumerate(result.t):
@@ -142,7 +142,7 @@ def infections_by_age(result,params,N_C=2):
     """
     Generate infections attributable to each age group from ODE results
     """
-    NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params.values()
+    NAG, N_S, BETA, contact, SEASONALITY, OFFSET, S_REL, I_REL = params["NAG"], params["N_S"], params["BETA"], params["contact"], params["SEASONALITY"], params["OFFSET"], params["S_REL"], params["I_REL"]
     infs = np.zeros((len(result.t),NAG))
     for i_t,t in enumerate(result.t):
         infs[i_t,:] = np.sum(np.array([BETA*result.y[(N_C*i+2)*NAG:(N_C*i+3)*NAG,i_t]*I_REL[i]*np.dot(contact(t,SEASONALITY,OFFSET),np.sum([S_REL[j]*result.y[(N_C*j+1)*NAG:(N_C*j+2)*NAG,i_t] for j in range(N_S)],axis=0)) for i in range(N_S)]),axis=0)
@@ -166,7 +166,7 @@ def susceptibility(result,params,N_C=2):
     """
     Generate susceptibility by age group from ODE results
     """
-    NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params.values()
+    NAG, N_S, S_REL, S_AGE = params["NAG"], params["N_S"], params["S_REL"], params["S_AGE"]
     sus = np.zeros((len(result.t),NAG))
     for i_t,t in enumerate(result.t):
         for i in range(N_S):

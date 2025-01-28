@@ -7,6 +7,52 @@ from Parameters.census_population import *
 from plotting import *
 import pickle
 
+############### CDC data ###############
+# flu data
+flu_pre2015 = pd.read_csv('Data/Raw/FluViewPhase2Data/WHO_NREVSS_Combined_prior_to_2015_16.csv')
+flu_clinical = pd.read_csv('Data/Raw/FluViewPhase2Data/WHO_NREVSS_Clinical_Labs.csv')
+flu_ph = pd.read_csv('Data/Raw/FluViewPhase2Data/WHO_NREVSS_Public_Health_Labs.csv')
+
+flu_pre2015["Date"] = pd.to_datetime(flu_pre2015["YEAR"].astype(int).astype(str) + '-01-01') + pd.to_timedelta(flu_pre2015["WEEK"]*7,unit='D')
+flu_clinical["Date"] = pd.to_datetime(flu_clinical["YEAR"].astype(int).astype(str) + '-01-01') + pd.to_timedelta(flu_clinical["WEEK"]*7,unit='D')
+
+# flu A columns are A (2009 H1N1),A (H1),A (H3),A (Subtyping not Performed),A (Unable to Subtype),H3N2v,A (H5)
+flu_pre2015["A"] = flu_pre2015["A (2009 H1N1)"] + flu_pre2015["A (H1)"] + flu_pre2015["A (H3)"] + flu_pre2015["A (Subtyping not Performed)"] + flu_pre2015["A (Unable to Subtype)"] + flu_pre2015["H3N2v"] + flu_pre2015["A (H5)"]
+flu_pre2015["PERCENT A"] = 100*flu_pre2015["A"]/flu_pre2015["TOTAL SPECIMENS"]
+flu_pre2015["PERCENT B"] = 100*flu_pre2015["B"]/flu_pre2015["TOTAL SPECIMENS"]
+# NA to 0
+flu_pre2015.fillna(0,inplace=True)
+
+# get PERCENT POSITIVE for each week by concatenating time series from pre-2015 and post-2015 clinical data
+fluA_pp = pd.concat([flu_pre2015[["Date","REGION","PERCENT A"]],flu_clinical[["Date","REGION","PERCENT A"]]])
+fluA_pp.rename(columns={"PERCENT A":"PERCENT POSITIVE"},inplace=True)
+fluB_pp = pd.concat([flu_pre2015[["Date","REGION","PERCENT B"]],flu_clinical[["Date","REGION","PERCENT B"]]])
+fluB_pp.rename(columns={"PERCENT B":"PERCENT POSITIVE"},inplace=True)
+# index
+fluA_pp_regional = fluA_pp.pivot(index="Date",columns="REGION",values="PERCENT POSITIVE")
+fluA_pp_regional = fluA_pp_regional[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+fluB_pp_regional = fluB_pp.pivot(index="Date",columns="REGION",values="PERCENT POSITIVE")
+fluB_pp_regional = fluB_pp_regional[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+fluA_pp_regional.to_csv('Data/Processed/FluView_PercentPositive_Regions_A.csv')
+fluB_pp_regional.to_csv('Data/Processed/FluView_PercentPositive_Regions_B.csv')
+# colors are 9 shades of grayscale and one red
+colors = colormaps.get_cmap('Greys',9)(np.linspace(1,0.3,9)).tolist()
+colors.append('red')
+fig, ax = plt.subplots(2,1,figsize=(6.5,8.5),sharey=True,sharex=True)
+fluA_pp_regional.plot(ax=ax[0],color=colors,legend=False)
+fluB_pp_regional.plot(ax=ax[1],color=colors)
+ax[0].set_ylabel("Percent positive for flu A")
+ax[1].set_ylabel("Percent positive for flu B")
+# legend label is HHS region number
+ax[1].legend(title="HHS region")
+fig.suptitle("FluView Percent Positive by Region")
+plt.tight_layout()
+plt.savefig('Figures/FluView_PercentPositive_Regions.png',dpi=300)
+
+combined_ARI = pd.read_csv('Data/Raw/Percent_of_Tests_Positive_for_Viral_Respiratory_Pathogens_20250127.csv')
+
+
+
 ############### Plotting KPSC data ###############
 ## Incidence line plots
 # fig, axes = plt.subplots(3,2,figsize=(13.3,7.5),sharex=True)
@@ -43,46 +89,46 @@ import pickle
 
 ############### Processing KPSC data into time series of test-confirmed cases ###############
 
-# # with SAS7BDAT('Data/Raw/KPSC/testing.sas7bdat') as f:
-# #     test_data = f.to_data_frame()
+# # # with SAS7BDAT('Data/Raw/KPSC/testing.sas7bdat') as f:
+# # #     test_data = f.to_data_frame()
 
-with SAS7BDAT('Data/Raw/KPSC/clinical_20241202.sas7bdat') as f:
-    clinical_data = f.to_data_frame()
+# with SAS7BDAT('Data/Raw/KPSC/clinical_20241202.sas7bdat') as f:
+#     clinical_data = f.to_data_frame()
 
-# # save random sample of clinical data
-# # clinical_data.sample(10000).to_csv('Data/Processed/KPSC_clinical_sample.csv',index=False)
-# # # load
-# # clinical_data = pd.read_csv('Data/Processed/KPSC_clinical_sample.csv')
-# # # date is 1st of October of each year (in YEAR column), plus dx_days
-clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
+# # # save random sample of clinical data
+# # # clinical_data.sample(10000).to_csv('Data/Processed/KPSC_clinical_sample.csv',index=False)
+# # # # load
+# # # clinical_data = pd.read_csv('Data/Processed/KPSC_clinical_sample.csv')
+# # # # date is 1st of October of each year (in YEAR column), plus dx_days
+# clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
 
-clinical_data["Year"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01')
-# # sort by age in months, then translate into age groups
-# AGE_GROUPS = [range(0,3), range(3,12),range(12,5*12),range(5*12,18*12),range(18*12,40*12),range(40*12,65*12),range(65*12,120*12)]
-# AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-17y','18-39y','40-64y','>=65y']
-# assign_age_group = lambda x: AGE_GROUP_NAMES[np.argmax([x in group for group in AGE_GROUPS])]
-# clinical_data["AGE_GROUP"] = clinical_data["age_in_mo"].apply(assign_age_group)
-# # get proportion of clinical cases with flu_vac == 1 in each month, for each age group.
-vaccination_proportion = clinical_data.groupby(["Year","age"])["flu_vac"].mean().unstack()
-# vaccination_proportion = vaccination_proportion.reindex(pd.period_range(start=vaccination_proportion.index.min(),end=vaccination_proportion.index.max(),freq='Y'))
-# vaccination_proportion = vaccination_proportion.fillna(0)
-# #reorder columns to match order in AGE_GROUP_NAMES
-# vaccination_proportion = vaccination_proportion[AGE_GROUP_NAMES]
+# clinical_data["Year"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01')
+# # # sort by age in months, then translate into age groups
+# # AGE_GROUPS = [range(0,3), range(3,12),range(12,5*12),range(5*12,18*12),range(18*12,40*12),range(40*12,65*12),range(65*12,120*12)]
+# # AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-17y','18-39y','40-64y','>=65y']
+# # assign_age_group = lambda x: AGE_GROUP_NAMES[np.argmax([x in group for group in AGE_GROUPS])]
+# # clinical_data["AGE_GROUP"] = clinical_data["age_in_mo"].apply(assign_age_group)
+# # # get proportion of clinical cases with flu_vac == 1 in each month, for each age group.
+# vaccination_proportion = clinical_data.groupby(["Year","age"])["flu_vac"].mean().unstack()
+# # vaccination_proportion = vaccination_proportion.reindex(pd.period_range(start=vaccination_proportion.index.min(),end=vaccination_proportion.index.max(),freq='Y'))
+# # vaccination_proportion = vaccination_proportion.fillna(0)
+# # #reorder columns to match order in AGE_GROUP_NAMES
+# # vaccination_proportion = vaccination_proportion[AGE_GROUP_NAMES]
 
-# # save to csv
-vaccination_proportion.to_csv('Data/Processed/KPSC_vaccinated_proportion_year_ages_by_season.csv')
-# #load
-# vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_by_season.csv',index_col=0)
-vax2022 = vaccination_proportion.loc['2022-10-01']
-age_pops = pd.read_csv('Data/Raw/US_Census_population_by_age.csv',dtype=int)
-age_pop = age_pops.groupby('AGE')['POPESTIMATE2022'].sum()
-# get rid of age over 90
-age_pop = age_pop[age_pop.index < 90]
-# match vaccination proportion to age population by age
-vax2022 = vax2022.reindex(age_pop.index)
-# population weighted average of vaccination proportion
-vax2022 = (vax2022*age_pop).sum()/age_pop.sum()
-print(vax2022)
+# # # save to csv
+# vaccination_proportion.to_csv('Data/Processed/KPSC_vaccinated_proportion_year_ages_by_season.csv')
+# # #load
+# # vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_by_season.csv',index_col=0)
+# vax2022 = vaccination_proportion.loc['2022-10-01']
+# age_pops = pd.read_csv('Data/Raw/US_Census_population_by_age.csv',dtype=int)
+# age_pop = age_pops.groupby('AGE')['POPESTIMATE2022'].sum()
+# # get rid of age over 90
+# age_pop = age_pop[age_pop.index < 90]
+# # match vaccination proportion to age population by age
+# vax2022 = vax2022.reindex(age_pop.index)
+# # population weighted average of vaccination proportion
+# vax2022 = (vax2022*age_pop).sum()/age_pop.sum()
+# print(vax2022)
 
 # print(vaccination_proportion[['<3m','3-11m']])
 # # plot
