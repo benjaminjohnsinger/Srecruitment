@@ -55,7 +55,7 @@ OBS_AGE = np.array([0.2,0.15,0.1,0.05,0.05,0.2,1])
 ## Other
 # Seasonality parameters
 SEASONALITY = 0.04
-OFFSET = 0.05
+OFFSET = 0
 # Infectiousness
 BETA = 0.11
 # Vaccination paramters
@@ -64,12 +64,12 @@ S_VAX, BCOV = 2, 0
 def ACOV(t,S_REL):
     return 0
 
-IMPORT_RATE = 5e-11
+IMPORT_RATE = 1e-11
 PP = pd.read_csv("Data/Processed/FluView_PercentPositive_Regions_A.csv")
 PP.index = pd.to_datetime(PP["Date"], format="%Y-%m-%d")
 PP.index = (PP.index - pd.to_datetime("1970-01-01")).days
-PP_NP = np.array(PP['Region 9'])
-# PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean(axis=1))
+# PP_NP = np.array(PP['Region 9'])
+PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean(axis=1))
 PP_IDX = np.array(PP.index)
 @jit
 def regional_positivity(t):

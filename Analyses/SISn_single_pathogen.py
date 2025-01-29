@@ -8,6 +8,7 @@ import time
 import itertools as it
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from matplotlib.ticker import AutoMinorLocator
 from matplotlib import cm as pltcm
 import corner
 import pickle
@@ -453,12 +454,14 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # # params['BETA'] = 70
 # # params['SEASONALITY'] = 0.061
 # # params['S_REL'] = np.array([1,0.8,0.6])
-fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
+fig, ax = plt.subplots(2,1,figsize=(13.3,7.5),sharey=True)
+kpsc_positive_test_plot(ax[0],pathogen="Influenza A", incidence=True, legend=False,aggregation="Month")
 mx = np.zeros(4)
-colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
+# four viridis colours
+colors = colormaps.viridis(np.linspace(0,1,4))
 # Plot the incidence
 for i in range(4):
-    p = [0.09,0.1,0.11,0.12][i]
+    p = [0.095,0.1,0.105,0.11][i]
     params['BETA'] = p
     result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 #     ax[i//2,i%2].plot(result.t[1:],np.sum(result.y[NAG:2*NAG,:],axis=0)[1:],label='S1',color=colors[0])
@@ -474,18 +477,21 @@ for i in range(4):
     # acorr = acorr + np.linspace(0.1, 0, len(acorr))
     # lag = np.abs(acorr).argmax() + 1
     # print(lag)
-    mx[i] = lockdown_incidence_plot(ax[0],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{p:.4f}',color=colors[i],relative=False,obs=obs,end_t=date_to_t(pd.to_datetime('2025-09-30')))
-    lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{p:.4f}',color=colors[i],relative=False)
+    mx[i] = lockdown_incidence_plot(ax[1],STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,label=f'{p:.4f}',color=colors[i],relative=False,obs=obs)
+    # lockdown_susceptibility_plot(ax[1],STATE0,params,PERIOD,POINTS,T_LOCKDOWN,result=result,label=f'{p:.4f}',color=colors[i],relative=False)
 
-lockdown_incidence_format(ax[0],T_LOCKDOWN,LOCKDOWN_DURATION,max(mx),year_window=10)
-lockdown_susceptibility_format(ax[1],T_LOCKDOWN,LOCKDOWN_DURATION,ymax=None,year_window=10)
-ax[0].set_ylabel("Observed incidence")
+lockdown_incidence_format(ax[1],T_LOCKDOWN,LOCKDOWN_DURATION,max(mx),year_window=10)
+ax[1].set_xlim(POINTS[89],POINTS[-1])
+# three minor ticks between x ticks
+ax[1].xaxis.set_minor_locator(AutoMinorLocator(4))
+# lockdown_susceptibility_format(ax[1],T_LOCKDOWN,LOCKDOWN_DURATION,ymax=None,year_window=10)
+# ax[1].set_ylabel("Observed incidence")
 # ax[0].set_ylim(0,1.1)
-ax[1].set_ylabel("Effective population susceptibility")
+ax[1].set_ylabel("Modelled incidence per 10k")
 # ax[1].set_ylim(1.5e7,2.2e7)
 ax[1].legend(title="Transm.")
 plt.tight_layout()
-plt.savefig('Figures/fluA_betas_w_monthly_vax_both_lowS1.png',dpi=300)
+plt.savefig('Figures/fluA_betas_w_vax_and_forcing_non9_ppt.png',dpi=300)
 
 # # ##### run multi-dimensional GRID SIMS #####
 # start = time.time()
