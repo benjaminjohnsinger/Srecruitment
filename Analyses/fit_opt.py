@@ -40,9 +40,9 @@ opt_times = []
 
 def likelihood(x):
     sim_params = params.copy()
-    sim_params["BETA"] = x
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]*1
+    sim_params["BETA"] = x[0]
+    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
+bounds = [(0,1)]
 start = time.time()
 opt1 = sp.optimize.differential_evolution(likelihood,bounds)
 opt_times.append(time.time()-start)
@@ -53,7 +53,7 @@ def likelihood(x):
     sim_params = params.copy()
     sim_params["SEASONALITY"] = x[0]
     sim_params["BETA"] = x[1]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True)
+    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
 bounds = [(0,1)]*2
 start = time.time()
 opt2 = sp.optimize.differential_evolution(likelihood,bounds)
@@ -66,7 +66,7 @@ def likelihood(x):
     sim_params["SEASONALITY"] = x[0]
     sim_params["OFFSET"] = x[1]
     sim_params["BETA"] = x[2]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True)
+    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
 bounds = [(0,1)]*3
 start = time.time()
 opt3 = sp.optimize.differential_evolution(likelihood,bounds)
@@ -80,7 +80,7 @@ def likelihood(x):
     sim_params["OFFSET"] = x[1]
     sim_params["BETA"] = x[2]
     sim_params["IMPORT_RATE"] = x[3]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True)
+    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
 bounds = [(0,1)]*4
 start = time.time()
 opt4 = sp.optimize.differential_evolution(likelihood,bounds)
@@ -95,7 +95,7 @@ def likelihood(x):
     sim_params["OFFSET"] = x[3]
     sim_params["BETA"] = x[3]
     sim_params["IMPORT_RATE"] = x[4]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True)
+    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
 bounds = [(0,1)]*5
 start = time.time()
 opt5 = sp.optimize.differential_evolution(likelihood,bounds)
@@ -111,7 +111,7 @@ def likelihood(x):
     sim_params["BETA"] = x[3]
     sim_params["IMPORT_RATE"] = x[4]
     sim_params["P_OBS"] = x[5]*params["P_OBS"]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True)
+    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
 bounds = [(0,1)]*6
 start = time.time()
 opt6 = sp.optimize.differential_evolution(likelihood,bounds)
@@ -129,7 +129,7 @@ def likelihood(x):
     srel, pobsrel = constrained_immunity(x[5],0,0.39)
     sim_params["S_REL"] = srel
     sim_params["P_OBS"] = x[6]*pobsrel
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True)
+    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
 bounds = [(0,1)]*7
 start = time.time()
 opt7 = sp.optimize.differential_evolution(likelihood,bounds)
@@ -147,7 +147,7 @@ def likelihood(x):
     srel, pobsrel = constrained_immunity(x[5],x[6],0.39)
     sim_params["S_REL"] = srel
     sim_params["P_OBS"] = x[7]*pobsrel
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True)
+    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
 bounds = [(0,1)]*8
 start = time.time()
 opt8 = sp.optimize.differential_evolution(likelihood,bounds)
@@ -165,7 +165,7 @@ def likelihood(x):
     srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
     sim_params["S_REL"] = srel
     sim_params["P_OBS"] = x[8]*pobsrel
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,obs_age,p_time_to_obs,age=True,incidence=True)
 bounds = [(0,1)]*9
 start = time.time()
 opt9 = sp.optimize.differential_evolution(likelihood,bounds)
