@@ -88,8 +88,6 @@ MONTHLY_ARRIVALS.index = (MONTHLY_ARRIVALS.index - pd.to_datetime('1970-01-01'))
 IDX = np.array(MONTHLY_ARRIVALS.index)
 MONTHLY_ARRIVALS_NP = np.array(MONTHLY_ARRIVALS['Passenger_Count'])
 
-print(t_to_date(IDX[0]))
-
 @jit
 def arrivals(t):
     """

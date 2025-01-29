@@ -78,7 +78,7 @@ from Parameters.times_and_contacts import *
 
 T_LOCKDOWN = date_to_t('2020-03-19')
 LOCKDOWN_DURATION = 365
-p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
@@ -458,7 +458,7 @@ mx = np.zeros(4)
 colors = ['#648FFF', '#DC267F', '#785EF0', '#FFB000']
 # Plot the incidence
 for i in range(4):
-    p = [0.216,0.219,0.222,0.225][i]
+    p = [0.09,0.1,0.11,0.12][i]
     params['BETA'] = p
     result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 #     ax[i//2,i%2].plot(result.t[1:],np.sum(result.y[NAG:2*NAG,:],axis=0)[1:],label='S1',color=colors[0])

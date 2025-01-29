@@ -17,25 +17,36 @@ WANE = np.array([0.0,1/270,0.0]) # Ferguson 2003
 # Recovery rates for each susceptibility class
 REC_UP = np.array([1/3,1/3,0.0]) # Bjornstad 2016
 REC_SAME = np.array([0.0,0.0,1/3]) # Bjornstad 2016
-# Immunity as determined by vaccine effectiveness
-R = 0.29/0.43 # ratio of protection against disease to protection against infection (Basta et al 2008)
-# R = 4
-ESP = 0.6 # maximum vaccine effectiveness (against infection and subsequent disease) is 60% (CDC)
+
+## Immunity
+# Immunity relationships determined by vaccine parameters
+# Free parameters between 0 and 1
+IMM_ABOVE_MIN = 0 # The immunity to infection and disease on exposure above the minimum level informed by data
+FIRST_IMM_MAG = 0 # The immunity to infection and disease after first infection above the minimum level informed by data
+FIRST_DIS_INF_FACTOR = 0.39 # Determines relative infection and disease immunity after first infection
+# ratio of protection against disease to protection against infection (Basta et al 2008)
+R = 0.29/0.43 
+# maximum lower CI of vaccine effectiveness in adults is 0.39, ESP should be at least this large
+ESP = 0.39 + IMM_ABOVE_MIN*(1-0.39)
 factor = ((1 - R) + np.sqrt(1 + R**2 + 2*R*(1-2*ESP)))/2
-print(factor)
 # Relative susceptability and infectiousness, for each susceptibility class
-S1 = 0.5
+# S1 has to be >= (1-1.54*ESP)/(1-ESP) for D1 to be >= 1
+S1 = ((1-1.54*ESP)/(1-ESP) + FIRST_IMM_MAG*(1-(1-1.54*ESP)/(1-ESP)))**FIRST_DIS_INF_FACTOR
 S2 = S1*(1-ESP)/factor
-S_REL = np.array([1,S1,S2])
-print(S_REL)
-I_REL = np.array([[1],[1],[1]])
 # Probability of detection of cases for each susceptibility class
-D1 = 0.5
+# child efficacy is on average 1.54 times that of adults
+# plug this into the expressions for S2 and D2 and you get D1 = (1-1.54*ESP)/((1-ESP)*S1)
+# D1 should be at least as big as that value
+D1 = ((1-1.54*ESP)/(1-ESP) + FIRST_IMM_MAG*(1-(1-1.54*ESP)/(1-ESP)))**(1-FIRST_DIS_INF_FACTOR)
 D2 = D1*factor
-P_OBS_REL = np.array([1,D1,D2]) # simplest assumption in absence of data
-print(P_OBS_REL)
-P_OBS_MAX = 0.03
+
+S_REL = np.array([1,S1,S2])
+I_REL = np.array([[1],[1],[1]])
+P_OBS_REL = np.array([1,D1,D2])
+
+P_OBS_MAX = 0.05
 P_OBS = P_OBS_MAX*P_OBS_REL
+
 ## Parameters that vary by age group
 # Age-specific susceptibility
 S_AGE = np.ones(NAG)
@@ -44,9 +55,9 @@ OBS_AGE = np.array([0.2,0.15,0.1,0.05,0.05,0.2,1])
 ## Other
 # Seasonality parameters
 SEASONALITY = 0.04
-OFFSET = 0
+OFFSET = 0.05
 # Infectiousness
-BETA = 0.145
+BETA = 0.11
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
 @jit

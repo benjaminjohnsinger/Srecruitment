@@ -60,6 +60,18 @@ def age_detection(NAG,young_immunity,old_immunity,young_old,linear=True,min_obs=
 
 # print(age_detection(7, 0.05,0.8,0.1,linear=True))
 
+def constrained_immunity(extra_immunity,first_immunity,first_dis_inf_factor,DIS_INF_RATIO=0.674,MIN_EFF=0.39,CHILD_EFF_RATIO=1.54):
+    """
+    Convert free parameters between 0 and 1 to immunity parameters constrained by flu vaccine data
+    """
+    ESP = MIN_EFF + extra_immunity*(1-MIN_EFF)
+    factor = ((1 - DIS_INF_RATIO) + np.sqrt(1 + DIS_INF_RATIO**2 + 2*DIS_INF_RATIO*(1-2*ESP)))/2
+    S1 = ((1-CHILD_EFF_RATIO*ESP)/(1-ESP) + first_immunity*(1-(1-CHILD_EFF_RATIO*ESP)/(1-ESP)))**first_dis_inf_factor
+    S2 = S1*(1-ESP)/factor
+    D1 = ((1-CHILD_EFF_RATIO*ESP)/(1-ESP) + first_immunity*(1-(1-CHILD_EFF_RATIO*ESP)/(1-ESP)))**(1-first_dis_inf_factor)
+    D2 = D1*factor
+    return np.array([1,S1,S2]), np.array([1,D1,D2])
+
 def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
     for name in scalar_values_dict.keys():
         if name in ["NAG","N_S","BIRTH_RATE","S_VAX","ACOV","BCOV","T_VAX","IMPORT_RATE","BETA","SEASONALITY","OFFSET"]:

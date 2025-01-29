@@ -53,17 +53,27 @@ VAX_FLU_IDX = np.array(VAX_FLU_ADJUSTED.index)
 VAX_FLU_NP = np.array(VAX_FLU_ADJUSTED)
 
 # Flu efficacy by year
-EFF = (1/100)*np.array([42, 56, 60, 47, 49, 52, 19, 48, 40, 38, 29, 39, 42, 36, 30, 42, 42]) # from CDC, Data/Raw/vaccine-effectiveness-chart-2024.xlsx, with missing data filled in with average (42)
+# EFF_ALL = (1/100)*np.array([42, 56, 60, 47, 49, 52, 19, 48, 40, 38, 29, 39, 42, 36, 30, 42, 42]) # from CDC, Data/Raw/vaccine-effectiveness-chart-2024.xlsx, with missing data filled in with mean (42)
+# EFF_ALL_CI_MIN = (1/100)*np.array([0,22.7,54,36,29,44,10,41,32,31,21,32,0,21,-9,29,0])
+# EFF_ALL_CI_MAX = (1/100)*np.array([100,74.8,66,56,47,59,27,55,46,43,35,44,100,48,54,53,100])
+# EFF_CHILD = (1/100) * np.array([50, 41, 58, 59, 51, 48, 25, 51, 57, 68, 48, 34, 50, 51, 50, 52, 50]) # VE in youngest age group from studies that went into Data/Raw/vaccine-effectiveness-chart-2024.xlsx, with missing data filled in with mean (50)
+EFF = (1/100)*np.array([37, 61, 51, 44, 39, 53, 7, 52, 19, 33, 25, 34, 37, 32, 23, 41, 37]) # VE in 18-49yo (or age group containing this range) from studies that went into Data/Raw/vaccine-effectiveness-chart-2024.xlsx, with missing data filled in with mean (37)
+# EFF_CI_MIN = (1/100)*np.array([0,-1,36,21,16,39,-12,39,0,21,10,23,0,3,-29,34,0])
+# EFF_CI_MAX = (1/100)*np.array([100,84.8,62,60,48,64,33,61,34,44,37,44,100,52,54,47,100])
 EFF_IDX = np.array([(pd.to_datetime('2008-10-01') + pd.DateOffset(years=i) - pd.to_datetime('1970-01-01')).days for i in range(17)])
 
-# Effective coverage of the flu vaccine, i.e. proportion of people protected each year
-
-def flu_eff_coverage(t,protection):
+@jit
+def flu_eff_coverage(t,protection,eff_cap=True):
+    '''
+    Calculate the effective coverage (proportion of people protected) of the flu vaccine at time t
+    t: time in days since 1970-01-01
+    protection: relative risk of disease given exposure for each susceptibility class
+    eff_cap: whether to cap the efficacy at 1
+    '''
     max_eff = (protection[-2]-protection[-1])/protection[-2] # this is assuming that most people are in the last two susceptibility classes
     raw_eff = EFF[np.argmin(EFF_IDX<=t)]
     adj_eff = raw_eff/max_eff
-    if adj_eff > 1:
-        print('Warning: vaccine efficacy exceeds maximum, setting to 1')
+    if adj_eff > 1 and eff_cap:
         adj_eff = 1
     # If time steps are less than one year, this code can be used to repeat seasonal patterns outside of data scope
     # if time is before 2015-10-01, corresponding month in 2015-10-01 to 2016-09-30 is used
@@ -80,8 +90,8 @@ def flu_eff_coverage(t,protection):
         return adj_eff*VAX_FLU_NP[np.argmax(VAX_FLU_IDX>=t)]
 
 # # Flu vaccination rate
-
-def flu_rate(t,protection,pops,aging_rate):
+@jit
+def flu_rate(t,protection,pops,aging_rate,eff_cap=True):
     v = flu_eff_coverage(t,protection)
     v_next_month = flu_eff_coverage(t+31,protection)
     pop_shift = np.concatenate((np.zeros(1),pops[:-1]))
