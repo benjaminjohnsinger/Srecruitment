@@ -38,16 +38,28 @@ fluB_pp_regional.to_csv('Data/Processed/FluView_PercentPositive_Regions_B.csv')
 # colors are 9 shades of grayscale and one red
 colors = colormaps.get_cmap('Greys',9)(np.linspace(1,0.3,9)).tolist()
 colors.append('red')
-fig, ax = plt.subplots(2,1,figsize=(13.3,7.5),sharey=True,sharex=True)
-fluA_pp_regional.plot(ax=ax[0],color=colors,legend=False)
-fluB_pp_regional.plot(ax=ax[1],color=colors)
-ax[0].set_ylabel("Percent positive for flu A")
-ax[1].set_ylabel("Percent positive for flu B")
-# legend label is HHS region number
-ax[1].legend(title="HHS region")
-fig.suptitle("FluView Percent Positive by Region")
+# fig, ax = plt.subplots(2,1,figsize=(13.3,7.5),sharey=True,sharex=True)
+# fluA_pp_regional.plot(ax=ax[0],color=colors,legend=False)
+# fluB_pp_regional.plot(ax=ax[1],color=colors)
+# ax[0].set_ylabel("Percent positive for flu A")
+# ax[1].set_ylabel("Percent positive for flu B")
+# # legend label is HHS region number
+# ax[1].legend(title="HHS region")
+# fig.suptitle("FluView Percent Positive by Region")
+# plt.tight_layout()
+# plt.savefig('Figures/FluView_PercentPositive_Regions_ppt.png',dpi=300)
+
+# plot the region between 2022-01-01 and 2022-06-01
+colors = ["#648FFF", "#DC267F", "#FFB000", "#785EF0", "#000000", "#648FFF", "#DC267F", "#FFB000", "#785EF0", "#000000"]
+linestyles = ['-']*5+['--']*5
+fig, ax = plt.subplots(1,1,figsize=(13.3,7.5),sharey=True,sharex=True)
+for i,region in enumerate(fluA_pp_regional.columns):
+    fluA_pp_regional[region].loc['2021-10-01':'2022-02-01'].plot(ax=ax, color=colors[i], linestyle=linestyles[i], label=region)
+# fluA_pp_regional.loc['2022-01-01':'2022-06-01'].plot(ax=ax[0],color=colors,legend=False)
+ax.legend(title="HHS region")
+ax.set_ylabel("Percent positive for flu A")
 plt.tight_layout()
-plt.savefig('Figures/FluView_PercentPositive_Regions_ppt.png',dpi=300)
+plt.savefig('Figures/FluViewA_PercentPositive_Regions_ppt_first_rebound_wave.png',dpi=300)
 
 # combined_ARI = pd.read_csv('Data/Raw/Percent_of_Tests_Positive_for_Viral_Respiratory_Pathogens_20250127.csv')
 

@@ -12,3 +12,9 @@ import scipy as sp
 from utils import *
 # from sas7bdat import SAS7BDAT
 import pickle
+
+x = np.array([1,2,3,4,5,6,7])
+
+print(np.tile(x,8))
+print(x.repeat(8))
+print(x.repeat(8).reshape((-1,8)).T.flatten())

@@ -24,14 +24,17 @@ def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_U
             - (REC_UP[i]+REC_SAME[i])*state[(2*i+2)*NAG:(2*i+3)*NAG]\
             - AGING_RATE*state[(2*i+2)*NAG:(2*i+3)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(2*i+2)*NAG:(2*i+3)*NAG-1]))\
             + IMPORT_RATE*regional_positivity(t)*S_REL[i]*S_AGE*BETA*np.sum(contact(t,SEASONALITY,OFFSET),axis=0)*arrivals(t)*state[(2*i+1)*NAG:(2*i+2)*NAG]
-            # + IMPORT_RATE*arrivals(t)
     return delta
 
-# ## Numba compliant version
+# ## Numba compliant version - this actually runs slower, numpy vectorization is more powerful than numba it seems
 # @jit
-# def single_pathogen_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact):
+# def single_pathogen_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact):
 #     delta = np.zeros(state.shape,dtype=np.float64)
 #     pop_size = np.sum(state,dtype=np.float64)
+#     age_pops = np.zeros(NAG)
+#     for age in range(NAG):
+#         for i in range(2*N_S+1):
+#             age_pops[age] += state[i*NAG+age]
 #     # Susceptible, infected - waning, aging, infection, recovery for all susceptibility classes
 #     for i in range(N_S):
 #         for age in range(NAG):
@@ -41,11 +44,13 @@ def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_U
 #                 + REC_UP[i-1]*state[(2*i)*NAG+age] + REC_SAME[i]*state[(2*i+2)*NAG+age]\
 #                 - WANE[i-1]*state[(2*i+1)*NAG+age] + WANE[i]*state[(2*i+3)*NAG+age]\
 #                 - AGING_RATE[age]*state[(2*i+1)*NAG+age] + (age>0)*AGING_RATE[age-1]*state[(2*i+1)*NAG+age-1]\
-#                 + (all_vax(t,i,ACOV,S_VAX,T_VAX,NAG,N_S,2)*state).reshape((2*N_S+2,NAG)).sum(axis=0)[age]
+#                 + (all_vax(t,i,ACOV,S_VAX,NAG,N_S,2,[S_REL*P_OBS,age_pops,AGING_RATE],age)*state).reshape((2*N_S+2,NAG)).sum(axis=0)[age]\
+#                 - IMPORT_RATE*regional_positivity(t)*S_REL[i]*S_AGE[age]*BETA*np.sum(contact(t,SEASONALITY,OFFSET),axis=0)[age]*arrivals(t)*state[(2*i+1)*NAG+age]
 #             # Infectious class i = infection - recovery + aging in - aging out - vaccination + importations
 #             delta[(2*i+2)*NAG+age] = S_REL[i]*S_AGE[age]*BETA*(np.dot(contact(t,SEASONALITY,OFFSET),np.sum(np.array([state[j] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=np.float64).reshape((N_S,NAG))*I_REL,axis=0))/pop_size)[age]*state[(2*i+1)*NAG+age]\
 #                 - (REC_UP[i]+REC_SAME[i])*state[(2*i+2)*NAG+age]\
 #                 - AGING_RATE[age]*state[(2*i+2)*NAG+age] + (age>0)*AGING_RATE[age-1]*state[(2*i+2)*NAG+age-1]\
-#                 + IMPORT_RATE*arrivals(t)
+#                 + IMPORT_RATE*regional_positivity(t)*S_REL[i]*S_AGE[age]*BETA*np.sum(contact(t,SEASONALITY,OFFSET),axis=0)[age]*arrivals(t)*state[(2*i+1)*NAG+age]
+#                 # + IMPORT_RATE*arrivals(t)
 #                                 # + IMPORT_RATE*S_REL[i]*S_AGE[age]*BETA*np.sum(contact(t,SEASONALITY,OFFSET)[age])*arrivals(t)*state[(2*i+1)*NAG+age]\
 #     return delta
