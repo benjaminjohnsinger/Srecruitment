@@ -17,7 +17,7 @@ import datetime
 from numba import jit
 from sklearn import decomposition
 
-from vaccination import birth_vax, all_vax, flu_rate, flu_eff_coverage
+from vaccination import birth_vax, birth_vax, all_vax, flu_rate, flu_eff_coverage
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
@@ -85,6 +85,8 @@ p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_
 STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
+STATE0[3*NAG:4*NAG] = CENSUS_AGE_POP/3 # one individual in each age group that is infected.
+STATE0[5*NAG:6*NAG] = CENSUS_AGE_POP/3 # one individual in each age group that is infected.
 
 # times = np.arange(date_to_t('2015-08-01'),date_to_t('2025-10-01'))
 # plt.plot(times,[np.mean(contact(t,SEASONALITY,OFFSET)) for t in times])
@@ -494,7 +496,7 @@ ax[1].set_ylabel("Modelled incidence per 10k")
 # ax[1].set_ylim(1.5e7,2.2e7)
 ax[1].legend(title="Transm.")
 plt.tight_layout()
-plt.savefig('Figures/test.png',dpi=300)
+plt.savefig('Figures/test2.png',dpi=300)
 
 # # ##### run multi-dimensional GRID SIMS #####
 # start = time.time()

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import scipy as sp
 from numba import jit
+import time
 
 from matplotlib import pyplot as plt
 from matplotlib import cm as colormaps
@@ -10,17 +11,26 @@ from matplotlib import cm as colormaps
 # S_VAX is the susceptibility class of vaccinated individuals
 # COVERAGE is the proportion of infants vaccinated
 # T_VAX is the time at which vaccination starts
+# def birth_vax(t,s_class,S_VAX=2,COVERAGE=0,T_VAX=0):
+#     if t < T_VAX:
+#         return 1 if (s_class == 0) else 0
+#     else:
+#         if s_class == S_VAX:
+#             return COVERAGE
+#         elif s_class == 0:
+#             return 1-COVERAGE
+#         else:
+#             return 0
+
 @jit
-def birth_vax(t,s_class,S_VAX=2,COVERAGE=0,T_VAX=0):
+def birth_vax(t,S_VAX=2,COVERAGE=0,T_VAX=0,NAG=7,N_S=3,N_C=3):
+    out_vec = np.zeros(NAG*(2*N_S+1+(3-N_C)))
     if t < T_VAX:
-        return 1 if (s_class == 0) else 0
+        out_vec[NAG] = 1
     else:
-        if s_class == S_VAX:
-            return COVERAGE
-        elif s_class == 0:
-            return 1-COVERAGE
-        else:
-            return 0
+        out_vec[NAG] = 1-COVERAGE
+        out_vec[NAG*(N_C*S_VAX+1)] = COVERAGE
+    return out_vec
 
 # Annual mass vaccination (a rate)
 # S_VAX is the susceptibility class of vaccinated individuals
