@@ -43,8 +43,9 @@ def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_U
     # births either straight into youngest age group in first susceptibility class or split between first and S_VAX
     delta += birth_vax(t,S_VAX,BCOV,T_VAX,NAG,N_S,N_C)*birth_rate(t)*pop_size
     # infections are negative for susceptibles and positive for infected
-    infectious_contact = np.dot(contact(t,SEASONALITY,OFFSET),np.sum(np.array([state[j] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=np.float64).reshape((N_S,NAG))*I_REL,axis=0))/pop_size
-    import_contact = IMPORT_RATE*regional_positivity(t)*arrivals(t)*np.sum(contact(t,SEASONALITY,OFFSET),axis=0)
+    contact_t = contact(t,SEASONALITY,OFFSET)
+    infectious_contact = np.dot(contact_t,np.sum(np.array([state[j] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=np.float64).reshape((N_S,NAG))*I_REL,axis=0))/pop_size
+    import_contact = IMPORT_RATE*regional_positivity(t)*arrivals(t)*np.sum(contact_t,axis=0)
     delta[NAG:-NAG] += np.repeat(S_REL,NAG*N_C)*np.tile(S_AGE,N_S*N_C)*BETA*np.tile(infectious_contact+import_contact,N_S*N_C)*np.repeat(np.tile(np.array([-1,1]+[0]*(N_C-2)),N_S),NAG)*np.array([np.tile(state[(2*i+1)*NAG:(2*i+2)*NAG],N_C) for i in range(N_S)]).flatten()
     # # recovery is positive for susceptibles and negative for infected 
     # delta[NAG:-NAG] += np.repeat(REC_SAME,NAG*N_C)*np.repeat(np.tile(np.array([1]+[0]*(N_C-2)+[-1]),N_S),NAG)*np.array([np.tile(state[(2*i+2)*NAG:(2*i+3)*NAG],N_C) for i in range(N_S)]).flatten()
@@ -54,12 +55,12 @@ def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_U
     # delta[NAG:-(N_C+1)*NAG] += np.repeat(WANE[:-1],NAG*N_C)*np.repeat(np.tile(np.array([1]+[0]*(N_C-1)),N_S-1),NAG)*np.array([np.tile(state[(2*i+1)*NAG:(2*i+2)*NAG],N_C) for i in range(1,N_S)]).flatten()
     delta += delta_helper(state,NAG,N_S,REC_UP,REC_SAME,WANE)
     # aging
-    delta[NAG:-NAG] -= np.tile(AGING_RATE,N_C*N_S)*state[NAG:-NAG]
+    delta[NAG:-NAG] -= (AGING_RATE*state[NAG:-NAG].reshape((N_C*N_S,NAG))).flatten()
     temp_age = AGING_RATE.copy()
     temp_age[-1] = 0
-    delta[(NAG+1):-(NAG-1)] += np.tile(temp_age,N_C*N_S)*state[NAG:-NAG]
+    delta[(NAG+1):-(NAG-1)] += (temp_age*state[NAG:-NAG].reshape((N_C*N_S,NAG))).flatten()
     # vaccination
-    delta[NAG:-NAG] -= np.tile(ACOV(t,S_REL*P_OBS,age_pops,AGING_RATE),N_S*N_C)*np.array([(i%N_C==0 and i//N_C!=S_VAX)*state[(i+1)*NAG:(i+2)*NAG] for i in range(N_S*N_C)]).flatten()
+    delta[NAG:-NAG] -= (ACOV(t,S_REL*P_OBS,age_pops,AGING_RATE)*np.array([(i%N_C==0 and i//N_C!=S_VAX)*state[(i+1)*NAG:(i+2)*NAG] for i in range(N_S*N_C)])).flatten()
     delta[(S_VAX*N_C+1)*NAG:(S_VAX*N_C+2)*NAG] += ACOV(t,S_REL*P_OBS,age_pops,AGING_RATE)*np.sum(np.array([(i%N_C==0 and i//N_C!=S_VAX)*state[(i+1)*NAG:(i+2)*NAG] for i in range(N_S*N_C)],dtype=np.float64).reshape((N_S*N_C,NAG)),axis=0)
     return delta
 

@@ -97,6 +97,25 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
+# t = 15000
+# age_pops = np.array([np.sum(STATE0[range(i_age,(2*N_S+1)*NAG,NAG)],axis=0) for i_age in range(NAG)])
+
+# print((flu_rate(t,S_REL*P_OBS,age_pops,AGING_RATE)*np.array([(i%N_C==0 and i//N_C!=S_VAX)*STATE0[(i+1)*NAG:(i+2)*NAG] for i in range(N_S*N_C)])).flatten())
+# start = time.time()
+# for i in range(10000):
+#     x = (flu_rate(t,S_REL*P_OBS,age_pops,AGING_RATE)*np.array([(i%N_C==0 and i//N_C!=S_VAX)*STATE0[(i+1)*NAG:(i+2)*NAG] for i in range(N_S*N_C)])).flatten()
+# end = time.time()
+
+
+# print(np.tile(flu_rate(t,S_REL*P_OBS,age_pops,AGING_RATE),N_S*N_C)*np.array([(i%N_C==0 and i//N_C!=S_VAX)*STATE0[(i+1)*NAG:(i+2)*NAG] for i in range(N_S*N_C)]).flatten())
+# start2 = time.time()
+# for i in range(10000):
+#     x = np.tile(flu_rate(t,S_REL*P_OBS,age_pops,AGING_RATE),N_S*N_C)*np.array([(i%N_C==0 and i//N_C!=S_VAX)*STATE0[(i+1)*NAG:(i+2)*NAG] for i in range(N_S*N_C)]).flatten()
+# end2 = time.time()
+
+# print(end-start,end2-start2)
+
+
 # incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
 
 # def likelihood(x):
