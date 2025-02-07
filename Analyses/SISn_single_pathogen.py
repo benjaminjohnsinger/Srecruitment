@@ -118,6 +118,23 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 
 # incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
 
+# params['SEASONALITY'] = 0.9655234
+# params["BETA"] = 0.10769334
+# print(-SIS_likelihood(incidence,params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True))
+
+# start = time.time()
+# for i in range(10):
+#     x = -SIS_likelihood(incidence,params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
+# end = time.time()
+
+# start2 = time.time()
+# for i in range(10):
+#     x =  sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+# end2 = time.time()
+
+# print((end-start)/10,(end2-start2)/10)
+
+
 # def likelihood(x):
 #     sim_params = params.copy()
 #     sim_params["WANE"] = np.array([0.0,x[0],0.0])

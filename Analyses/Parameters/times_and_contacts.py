@@ -25,7 +25,7 @@ date_to_t('2022-03-01')]) # End of mask mandate in California
 Fs = np.array([1,0.2,1,0.2,1]) # 0.2 minimum relative contact rate between COMIX and POLYMOD
 @jit
 def contact(t,seasonality,offset):
-    return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
+    return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
 
 T_VAX = date_to_t('2035-01-01')
 

@@ -12,9 +12,11 @@ import scipy as sp
 from utils import *
 # from sas7bdat import SAS7BDAT
 import pickle
+from scipy.optimize import curve_fit
 
-x = np.array([1,2,3,4,5,6,7])
-
-print(np.tile(x,8))
-print(x.repeat(8))
-print(x.repeat(8).reshape((-1,8)).T.flatten())
+x = [281.19056487083435, 924.5615150928497, 1768.5358440876007]
+# fit linear model
+x = np.array(x)
+y = np.array([1,2,3])
+m, b = np.polyfit(np.log(y),np.log(x), 1)
+print(m,b)
