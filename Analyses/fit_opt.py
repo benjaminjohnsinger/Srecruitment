@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
 import time
+import pickle
 
 from vaccination import birth_vax, all_vax, flu_rate, flu_eff_coverage
 import contact_model as cm
@@ -38,180 +39,199 @@ incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv
 
 opt_times = []
 
-def likelihood(x):
-    sim_params = params.copy()
-    sim_params["BETA"] = x[0]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]
-start = time.time()
-opt1 = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt1.x)
-print(opt_times)
+all_bounds = [(0,1e-2), # WANE
+(0,0.5), # SEASONALITY
+(0,1), # OFFSET
+(0,0.5), # BETA
+(0,1e-10), # IMPORT_RATE
+(0,1), # S_REL - immunity after second infection above minimum
+(0,1), # S_REL - immunity after first infection above minimum
+(0,1), # S_REL - relative infection and disease immunity after first infection
+(0,0.1), # P_OBS
+(0,1), # AGE_OBS - young_immunity
+(0,1), # AGE_OBS - old_immunity
+(0,1)] # AGE_OBS - young_old
+
+# set seed
+np.random.seed(250206)
+
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["BETA"] = x[0]
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
+# bounds = [all_bounds[3]]
+# start = time.time()
+# opt1 = sp.optimize.differential_evolution(likelihood,bounds)
+# opt_times.append(time.time()-start)
+# print(opt1.x)
+# print(opt_times)
+
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["SEASONALITY"] = x[0]
+#     sim_params["BETA"] = x[1]
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
+# bounds = [all_bounds[1],all_bounds[3]]
+# start = time.time()
+# opt2 = sp.optimize.differential_evolution(likelihood,bounds)
+# opt_times.append(time.time()-start)
+# print(opt2.x)
+# print(opt_times)
+
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["SEASONALITY"] = x[0]
+#     sim_params["OFFSET"] = x[1]
+#     sim_params["BETA"] = x[2]
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
+# bounds = all_bounds[1:4]
+# start = time.time()
+# opt3 = sp.optimize.differential_evolution(likelihood,bounds)
+# opt_times.append(time.time()-start)
+# print(opt3.x)
+# print(opt_times)
+
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["SEASONALITY"] = x[0]
+#     sim_params["OFFSET"] = x[1]
+#     sim_params["BETA"] = x[2]
+#     sim_params["IMPORT_RATE"] = x[3]
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
+# bounds = all_bounds[1:5]
+# start = time.time()
+# opt4 = sp.optimize.differential_evolution(likelihood,bounds)
+# opt_times.append(time.time()-start)
+# print(opt.x)
+# print(opt_times)
+
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["WANE"] = np.array([0.0,x[0],0.0])
+#     sim_params["SEASONALITY"] = x[1]
+#     sim_params["OFFSET"] = x[2]
+#     sim_params["BETA"] = x[3]
+#     sim_params["IMPORT_RATE"] = x[4]
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
+# bounds = all_bounds[0:5]
+# start = time.time()
+# opt5 = sp.optimize.differential_evolution(likelihood,bounds)
+# opt_times.append(time.time()-start)
+# print(opt5.x)
+# print(opt_times)
+
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["WANE"] = np.array([0.0,x[0],0.0])
+#     sim_params["SEASONALITY"] = x[1]
+#     sim_params["OFFSET"] = x[2]
+#     sim_params["BETA"] = x[3]
+#     sim_params["IMPORT_RATE"] = x[4]
+#     sim_params["P_OBS"] = x[5]*params["P_OBS"]
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
+# bounds = all_bounds[0:5]+all_bounds[8:9]
+# start = time.time()
+# opt6 = sp.optimize.differential_evolution(likelihood,bounds)
+# opt_times.append(time.time()-start)
+# print(opt6.x)
+# print(opt_times)
+
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["WANE"] = np.array([0.0,x[0],0.0])
+#     sim_params["SEASONALITY"] = x[1]
+#     sim_params["OFFSET"] = x[2]
+#     sim_params["BETA"] = x[3]
+#     sim_params["IMPORT_RATE"] = x[4]
+#     srel, pobsrel = constrained_immunity(x[5],0,0.39)
+#     sim_params["S_REL"] = srel
+#     sim_params["P_OBS"] = x[6]*pobsrel
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
+# bounds = all_bounds[0:6]+all_bounds[8:9]
+# start = time.time()
+# opt7 = sp.optimize.differential_evolution(likelihood,bounds)
+# opt_times.append(time.time()-start)
+# print(opt7.x)
+# print(opt_times)
+
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["WANE"] = np.array([0.0,x[0],0.0])
+#     sim_params["SEASONALITY"] = x[1]
+#     sim_params["OFFSET"] = x[2]
+#     sim_params["BETA"] = x[3]
+#     sim_params["IMPORT_RATE"] = x[4]
+#     srel, pobsrel = constrained_immunity(x[5],x[6],0.39)
+#     sim_params["S_REL"] = srel
+#     sim_params["P_OBS"] = x[7]*pobsrel
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
+# bounds = all_bounds[0:7]+all_bounds[8:9]
+# start = time.time()
+# opt8 = sp.optimize.differential_evolution(likelihood,bounds)
+# opt_times.append(time.time()-start)
+# print(opt8.x)
+# print(opt_times)
+
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["WANE"] = np.array([0.0,x[0],0.0])
+#     sim_params["SEASONALITY"] = x[1]
+#     sim_params["OFFSET"] = x[2]
+#     sim_params["BETA"] = x[3]
+#     sim_params["IMPORT_RATE"] = x[4]
+#     srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
+#     sim_params["S_REL"] = srel
+#     sim_params["P_OBS"] = x[8]*pobsrel
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,obs_age,p_time_to_obs,age=True,incidence=True)
+# bounds = all_bounds[0:9]
+# start = time.time()
+# opt9 = sp.optimize.differential_evolution(likelihood,bounds)
+# opt_times.append(time.time()-start)
+# print(opt9.x)
+# print(opt_times)
+
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["WANE"] = np.array([0.0,x[0],0.0])
+#     sim_params["SEASONALITY"] = x[1]
+#     sim_params["OFFSET"] = x[2]
+#     sim_params["BETA"] = x[3]
+#     sim_params["IMPORT_RATE"] = x[4]
+#     srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
+#     sim_params["S_REL"] = srel
+#     sim_params["P_OBS"] = x[8]*pobsrel
+#     obs_age = age_detection(NAG,x[9],0.8,0.1)
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+# bounds = all_bounds[0:10]
+# start = time.time()
+# opt10 = sp.optimize.differential_evolution(likelihood,bounds)
+# opt_times.append(time.time()-start)
+# print(opt10.x)
+# print(opt_times)
+
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["WANE"] = np.array([0.0,x[0],0.0])
+#     sim_params["SEASONALITY"] = x[1]
+#     sim_params["OFFSET"] = x[2]
+#     sim_params["BETA"] = x[3]
+#     sim_params["IMPORT_RATE"] = x[4]
+#     srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
+#     sim_params["S_REL"] = srel
+#     sim_params["P_OBS"] = x[8]*pobsrel
+#     obs_age = age_detection(NAG,x[9],x[10],0.1)
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+# bounds = all_bounds[0:11]
+# start = time.time()
+# opt11 = sp.optimize.differential_evolution(likelihood,bounds)
+# opt_times.append(time.time()-start)
+# print(opt11.x)
+# print(opt_times)
 
 def likelihood(x):
-    sim_params = params.copy()
-    sim_params["SEASONALITY"] = x[0]
-    sim_params["BETA"] = x[1]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]*2
-start = time.time()
-opt2 = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt2.x)
-print(opt_times)
-
-def likelihood(x):
-    sim_params = params.copy()
-    sim_params["SEASONALITY"] = x[0]
-    sim_params["OFFSET"] = x[1]
-    sim_params["BETA"] = x[2]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]*3
-start = time.time()
-opt3 = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt3.x)
-print(opt_times)
-
-def likelihood(x):
-    sim_params = params.copy()
-    sim_params["SEASONALITY"] = x[0]
-    sim_params["OFFSET"] = x[1]
-    sim_params["BETA"] = x[2]
-    sim_params["IMPORT_RATE"] = x[3]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]*4
-start = time.time()
-opt4 = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt.x)
-print(opt_times)
-
-def likelihood(x):
-    sim_params = params.copy()
-    sim_params["WANE"] = np.array([0.0,x[0],0.0])
-    sim_params["SEASONALITY"] = x[2]
-    sim_params["OFFSET"] = x[3]
-    sim_params["BETA"] = x[3]
-    sim_params["IMPORT_RATE"] = x[4]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]*5
-start = time.time()
-opt5 = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt5.x)
-print(opt_times)
-
-def likelihood(x):
-    sim_params = params.copy()
-    sim_params["WANE"] = np.array([0.0,x[0],0.0])
-    sim_params["SEASONALITY"] = x[1]
-    sim_params["OFFSET"] = x[2]
-    sim_params["BETA"] = x[3]
-    sim_params["IMPORT_RATE"] = x[4]
-    sim_params["P_OBS"] = x[5]*params["P_OBS"]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]*6
-start = time.time()
-opt6 = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt6.x)
-print(opt_times)
-
-def likelihood(x):
-    sim_params = params.copy()
-    sim_params["WANE"] = np.array([0.0,x[0],0.0])
-    sim_params["SEASONALITY"] = x[1]
-    sim_params["OFFSET"] = x[2]
-    sim_params["BETA"] = x[3]
-    sim_params["IMPORT_RATE"] = x[4]
-    srel, pobsrel = constrained_immunity(x[5],0,0.39)
-    sim_params["S_REL"] = srel
-    sim_params["P_OBS"] = x[6]*pobsrel
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]*7
-start = time.time()
-opt7 = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt7.x)
-print(opt_times)
-
-def likelihood(x):
-    sim_params = params.copy()
-    sim_params["WANE"] = np.array([0.0,x[0],0.0])
-    sim_params["SEASONALITY"] = x[1]
-    sim_params["OFFSET"] = x[2]
-    sim_params["BETA"] = x[3]
-    sim_params["IMPORT_RATE"] = x[4]
-    srel, pobsrel = constrained_immunity(x[5],x[6],0.39)
-    sim_params["S_REL"] = srel
-    sim_params["P_OBS"] = x[7]*pobsrel
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]*8
-start = time.time()
-opt8 = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt8.x)
-print(opt_times)
-
-def likelihood(x):
-    sim_params = params.copy()
-    sim_params["WANE"] = np.array([0.0,x[0],0.0])
-    sim_params["SEASONALITY"] = x[1]
-    sim_params["OFFSET"] = x[2]
-    sim_params["BETA"] = x[3]
-    sim_params["IMPORT_RATE"] = x[4]
-    srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-    sim_params["S_REL"] = srel
-    sim_params["P_OBS"] = x[8]*pobsrel
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,obs_age,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]*9
-start = time.time()
-opt9 = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt9.x)
-print(opt_times)
-
-def likelihood(x):
-    sim_params = params.copy()
-    sim_params["WANE"] = np.array([0.0,x[0],0.0])
-    sim_params["SEASONALITY"] = x[1]
-    sim_params["OFFSET"] = x[2]
-    sim_params["BETA"] = x[3]
-    sim_params["IMPORT_RATE"] = x[4]
-    srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-    sim_params["S_REL"] = srel
-    sim_params["P_OBS"] = x[8]*pobsrel
-    obs_age = age_detection(NAG,x[9],0.8,0.1)
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]*10
-start = time.time()
-opt10 = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt10.x)
-print(opt_times)
-
-def likelihood(x):
-    sim_params = params.copy()
-    sim_params["WANE"] = np.array([0.0,x[0],0.0])
-    sim_params["SEASONALITY"] = x[1]
-    sim_params["OFFSET"] = x[2]
-    sim_params["BETA"] = x[3]
-    sim_params["IMPORT_RATE"] = x[4]
-    srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-    sim_params["S_REL"] = srel
-    sim_params["P_OBS"] = x[8]*pobsrel
-    obs_age = age_detection(NAG,x[9],x[10],0.1)
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-bounds = [(0,1)]*11
-start = time.time()
-opt11 = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt11.x)
-print(opt_times)
-
-def likelihood(x):
+    # print x randomly
+    if np.random.rand() < 0.01:
+        print(x)
     sim_params = params.copy()
     sim_params["WANE"] = np.array([0.0,x[0],0.0])
     sim_params["SEASONALITY"] = x[1]
@@ -223,23 +243,17 @@ def likelihood(x):
     sim_params["P_OBS"] = x[8]*pobsrel
     obs_age = age_detection(NAG,x[9],x[10],x[11])
     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-# opt = sp.optimize.minimize(likelihood,[1/270,0.04,0.05,0.11,5e-11,0.05,0,0,0.39,0.05,0.8,0.1],method='Nelder-Mead')
-# print(opt)
 
 # global minimization of likelihood, with all parameters bounded between 0 and 1
-bounds = [(0,1)]*12
+bounds = all_bounds
 start = time.time()
 opt = sp.optimize.differential_evolution(likelihood,bounds)
-opt_times.append(time.time()-start)
-print(opt_times)
-plt.plot(opt_times)
-plt.xlabel("Number of parameters")
-plt.ylabel("Time (s)")
-plt.title("Time to optimize likelihood function")
-plt.savefig("Figures/global_opt_times.png",dpi=300)
-# save optimization output and parameters
-np.save("Data/Processed/fit_opt.npy",opt)
-print(opt)
+
+with open("Data/Processed/DE_opt_fluA_population.pickle","wb") as f:
+    pickle.dump(opt.population,f)
+with open("Data/Processed/DE_opt_fluA.pickle","wb") as f:
+    pickle.dump(opt,f)
+
 # save optimized parameters
 opt_params = params.copy()
 opt_params["WANE"] = np.array([0.0,opt.x[0],0.0])
@@ -251,7 +265,18 @@ srel, pobsrel = constrained_immunity(opt.x[5],opt.x[6],opt.x[7])
 opt_params["S_REL"] = srel
 opt_params["P_OBS"] = opt.x[8]*pobsrel
 obs_age = age_detection(NAG,opt.x[9],opt.x[10],opt.x[11])
-np.save("Data/Processed/fit_opt_params.npy",opt_params)
-np.save("Data/Processed/fit_opt_obs_age.npy",obs_age)
+with open("Data/Processed/DE_opt_params_fluA.pickle","wb") as f:
+    pickle.dump(opt_params,f)
+with open("Data/Processed/DE_opt_obs_age_fluA.pickle","wb") as f:
+    pickle.dump(obs_age,f)
 print(opt_params)
 print(obs_age)
+
+print(time.time()-start)
+# opt_times.append(time.time()-start)
+# print(opt_times)
+# plt.plot(opt_times)
+# plt.xlabel("Number of parameters")
+# plt.ylabel("Time (s)")
+# plt.title("Time to optimize likelihood function")
+# plt.savefig("Figures/global_opt_times.png",dpi=300)
