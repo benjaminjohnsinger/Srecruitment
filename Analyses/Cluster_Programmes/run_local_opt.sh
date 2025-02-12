@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=lhnmfluA
-#SBATCH --account=
-#SBATCH --partition=savio2_htc
+#SBATCH --account=ac_idmodels
+#SBATCH --partition=savio2
 #SBATCH --nodes=1
 #SBATCH --time=72:00:00
 #SBATCH --output=lhnmfluA_%j.out
