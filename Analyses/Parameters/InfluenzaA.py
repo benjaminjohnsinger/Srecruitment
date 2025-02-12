@@ -26,18 +26,20 @@ FIRST_IMM_MAG = 0 # The immunity to infection and disease after first infection 
 FIRST_DIS_INF_FACTOR = 0.39 # Determines relative infection and disease immunity after first infection
 # ratio of protection against disease to protection against infection (Basta et al 2008)
 R = 0.29/0.43 
+# ratio of vaccine effectiveness in children to that in adults
+CHILD_EFF_RATIO = 1.54 
 # maximum lower CI of vaccine effectiveness in adults is 0.39, ESP should be at least this large
-ESP = 0.39 + IMM_ABOVE_MIN*(1-0.39)
+# cannot be larger than 1/CHILD_EFF_RATIO
+ESP = 0.39 + IMM_ABOVE_MIN*(1/CHILD_EFF_RATIO-0.39)
 factor = ((1 - R) + np.sqrt(1 + R**2 + 2*R*(1-2*ESP)))/2
 # Relative susceptability and infectiousness, for each susceptibility class
 # S1 has to be >= (1-1.54*ESP)/(1-ESP) for D1 to be >= 1
-S1 = ((1-1.54*ESP)/(1-ESP) + FIRST_IMM_MAG*(1-(1-1.54*ESP)/(1-ESP)))**FIRST_DIS_INF_FACTOR
+S1 = ((1-CHILD_EFF_RATIO*ESP)/(1-ESP) + FIRST_IMM_MAG*(1-(1-CHILD_EFF_RATIO*ESP)/(1-ESP)))**FIRST_DIS_INF_FACTOR
 S2 = S1*(1-ESP)/factor
 # Probability of detection of cases for each susceptibility class
-# child efficacy is on average 1.54 times that of adults
-# plug this into the expressions for S2 and D2 and you get D1 = (1-1.54*ESP)/((1-ESP)*S1)
+# plug this into the expressions for S2 and D2 and you get D1 = (1-CHILD_EFF_RATIO*ESP)/((1-ESP)*S1)
 # D1 should be at least as big as that value
-D1 = ((1-1.54*ESP)/(1-ESP) + FIRST_IMM_MAG*(1-(1-1.54*ESP)/(1-ESP)))**(1-FIRST_DIS_INF_FACTOR)
+D1 = ((1-CHILD_EFF_RATIO*ESP)/(1-ESP) + FIRST_IMM_MAG*(1-(1-CHILD_EFF_RATIO*ESP)/(1-ESP)))**(1-FIRST_DIS_INF_FACTOR)
 D2 = D1*factor
 
 S_REL = np.array([1,S1,S2])
@@ -59,7 +61,10 @@ OFFSET = 0.25
 # Infectiousness
 BETA = 0.11
 # Vaccination paramters
-S_VAX, BCOV = 2, 0
+S_VAX = 2
+@jit
+def BCOV(t):
+    return 0
 @jit
 def ACOV(t,S_REL):
     return 0

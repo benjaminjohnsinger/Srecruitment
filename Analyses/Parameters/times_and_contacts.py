@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from numba import jit
 import contact_model as cm
-from utils import *
+from utils import date_to_t
 
 ## Period of simulation
 EPOCH = pd.to_datetime('1970-01-01')

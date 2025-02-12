@@ -6,20 +6,20 @@ import numpy as np
 N_C = 2
 
 @jit
-def delta_helper(state,NAG,N_S,REC_UP,REC_SAME,WANE):
+def delta_helper(state,nag,ns,REC_UP,REC_SAME,WANE):
     delta = np.zeros(state.shape)
-    for i in range(N_S):
-        delta[(2*i+1)*NAG:(2*i+2)*NAG] = REC_UP[i-1]*state[(2*i)*NAG:(2*i+1)*NAG] + REC_SAME[i]*state[(2*i+2)*NAG:(2*i+3)*NAG]\
-            - WANE[i-1]*state[(2*i+1)*NAG:(2*i+2)*NAG] + WANE[i]*state[(2*i+3)*NAG:(2*i+4)*NAG]
-        delta[(2*i+2)*NAG:(2*i+3)*NAG] = -(REC_UP[i]+REC_SAME[i])*state[(2*i+2)*NAG:(2*i+3)*NAG]
+    for i in range(ns):
+        delta[(2*i+1)*nag:(2*i+2)*nag] = REC_UP[i-1]*state[(2*i)*nag:(2*i+1)*nag] + REC_SAME[i]*state[(2*i+2)*nag:(2*i+3)*nag]\
+            - WANE[i-1]*state[(2*i+1)*nag:(2*i+2)*nag] + WANE[i]*state[(2*i+3)*nag:(2*i+4)*nag]
+        delta[(2*i+2)*nag:(2*i+3)*nag] = -(REC_UP[i]+REC_SAME[i])*state[(2*i+2)*nag:(2*i+3)*nag]
     return delta
 
-def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact):
+def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact):
     delta = np.zeros(state.shape)
     pop_size = np.sum(state,dtype=np.float64)
     age_pops = np.array([np.sum(state[range(i_age,(2*N_S+1)*NAG,NAG)],axis=0) for i_age in range(NAG)])
     # births either straight into youngest age group in first susceptibility class or split between first and S_VAX
-    delta += birth_vax(t,S_VAX,BCOV,T_VAX,NAG,N_S,N_C)*birth_rate(t)*pop_size
+    delta += birth_vax(t,BCOV,S_VAX,NAG,N_S,N_C)*birth_rate(t)*pop_size
     # infections are negative for susceptibles and positive for infected
     contact_t = contact(t,SEASONALITY,OFFSET)
     infectious_contact = np.dot(contact_t,np.sum(np.array([state[j] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=np.float64).reshape((N_S,NAG))*I_REL,axis=0))/pop_size

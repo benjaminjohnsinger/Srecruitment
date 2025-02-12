@@ -64,7 +64,7 @@ def constrained_immunity(extra_immunity,first_immunity,first_dis_inf_factor,DIS_
     """
     Convert free parameters between 0 and 1 to immunity parameters constrained by flu vaccine data
     """
-    ESP = MIN_EFF + extra_immunity*(1-MIN_EFF)
+    ESP = MIN_EFF + extra_immunity*(1/CHILD_EFF_RATIO - MIN_EFF)
     factor = ((1 - DIS_INF_RATIO) + np.sqrt(1 + DIS_INF_RATIO**2 + 2*DIS_INF_RATIO*(1-2*ESP)))/2
     S1 = ((1-CHILD_EFF_RATIO*ESP)/(1-ESP) + first_immunity*(1-(1-CHILD_EFF_RATIO*ESP)/(1-ESP)))**first_dis_inf_factor
     S2 = S1*(1-ESP)/factor

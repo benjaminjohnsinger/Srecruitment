@@ -1,11 +1,10 @@
 import numpy as np
-import scipy as sp
 import pandas as pd
+import scipy as sp
 import matplotlib.pyplot as plt
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 N_C = 2
-from plotting import observations
-from utils import *
+from utils import observations, real_to_p, p_to_real, scalars_to_params, age_detection, date_to_t
 import time
 import types
 

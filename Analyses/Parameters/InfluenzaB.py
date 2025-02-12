@@ -3,7 +3,7 @@
 
 import numpy as np
 from numba import jit
-from utils import age_detection
+# from Analyses.utils import age_detection
 
 NAG = 7
 
@@ -35,7 +35,10 @@ OFFSET = 0.8
 # Infectiousness
 BETA = 0.0884
 # Vaccination paramters
-S_VAX, BCOV = 2, 0
+S_VAX = 2
+@jit
+def BCV(t):
+    return 0
 @jit
 def ACOV(t):
     return 0

@@ -23,13 +23,10 @@ from matplotlib import cm as colormaps
 #             return 0
 
 @jit
-def birth_vax(t,S_VAX=2,COVERAGE=0,T_VAX=0,NAG=7,N_S=3,N_C=3):
-    out_vec = np.zeros(NAG*(2*N_S+1+(3-N_C)))
-    if t < T_VAX:
-        out_vec[NAG] = 1
-    else:
-        out_vec[NAG] = 1-COVERAGE
-        out_vec[NAG*(N_C*S_VAX+1)] = COVERAGE
+def birth_vax(t,cov,S_VAX=2,nag=7,ns=3,nc=3,T_VAX=0):
+    out_vec = np.zeros(nag*(2*ns+1+(3-nc)))
+    out_vec[nag] = 1-cov(t)
+    out_vec[nag*(nc*S_VAX+1)] = cov(t)
     return out_vec
 
 # Annual mass vaccination (a rate)
