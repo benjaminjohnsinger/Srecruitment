@@ -110,7 +110,13 @@ def flu_rate(t,protection,pops,aging_rate,eff_cap=True):
     v_shift[:-1] = v_shift[1:] - v[:-1]
     age_rate_shift = np.zeros(len(aging_rate))
     age_rate_shift[1:] = aging_rate[:-1]
-    if v == 1:
-        return 0
-    rate = (1/(1-v))*((v_next_month-v)/31 + (1/365)*v + age_rate_shift*pop_ratio*v_shift)
+    if np.any(v>=1):
+        rate = np.zeros(len(v))
+        for i in range(len(v)):
+            if v[i] >= 1:
+                rate[i] = 0
+            else:
+                rate[i] = (1/(1-v[i]))*((v_next_month[i]-v[i])/31 + (1/365)*v[i] + age_rate_shift[i]*pop_ratio[i]*v_shift[i])
+    else:
+        rate = (1/(1-v))*((v_next_month-v)/31 + (1/365)*v + age_rate_shift*pop_ratio*v_shift)
     return np.maximum(0,rate)
