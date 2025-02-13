@@ -2,6 +2,7 @@
 ## BJS Feb 2025
 
 import time
+import sys
 import numpy as np
 import scipy as sp
 import pandas as pd
@@ -17,9 +18,19 @@ from demography import *
 from mobility_and_import import *
 from fit_MCMC import SIS_likelihood
 
-pathogen = 'InfluenzaA'
-initial_params = [[0.08,0.1],[0.085,0.1],[0.09,0.1],[0.095,0.1],
-[0.08,0.2],[0.085,0.2],[0.09,0.2],[0.095,0.2]]
+pathogen, n_samples = sys.argv[1], int(sys.argv[2])
+all_bounds = np.array([[0,1e-2], # WANE
+[0,0.5], # SEASONALITY
+[0,1], # OFFSET
+[0,0.5], # BETA
+[0,1e-10], # IMPORT_RATE
+[0,1], # S_REL - immunity after second infection above minimum
+[0,1], # S_REL - immunity after first infection above minimum
+[0,1], # S_REL - relative infection and disease immunity after first infection
+[0,0.1], # P_OBS
+[0,1], # AGE_OBS - young_immunity
+[0,1], # AGE_OBS - old_immunity
+[0,1]]) # AGE_OBS - young_old
 
 if pathogen == 'RSV':
     from Parameters.RSV import *
@@ -45,39 +56,29 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 'contact': contact}
 
 # nelders-mead optimization
-# def likelihood(x):
-#     sim_params = params.copy()
-#     sim_params["WANE"] = np.array([0.0,x[0],0.0])
-#     sim_params["SEASONALITY"] = x[1]
-#     sim_params["OFFSET"] = x[2]
-#     sim_params["BETA"] = x[3]
-#     sim_params["IMPORT_RATE"] = x[4]
-#     srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-#     sim_params["S_REL"] = srel
-#     sim_params["P_OBS"] = x[8]*pobsrel
-#     obs_age = age_detection(NAG,x[9],x[10],x[11])
-#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)=
-
 def likelihood(x):
     sim_params = params.copy()
-    sim_params["BETA"] = x[0]
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
+    sim_params["WANE"] = np.array([0.0,x[0],0.0])
+    sim_params["SEASONALITY"] = x[1]
+    sim_params["OFFSET"] = x[2]
+    sim_params["BETA"] = x[3]
+    sim_params["IMPORT_RATE"] = x[4]
+    srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
+    sim_params["S_REL"] = srel
+    sim_params["P_OBS"] = x[8]*pobsrel
+    obs_age = age_detection(NAG,x[9],x[10],x[11])
+    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
 
 def optimizer(start):
     opt = sp.optimize.minimize(likelihood,start,method='Nelder-Mead')
     return opt.x
 
+import os
 from multiprocessing import Pool
 
-start_multi = time.time()
 if __name__ == '__main__':
-    with Pool(4) as p:
-        print(p.map(optimizer,initial_params))
-end_multi = time.time()
-
-start_single = time.time()
-for start in initial_params:
-    print(optimizer(start))
-end_single = time.time()
-
-print("Time for multiprocessing: ",end_multi-start_multi, "Time for single processing: ",end_single-start_single)
+    lh_sampler = sp.stats.qmc.LatinHypercube(d=12, seed=250212)
+    lh_samples = lh_sampler.random(n_samples)
+    lh_samples_scaled = sp.stats.qmc.scale(lh_samples, all_bounds[:,0], all_bounds[:,1])
+    with Pool(int(os.getenv('SLURM_CPUS_ON_NODE'))) as p:
+        np.savetxt("Outputs/lhnm_"+pathogen+str(n_samples)+".csv",np.array(p.map(optimizer,lh_samples_scaled)))
