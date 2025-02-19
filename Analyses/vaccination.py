@@ -104,8 +104,19 @@ def flu_eff_coverage(t,protection,eff_cap=True):
 def flu_rate(t,protection,pops,aging_rate,eff_cap=True):
     v = flu_eff_coverage(t,protection)
     v_next_month = flu_eff_coverage(t+31,protection)
-    pop_shift = np.concatenate((np.zeros(1),pops[:-1]))
-    v_shift = np.concatenate((np.zeros(1),v[:-1]))
-    age_rate_shift = np.concatenate((np.zeros(1),aging_rate[:-1]))
-    rate = (1/(1-v))*((v_next_month-v)/31 + (1/365)*v + age_rate_shift*(pop_shift/pops)*(v-v_shift))
+    pop_ratio = np.zeros(len(pops))
+    pop_ratio[:-1] = pops[:-1]/pops[1:]
+    v_shift = v.copy()
+    v_shift[:-1] = v_shift[1:] - v[:-1]
+    age_rate_shift = np.zeros(len(aging_rate))
+    age_rate_shift[1:] = aging_rate[:-1]
+    if np.any(v>=1):
+        rate = np.zeros(len(v))
+        for i in range(len(v)):
+            if v[i] >= 1:
+                rate[i] = 0
+            else:
+                rate[i] = (1/(1-v[i]))*((v_next_month[i]-v[i])/31 + (1/365)*v[i] + age_rate_shift[i]*pop_ratio[i]*v_shift[i])
+    else:
+        rate = (1/(1-v))*((v_next_month-v)/31 + (1/365)*v + age_rate_shift*pop_ratio*v_shift)
     return np.maximum(0,rate)

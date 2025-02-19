@@ -242,12 +242,15 @@ def likelihood(x):
     sim_params["S_REL"] = srel
     sim_params["P_OBS"] = x[8]*pobsrel
     obs_age = age_detection(NAG,x[9],x[10],x[11])
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+    try:
+        return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+    except:
+        return -1e-10
 
 # global minimization of likelihood, with all parameters bounded between 0 and 1
 bounds = all_bounds
 start = time.time()
-opt = sp.optimize.differential_evolution(likelihood,bounds)
+opt = sp.optimize.differential_evolution(likelihood,bounds,maxiter=250)
 
 with open("Data/Processed/DE_opt_fluA_population.pickle","wb") as f:
     pickle.dump(opt.population,f)

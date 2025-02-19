@@ -15,22 +15,10 @@ import pickle
 from scipy.optimize import curve_fit
 import time
 
-all_bounds = np.array([[0,1e-2], # WANE
-[0,0.5], # SEASONALITY
-[0,1], # OFFSET
-[0,0.5], # BETA
-[0,1e-10], # IMPORT_RATE
-[0,1], # S_REL - immunity after second infection above minimum
-[0,1], # S_REL - immunity after first infection above minimum
-[0,1], # S_REL - relative infection and disease immunity after first infection
-[0,0.1], # P_OBS
-[0,1], # AGE_OBS - young_immunity
-[0,1], # AGE_OBS - old_immunity
-[0,1]]) # AGE_OBS - young_old
+def func(x):
+    try:
+        return x/x
+    except:
+        return -np.inf
 
-start = time.time()
-lh_sampler = sp.stats.qmc.LatinHypercube(d=12, seed=250212)
-lh_samples = lh_sampler.random(300)
-lh_samples_scaled = sp.stats.qmc.scale(lh_samples, all_bounds[:,0], all_bounds[:,1])
-print(time.time()-start)
-print(lh_samples_scaled)
+print(func(1), func(0), func(np.nan))
