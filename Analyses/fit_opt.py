@@ -245,12 +245,12 @@ def likelihood(x):
     try:
         return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
     except:
-        return -np.inf
+        return -1e-10
 
 # global minimization of likelihood, with all parameters bounded between 0 and 1
 bounds = all_bounds
 start = time.time()
-opt = sp.optimize.differential_evolution(likelihood,bounds)
+opt = sp.optimize.differential_evolution(likelihood,bounds,maxiter=250)
 
 with open("Data/Processed/DE_opt_fluA_population.pickle","wb") as f:
     pickle.dump(opt.population,f)
