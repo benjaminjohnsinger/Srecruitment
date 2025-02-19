@@ -65,9 +65,6 @@ S_VAX = 2
 @jit
 def BCOV(t):
     return 0
-@jit
-def ACOV(t,S_REL):
-    return 0
 
 IMPORT_RATE = 1e-11
 PP = pd.read_csv("Data/Processed/FluView_PercentPositive_Regions_A.csv")
