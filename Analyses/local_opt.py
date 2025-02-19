@@ -128,6 +128,5 @@ if __name__ == '__main__':
     lh_sampler = sp.stats.qmc.LatinHypercube(d=len(all_bounds), seed=250212)
     lh_samples = lh_sampler.random(n_samples)
     lh_samples_scaled = sp.stats.qmc.scale(lh_samples, all_bounds[:,0], all_bounds[:,1])
-    # with Pool(int(os.getenv('SLURM_CPUS_ON_NODE'))) as p:
-    with Pool(4) as p:
+    with Pool(int(os.getenv('SLURM_CPUS_ON_NODE'))) as p:
         np.savetxt("Outputs/lhnm_"+pathogen+str(n_samples)+".csv",np.array(p.map(optimizer,lh_samples_scaled)))
