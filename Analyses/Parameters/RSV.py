@@ -2,6 +2,7 @@
 ## Parameters from literature cited by Pitzer et al. 2015, and guesses to match KPSC data
 
 import numpy as np
+import pandas as pd
 from numba import jit
 # from Analyses.utils import age_detection
 
@@ -44,8 +45,21 @@ BETA = 0.11
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
 @jit
-def ACOV(t,T_VAX):
+def BCOV(t):
+    return 0
+@jit
+def ACOV(t,SP,ap,AR):
     return 0
 
 # IMPORT_RATE = 7.255e-13
-IMPORT_RATE = 1e-12
+IMPORT_RATE = 1e-11
+
+PP = pd.read_csv("Data/Processed/RSV_PercentPositive_Regions.csv")
+PP.index = pd.to_datetime(PP["Date"], format="%Y-%m-%d")
+PP.index = (PP.index - pd.to_datetime("1970-01-01")).days
+# PP_NP = np.array(PP['Region 9'])
+PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean(axis=1))
+PP_IDX = np.array(PP.index)
+@jit
+def regional_positivity(t):
+    return PP_NP[np.argmax(PP_IDX>=t)]

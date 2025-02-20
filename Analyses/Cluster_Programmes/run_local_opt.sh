@@ -11,4 +11,4 @@
 ## Command(s) to run:
 
 module load python/3.11.6-gcc-11.4.0
-ipython Analyses/local_opt.py InfluenzaA 24
+ipython Analyses/local_opt.py RSV 24
