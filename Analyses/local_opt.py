@@ -117,8 +117,11 @@ STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
+def callback(xk):
+    np.savetxt("Outputs/lhnm_"+pathogen+str(os.getenv('SLURM_LOCALID'))+"_intermediate.csv",xk)
+
 def optimizer(start):
-    opt = sp.optimize.minimize(likelihood,start,method='Nelder-Mead')
+    opt = sp.optimize.minimize(likelihood,start,method='Nelder-Mead',callback=callback)
     return opt.x
 
 import os
