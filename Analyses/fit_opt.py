@@ -228,10 +228,10 @@ np.random.seed(250206)
 # print(opt11.x)
 # print(opt_times)
 
+start = time.time()
 def likelihood(x):
-    # print x randomly
-    if np.random.rand() < 0.01:
-        print(x)
+    print(time.time()-start)
+    print(x)
     sim_params = params.copy()
     sim_params["WANE"] = np.array([0.0,x[0],0.0])
     sim_params["SEASONALITY"] = x[1]
@@ -245,12 +245,11 @@ def likelihood(x):
     try:
         return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
     except:
-        return -1e-10
+        return 0
 
-# global minimization of likelihood, with all parameters bounded between 0 and 1
+
 bounds = all_bounds
-start = time.time()
-opt = sp.optimize.differential_evolution(likelihood,bounds,maxiter=250)
+opt = sp.optimize.differential_evolution(likelihood,bounds,maxiter=700)
 
 with open("Data/Processed/DE_opt_fluA_population.pickle","wb") as f:
     pickle.dump(opt.population,f)

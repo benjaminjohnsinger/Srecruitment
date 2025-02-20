@@ -15,10 +15,7 @@ import pickle
 from scipy.optimize import curve_fit
 import time
 
-def func(x):
-    try:
-        return x/x
-    except:
-        return -np.inf
+with open("Data/Processed/DE_opt_fluA_population.pickle","rb") as f:
+    population = pickle.load(f)
 
-print(func(1), func(0), func(np.nan))
+print(population)
