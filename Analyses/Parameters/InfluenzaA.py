@@ -70,18 +70,8 @@ IMPORT_RATE = 1e-11
 PP = pd.read_csv("Data/Processed/FluView_PercentPositive_Regions_A.csv")
 PP.index = pd.to_datetime(PP["Date"], format="%Y-%m-%d")
 PP.index = (PP.index - pd.to_datetime("1970-01-01")).days
-state_centroids = pd.read_csv("Data/Raw/state_centroids.csv")# # gravity model based on distance of states to california
-from scipy.spatial import distance
-dist = distance.cdist(state_centroids[['latitude','longitude']],state_centroids[['latitude','longitude']])
-# gravity model
-gravity = 2**(-dist/5)
-# normalize
-gravity = gravity/gravity.sum(axis=1)[:,np.newaxis]
-# set diagonal to zero
-np.fill_diagonal(gravity,0)
-PP_NP_ALL = np.dot(gravity,PP[state_centroids['state']].values.T)
-# get just the value for California
-PP_NP = PP_NP_ALL[4]
+# PP_NP = np.array(PP['Region 9'])
+PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean(axis=1))
 PP_IDX = np.array(PP.index)
 @jit
 def regional_positivity(t):
