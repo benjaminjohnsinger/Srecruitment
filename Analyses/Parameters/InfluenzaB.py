@@ -43,4 +43,13 @@ def BCV(t):
 def ACOV(t):
     return 0
 
-IMPORT_RATE = 1e-14
+IMPORT_RATE = 1e-11
+PP = pd.read_csv("Data/Processed/FluView_PercentPositive_Regions_B.csv")
+PP.index = pd.to_datetime(PP["Date"], format="%Y-%m-%d")
+PP.index = (PP.index - pd.to_datetime("1970-01-01")).days
+# PP_NP = np.array(PP['Region 9'])
+PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean(axis=1))
+PP_IDX = np.array(PP.index)
+@jit
+def regional_positivity(t):
+    return PP_NP[np.argmax(PP_IDX>=t)]
