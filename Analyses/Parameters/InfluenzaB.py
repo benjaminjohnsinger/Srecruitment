@@ -38,7 +38,7 @@ BETA = 0.0884
 # Vaccination paramters
 S_VAX = 2
 @jit
-def BCV(t):
+def BCOV(t):
     return 0
 @jit
 def ACOV(t):
