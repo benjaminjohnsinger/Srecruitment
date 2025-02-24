@@ -3,6 +3,7 @@
 
 import numpy as np
 from numba import jit
+import pandas as pd
 # from Analyses.utils import age_detection
 
 NAG = 7
