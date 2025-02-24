@@ -13,7 +13,7 @@ import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
 from Parameters.times_and_contacts import *
-from Parameters.InfluenzaA import *
+from Parameters.InfluenzaB import *
 
 from utils import *
 from demography import *
@@ -23,7 +23,7 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
@@ -35,7 +35,7 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
-incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
+incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
 
 opt_times = []
 
@@ -246,7 +246,6 @@ def likelihood(x):
         return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
     except:
         return 0
-
 
 bounds = all_bounds
 opt = sp.optimize.differential_evolution(likelihood,bounds,maxiter=700)
