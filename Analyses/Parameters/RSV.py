@@ -18,8 +18,8 @@ WANE = np.array([0.0,1/(30*365),0.0])
 REC_UP = np.array([1/4.9,1/4.1,0.0]) # Recovery to higher susceptibility class - Okiro 2010
 REC_SAME = np.array([0.0,0.0,1/4.1]) # Recovery to same susceptibility class - Okiro 2010
 # Relative susceptability and infectiousness, for each susceptibility class
-S_REL = np.array([1,0.559,0.333]) # Glezen 1986
-# S_REL = np.array([1,0.25,0.025]) # Nokes 2008
+# S_REL = np.array([1,0.559,0.333]) # Glezen 1986
+S_REL = np.array([1,0.25,0.025]) # Nokes 2008
 I_REL = np.array([[1],[1],[1]])
 # Probability of detection of cases for each susceptibility class
 P_OBS_REL = np.array([1,0.46,0.31]) # Henderson 1979
@@ -34,9 +34,9 @@ OBS_AGE = np.array([1,0.75,0.5,0.05,0.05,0.15,1])
 # OBS_AGE = np.array([1,0.8229,0.6458,0.4687,0.2916,0.1375,0.8626])
 ## Other
 # Seasonality parameters
-SEASONALITY = 0.25
+SEASONALITY = 0.1
 # SEASONALITY = 1.727e-01
-OFFSET = 0.85
+OFFSET = 0.25
 # OFFSET = 8.584e-01
 # Infectiousness
 BETA = 0.11
