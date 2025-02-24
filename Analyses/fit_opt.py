@@ -13,7 +13,7 @@ import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
 from Parameters.times_and_contacts import *
-from Parameters.InfluenzaB import *
+from Parameters.RSV import *
 
 from utils import *
 from demography import *
@@ -23,7 +23,7 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
@@ -31,11 +31,11 @@ STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 # Parameters for the ODE
-params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
+params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 
-incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
+incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
 
 opt_times = []
 
@@ -230,8 +230,11 @@ np.random.seed(250206)
 
 start = time.time()
 def likelihood(x):
-    print(time.time()-start)
+    print("time: ",time.time()-start)
     print(x)
+    if np.any(x < 0) or np.any(np.isnan(x)):
+        print("Invalid parameters")
+        return 0
     sim_params = params.copy()
     sim_params["WANE"] = np.array([0.0,x[0],0.0])
     sim_params["SEASONALITY"] = x[1]
@@ -243,16 +246,19 @@ def likelihood(x):
     sim_params["P_OBS"] = x[8]*pobsrel
     obs_age = age_detection(NAG,x[9],x[10],x[11])
     try:
-        return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+        lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
     except:
+        print("Error")
         return 0
+    print("likelihood: ",lh)
+    return lh
 
 bounds = all_bounds
-opt = sp.optimize.differential_evolution(likelihood,bounds,maxiter=700)
+opt = sp.optimize.differential_evolution(likelihood,bounds)
 
-with open("Data/Processed/DE_opt_fluA_population.pickle","wb") as f:
+with open("Data/Processed/DE_opt_RSV_population.pickle","wb") as f:
     pickle.dump(opt.population,f)
-with open("Data/Processed/DE_opt_fluA.pickle","wb") as f:
+with open("Data/Processed/DE_opt_RSV.pickle","wb") as f:
     pickle.dump(opt,f)
 
 # save optimized parameters
@@ -266,9 +272,9 @@ srel, pobsrel = constrained_immunity(opt.x[5],opt.x[6],opt.x[7])
 opt_params["S_REL"] = srel
 opt_params["P_OBS"] = opt.x[8]*pobsrel
 obs_age = age_detection(NAG,opt.x[9],opt.x[10],opt.x[11])
-with open("Data/Processed/DE_opt_params_fluA.pickle","wb") as f:
+with open("Data/Processed/DE_opt_params_RSV.pickle","wb") as f:
     pickle.dump(opt_params,f)
-with open("Data/Processed/DE_opt_obs_age_fluA.pickle","wb") as f:
+with open("Data/Processed/DE_opt_obs_age_RSV.pickle","wb") as f:
     pickle.dump(obs_age,f)
 print(opt_params)
 print(obs_age)
