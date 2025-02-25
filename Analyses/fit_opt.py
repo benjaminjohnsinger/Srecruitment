@@ -8,6 +8,7 @@ import pandas as pd
 import time
 import pickle
 import sys
+import os
 
 from vaccination import birth_vax, all_vax, flu_rate, flu_eff_coverage
 import contact_model as cm
