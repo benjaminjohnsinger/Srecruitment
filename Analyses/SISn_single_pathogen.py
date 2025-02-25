@@ -139,6 +139,15 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # params["P_OBS"] = x[8]*pobsrel
 # OBS_AGE = age_detection(NAG,x[9],x[10],x[11])
 
+x = [6.439549275309895682e-03,2.768617920121425602e-01,2.810497792172043097e-01,1.239546460721002719e-01,7.556380479446292521e-11,3.150986343574181670e-02,3.168899260707299659e-01,6.902065256424223527e-01,5.878178074804101261e-01]
+params["WANE"] = np.array([0.0,x[0],0.0])
+params["SEASONALITY"] = x[1]
+params["OFFSET"] = x[2]
+params["BETA"] = x[3]
+params["IMPORT_RATE"] = x[4]
+params["P_OBS"] = x[5]*params["P_OBS"]/params["P_OBS"][0]
+OBS_AGE = age_detection(NAG,x[6],x[7],x[8])
+
 ####### NM optimization ######
 
 # def likelihood(x):
