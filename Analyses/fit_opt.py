@@ -133,8 +133,8 @@ start = time.time()
 if __name__ == '__main__':
     opt = sp.optimize.differential_evolution(likelihood,bounds,workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
-    with open("Data/Processed/DE_opt_"+pathogen+str(seed)+"_population.pickle","wb") as f:
-        pickle.dump(opt.population,f)
+    # with open("Data/Processed/DE_opt_"+pathogen+str(seed)+"_population.pickle","wb") as f:
+    #     pickle.dump(opt.population,f)
     with open("Data/Processed/DE_opt_"+pathogen+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)
 
