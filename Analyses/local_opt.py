@@ -28,7 +28,7 @@ if pathogen == 'RSV':
     'contact': contact}
     p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
     incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
-    all_bounds = np.array([[0,1e-2], # WANE
+    bounds = np.array([[0,1e-2], # WANE
     [0,0.5], # SEASONALITY
     [0,1], # OFFSET
     [0,0.5], # BETA
@@ -55,7 +55,7 @@ elif pathogen == 'InfluenzaA':
     'contact': contact}
     p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
     incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
-    all_bounds = np.array([[0,1e-2], # WANE
+    bounds = np.array([[0,1e-2], # WANE
     [0,0.5], # SEASONALITY
     [0,1], # OFFSET
     [0,0.5], # BETA
@@ -87,7 +87,7 @@ elif pathogen == 'InfluenzaB':
     'contact': contact}
     p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
     incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
-    all_bounds = np.array([[0,1e-2], # WANE
+    bounds = np.array([[0,1e-2], # WANE
     [0,0.5], # SEASONALITY
     [0,1], # OFFSET
     [0,0.5], # BETA
@@ -128,8 +128,8 @@ import os
 from multiprocessing import Pool
 
 if __name__ == '__main__':
-    lh_sampler = sp.stats.qmc.LatinHypercube(d=len(all_bounds), seed=250212)
+    lh_sampler = sp.stats.qmc.LatinHypercube(d=len(bounds), seed=250212)
     lh_samples = lh_sampler.random(n_samples)
-    lh_samples_scaled = sp.stats.qmc.scale(lh_samples, all_bounds[:,0], all_bounds[:,1])
+    lh_samples_scaled = sp.stats.qmc.scale(lh_samples, bounds[:,0], bounds[:,1])
     with Pool(int(os.getenv('SLURM_CPUS_ON_NODE'))) as p:
         np.savetxt("Outputs/lhnm_"+pathogen+str(n_samples)+".csv",np.array(p.map(optimizer,lh_samples_scaled)))
