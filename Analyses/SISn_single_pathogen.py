@@ -21,7 +21,7 @@ from vaccination import birth_vax, birth_vax, all_vax, flu_rate, flu_eff_coverag
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
-from Parameters.RSV import *
+from Parameters.InfluenzaA import *
 
 from utils import *
 from demography import *
@@ -79,7 +79,7 @@ from Parameters.times_and_contacts import *
 
 T_LOCKDOWN = date_to_t('2020-03-19')
 LOCKDOWN_DURATION = 365
-p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
@@ -126,27 +126,30 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # plt.tight_layout()
 # plt.savefig('Figures/fluA_DE_50.png',dpi=300)
 
+# flu A DE result
 # x = [9.45854618e-03,3.61302306e-01,1.56072317e-01,4.93184792e-02
 # ,9.92581195e-11,2.39547537e-01,7.58335174e-01,9.34869408e-01
 # ,9.49725317e-02,1.47719533e-01,8.82811737e-01,2.06835208e-01]
-# params["WANE"] = np.array([0.0,x[0],0.0])
-# params["SEASONALITY"] = x[1]
-# params["OFFSET"] = x[2]
-# params["BETA"] = x[3]
-# params["IMPORT_RATE"] = x[4]
-# srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-# params["S_REL"] = srel
-# params["P_OBS"] = x[8]*pobsrel
-# OBS_AGE = age_detection(NAG,x[9],x[10],x[11])
-
-x = [6.439549275309895682e-03,2.768617920121425602e-01,2.810497792172043097e-01,1.239546460721002719e-01,7.556380479446292521e-11,3.150986343574181670e-02,3.168899260707299659e-01,6.902065256424223527e-01,5.878178074804101261e-01]
+x = [6.29025462e-03,3.88297344e-01,1.53971550e-01,4.86845688e-02,8.84510080e-11,6.94901592e-01,9.07324256e-01,6.33565160e-01,9.97853292e-02,1.33254604e-01,8.87060540e-01,2.12875016e-01]
+# x = [7.33320314e-03,4.44002579e-01,2.87034487e-01,4.03148062e-02,8.84373207e-11,6.81028564e-02,4.12890300e-01,4.79603679e-01,6.08467177e-02,2.69967353e-01,9.03495196e-01,3.96053663e-01]
 params["WANE"] = np.array([0.0,x[0],0.0])
 params["SEASONALITY"] = x[1]
 params["OFFSET"] = x[2]
 params["BETA"] = x[3]
 params["IMPORT_RATE"] = x[4]
-params["P_OBS"] = x[5]*params["P_OBS"]/params["P_OBS"][0]
-OBS_AGE = age_detection(NAG,x[6],x[7],x[8])
+srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
+params["S_REL"] = srel
+params["P_OBS"] = x[8]*pobsrel
+OBS_AGE = age_detection(NAG,x[9],x[10],x[11])
+
+# x = [5.86266696e-04,2.73095176e-01,3.16268694e-01,2.14791232e-01,7.88845916e-11,1.69370016e-02,3.09352523e-01,8.65587182e-01,4.89674825e-01]
+# params["WANE"] = np.array([0.0,x[0],0.0])
+# params["SEASONALITY"] = x[1]
+# params["OFFSET"] = x[2]
+# params["BETA"] = x[3]
+# params["IMPORT_RATE"] = x[4]
+# params["P_OBS"] = x[5]*params["P_OBS"]/params["P_OBS"][0]
+# OBS_AGE = age_detection(NAG,x[6],x[7],x[8])
 
 ####### NM optimization ######
 

@@ -63,14 +63,14 @@ elif pathogen == 'InfluenzaB':
 
 if pathogen == 'RSV':
     bounds = np.array([[0,1e-2], # WANE
-    [0,0.5], # SEASONALITY
+    [0,1], # SEASONALITY
     [0,1], # OFFSET
-    [0,0.5], # BETA
-    [0,1e-10], # IMPORT_RATE
-    [0,0.1], # P_OBS
+    [0,1], # BETA
+    [0,1e-9], # IMPORT_RATE
+    [0,1], # P_OBS
     [0,1], # AGE_OBS - young_immunity
     [0,1], # AGE_OBS - old_immunity
-    [0,1]]) # AGE_OBS - young_old# nelders-mead optimization
+    [0,1]]) # AGE_OBS - young_old
     def likelihood(x):
         print("time: ",time.time()-start)
         print(x)
@@ -94,17 +94,17 @@ if pathogen == 'RSV':
         return lh
 else:
     bounds = np.array([[0,1e-2], # WANE
-    [0,0.5], # SEASONALITY
+    [0,1], # SEASONALITY
     [0,1], # OFFSET
-    [0,0.5], # BETA
-    [0,1e-10], # IMPORT_RATE
+    [0,1], # BETA
+    [0,1e-9], # IMPORT_RATE
     [0,1], # S_REL - immunity after second infection above minimum
     [0,1], # S_REL - immunity after first infection above minimum
     [0,1], # S_REL - relative infection and disease immunity after first infection
-    [0,0.1], # P_OBS
+    [0,1], # P_OBS
     [0,1], # AGE_OBS - young_immunity
     [0,1], # AGE_OBS - old_immunity
-    [0,1]]) # AGE_OBS - young_old# nelders-mead optimization
+    [0,1]]) # AGE_OBS - young_old
     def likelihood(x):
         print("time: ",time.time()-start)
         print(x)
