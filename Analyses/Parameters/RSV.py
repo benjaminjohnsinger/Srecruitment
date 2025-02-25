@@ -34,12 +34,12 @@ OBS_AGE = np.array([1,0.75,0.5,0.05,0.05,0.15,1])
 # OBS_AGE = np.array([1,0.8229,0.6458,0.4687,0.2916,0.1375,0.8626])
 ## Other
 # Seasonality parameters
-SEASONALITY = 0.1
+SEASONALITY = 0.4
 # SEASONALITY = 1.727e-01
-OFFSET = 0.25
+OFFSET = 0.15
 # OFFSET = 8.584e-01
 # Infectiousness
-BETA = 0.11
+BETA = 0.5
 # BETA = 6.983e-02
 # BETA = 0.18
 # Vaccination paramters
@@ -52,7 +52,7 @@ def ACOV(t,SP,ap,AR):
     return 0
 
 # IMPORT_RATE = 7.255e-13
-IMPORT_RATE = 1e-11
+IMPORT_RATE = 1e-10
 
 PP = pd.read_csv("Data/Processed/RSV_PercentPositive_Regions.csv")
 PP.index = pd.to_datetime(PP["Date"], format="%Y-%m-%d")
@@ -62,4 +62,8 @@ PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean
 PP_IDX = np.array(PP.index)
 @jit
 def regional_positivity(t):
+    if t < PP_IDX[0]:
+        day_in_season = (t - 16709)%365
+        time_2015 = 16709 + day_in_season
+        return PP_NP[np.argmax(PP_IDX>=time_2015)]
     return PP_NP[np.argmax(PP_IDX>=t)]

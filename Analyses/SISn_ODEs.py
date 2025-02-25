@@ -3,8 +3,9 @@
 
 from numba import jit
 import numpy as np
-N_C = 2
+N_C = 2 # two types of compartment
 
+# separate function for recovery and waning immunity, since this is fasted in a numba-compiled for loop
 @jit
 def delta_helper(state,nag,ns,REC_UP,REC_SAME,WANE):
     delta = np.zeros(state.shape)
@@ -14,6 +15,7 @@ def delta_helper(state,nag,ns,REC_UP,REC_SAME,WANE):
         delta[(2*i+2)*nag:(2*i+3)*nag] = -(REC_UP[i]+REC_SAME[i])*state[(2*i+2)*nag:(2*i+3)*nag]
     return delta
 
+# vectorized ODEs for SIS model with 3 susceptibility classes
 def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact):
     delta = np.zeros(state.shape)
     pop_size = np.sum(state,dtype=np.float64)
@@ -28,10 +30,10 @@ def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_U
     # recovery and waning immunity, which have references to zero buffers at beginning and end of state
     delta += delta_helper(state,NAG,N_S,REC_UP,REC_SAME,WANE)
     # aging
-    delta[NAG:-NAG] -= (AGING_RATE*state[NAG:-NAG].reshape((N_C*N_S,NAG))).flatten()
+    delta[NAG:-NAG] -= (AGING_RATE*state[NAG:-NAG].reshape((N_C*N_S,NAG))).flatten() # aging out of age groups
     temp_age = AGING_RATE.copy()
     temp_age[-1] = 0
-    delta[(NAG+1):-(NAG-1)] += (temp_age*state[NAG:-NAG].reshape((N_C*N_S,NAG))).flatten()
+    delta[(NAG+1):-(NAG-1)] += (temp_age*state[NAG:-NAG].reshape((N_C*N_S,NAG))).flatten() # aging into age groups
     # vaccination
     delta[NAG:-NAG] -= (ACOV(t,S_REL*P_OBS,age_pops,AGING_RATE)*np.array([(i%N_C==0 and i//N_C!=S_VAX)*state[(i+1)*NAG:(i+2)*NAG] for i in range(N_S*N_C)])).flatten()
     delta[(S_VAX*N_C+1)*NAG:(S_VAX*N_C+2)*NAG] += ACOV(t,S_REL*P_OBS,age_pops,AGING_RATE)*np.sum(np.array([(i%N_C==0 and i//N_C!=S_VAX)*state[(i+1)*NAG:(i+2)*NAG] for i in range(N_S*N_C)],dtype=np.float64).reshape((N_S*N_C,NAG)),axis=0)
