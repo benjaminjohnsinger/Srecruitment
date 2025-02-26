@@ -21,7 +21,6 @@ from vaccination import birth_vax, birth_vax, all_vax, flu_rate, flu_eff_coverag
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
-from Parameters.RSV import *
 
 from utils import *
 from demography import *
@@ -76,10 +75,11 @@ np.set_printoptions(threshold=np.inf)
 
 
 from Parameters.times_and_contacts import *
+from Parameters.RSV import *
+p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 
 T_LOCKDOWN = date_to_t('2020-03-19')
 LOCKDOWN_DURATION = 365
-p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
@@ -127,20 +127,22 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # plt.savefig('Figures/fluA_DE_50.png',dpi=300)
 
 # flu A DE result
-# x = [9.45854618e-03,3.61302306e-01,1.56072317e-01,4.93184792e-02
-# ,9.92581195e-11,2.39547537e-01,7.58335174e-01,9.34869408e-01
-# ,9.49725317e-02,1.47719533e-01,8.82811737e-01,2.06835208e-01]
-# x = [6.29025462e-03,3.88297344e-01,1.53971550e-01,4.86845688e-02,8.84510080e-11,6.94901592e-01,9.07324256e-01,6.33565160e-01,9.97853292e-02,1.33254604e-01,8.87060540e-01,2.12875016e-01]
-# # x = [7.33320314e-03,4.44002579e-01,2.87034487e-01,4.03148062e-02,8.84373207e-11,6.81028564e-02,4.12890300e-01,4.79603679e-01,6.08467177e-02,2.69967353e-01,9.03495196e-01,3.96053663e-01]
-# params["WANE"] = np.array([0.0,x[0],0.0])
-# params["SEASONALITY"] = x[1]
-# params["OFFSET"] = x[2]
-# params["BETA"] = x[3]
-# params["IMPORT_RATE"] = x[4]
-# srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-# params["S_REL"] = srel
-# params["P_OBS"] = x[8]*pobsrel
-# OBS_AGE = age_detection(NAG,x[9],x[10],x[11])
+# x = [7.204e-03,4.471e-01,1.319e-01,1.329e-02,7.754e-10,3.510e-01,6.905e-01,4.581e-01,3.762e-01,1.327e-01,8.848e-01,1.965e-01]
+# # flu B DE result
+# x = [4.976e-03,6.702e-01,2.843e-01,4.730e-03,6.287e-10,2.515e-01,9.888e-01,4.302e-02,6.950e-01,2.730e-01,8.992e-01,3.724e-01]
+# RSV DE result
+# x = [5.315e-04,3.358e-01,3.037e-01,4.107e-02,6.653e-10,9.241e-01,3.993e-02,7.215e-02,2.976e-02,3.215e-01,8.717e-01,4.957e-01]
+params["WANE"] = np.array([0.0,x[0],0.0])
+params["SEASONALITY"] = x[1]
+params["OFFSET"] = x[2]
+params["BETA"] = x[3]
+params["IMPORT_RATE"] = x[4]
+srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
+params["S_REL"] = srel
+params["P_OBS"] = x[8]*pobsrel
+OBS_AGE = age_detection(NAG,x[9],x[10],x[11])
+print(params)
+print("OBS_AGE",OBS_AGE)
 
 # x = [5.86266696e-04,2.73095176e-01,3.16268694e-01,2.14791232e-01,
 # 7.88845916e-11,1.69370016e-02,3.09352523e-01,8.65587182e-01,
@@ -148,13 +150,13 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # x = [3.01741108e-04,2.30466570e-01,3.32186099e-01,2.40278802e-01
 # ,9.71793749e-11,2.31530315e-02,3.16475797e-01,7.83611823e-01
 # ,5.38376485e-01]
-params["WANE"] = np.array([0.0,x[0],0.0])
-params["SEASONALITY"] = x[1]
-params["OFFSET"] = x[2]
-params["BETA"] = x[3]
-params["IMPORT_RATE"] = x[4]
-params["P_OBS"] = x[5]*params["P_OBS"]/params["P_OBS"][0]
-OBS_AGE = age_detection(NAG,x[6],x[7],x[8])
+# params["WANE"] = np.array([0.0,x[0],0.0])
+# params["SEASONALITY"] = x[1]
+# params["OFFSET"] = x[2]
+# params["BETA"] = x[3]
+# params["IMPORT_RATE"] = x[4]
+# params["P_OBS"] = x[5]*params["P_OBS"]/params["P_OBS"][0]
+# OBS_AGE = age_detection(NAG,x[6],x[7],x[8])
 
 ####### NM optimization ######
 
@@ -212,8 +214,8 @@ result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,
 obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
 mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t('2010-08-01'))
 lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
-plt.show()
-# plt.savefig('Figures/InfluenzaA_test.png',dpi=300)
+plt.savefig('Figures/RSV_DE3.png',dpi=300)
+# plt.show()
 # # params["WANE"] = np.array([0,1.195e-01,0])/365
 # # params["P_OBS"] = 3.396e-02*np.array([1,0.46,0.31])
 # # OBS_AGE = np.array([1,0.8229,0.6458,0.4687,0.2916,0.1375,0.8626])

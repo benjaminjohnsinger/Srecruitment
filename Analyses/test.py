@@ -15,7 +15,7 @@ import pickle
 from scipy.optimize import curve_fit
 import time
 
-with open("Data/Processed/DE_opt_InfluenzaA250225.pickle","rb") as f:
+with open("Data/Processed/DE_opt_RSV2502253.pickle","rb") as f:
     opt = pickle.load(f)
 
 print(opt)
