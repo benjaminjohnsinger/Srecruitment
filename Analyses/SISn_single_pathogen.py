@@ -21,7 +21,7 @@ from vaccination import birth_vax, birth_vax, all_vax, flu_rate, flu_eff_coverag
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
-from Parameters.InfluenzaA import *
+from Parameters.RSV import *
 
 from utils import *
 from demography import *
@@ -79,7 +79,7 @@ from Parameters.times_and_contacts import *
 
 T_LOCKDOWN = date_to_t('2020-03-19')
 LOCKDOWN_DURATION = 365
-p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
@@ -142,7 +142,12 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # params["P_OBS"] = x[8]*pobsrel
 # OBS_AGE = age_detection(NAG,x[9],x[10],x[11])
 
-x = [5.86266696e-04,2.73095176e-01,3.16268694e-01,2.14791232e-01,7.88845916e-11,1.69370016e-02,3.09352523e-01,8.65587182e-01,4.89674825e-01]
+# x = [5.86266696e-04,2.73095176e-01,3.16268694e-01,2.14791232e-01,
+# 7.88845916e-11,1.69370016e-02,3.09352523e-01,8.65587182e-01,
+# 4.89674825e-01]
+# x = [3.01741108e-04,2.30466570e-01,3.32186099e-01,2.40278802e-01
+# ,9.71793749e-11,2.31530315e-02,3.16475797e-01,7.83611823e-01
+# ,5.38376485e-01]
 params["WANE"] = np.array([0.0,x[0],0.0])
 params["SEASONALITY"] = x[1]
 params["OFFSET"] = x[2]

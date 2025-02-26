@@ -26,7 +26,7 @@ from plotting import *
 from fit_MCMC import *
 
 
-pathogen, seed = sys.argv[1], int(sys.argv[2])
+pathogen, seed, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
 
 # set seed
 np.random.seed(seed)
@@ -131,29 +131,8 @@ def likelihood(x):
 
 start = time.time()
 if __name__ == '__main__':
-    opt = sp.optimize.differential_evolution(likelihood,bounds,workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,
+    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
-    # with open("Data/Processed/DE_opt_"+pathogen+str(seed)+"_population.pickle","wb") as f:
-    #     pickle.dump(opt.population,f)
     with open("Data/Processed/DE_opt_"+pathogen+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)
-
-    # save optimized parameters
-    opt_params = params.copy()
-    opt_params["WANE"] = np.array([0.0,opt.x[0],0.0])
-    opt_params["SEASONALITY"] = opt.x[1]
-    opt_params["OFFSET"] = opt.x[2]
-    opt_params["BETA"] = opt.x[3]
-    opt_params["IMPORT_RATE"] = opt.x[4]
-    srel, pobsrel = constrained_immunity(opt.x[5],opt.x[6],opt.x[7])
-    opt_params["S_REL"] = srel
-    opt_params["P_OBS"] = opt.x[8]*pobsrel
-    obs_age = age_detection(NAG,opt.x[9],opt.x[10],opt.x[11])
-    with open("Data/Processed/DE_opt_params_"+pathogen+str(seed)+".pickle","wb") as f:
-        pickle.dump(opt_params,f)
-    with open("Data/Processed/DE_opt_obs_age_"+pathogen+str(seed)+".pickle","wb") as f:
-        pickle.dump(obs_age,f)
-    print(opt_params)
-    print(obs_age)
-
-    print(time.time()-start)

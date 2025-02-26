@@ -11,4 +11,4 @@
 ## Command(s) to run:
 
 module load python/3.11.6-gcc-11.4.0
-ipython Analyses/fit_opt.py RSV 2502252
+ipython Analyses/fit_opt.py RSV 2502252 30 1.5 0.5
