@@ -30,11 +30,6 @@ pathogen, seed, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[
 # set seed
 np.random.seed(seed)
 
-## Initial conditions
-STATE0 = np.zeros((2*N_S+2)*NAG)
-STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
-STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
-
 if pathogen == 'RSV':
     from Parameters.RSV import *
     # Parameters for the ODE
@@ -59,6 +54,11 @@ elif pathogen == 'InfluenzaB':
     'contact': contact}
     p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
     incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
+
+## Initial conditions
+STATE0 = np.zeros((2*N_S+2)*NAG)
+STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
+STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 if pathogen == 'RSV':
     bounds = np.array([[0,1e-2], # WANE
