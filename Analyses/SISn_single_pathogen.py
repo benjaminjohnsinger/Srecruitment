@@ -127,24 +127,28 @@ params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_
 # plt.savefig('Figures/fluA_DE_50.png',dpi=300)
 
 # flu A DE result
-x = [7.204e-03,4.471e-01,1.319e-01,1.329e-02,
-7.754e-10,3.510e-01,6.905e-01,4.581e-01,
-3.762e-01,1.327e-01,8.848e-01,1.965e-01]
+# x = [7.204e-03,4.471e-01,1.319e-01,1.329e-02,
+# 7.754e-10,3.510e-01,6.905e-01,4.581e-01,
+# 3.762e-01,1.327e-01,8.848e-01,1.965e-01]
+# flu A MCMC
+# x = [5.67688321e-03,4.87475653e-01,3.23861787e-01,9.27926100e-03
+# ,6.69016127e-10,3.16261583e-01,6.96030680e-01,4.76112674e-01
+# ,2.87863306e-01,1.33581614e-01,8.83946835e-01,2.19457105e-01]
 # # flu B DE result
 # x = [4.976e-03,6.702e-01,2.843e-01,4.730e-03,6.287e-10,2.515e-01,9.888e-01,4.302e-02,6.950e-01,2.730e-01,8.992e-01,3.724e-01]
 # RSV DE result
 # x = [5.315e-04,3.358e-01,3.037e-01,4.107e-02,6.653e-10,9.241e-01,3.993e-02,7.215e-02,2.976e-02,3.215e-01,8.717e-01,4.957e-01]
-params["WANE"] = np.array([0.0,x[0],0.0])
-params["SEASONALITY"] = x[1]
-params["OFFSET"] = x[2]
-params["BETA"] = x[3]
-params["IMPORT_RATE"] = x[4]
-srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-params["S_REL"] = srel
-params["P_OBS"] = x[8]*pobsrel
-OBS_AGE = age_detection(NAG,x[9],x[10],x[11])
-print(params)
-print("OBS_AGE",OBS_AGE)
+# params["WANE"] = np.array([0.0,x[0],0.0])
+# params["SEASONALITY"] = x[1]
+# params["OFFSET"] = x[2]
+# params["BETA"] = x[3]
+# params["IMPORT_RATE"] = x[4]
+# srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
+# params["S_REL"] = srel
+# params["P_OBS"] = x[8]*pobsrel
+# OBS_AGE = age_detection(NAG,x[9],x[10],x[11])
+# print(params)
+# print("OBS_AGE",OBS_AGE)
 
 # x = [5.86266696e-04,2.73095176e-01,3.16268694e-01,2.14791232e-01,
 # 7.88845916e-11,1.69370016e-02,3.09352523e-01,8.65587182e-01,
@@ -159,6 +163,19 @@ print("OBS_AGE",OBS_AGE)
 # params["IMPORT_RATE"] = x[4]
 # params["P_OBS"] = x[5]*params["P_OBS"]/params["P_OBS"][0]
 # OBS_AGE = age_detection(NAG,x[6],x[7],x[8])
+
+# RSV DE result
+x = [0.01,0.45978903,0.30943881,0.07964262,0.0,0.11955218
+,0.04959416,0.65890204,0.33574546,0.05983506,0.29390588,0.89066174
+,0.4494654]
+params["WANE"] = np.array([0.0,x[0],0.0])
+params["SEASONALITY"] = x[1]
+params["OFFSET"] = x[2]
+params["BETA"] = x[3]
+params["IMPORT_RATE"] = x[4]
+params["S_REL"] = np.array([1,x[5],x[6]])
+params["P_OBS"] = x[9]*np.array([1,x[7],x[8]])
+OBS_AGE = age_detection(NAG,x[10],x[11],x[12])
 
 ####### NM optimization ######
 
@@ -198,26 +215,26 @@ print("OBS_AGE",OBS_AGE)
 # OBS_AGE = age_detection(NAG,pms[8],pms[9],pms[10])
 
 # # # # # # # # # #### One-shot line plot #####
-# fig, ax = plt.subplots(1,1,figsize=(6.5,4.5))
-# # params['contact'] = lambda t,seasonality,offset: contact(t,seasonality,offset)*(1-flu_eff_coverage(t,S_REL))
-# # params['BETA'] = 0
-# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-# # vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
-# # hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
-# # hsv_colors[3] = colormaps.hsv((3/7)+0.04)
-# # pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
-# # for i in range(NAG): 
-# #     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# #     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# # # ax[0].plot(result.t,[np.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/np.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
-# # # ax[1].plot(result.t,np.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/np.sum(pop_size_by_age,axis=1),color="#648FFF")
-# # plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
+fig, ax = plt.subplots(1,1,figsize=(6.5,4.5))
+# params['contact'] = lambda t,seasonality,offset: contact(t,seasonality,offset)*(1-flu_eff_coverage(t,S_REL))
+# params['BETA'] = 0
+result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+# vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
+# hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
+# hsv_colors[3] = colormaps.hsv((3/7)+0.04)
+# pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+# for i in range(NAG): 
+#     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+#     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+# # ax[0].plot(result.t,[np.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/np.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
+# # ax[1].plot(result.t,np.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/np.sum(pop_size_by_age,axis=1),color="#648FFF")
+# plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
 
-# obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
-# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t('2010-08-01'))
-# lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
+obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
+mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t('2010-08-01'))
+lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=2)
 # plt.savefig('Figures/RSV_DE3.png',dpi=300)
-# plt.show()
+plt.show()
 # # params["WANE"] = np.array([0,1.195e-01,0])/365
 # # params["P_OBS"] = 3.396e-02*np.array([1,0.46,0.31])
 # # OBS_AGE = np.array([1,0.8229,0.6458,0.4687,0.2916,0.1375,0.8626])
@@ -318,41 +335,41 @@ print("OBS_AGE",OBS_AGE)
 # # plt.savefig('Figures/8param_fit_test.png',dpi=300)
 # plt.savefig('Figures/RSV_mobility_tests.png',dpi=300)
 
-incidence = np.array(pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0))
-# with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASONALITYp06_OFFSETp1_WANE10y_ADRp1.pickle","rb") as f:
-#     incidence = pickle.load(f)
+# incidence = np.array(pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0))
+# # with open("Data/Processed/SIS_noisy_obs_BETAp15_SEASONALITYp06_OFFSETp1_WANE10y_ADRp1.pickle","rb") as f:
+# #     incidence = pickle.load(f)
 
-# # # # # case_data = pd.read_csv('Data/Processed/KPSC_rsv_hosp_incidence_by_age.csv')
-# # # # # # case_data = pd.read_csv('Data/Processed/KPSC_flu_hosp.csv')['Count']
-# # # # # case_data = np.array(case_data)
-# # # # # # print(case_data)
+# # # # # # case_data = pd.read_csv('Data/Processed/KPSC_rsv_hosp_incidence_by_age.csv')
+# # # # # # # case_data = pd.read_csv('Data/Processed/KPSC_flu_hosp.csv')['Count']
+# # # # # # case_data = np.array(case_data)
+# # # # # # # print(case_data)
 
-# # # # points_trimmed = np.array(date_to_t(PERIOD[PERIOD < '2020-01-01']))
+# # # # # points_trimmed = np.array(date_to_t(PERIOD[PERIOD < '2020-01-01']))
 
-# params["WANE"] = np.array([0.0,pms[0],0.0])/365
-# OBS_AGE = age_detection(NAG,pms[1],pms[2],pms[3])
-# params["SEASONALITY"] = pms[4]
-# params["OFFSET"] = pms[5]
-# params["BETA"] = pms[6]
-# params["IMPORT_RATE"] = pms[7]
-# params["P_OBS"] =  pms[8]*np.array([1,0.46,0.31])
+# # params["WANE"] = np.array([0.0,pms[0],0.0])/365
+# # OBS_AGE = age_detection(NAG,pms[1],pms[2],pms[3])
+# # params["SEASONALITY"] = pms[4]
+# # params["OFFSET"] = pms[5]
+# # params["BETA"] = pms[6]
+# # params["IMPORT_RATE"] = pms[7]
+# # params["P_OBS"] =  pms[8]*np.array([1,0.46,0.31])
 
 
-np.random.seed(250226)
-variables = ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","P_OBS","OBS_AGE_YOUNG","OBS_AGE_OLD","OBS_AGE_YOUNG_OLD"]
-initial_scalars = np.array([x])
-log_priors_distribution = sp.stats.multivariate_normal([-1]*12,np.diag([1.5]*12))
-log_priors = lambda y : log_priors_distribution.logpdf(y)
-proposal_cov = np.diag([1e-4]*12)
-mcmc_trajectory, acceptance_rate, likelihoods = mcmc(incidence, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, p_time_to_obs, variables, initial_scalars, log_priors, proposal_cov, 200, True, True)
-print(acceptance_rate)
-print(np.mean(mcmc_trajectory,axis=0))
-plt.plot(mcmc_trajectory)
-plt.savefig('Figures/mcmc_trajectory_from_FluA_DE.png',dpi=300)
-with open('Data/Processed/mcmc_trajectory_from_FluA_DE.pickle','wb') as f:
-    pickle.dump(mcmc_trajectory,f)
-with open('Data/Processed/mcmc_likelihoods_from_FluA_DE.pickle','wb') as f:
-    pickle.dump(likelihoods,f)
+# np.random.seed(250226)
+# variables = ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","P_OBS","OBS_AGE_YOUNG","OBS_AGE_OLD","OBS_AGE_YOUNG_OLD"]
+# initial_scalars = np.array([x])
+# log_priors_distribution = sp.stats.multivariate_normal([-1]*12,np.diag([1.5]*12))
+# log_priors = lambda y : log_priors_distribution.logpdf(y)
+# proposal_cov = np.diag([1e-4]*12)
+# mcmc_trajectory, acceptance_rate, likelihoods = mcmc(incidence, params, POINTS, STATE0, OBS_AGE, SIS_likelihood, p_time_to_obs, variables, initial_scalars, log_priors, proposal_cov, 200, True, True)
+# print(acceptance_rate)
+# print(np.mean(mcmc_trajectory,axis=0))
+# plt.plot(mcmc_trajectory)
+# plt.savefig('Figures/mcmc_trajectory_from_FluA_DE.png',dpi=300)
+# with open('Data/Processed/mcmc_trajectory_from_FluA_DE.pickle','wb') as f:
+#     pickle.dump(mcmc_trajectory,f)
+# with open('Data/Processed/mcmc_likelihoods_from_FluA_DE.pickle','wb') as f:
+#     pickle.dump(likelihoods,f)
 
 # with open('Data/Processed/mcmc_trajectory_from_FluA_DE.pickle','rb') as f:
 #     mcmc_trajectory = pickle.load(f)

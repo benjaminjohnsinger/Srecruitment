@@ -67,9 +67,9 @@ if pathogen == 'RSV':
     [0,1], # BETA
     [0,1e-9], # IMPORT_RATE
     [0,1], # S_REL1 - relative susceptibility to infection after first infection
-    [0,1], # S_REL2 - relative susceptibility to infection after second infection
+    [0,1], # S_REL2/S_REL1 - relative susceptibility to infection after second infection
     [0,1], # D_REL1 - relative susceptibility to disease after first infection
-    [0,1], # D_REL2 - relative susceptibility to disease after second infection
+    [0,1], # D_REL2/D_REL1 - relative susceptibility to disease after second infection
     [0,1], # P_OBS
     [0,1], # AGE_OBS - young_immunity
     [0,1], # AGE_OBS - old_immunity
@@ -79,21 +79,21 @@ if pathogen == 'RSV':
         print(x)
         if np.any(x < 0) or np.any(np.isnan(x)):
             print("Invalid parameters")
-            return 0
+            return 1e10
         sim_params = params.copy()
         sim_params["WANE"] = np.array([0.0,x[0],0.0])
         sim_params["SEASONALITY"] = x[1]
         sim_params["OFFSET"] = x[2]
         sim_params["BETA"] = x[3]
         sim_params["IMPORT_RATE"] = x[4]
-        sim_params["S_REL"] = np.array([1,x[5],x[6]])
-        sim_params["P_OBS"] = x[9]*np.array([1,x[7],x[8]])
+        sim_params["S_REL"] = np.array([1,x[5],x[5]*x[6]])
+        sim_params["P_OBS"] = x[9]*np.array([1,x[7],x[7]*x[8]])
         obs_age = age_detection(NAG,x[10],x[11],x[12])
         try:
             lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
         except:
             print("Error")
-            return 0
+            return 1e10
         print("likelihood: ",lh)
         return lh
 else:
@@ -114,7 +114,7 @@ else:
         print(x)
         if np.any(x < 0) or np.any(np.isnan(x)):
             print("Invalid parameters")
-            return 0
+            return 1e10
         sim_params = params.copy()
         sim_params["WANE"] = np.array([0.0,x[0],0.0])
         sim_params["SEASONALITY"] = x[1]
@@ -129,7 +129,7 @@ else:
             lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
         except:
             print("Error")
-            return 0
+            return 1e10
         print("likelihood: ",lh)
         return lh
 
