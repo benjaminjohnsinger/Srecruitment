@@ -61,73 +61,73 @@ elif pathogen == 'InfluenzaB':
     p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
     incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
 
-if pathogen == 'RSV':
-    bounds = np.array([[0,1e-2], # WANE
-    [0,1], # SEASONALITY
-    [0,1], # OFFSET
-    [0,1], # BETA
-    [0,1e-9], # IMPORT_RATE
-    [0,1], # P_OBS
-    [0,1], # AGE_OBS - young_immunity
-    [0,1], # AGE_OBS - old_immunity
-    [0,1]]) # AGE_OBS - young_old
-    def likelihood(x):
-        print("time: ",time.time()-start)
-        print(x)
-        if np.any(x < 0) or np.any(np.isnan(x)):
-            print("Invalid parameters")
-            return 0
-        sim_params = params.copy()
-        sim_params["WANE"] = np.array([0.0,x[0],0.0])
-        sim_params["SEASONALITY"] = x[1]
-        sim_params["OFFSET"] = x[2]
-        sim_params["BETA"] = x[3]
-        sim_params["IMPORT_RATE"] = x[4]
-        sim_params["P_OBS"] = x[5]*params["P_OBS"]/params["P_OBS"][0]
-        obs_age = age_detection(NAG,x[6],x[7],x[8])
-        try:
-            lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-        except:
-            print("Error")
-            return 0
-        print("likelihood: ",lh)
-        return lh
-else:
-    bounds = np.array([[0,1e-2], # WANE
-    [0,1], # SEASONALITY
-    [0,1], # OFFSET
-    [0,1], # BETA
-    [0,1e-9], # IMPORT_RATE
-    [0,1], # S_REL - immunity after second infection above minimum
-    [0,1], # S_REL - immunity after first infection above minimum
-    [0,1], # S_REL - relative infection and disease immunity after first infection
-    [0,1], # P_OBS
-    [0,1], # AGE_OBS - young_immunity
-    [0,1], # AGE_OBS - old_immunity
-    [0,1]]) # AGE_OBS - young_old
-    def likelihood(x):
-        print("time: ",time.time()-start)
-        print(x)
-        if np.any(x < 0) or np.any(np.isnan(x)):
-            print("Invalid parameters")
-            return 0
-        sim_params = params.copy()
-        sim_params["WANE"] = np.array([0.0,x[0],0.0])
-        sim_params["SEASONALITY"] = x[1]
-        sim_params["OFFSET"] = x[2]
-        sim_params["BETA"] = x[3]
-        sim_params["IMPORT_RATE"] = x[4]
-        srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-        sim_params["S_REL"] = srel
-        sim_params["P_OBS"] = x[8]*pobsrel
-        obs_age = age_detection(NAG,x[9],x[10],x[11])
-        try:
-            lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-        except:
-            print("Error")
-            return 0
-        print("likelihood: ",lh)
-        return lh
+# if pathogen == 'RSV':
+#     bounds = np.array([[0,1e-2], # WANE
+#     [0,1], # SEASONALITY
+#     [0,1], # OFFSET
+#     [0,1], # BETA
+#     [0,1e-9], # IMPORT_RATE
+#     [0,1], # P_OBS
+#     [0,1], # AGE_OBS - young_immunity
+#     [0,1], # AGE_OBS - old_immunity
+#     [0,1]]) # AGE_OBS - young_old
+#     def likelihood(x):
+#         print("time: ",time.time()-start)
+#         print(x)
+#         if np.any(x < 0) or np.any(np.isnan(x)):
+#             print("Invalid parameters")
+#             return 0
+#         sim_params = params.copy()
+#         sim_params["WANE"] = np.array([0.0,x[0],0.0])
+#         sim_params["SEASONALITY"] = x[1]
+#         sim_params["OFFSET"] = x[2]
+#         sim_params["BETA"] = x[3]
+#         sim_params["IMPORT_RATE"] = x[4]
+#         sim_params["P_OBS"] = x[5]*params["P_OBS"]/params["P_OBS"][0]
+#         obs_age = age_detection(NAG,x[6],x[7],x[8])
+#         try:
+#             lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+#         except:
+#             print("Error")
+#             return 0
+#         print("likelihood: ",lh)
+#         return lh
+# else:
+bounds = np.array([[0,1e-2], # WANE
+[0,1], # SEASONALITY
+[0,1], # OFFSET
+[0,1], # BETA
+[0,1e-9], # IMPORT_RATE
+[0,1], # S_REL - immunity after second infection above minimum
+[0,1], # S_REL - immunity after first infection above minimum
+[0,1], # S_REL - relative infection and disease immunity after first infection
+[0,1], # P_OBS
+[0,1], # AGE_OBS - young_immunity
+[0,1], # AGE_OBS - old_immunity
+[0,1]]) # AGE_OBS - young_old
+def likelihood(x):
+    print("time: ",time.time()-start)
+    print(x)
+    if np.any(x < 0) or np.any(np.isnan(x)):
+        print("Invalid parameters")
+        return 0
+    sim_params = params.copy()
+    sim_params["WANE"] = np.array([0.0,x[0],0.0])
+    sim_params["SEASONALITY"] = x[1]
+    sim_params["OFFSET"] = x[2]
+    sim_params["BETA"] = x[3]
+    sim_params["IMPORT_RATE"] = x[4]
+    srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
+    sim_params["S_REL"] = srel
+    sim_params["P_OBS"] = x[8]*pobsrel
+    obs_age = age_detection(NAG,x[9],x[10],x[11])
+    try:
+        lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+    except:
+        print("Error")
+        return 0
+    print("likelihood: ",lh)
+    return lh
 
 start = time.time()
 if __name__ == '__main__':
