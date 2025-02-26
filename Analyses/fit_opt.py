@@ -102,9 +102,9 @@ else:
     [0,1], # OFFSET
     [0,1], # BETA
     [0,1e-9], # IMPORT_RATE
-    [0,1], # S_REL - immunity after second infection above minimum
-    [0,1], # S_REL - immunity after first infection above minimum
-    [0,1], # S_REL - relative infection and disease immunity after first infection
+    [0,1], # EXTRA_IMMUNITY - immunity after second infection above minimum
+    [0,1], # FIRST_IMMUNITY - immunity after first infection above minimum
+    [0,1], # FIRST_DIS_INF_FACTOR - relative infection and disease immunity after first infection
     [0,1], # P_OBS
     [0,1], # AGE_OBS - young_immunity
     [0,1], # AGE_OBS - old_immunity

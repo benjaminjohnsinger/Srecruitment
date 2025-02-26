@@ -99,6 +99,9 @@ def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
             params["S_REL"][int(name[17:])] = scalar_values_dict[name]
         elif re.search(r"P_OBS\d+",name):
             params["P_OBS"][int(name[5:])] = scalar_values_dict[name]
+        elif name in ["EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR"]:
+            params["S_REL"], obs_rel = constrained_immunity(scalar_values_dict["EXTRA_IMMUNITY"],scalar_values_dict["FIRST_IMMUNITY"],scalar_values_dict["FIRST_DIS_INF_FACTOR"])
+            params["P_OBS"] = obs_rel*np.max(params["P_OBS"])
     #     elif re.search(r"OBS_AGE\d+",name):
     #         params["OBS_AGE"][int(name[8:])] = scalar_values_dict[name]
     # if "OBS_AGE_YOUNG" in scalar_values_dict.keys() or "OBS_AGE_OLD" in scalar_values_dict.keys() or "OBS_AGE_YOUNG_OLD" in scalar_values_dict.keys():
@@ -126,6 +129,8 @@ def params_to_scalars(param_dict,scalar_names):
             scalar_dict[name] = param_dict["S_REL"][int(name[5:])]
         elif re.search(r"ACQUIRED_IMMUNITY\d+",name):
             scalar_dict[name] = param_dict["S_REL"][int(name[17:])]
+        elif re.search(r"P_OBS\d+",name):
+            scalar_dict[name] = param_dict["P_OBS"][int(name[5:])]
     return scalar_dict
 
 ####### Generating interesting quantities from ODE results #######
