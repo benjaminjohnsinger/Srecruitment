@@ -14,8 +14,17 @@ from utils import *
 import pickle
 from scipy.optimize import curve_fit
 import time
+import corner
 
-with open("Data/Processed/DE_opt_RSV250226.pickle","rb") as f:
+with open("Data/Processed/DE_opt_RSV1.pickle","rb") as f:
     opt = pickle.load(f)
 
-print(opt.x)
+print(opt)
+
+# with open("Data/Processed/mcmc_trajectory_from_FluA_DE.pickle","rb") as f:
+#     mcmc = pickle.load(f)
+
+# # corner plot
+# variables = ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","P_OBS","OBS_AGE_YOUNG","OBS_AGE_OLD","OBS_AGE_YOUNG_OLD"]
+# corner.corner(mcmc,labels=variables,show_titles=True)
+# plt.savefig("Figures/Corner_plot_FluA_MCMC_from_DE.png")
