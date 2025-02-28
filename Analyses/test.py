@@ -2,24 +2,26 @@
 ## Code to explore how susceptibles recruitment affects outbreak dynamics
 ## BJS August 2024
 
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy as sp
+# import numpy as np
+# import matplotlib.pyplot as plt
+# import scipy as sp
 # import pandas as pd
 # import itertools as it
 # from plotting import *
 # from math import comb
-from utils import *
+# from utils import *
 # from sas7bdat import SAS7BDAT
-import pickle
-from scipy.optimize import curve_fit
-import time
-import corner
+# import pickle
+# from scipy.optimize import curve_fit
+# import time
+# import corner
 
-with open("Data/Processed/DE_opt_RSV1.pickle","rb") as f:
-    opt = pickle.load(f)
+print(str(os.getenv('SLURM_JOB_NAME')))
 
-print(opt)
+# with open("Data/Processed/DE_opt_RSV1.pickle","rb") as f:
+#     opt = pickle.load(f)
+
+# print(opt)
 
 # with open("Data/Processed/mcmc_trajectory_from_FluA_DE.pickle","rb") as f:
 #     mcmc = pickle.load(f)
