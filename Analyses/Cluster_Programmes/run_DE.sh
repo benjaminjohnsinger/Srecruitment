@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=deFAli
+#SBATCH --job-name=deRSVpst
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
@@ -11,4 +11,4 @@
 ## Command(s) to run:
 
 module load python/3.11.6-gcc-11.4.0
-ipython Analyses/fit_opt.py InfluenzaA 250304 Stepwise 15 1 0.7
+ipython Analyses/fit_opt.py RSV 250304 Stepwise 2020-07-04 2023-10-01 15 1 0.7

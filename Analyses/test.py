@@ -16,10 +16,13 @@ import pickle
 # import time
 # import corner
 
-for filefraction in ["InfluenzaA_deFluAmo250228","InfluenzaA_deFluAbig250228","InfluenzaB_deFluBmo250228","RSV_deRSVmv250228","RSV_deRSVfi250228","RSV_deRSVmo250228","RSV_deRSVfl250228"]:
-    with open("Data/Processed/results250303/DE_opt_"+filefraction+".pickle","rb") as f:
-        opt = pickle.load(f)
-    print(filefraction, opt.x)
+incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
+print(incidence)
+
+# for filefraction in ["InfluenzaA_deFluAmo250228","InfluenzaA_deFluAbig250228","InfluenzaB_deFluBmo250228","RSV_deRSVmv250228","RSV_deRSVfi250228","RSV_deRSVmo250228","RSV_deRSVfl250228"]:
+#     with open("Data/Processed/results250303/DE_opt_"+filefraction+".pickle","rb") as f:
+#         opt = pickle.load(f)
+#     print(filefraction, opt.x)
 
 # with open("Data/Processed/results250303/DE_opt_InfluenzaA_deFluAmo250228.pickle","rb") as f:
 #     opt = pickle.load(f)

@@ -25,10 +25,24 @@ from plotting import *
 from fit_MCMC import *
 
 
-pathogen, seed, lockdown, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4]), float(sys.argv[5]), float(sys.argv[6])
+pathogen, seed, lockdown, start, end, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], int(sys.argv[6]), float(sys.argv[7]), float(sys.argv[8])
 
 # set seed
 np.random.seed(seed)
+
+# check if start is in date format with regex
+if not re.match(r'\d{4}-\d{2}-\d{2}',start):
+    print("Start date not valid, assigning to default (2015-07-04).")
+    start = '2015-07-04'
+if not re.match(r'\d{4}-\d{2}-\d{2}',end):
+    print("End date not valid, assigning to default (2023-10-01).")
+    end = '2023-10-01'
+
+EPOCH = pd.to_datetime('1970-01-01')
+START = pd.to_datetime(start) 
+END = pd.to_datetime(end)
+PERIOD = pd.date_range(start=START, end=END, freq='D')
+POINTS = np.array(date_to_t(PERIOD))
 
 if pathogen == 'RSV':
     from Parameters.RSV import *
@@ -54,6 +68,10 @@ elif pathogen == 'InfluenzaB':
     'contact': contact}
     p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
     incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
+
+# trim incidence so that Date is between START and END
+incidence.index = pd.to_datetime(incidence.index)
+incidence = incidence.loc[START+pd.Timedelta(days=89):END]
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
