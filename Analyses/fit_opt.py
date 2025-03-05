@@ -88,7 +88,7 @@ if lockdown == 'YoungEarly':
     @jit
     def contact(t,seasonality,offset):
         cont = cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-        if t > date_to_t('2021-03-16'): # date where majority of schoools returned to in-person according to burbio
+        if t > 18702: # 2021-03-16 where majority of schoools returned to in-person according to burbio
             cont[0:4] = (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT[0:4]
         return cont
     params["contact"] = contact

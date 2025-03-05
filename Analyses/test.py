@@ -9,17 +9,14 @@ import pandas as pd
 # import itertools as it
 # from plotting import *
 # from math import comb
-# from utils import *
+from utils import *
 # from sas7bdat import SAS7BDAT
 import pickle
 # from scipy.optimize import curve_fit
 # import time
 # # import corner
 
-CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
-print(CONTACT)
-plt.imshow(CONTACT)
-plt.show()
+print(date_to_t('2021-03-16'))
 
 # files = [
 # "InfluenzaB_deFBfl250304",
