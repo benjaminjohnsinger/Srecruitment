@@ -197,7 +197,7 @@ if pathogen == 'RSV':
             sim_params["IMPORT_RATE"] = x[4]
             sim_params["S_REL"] = np.array([1,x[5],x[5]*x[6]])
             sim_params["P_OBS"] = x[9]*np.array([1,x[7],x[7]*x[8]])
-            Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2021-03-19')+x[10]*365,date_to_t('2022-03-19')+(x[10]+x[11])*365,date_to_t('2023-03-19')+(x[10]+x[11]+x[12])*365])
+            Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[10]*365,date_to_t('2020-03-19')+(x[10]+x[11])*365,date_to_t('2020-03-19')+(x[10]+x[11]+x[12])*365])
             @jit
             def contact(t,seasonality,offset):
                 return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
@@ -244,7 +244,7 @@ if pathogen == 'RSV':
             sim_params["IMPORT_RATE"] = x[4]
             sim_params["S_REL"] = np.array([1,x[5],x[5]*x[6]])
             sim_params["P_OBS"] = x[9]*np.array([1,x[7],x[7]*x[8]])
-            Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2021-03-19')+x[10]*365,date_to_t('2022-03-19')+(x[10]+x[11])*365,date_to_t('2023-03-19')+(x[10]+x[11]+x[12])*365])
+            Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[10]*365,date_to_t('2020-03-19')+(x[10]+x[11])*365,date_to_t('2020-03-19')+(x[10]+x[11]+x[12])*365])
             Fs = np.array([1,x[13],x[14],x[13],x[15]])
             @jit
             def contact(t,seasonality,offset):

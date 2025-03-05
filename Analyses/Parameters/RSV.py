@@ -36,11 +36,11 @@ OBS_AGE = np.array([1,0.75,0.5,0.05,0.05,0.15,1])
 # Seasonality parameters
 SEASONALITY = 0.4
 # SEASONALITY = 1.727e-01
-OFFSET = 0.15
+OFFSET = 0.2
 # OFFSET = 8.584e-01
 # Infectiousness
 BETA = 0.5
-# BETA = 6.983e-02
+# BETA = 0.13
 # BETA = 0.18
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
@@ -52,7 +52,7 @@ def ACOV(t,SP,ap,AR):
     return 0
 
 # IMPORT_RATE = 7.255e-13
-IMPORT_RATE = 1e-10
+IMPORT_RATE = 1e-11
 
 PP = pd.read_csv("Data/Processed/RSV_PercentPositive_Regions.csv")
 PP.index = pd.to_datetime(PP["Date"], format="%Y-%m-%d")
