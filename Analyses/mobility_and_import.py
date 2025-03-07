@@ -86,7 +86,7 @@ MONTHLY_ARRIVALS = MONTHLY_ARRIVALS.sort_index()
 MONTHLY_ARRIVALS.index = (MONTHLY_ARRIVALS.index - pd.to_datetime('1970-01-01')).days
 
 IDX = np.array(MONTHLY_ARRIVALS.index)
-MONTHLY_ARRIVALS_NP = np.array(MONTHLY_ARRIVALS['Passenger_Count'])
+MONTHLY_ARRIVALS_NP = np.array(MONTHLY_ARRIVALS['Passenger_Count'])/np.max(MONTHLY_ARRIVALS['Passenger_Count'])
 
 @jit
 def arrivals(t):

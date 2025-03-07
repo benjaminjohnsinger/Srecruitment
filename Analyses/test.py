@@ -16,13 +16,25 @@ import pickle
 # import time
 # # import corner
 
-print(date_to_t('2021-03-16'))
+for pathogen in ["InfluenzaA","InfluenzaB","RSV"]:
+    for lockdown in ["Stepwise","Mobility","YoungEarly","FlexStepwise"]:
+        for option1 in ["X","ni"]:
+            for option2 in ["X","nr"]:
+                print("ipython Analyses/fitopt.py",pathogen,"250306",lockdown,option1,option2,"15 1 0.7")
+
+# print(date_to_t('2015-07-04'))
+
+# infectious_contact = np.genfromtxt("Data/Processed/infectious_contact_rsv.csv",delimiter=',',dtype=np.float64)
+# import_contact = np.genfromtxt("Data/Processed/import_contact_rsv.csv",delimiter=',',dtype=np.float64)
+
+# print(np.median(infectious_contact/import_contact,axis=0))
+# print(np.sum(infectious_contact,axis=0)/np.sum(import_contact,axis=0))
+# print(np.max(infectious_contact,axis=0)/np.max(import_contact,axis=0))
+# print(np.mean(infectious_contact,axis=0)/np.mean(import_contact,axis=0))
+# print(np.median(infectious_contact,axis=0)/np.median(import_contact,axis=0))
 
 # files = [
-# "InfluenzaB_deFBfl250304",
-# "RSV_deRSVpre250304",
-# "RSV_deRSVpstfl250304",
-# "RSV_deRSVpt250304"
+# "InfluenzaB_deFBfl250304"
 # ]
 
 # for filefraction in files:
