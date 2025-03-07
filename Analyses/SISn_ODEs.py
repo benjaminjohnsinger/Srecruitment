@@ -25,7 +25,7 @@ def single_pathogen_deltas(t,state,NAG, N_S, AGING_RATE, birth_rate, WANE, REC_U
     # infections are negative for susceptibles and positive for infected
     contact_t = contact(t,SEASONALITY,OFFSET)
     infectious_contact = np.dot(contact_t,np.sum(np.array([state[j] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=np.float64).reshape((N_S,NAG))*I_REL,axis=0))/pop_size
-    import_contact = IMPORT_RATE*regional_positivity(t)*arrivals(t)*np.sum(contact_t,axis=0)
+    import_contact = IMPORT_RATE*regional_positivity(t)*arrivals(t)*np.dot(contact_t,age_pops)/pop_size
     delta[NAG:-NAG] += np.repeat(S_REL,NAG*N_C)*np.tile(S_AGE,N_S*N_C)*BETA*np.tile(infectious_contact+import_contact,N_S*N_C)*np.repeat(np.tile(np.array([-1,1]+[0]*(N_C-2)),N_S),NAG)*np.array([np.tile(state[(2*i+1)*NAG:(2*i+2)*NAG],N_C) for i in range(N_S)]).flatten()
     # recovery and waning immunity, which have references to zero buffers at beginning and end of state
     delta += delta_helper(state,NAG,N_S,REC_UP,REC_SAME,WANE)
