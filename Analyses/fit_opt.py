@@ -353,5 +353,5 @@ if __name__ == '__main__':
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,
     workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
-    with open("Data/Processed/DE_opt_"+str(os.getenv('SLURM_JOB_NAME'))+str(seed)+".pickle","wb") as f:
+    with open("Data/Processed/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)
