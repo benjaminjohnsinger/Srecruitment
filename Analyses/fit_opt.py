@@ -245,7 +245,7 @@ elif option1 == "ni":
             sim_params["SEASONALITY"] = x[1]
             sim_params["OFFSET"] = x[2]
             sim_params["BETA"] = x[3]
-            sim_params["S_REL"] = np.array([1,x[4],x[4]*x[5])
+            sim_params["S_REL"] = np.array([1,x[4],x[4]*x[5]])
             sim_params["P_OBS"] = x[8]*np.array([1,x[6],x[6]*x[7]])
             Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[9]*365,date_to_t('2020-03-19')+(x[9]+x[10])*365,date_to_t('2020-03-19')+(x[9]+x[10]+x[11])*365])
             Fs = np.array([1,x[12],x[13],x[14],x[15]])
