@@ -57,8 +57,8 @@ IMPORT_RATE = 1e-11
 PP = pd.read_csv("Data/Processed/RSV_PercentPositive_Regions.csv")
 PP.index = pd.to_datetime(PP["Date"], format="%Y-%m-%d")
 PP.index = (PP.index - pd.to_datetime("1970-01-01")).days
-# PP_NP = np.array(PP['Region 9'])
-PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean(axis=1))
+# PP_NP = np.array(PP['Region 9'])/100
+PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean(axis=1))/100
 PP_IDX = np.array(PP.index)
 @jit
 def regional_positivity(t):
@@ -66,4 +66,8 @@ def regional_positivity(t):
         day_in_season = (t - 16709)%365
         time_2015 = 16709 + day_in_season
         return PP_NP[np.argmax(PP_IDX>=time_2015)]
+    if t > 17974:
+        day_in_season = (t - 17974)%365
+        time_2019 = 17974 + day_in_season
+        return PP_NP[np.argmax(PP_IDX>=time_2019)]
     return PP_NP[np.argmax(PP_IDX>=t)]
