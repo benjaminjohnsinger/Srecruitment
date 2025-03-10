@@ -19,14 +19,12 @@ import pickle
 i=0
 for pathogen in ["InfluenzaA","InfluenzaB","RSV"]:
     for lockdown in ["Stepwise","Mobility","YoungEarly","FlexStepwise"]:
-        for option1 in ["X","ni"]:
-            if pathogen == "RSV":
-                i+=1
-                print("\""+pathogen,"250306",lockdown,option1,"X","15 1 0.7\"")
-            else:
-                for option2 in ["X","nr"]:
-                    i+=1
-                    print("\""+pathogen,"250306",lockdown,option1,option2,"15 1 0.7\"")
+        if pathogen == "RSV":
+            i+=1
+            print("\""+pathogen,"250306",lockdown,"ni","X","15 1 0.7\"")
+        else:
+            i+=1
+            print("\""+pathogen,"250306",lockdown,"ni","nr","15 1 0.7\"")
 
 # print(date_to_t('2015-07-04'))
 

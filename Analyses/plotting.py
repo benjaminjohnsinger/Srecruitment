@@ -60,7 +60,7 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
 def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,year_skip=1,title='Incidence of disease'):
     # ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
     # ax.set_ylim(0,mx)
-    ax.set_ylabel('Observed incidence')
+    ax.set_ylabel('Incidence per 10k')
     # ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
     # ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365+365,365*year_skip),[str(int(x)-year_window-1) for x in np.arange(0,year_window*2+2,year_skip)])
     ax.set_xlabel('Time (years)')
@@ -70,31 +70,33 @@ def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,resul
     NAG = params["NAG"]
     if result is None:
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
+    dates = [t_to_date(t) for t in result.t]
     ## Calculate susceptibility
     sus = susceptibility(result,params)
     if by_age:
         cmap = plt.get_cmap('viridis')
         rel_sus = sus/np.sum(sus,axis=1)[:,np.newaxis]
         for i in range(NAG):
-            ax.plot(result.t,rel_sus[:,i], label=AGE_GROUP_NAMES[i], color=cmap(i/(NAG-1)),linestyle=style)
+            ax.plot(dates,rel_sus[:,i], label=AGE_GROUP_NAMES[i], color=cmap(i/(NAG-1)),linestyle=style)
     else:
         total_sus = np.sum(sus,axis=1)
         if relative:
             pre_mx_sus = np.mean(total_sus[np.argmax(result.t>T_LOCKDOWN-5*365):np.argmax(result.t>T_LOCKDOWN)])
             rel_sus = total_sus/pre_mx_sus
-            ax.plot(result.t,rel_sus, label=label,color=color,linestyle=style)
+            ax.plot(dates,rel_sus, label=label,color=color,linestyle=style)
         else:
-            ax.plot(result.t,total_sus, label=label,color=color,linestyle=style)
+            ax.plot(dates,total_sus, label=label,color=color,linestyle=style)
 
 def lockdown_susceptibility_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,ymin=0.875,ymax=1.1,year_window=5):
     # ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
-    ax.set_ylabel('Relative susceptibility')
     # ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365,365),[str(int(x)-year_window) for x in np.arange(0,2*year_window+1,1)])
     ax.set_xlabel('Time (years)')
     ax.set_title('Population susceptibility')
     yin, yax = ax.get_ylim()
+    ax.set_ylabel('Effective susceptibles')
     if not (ymax is None or ymin is None):
         ax.set_ylim(ymin,ymax)
+        ax.set_ylabel('Relative susceptibility')
     #     ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],ymin,ymax,color='gray',alpha=0.2)
     # else:
     #     ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],yin,yax,color='gray',alpha=0.2)
@@ -390,15 +392,15 @@ def mcmc_corner_plot(trajectory,param_names,burn_in):
 
 ##### KPSC data plots #####
 pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE B"],
-"Influenza A": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B"],
-"Influenza A H1": ["INFLUENZA A H1N1 2009","INFLUENZA A VIRUS SUBTYPE H1"],
-"Influenza A H3": ["INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3"],
-"Influenza B": ["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"],
+"InfluenzaA": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B"],
+"InfluenzaAH1": ["INFLUENZA A H1N1 2009","INFLUENZA A VIRUS SUBTYPE H1"],
+"InfluenzaAH3": ["INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3"],
+"InfluenzaB": ["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"],
 "Influenza": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B","INFLUENZA B","INFLUENZA VIRUS B"],
 "Metapneumovirus": ["HUMAN METAPNEUMOVIRUS VIRUS",],
 "Adenovirus": ["ADENOVIRUS",],
 "Parainfuenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
-"Parainfluenza 3": ["PARAINFLUENZA VIRUS 3"]}
+"Parainfluenza3": ["PARAINFLUENZA VIRUS 3"]}
 def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=None,incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None, save_data=False):
     print(pathogen)
     respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv')
@@ -503,9 +505,13 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         else:
             title = f"{pathogen} positive cases"
     if AGE_GROUPS is not None:
-        cases.plot(ax=ax,legend=legend,color=color,label=AGE_GROUP_NAMES,title=f"{pathogen} positive tests")
+        # cases.plot(ax=ax,legend=legend,color=color,label=AGE_GROUP_NAMES,title=f"{pathogen} positive tests")
+        for i in range(len(AGE_GROUP_NAMES)):
+            ax.plot(cases.index,cases[AGE_GROUP_NAMES[i]],label=AGE_GROUP_NAMES[i],color=color[i])
     else:
-        cases.plot(ax=ax,legend=False,color=color,title=f"{pathogen} positive tests")
+        # cases.plot(ax=ax,legend=False,color=color,title=f"{pathogen} positive tests")
+        ax.plot(cases.index,cases["Count"],color=color)
+    ax.set_title(title)
     if incidence:
         ax.set_ylabel("Incidence per 10k")
     else:
