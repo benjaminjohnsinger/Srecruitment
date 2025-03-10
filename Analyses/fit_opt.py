@@ -176,7 +176,7 @@ if (option1 == "ni") and ((pathogen == 'RSV') or (option2 == 'nr')):
             print("neg log likelihood: ",lh)
             return lh
 elif option1 == 'ni':
-        if (lockdown == 'Stepwise') or (lockdown == 'Mobility') or (lockdown == 'YoungEarly'):
+    if (lockdown == 'Stepwise') or (lockdown == 'Mobility') or (lockdown == 'YoungEarly'):
         bounds = np.array([[0,1e-2], # WANE
         [0,1], # SEASONALITY
         [0,1], # OFFSET
