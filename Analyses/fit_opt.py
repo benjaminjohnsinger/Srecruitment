@@ -69,6 +69,9 @@ elif pathogen == 'InfluenzaB':
 incidence.index = pd.to_datetime(incidence.index)
 incidence = incidence.loc[START+pd.Timedelta(days=89):END]
 
+# by default, no overdispersion
+overdispersion = False
+
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
