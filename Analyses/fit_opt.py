@@ -69,8 +69,6 @@ elif pathogen == 'InfluenzaB':
 incidence.index = pd.to_datetime(incidence.index)
 incidence = incidence.loc[START+pd.Timedelta(days=89):END]
 
-# by default, no overdispersion
-overdispersion = False
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
@@ -120,6 +118,8 @@ bounds = np.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","B
 if key in bounds_dict.keys()])
 
 def likelihood(x):
+    # by default, no overdispersion
+    overdispersion = False
     print("time: ",time.time()-start)
     print(x)
     if np.any(x < 0) or np.any(np.isnan(x)):
@@ -167,7 +167,8 @@ def likelihood(x):
 start = time.time()
 if __name__ == '__main__':
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,
-    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    workers = 4)
+    # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
     with open("Data/Processed/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)
