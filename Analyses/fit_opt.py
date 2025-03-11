@@ -2,7 +2,6 @@
 ## Fitting models to data using out-of-the-box optimisation tools
 
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
 import time
@@ -19,10 +18,7 @@ from Parameters.times_and_contacts import *
 from utils import *
 from demography import *
 from mobility_and_import import *
-from clustering import *
-from sim_grid import *
-from plotting import *
-from fit_MCMC import *
+from fit_MCMC import SIS_likelihood
 
 
 pathogen, seed, lockdown, option1, option2, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], int(sys.argv[6]), float(sys.argv[7]), float(sys.argv[8])
@@ -93,342 +89,77 @@ if lockdown == 'YoungEarly':
         return cont
     params["contact"] = contact
 
-if (option1 == "ni") and ((pathogen == 'RSV') or (option2 == 'nr')):
-    if (lockdown == 'Stepwise') or (lockdown == 'Mobility') or (lockdown == 'YoungEarly'):
-        bounds = np.array([[0,1e-2], # WANE
-        [0,1], # SEASONALITY
-        [0,1], # OFFSET
-        [0,1], # BETA
-        [0,1], # S_REL1 - relative susceptibility to infection after first infection
-        [0,1], # S_REL2/S_REL1 - relative susceptibility to infection after second infection
-        [0,1], # D_REL1 - relative susceptibility to disease after first infection
-        [0,1], # D_REL2/D_REL1 - relative susceptibility to disease after second infection
-        [0,0.1], # P_OBS
-        [0,1], # AGE_OBS - young_immunity
-        [0,1], # AGE_OBS - old_immunity
-        [0,1]]) # AGE_OBS - young_old
-        def likelihood(x):
-            print("time: ",time.time()-start)
-            print(x)
-            if np.any(x < 0) or np.any(np.isnan(x)):
-                print("Invalid parameters")
-                return 1e10
-            sim_params = params.copy()
-            sim_params["WANE"] = np.array([0.0,x[0],0.0])
-            sim_params["SEASONALITY"] = x[1]
-            sim_params["OFFSET"] = x[2]
-            sim_params["BETA"] = x[3]
-            sim_params["S_REL"] = np.array([1,x[4],x[4]*x[5]])
-            sim_params["P_OBS"] = x[8]*np.array([1,x[6],x[6]*x[7]])
-            obs_age = age_detection(NAG,x[9],x[10],x[11])
-            try:
-                lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-            except:
-                print("Error")
-                return 1e10
-            print("neg log likelihood: ",lh)
-            return lh
-    elif lockdown == 'FlexStepwise':
-        bounds = np.array([[0,1e-2], # WANE
-        [0,1], # SEASONALITY
-        [0,1], # OFFSET
-        [0,1], # BETA
-        [0,1], # S_REL1 - relative susceptibility to infection after first infection
-        [0,1], # S_REL2/S_REL1 - relative susceptibility to infection after second infection
-        [0,1], # D_REL1 - relative susceptibility to disease after first infection
-        [0,1], # D_REL2/D_REL1 - relative susceptibility to disease after second infection
-        [0,0.1], # P_OBS
-        [0,1], # DT1 - first lockdown duration in years
-        [0,1], # DT2 - inter-lockdown duration in years
-        [0,1], # DT3 - second lockdown duration in years
-        [0,1], # F1 - first lockdown relative contact rate
-        [0,1], # F2 - inter-lockdown relative contact rate
-        [0,1], # F3 - second lockdown relative contact rate
-        [0,1], # F4 - post-lockdown relative contact rate
-        [0,1], # AGE_OBS - young_immunity
-        [0,1], # AGE_OBS - old_immunity
-        [0,1]])
-        def likelihood(x):
-            print("time: ",time.time()-start)
-            print(x)
-            if np.any(x < 0) or np.any(np.isnan(x)):
-                print("Invalid parameters")
-                return 1e10
-            sim_params = params.copy()
-            sim_params["WANE"] = np.array([0.0,x[0],0.0])
-            sim_params["SEASONALITY"] = x[1]
-            sim_params["OFFSET"] = x[2]
-            sim_params["BETA"] = x[3]
-            sim_params["S_REL"] = np.array([1,x[4],x[4]*x[5]])
-            sim_params["P_OBS"] = x[8]*np.array([1,x[6],x[6]*x[7]])
-            Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[9]*365,date_to_t('2020-03-19')+(x[9]+x[10])*365,date_to_t('2020-03-19')+(x[9]+x[10]+x[11])*365])
-            Fs = np.array([1,x[12],x[13],x[14],x[15]])
-            @jit
-            def contact(t,seasonality,offset):
-                return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-            sim_params["contact"] = contact
-            obs_age = age_detection(NAG,x[16],x[17],x[18])
-            try:
-                lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-            except:
-                print("Error")
-                return 1e10
-            print("neg log likelihood: ",lh)
-            return lh
-elif option1 == 'ni':
-    if (lockdown == 'Stepwise') or (lockdown == 'Mobility') or (lockdown == 'YoungEarly'):
-        bounds = np.array([[0,1e-2], # WANE
-        [0,1], # SEASONALITY
-        [0,1], # OFFSET
-        [0,1], # BETA
-        [0,1], # EXTRA_IMMUNITY - immunity after second infection above minimum
-        [0,1], # FIRST_IMMUNITY - immunity after first infection above minimum
-        [0,1], # FIRST_DIS_INF_FACTOR - relative infection and disease immunity after first infection
-        [0,0.1], # P_OBS
-        [0,1], # AGE_OBS - young_immunity
-        [0,1], # AGE_OBS - old_immunity
-        [0,1]]) # AGE_OBS - young_old
-        def likelihood(x):
-            print("time: ",time.time()-start)
-            print(x)
-            if np.any(x < 0) or np.any(np.isnan(x)):
-                print("Invalid parameters")
-                return 1e10
-            sim_params = params.copy()
-            sim_params["WANE"] = np.array([0.0,x[0],0.0])
-            sim_params["SEASONALITY"] = x[1]
-            sim_params["OFFSET"] = x[2]
-            sim_params["BETA"] = x[3]
-            srel, pobsrel = constrained_immunity(x[4],x[5],x[6])
-            sim_params["S_REL"] = srel
-            sim_params["P_OBS"] = x[7]*pobsrel
-            obs_age = age_detection(NAG,x[8],x[9],x[10])
-            try:
-                lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-            except:
-                print("Error")
-                return 1e10
-            print("neg log likelihood: ",lh)
-            return lh
-    elif lockdown == 'FlexStepwise':
-        bounds = np.array([[0,1e-2], # WANE
-        [0,1], # SEASONALITY
-        [0,1], # OFFSET
-        [0,1], # BETA
-        [0,1], # EXTRA_IMMUNITY - immunity after second infection above minimum
-        [0,1], # FIRST_IMMUNITY - immunity after first infection above minimum
-        [0,1], # FIRST_DIS_INF_FACTOR - relative infection and disease immunity after first infection
-        [0,0.1], # P_OBS
-        [0,1], # DT1 - first lockdown duration in years
-        [0,1], # DT2 - inter-lockdown duration in years
-        [0,1], # DT3 - second lockdown duration in years
-        [0,1], # F1 - first lockdown relative contact rate
-        [0,1], # F2 - inter-lockdown relative contact rate
-        [0,1], # F3 - second lockdown relative contact rate
-        [0,1], # F4 - post-lockdown relative contact rate
-        [0,1], # AGE_OBS - young_immunity
-        [0,1], # AGE_OBS - old_immunity
-        [0,1]])
-        def likelihood(x):
-            print("time: ",time.time()-start)
-            print(x)
-            if np.any(x < 0) or np.any(np.isnan(x)):
-                print("Invalid parameters")
-                return 1e10
-            sim_params = params.copy()
-            sim_params["WANE"] = np.array([0.0,x[0],0.0])
-            sim_params["SEASONALITY"] = x[1]
-            sim_params["OFFSET"] = x[2]
-            sim_params["BETA"] = x[3]
-            srel, pobsrel = constrained_immunity(x[4],x[5],x[6])
-            sim_params["S_REL"] = srel
-            sim_params["P_OBS"] = x[7]*pobsrel
-            Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[8]*365,date_to_t('2020-03-19')+(x[8]+x[9])*365,date_to_t('2020-03-19')+(x[8]+x[9]+x[10])*365])
-            Fs = np.array([1,x[11],x[12],x[13],x[14]])
-            @jit
-            def contact(t,seasonality,offset):
-                return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-            sim_params["contact"] = contact
-            obs_age = age_detection(NAG,x[15],x[16],x[17])
-            try:
-                lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-            except:
-                print("Error")
-                return 1e10
-            print("neg log likelihood: ",lh)
-            return lh
-elif (pathogen == 'RSV') or (option2 == 'nr'):
-    if (lockdown == 'Stepwise') or (lockdown == 'Mobility') or (lockdown == 'YoungEarly'):
-        bounds = np.array([[0,1e-2], # WANE
-        [0,1], # SEASONALITY
-        [0,1], # OFFSET
-        [0,1], # BETA
-        [0,1], # IMPORT_RATE
-        [0,1], # S_REL1 - relative susceptibility to infection after first infection
-        [0,1], # S_REL2/S_REL1 - relative susceptibility to infection after second infection
-        [0,1], # D_REL1 - relative susceptibility to disease after first infection
-        [0,1], # D_REL2/D_REL1 - relative susceptibility to disease after second infection
-        [0,0.1], # P_OBS
-        [0,1], # AGE_OBS - young_immunity
-        [0,1], # AGE_OBS - old_immunity
-        [0,1]]) # AGE_OBS - young_old
-        def likelihood(x):
-            print("time: ",time.time()-start)
-            print(x)
-            if np.any(x < 0) or np.any(np.isnan(x)):
-                print("Invalid parameters")
-                return 1e10
-            sim_params = params.copy()
-            sim_params["WANE"] = np.array([0.0,x[0],0.0])
-            sim_params["SEASONALITY"] = x[1]
-            sim_params["OFFSET"] = x[2]
-            sim_params["BETA"] = x[3]
-            sim_params["IMPORT_RATE"] = x[4]
-            sim_params["S_REL"] = np.array([1,x[5],x[5]*x[6]])
-            sim_params["P_OBS"] = x[9]*np.array([1,x[7],x[7]*x[8]])
-            obs_age = age_detection(NAG,x[10],x[11],x[12])
-            try:
-                lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-            except:
-                print("Error")
-                return 1e10
-            print("neg log likelihood: ",lh)
-            return lh
-    elif lockdown == 'FlexStepwise':
-        bounds = np.array([[0,1e-2], # WANE
-        [0,1], # SEASONALITY
-        [0,1], # OFFSET
-        [0,1], # BETA
-        [0,1], # IMPORT_RATE
-        [0,1], # S_REL1 - relative susceptibility to infection after first infection
-        [0,1], # S_REL2/S_REL1 - relative susceptibility to infection after second infection
-        [0,1], # D_REL1 - relative susceptibility to disease after first infection
-        [0,1], # D_REL2/D_REL1 - relative susceptibility to disease after second infection
-        [0,0.1], # P_OBS
-        [0,1], # DT1 - first lockdown duration in years
-        [0,1], # DT2 - inter-lockdown duration in years
-        [0,1], # DT3 - second lockdown duration in years
-        [0,1], # F1 - first lockdown relative contact rate
-        [0,1], # F2 - inter-lockdown relative contact rate
-        [0,1], # F3 - second lockdown relative contact rate
-        [0,1], # F4 - post-lockdown relative contact rate
-        [0,1], # AGE_OBS - young_immunity
-        [0,1], # AGE_OBS - old_immunity
-        [0,1]])
-        def likelihood(x):
-            print("time: ",time.time()-start)
-            print(x)
-            if np.any(x < 0) or np.any(np.isnan(x)):
-                print("Invalid parameters")
-                return 1e10
-            sim_params = params.copy()
-            sim_params["WANE"] = np.array([0.0,x[0],0.0])
-            sim_params["SEASONALITY"] = x[1]
-            sim_params["OFFSET"] = x[2]
-            sim_params["BETA"] = x[3]
-            sim_params["IMPORT_RATE"] = x[4]
-            sim_params["S_REL"] = np.array([1,x[5],x[5]*x[6]])
-            sim_params["P_OBS"] = x[9]*np.array([1,x[7],x[7]*x[8]])
-            Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[10]*365,date_to_t('2020-03-19')+(x[10]+x[11])*365,date_to_t('2020-03-19')+(x[10]+x[11]+x[12])*365])
-            Fs = np.array([1,x[13],x[14],x[15],x[16]])
-            @jit
-            def contact(t,seasonality,offset):
-                return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-            sim_params["contact"] = contact
-            obs_age = age_detection(NAG,x[17],x[18],x[19])
-            try:
-                lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-            except:
-                print("Error")
-                return 1e10
-            print("neg log likelihood: ",lh)
-            return lh
+bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1], "P_OBS": [0,0.1], "AGE_OBS_YOUNG": [0,1], "AGE_OBS_OLD": [0,1], "AGE_OBS_YOUNG_OLD": [0,1]}
+
+if option1 == "nb":
+    bounds_dict["OVERDISPERSION"] = [0,15]
+if option1 != "ni":
+    bounds_dict["IMPORT_RATE"] = [0,1]
+if (pathogen == "RSV") or (option2 == "nr"):
+    bounds_dict["S_REL1"] = [0,1]
+    bounds_dict["S_REL2"] = [0,1]
+    bounds_dict["D_REL1"] = [0,1]
+    bounds_dict["D_REL2"] = [0,1]
 else:
-    if (lockdown == 'Stepwise') or (lockdown == 'Mobility') or (lockdown == 'YoungEarly'):
-        bounds = np.array([[0,1e-2], # WANE
-        [0,1], # SEASONALITY
-        [0,1], # OFFSET
-        [0,1], # BETA
-        [0,1], # IMPORT_RATE
-        [0,1], # EXTRA_IMMUNITY - immunity after second infection above minimum
-        [0,1], # FIRST_IMMUNITY - immunity after first infection above minimum
-        [0,1], # FIRST_DIS_INF_FACTOR - relative infection and disease immunity after first infection
-        [0,0.1], # P_OBS
-        [0,1], # AGE_OBS - young_immunity
-        [0,1], # AGE_OBS - old_immunity
-        [0,1]]) # AGE_OBS - young_old
-        def likelihood(x):
-            print("time: ",time.time()-start)
-            print(x)
-            if np.any(x < 0) or np.any(np.isnan(x)):
-                print("Invalid parameters")
-                return 1e10
-            sim_params = params.copy()
-            sim_params["WANE"] = np.array([0.0,x[0],0.0])
-            sim_params["SEASONALITY"] = x[1]
-            sim_params["OFFSET"] = x[2]
-            sim_params["BETA"] = x[3]
-            sim_params["IMPORT_RATE"] = x[4]
-            srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-            sim_params["S_REL"] = srel
-            sim_params["P_OBS"] = x[8]*pobsrel
-            obs_age = age_detection(NAG,x[9],x[10],x[11])
-            try:
-                lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-            except:
-                print("Error")
-                return 1e10
-            print("neg log likelihood: ",lh)
-            return lh
-    elif lockdown == 'FlexStepwise':
-        bounds = np.array([[0,1e-2], # WANE
-        [0,1], # SEASONALITY
-        [0,1], # OFFSET
-        [0,1], # BETA
-        [0,1], # IMPORT_RATE
-        [0,1], # EXTRA_IMMUNITY - immunity after second infection above minimum
-        [0,1], # FIRST_IMMUNITY - immunity after first infection above minimum
-        [0,1], # FIRST_DIS_INF_FACTOR - relative infection and disease immunity after first infection
-        [0,0.1], # P_OBS
-        [0,1], # DT1 - first lockdown duration in years
-        [0,1], # DT2 - inter-lockdown duration in years
-        [0,1], # DT3 - second lockdown duration in years
-        [0,1], # F1 - first lockdown relative contact rate
-        [0,1], # F2 - inter-lockdown relative contact rate
-        [0,1], # F3 - second lockdown relative contact rate
-        [0,1], # F4 - post-lockdown relative contact rate
-        [0,1], # AGE_OBS - young_immunity
-        [0,1], # AGE_OBS - old_immunity
-        [0,1]])
-        def likelihood(x):
-            print("time: ",time.time()-start)
-            print(x)
-            if np.any(x < 0) or np.any(np.isnan(x)):
-                print("Invalid parameters")
-                return 1e10
-            sim_params = params.copy()
-            sim_params["WANE"] = np.array([0.0,x[0],0.0])
-            sim_params["SEASONALITY"] = x[1]
-            sim_params["OFFSET"] = x[2]
-            sim_params["BETA"] = x[3]
-            sim_params["IMPORT_RATE"] = x[4]
-            srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-            sim_params["S_REL"] = srel
-            sim_params["P_OBS"] = x[8]*pobsrel
-            Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[9]*365,date_to_t('2020-03-19')+(x[9]+x[10])*365,date_to_t('2020-03-19')+(x[9]+x[10]+x[11])*365])
-            Fs = np.array([1,x[12],x[13],x[14],x[15]])
-            @jit
-            def contact(t,seasonality,offset):
-                return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-            sim_params["contact"] = contact
-            obs_age = age_detection(NAG,x[16],x[17],x[18])
-            try:
-                lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-            except:
-                print("Error")
-                return 1e10
-            print("neg log likelihood: ",lh)
-            return lh
+    bounds_dict["EXTRA_IMMUNITY"] = [0,1]
+    bounds_dict["FIRST_IMMUNITY"] = [0,1]
+    bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
+if lockdown == "FlexStepwise":
+    bounds_dict["DT1"] = [0,1]
+    bounds_dict["DT2"] = [0,1]
+    bounds_dict["DT3"] = [0,1]
+    bounds_dict["F1"] = [0,1]
+    bounds_dict["F2"] = [0,1]
+    bounds_dict["F3"] = [0,1]
+    bounds_dict["F4"] = [0,1]
+
+bounds = np.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD"]
+if key in bounds_dict.keys()])
+
+def likelihood(x):
+    print("time: ",time.time()-start)
+    print(x)
+    if np.any(x < 0) or np.any(np.isnan(x)):
+        print("Invalid parameters")
+        return 1e10
+    sim_params = params.copy()
+    sim_params["WANE"] = np.array([0.0,x[0],0.0])
+    sim_params["SEASONALITY"] = x[1]
+    sim_params["OFFSET"] = x[2]
+    sim_params["BETA"] = x[3]
+    n = 4
+    if option1 != 'ni':
+        sim_params["IMPORT_RATE"] = x[n]
+        n += 1
+    if (pathogen == 'RSV') or (option2 == 'nr'):
+        sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
+        pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
+        n += 4
+    else:
+        srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
+        sim_params["S_REL"] = srel
+        n += 3
+    sim_params["P_OBS"] = x[n]*pobsrel
+    n += 1
+    if lockdown == 'FlexStepwise':
+        Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
+        Fs = np.array([1,x[n+3],x[n+4],x[n+5],x[n+6]])
+        @jit
+        def contact(t,seasonality,offset):
+            return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+        sim_params["contact"] = contact
+        n += 7
+    if option1 == 'nb':
+        overdispersion = np.exp(x[n]-5)
+        n += 1
+    obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
+    try:
+        lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True,overdispersion=overdispersion)
+    except:
+        print("Error")
+        return 1e10
+    print("neg log likelihood: ",lh)
+    return lh
 
 start = time.time()
 if __name__ == '__main__':

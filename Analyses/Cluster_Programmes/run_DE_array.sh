@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=rcarray2
+#SBATCH --job-name=rcnb
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
@@ -14,18 +14,16 @@
 module load python/3.11.6-gcc-11.4.0
 
 combinations=(
-"InfluenzaA 250306 Stepwise ni nr 15 1 0.7"
-"InfluenzaA 250306 Mobility ni nr 15 1 0.7"
-"InfluenzaA 250306 YoungEarly ni nr 15 1 0.7"
-"InfluenzaA 250306 FlexStepwise ni nr 15 1 0.7"
-"InfluenzaB 250306 Stepwise ni nr 15 1 0.7"
-"InfluenzaB 250306 Mobility ni nr 15 1 0.7"
-"InfluenzaB 250306 YoungEarly ni nr 15 1 0.7"
-"InfluenzaB 250306 FlexStepwise ni nr 15 1 0.7"
-"RSV 250306 Stepwise ni X 15 1 0.7"
-"RSV 250306 Mobility ni X 15 1 0.7"
-"RSV 250306 YoungEarly ni X 15 1 0.7"
-"RSV 250306 FlexStepwise ni X 15 1 0.7"
+"InfluenzaA 250310 Mobility nb nr 15 1 0.7"
+"InfluenzaA 250310 FlexStepwise nb nr 15 1 0.7"
+"InfluenzaB 250310 Mobility nb nr 15 1 0.7"
+"InfluenzaB 250310 FlexStepwise nb nr 15 1 0.7"
+"InfluenzaA 250310 Mobility nb X 15 1 0.7"
+"InfluenzaA 250310 FlexStepwise nb X 15 1 0.7"
+"InfluenzaB 250310 Mobility nb X 15 1 0.7"
+"InfluenzaB 250310 FlexStepwise nb X 15 1 0.7"
+"RSV 250310 Mobility nb X 15 1 0.7"
+"RSV 250310 FlexStepwise nb X 15 1 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"

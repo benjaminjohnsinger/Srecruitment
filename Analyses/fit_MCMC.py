@@ -9,7 +9,7 @@ import time
 import types
 
 ## POINTS must start (at least) len(p_time_to_obs) days before the first observation to avoid issues from np.roll behaviour
-def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01'))):
+def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')),overdispersion=False):
     # run simulation
     result = sp.integrate.solve_ivp(sis_deltas,(start_t,POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
     # convert into observed cases
@@ -34,7 +34,11 @@ def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=Tru
     expected_obs = expected_obs[-len(cases):]
 
     # calculate the log likelihood
-    likelihood = sp.stats.poisson.logpmf(cases,expected_obs).sum()
+    if overdispersion:
+        p = overdispersion/(overdispersion+expected_obs)
+        likelihood = sp.stats.nbinom.logpmf(cases,overdispersion,p).sum()
+    else:
+        likelihood = sp.stats.poisson.logpmf(cases,expected_obs).sum()
     return likelihood
 
 ## OBS_AGE parameters must be last three in initial_scalars, POINTS must start (at least) len(p_time_to_obs) days before the first observation
