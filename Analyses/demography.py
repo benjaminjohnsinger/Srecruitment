@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from numba import jit
-from utils import date_to_t
+from utils import date_to_t, t_to_date
 
 ## BIRTHS
 # load births data
@@ -23,7 +23,6 @@ BIRTHS_2023_2024 = BIRTHS_2023_2024.loc[BIRTHS_2023_2024["Strata_Name"] == "Tota
 BIRTHS_2023_2024 = BIRTHS_2023_2024.drop(columns=["Geography_Type","Strata","Strata_Name","Year","Month","Annotation_Code","Annotation_Desc","Data_Revision_Date"])
 BIRTHS_2023_2024 = BIRTHS_2023_2024.rename(columns={"Count":"Births"})
 BIRTHS = pd.concat([BIRTHS, BIRTHS_2023_2024])
-
 # reformat births index to be number of days since '1970-01-01'
 BIRTHS.index = (BIRTHS.index - pd.to_datetime("1970-01-01")).days
 
@@ -43,6 +42,7 @@ BIRTHS_IDX =np.array(BIRTHS.index)
 POPULATION_IDX = np.array(POPULATION.index)
 BIRTHS_NP = np.array(BIRTHS["Births"])
 POPULATION_NP = np.array(POPULATION["Population"])
+# print(POPULATION_NP)
 
 def births(t):
     """
@@ -57,7 +57,19 @@ def birth_rate(t):
     """
     bths = BIRTHS_NP[np.argmax(BIRTHS_IDX>=t)]/30.44
     pop = POPULATION_NP[np.argmax(POPULATION_IDX>=t)]
+    if t>BIRTHS_IDX[-1] or t>POPULATION_IDX[-1]:
+        bths = BIRTHS_NP[-1]/30.44
+        pop = POPULATION_NP[-1]
     return bths/pop
+
+
+
+# PERIOD = pd.date_range(start=pd.to_datetime('2000-10-01'), end=pd.to_datetime('2024-10-01'), freq='D')
+
+# POINTS = np.array(date_to_t(PERIOD))
+
+# plt.plot([t_to_date(pt) for pt in POINTS],[birth_rate(pt) for pt in POINTS])
+# plt.show()
 
 # # plot, with dates after 2022 in a different color, with legend and labels
 # fig, ax = plt.subplots(figsize=(6,6))

@@ -83,87 +83,43 @@ if lockdown == 'YoungEarly':
         return cont
     params["contact"] = contact
 
+params["WANE"] = np.array([0.0,x[0],0.0])
+params["SEASONALITY"] = x[1]
+params["OFFSET"] = x[2]
+params["BETA"] = x[3]
+n = 4
+if option1 != 'ni':
+    params["IMPORT_RATE"] = x[n]
+    n += 1
 if (pathogen == 'RSV') or (option2 == 'nr'):
-    if (lockdown == 'Stepwise') or (lockdown == 'Mobility') or (lockdown == 'YoungEarly'):
-        params["WANE"] = np.array([0.0,x[0],0.0])
-        params["SEASONALITY"] = x[1]
-        params["OFFSET"] = x[2]
-        params["BETA"] = x[3]
-        params["IMPORT_RATE"] = x[4]
-        params["S_REL"] = np.array([1,x[5],x[5]*x[6]])
-        params["P_OBS"] = x[9]*np.array([1,x[7],x[7]*x[8]])
-        OBS_AGE = age_detection(NAG,x[10],x[11],x[12])
-    elif lockdown == 'FlexStepwise':
-        params["WANE"] = np.array([0.0,x[0],0.0])
-        params["SEASONALITY"] = x[1]
-        params["OFFSET"] = x[2]
-        params["BETA"] = x[3]
-        params["IMPORT_RATE"] = x[4]
-        params["S_REL"] = np.array([1,x[5],x[5]*x[6]])
-        params["P_OBS"] = x[9]*np.array([1,x[7],x[7]*x[8]])
-        Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[10]*365,date_to_t('2020-03-19')+(x[10]+x[11])*365,date_to_t('2020-03-19')+(x[10]+x[11]+x[12])*365])
-        Fs = np.array([1,x[13],x[14],x[15],x[16]])
-        @jit
-        def contact(t,seasonality,offset):
-            return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-        params["contact"] = contact
-        OBS_AGE = age_detection(NAG,x[17],x[18],x[19])
-elif option1 == "ni":
-    if (lockdown == 'Stepwise') or (lockdown == 'Mobility') or (lockdown == 'YoungEarly'):
-        params["WANE"] = np.array([0.0,x[0],0.0])
-        params["SEASONALITY"] = x[1]
-        params["OFFSET"] = x[2]
-        params["BETA"] = x[3]
-        params["S_REL"] = np.array([1,x[4],x[4]*x[5]])
-        params["P_OBS"] = x[8]*np.array([1,x[6],x[6]*x[7]])
-        OBS_AGE = age_detection(NAG,x[9],x[10],x[11])
-    elif lockdown == 'FlexStepwise':
-        params["WANE"] = np.array([0.0,x[0],0.0])
-        params["SEASONALITY"] = x[1]
-        params["OFFSET"] = x[2]
-        params["BETA"] = x[3]
-        params["S_REL"] = np.array([1,x[4],x[4]*x[5]])
-        params["P_OBS"] = x[8]*np.array([1,x[6],x[6]*x[7]])
-        Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[9]*365,date_to_t('2020-03-19')+(x[9]+x[10])*365,date_to_t('2020-03-19')+(x[9]+x[10]+x[11])*365])
-        Fs = np.array([1,x[12],x[13],x[14],x[15]])
-        @jit
-        def contact(t,seasonality,offset):
-            return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-        params["contact"] = contact
-        OBS_AGE = age_detection(NAG,x[16],x[17],x[18])
+    params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
+    pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
+    n += 4
 else:
-    if (lockdown == 'Stepwise') or (lockdown == 'Mobility') or (lockdown == 'YoungEarly'):
-        params["WANE"] = np.array([0.0,x[0],0.0])
-        params["SEASONALITY"] = x[1]
-        params["OFFSET"] = x[2]
-        params["BETA"] = x[3]
-        params["IMPORT_RATE"] = x[4]
-        srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-        params["S_REL"] = srel
-        params["P_OBS"] = x[8]*pobsrel
-        OBS_AGE = age_detection(NAG,x[9],x[10],x[11])
-    elif lockdown == 'FlexStepwise':
-        params["WANE"] = np.array([0.0,x[0],0.0])
-        params["SEASONALITY"] = x[1]
-        params["OFFSET"] = x[2]
-        params["BETA"] = x[3]
-        params["IMPORT_RATE"] = x[4]
-        srel, pobsrel = constrained_immunity(x[5],x[6],x[7])
-        params["S_REL"] = srel
-        params["P_OBS"] = x[8]*pobsrel
-        Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[9]*365,date_to_t('2020-03-19')+(x[9]+x[10])*365,date_to_t('2020-03-19')+(x[9]+x[10]+x[11])*365])
-        Fs = np.array([1,x[12],x[13],x[14],x[15]])
-        @jit
-        def contact(t,seasonality,offset):
-            return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-        params["contact"] = contact
-        OBS_AGE = age_detection(NAG,x[16],x[17],x[18])
+    srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
+    params["S_REL"] = srel
+    n += 3
+params["P_OBS"] = x[n]*pobsrel
+n += 1
+if lockdown == 'FlexStepwise':
+    Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
+    Fs = np.array([1,x[n+3],x[n+4],x[n+5],x[n+6]])
+    @jit
+    def contact(t,seasonality,offset):
+        return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+    params["contact"] = contact
+    n += 7
+if option1 == 'nb':
+    overdispersion = np.exp(x[n]-5)
+    print("Overdispersion",overdispersion)
+    n += 1
+OBS_AGE = age_detection(NAG,x[n],x[n+1],x[n+2])
 
-# print(params)
-# print("OBS_AGE",OBS_AGE)
-# if lockdown == 'FlexStepwise':
-#     print("Ts",[t_to_date(t) for t in Ts])
-#     print("Fs",Fs)
+print(params)
+print("OBS_AGE",OBS_AGE)
+if lockdown == 'FlexStepwise':
+    print("Ts",[t_to_date(t) for t in Ts])
+    print("Fs",Fs)
 
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)

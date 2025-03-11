@@ -66,7 +66,8 @@ S_VAX = 2
 def BCOV(t):
     return 0
 
-IMPORT_RATE = 1e-11
+IMPORT_RATE = 0
+
 PP = pd.read_csv("Data/Processed/FluView_PercentPositive_Regions_A.csv")
 PP.index = pd.to_datetime(PP["Date"], format="%Y-%m-%d")
 PP.index = (PP.index - pd.to_datetime("1970-01-01")).days
@@ -75,4 +76,8 @@ PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean
 PP_IDX = np.array(PP.index)
 @jit
 def regional_positivity(t):
+    if t < PP_IDX[0] or t > PP_IDX[-1]:
+        day_in_season = (t + 92)%365
+        time_1998 = 10500 + day_in_season
+        return PP_NP[np.argmax(PP_IDX>=time_1998)]
     return PP_NP[np.argmax(PP_IDX>=t)]

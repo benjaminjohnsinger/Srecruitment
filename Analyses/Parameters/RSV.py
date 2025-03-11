@@ -51,8 +51,7 @@ def BCOV(t):
 def ACOV(t,SP,ap,AR):
     return 0
 
-# IMPORT_RATE = 7.255e-13
-IMPORT_RATE = 1e-11
+IMPORT_RATE = 0
 
 PP = pd.read_csv("Data/Processed/RSV_PercentPositive_Regions.csv")
 PP.index = pd.to_datetime(PP["Date"], format="%Y-%m-%d")
@@ -62,12 +61,8 @@ PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean
 PP_IDX = np.array(PP.index)
 @jit
 def regional_positivity(t):
-    if t < PP_IDX[0]:
-        day_in_season = (t - 16709)%365
-        time_2015 = 16709 + day_in_season
-        return PP_NP[np.argmax(PP_IDX>=time_2015)]
-    if t > 17974:
-        day_in_season = (t - 17974)%365
-        time_2019 = 17974 + day_in_season
-        return PP_NP[np.argmax(PP_IDX>=time_2019)]
+    if t < PP_IDX[0] or t > PP_IDX[-1]:
+        day_in_season = (t + 92)%365
+        time_2010 = 14883 + day_in_season
+        return PP_NP[np.argmax(PP_IDX>=time_2010)]
     return PP_NP[np.argmax(PP_IDX>=t)]

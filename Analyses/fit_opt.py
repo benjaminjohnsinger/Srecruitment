@@ -69,7 +69,6 @@ elif pathogen == 'InfluenzaB':
 incidence.index = pd.to_datetime(incidence.index)
 incidence = incidence.loc[START+pd.Timedelta(days=89):END]
 
-
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
@@ -131,7 +130,9 @@ def likelihood(x):
     sim_params["OFFSET"] = x[2]
     sim_params["BETA"] = x[3]
     n = 4
-    if option1 != 'ni':
+    if option1 == 'ni':
+        sim_params["IMPORT_RATE"] = 0
+    else:
         sim_params["IMPORT_RATE"] = x[n]
         n += 1
     if (pathogen == 'RSV') or (option2 == 'nr'):
