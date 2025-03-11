@@ -16,17 +16,13 @@ import pickle
 # import time
 # # import corner
 
-# i=0
-# for pathogen in ["InfluenzaA","InfluenzaB","RSV"]:
-#     for lockdown in ["Stepwise","Mobility","YoungEarly","FlexStepwise"]:
-#         if pathogen == "RSV":
-#             i+=1
-#             print("\""+pathogen,"250306",lockdown,"ni","X","15 1 0.7\"")
-#         else:
-#             i+=1
-#             print("\""+pathogen,"250306",lockdown,"ni","nr","15 1 0.7\"")
-
-print(t_to_date(17648))
+i=0
+pathogen = "RSV"
+for lockdown in ["Mobility","FlexStepwise"]:
+    for option1 in ["X","ni","nb"]:
+        if pathogen == "RSV":
+            i+=1
+            print("\""+pathogen,"250311",lockdown,option1,"X","15 1 0.7\"")
 
 # infectious_contact = np.genfromtxt("Data/Processed/infectious_contact_rsv.csv",delimiter=',',dtype=np.float64)
 # import_contact = np.genfromtxt("Data/Processed/import_contact_rsv.csv",delimiter=',',dtype=np.float64)
