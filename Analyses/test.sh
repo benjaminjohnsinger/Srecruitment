@@ -14,3 +14,5 @@ combinations=(
 for combination in "${combinations[@]}"; do
     /Users/BSinger/Documents/Srecruitment/.venv/bin/python /Users/BSinger/Documents/Srecruitment/Analyses/plot_opt.py $combination
 done
+
+/Users/BSinger/Documents/Srecruitment/.venv/bin/python /Users/BSinger/Documents/Srecruitment/Analyses/plot_opt.py RSV 250310 FlexStepwise nb X 15 1 0.7
