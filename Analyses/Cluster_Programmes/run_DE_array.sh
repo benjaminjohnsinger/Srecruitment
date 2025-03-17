@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=rcRSVrrp
+#SBATCH --job-name=DErsi
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
@@ -14,10 +14,26 @@
 module load python/3.11.6-gcc-11.4.0
 
 combinations=(
-"RSV 250311 Stepwise X X 15 1 0.7"
-"RSV 250311 Stepwise nb X 15 1 0.7"
-"RSV 250311 YoungEarly X X 15 1 0.7"
-"RSV 250311 YoungEarly nb X 15 1 0.7"
+"RSV 250317 Mobility X X 15 1 0.7"
+"RSV 250317 Mobility nb X 15 1 0.7"
+"RSV 250317 FlexStepwise X X 15 1 0.7"
+"RSV 250317 FlexStepwise nb X 15 1 0.7"
+"InfluenzaA 250317 Mobility X X 15 1 0.7"
+"InfluenzaA 250317 Mobility X nr 15 1 0.7"
+"InfluenzaA 250317 Mobility nb X 15 1 0.7"
+"InfluenzaA 250317 Mobility nb nr 15 1 0.7"
+"InfluenzaA 250317 FlexStepwise X X 15 1 0.7"
+"InfluenzaA 250317 FlexStepwise X nr 15 1 0.7"
+"InfluenzaA 250317 FlexStepwise nb X 15 1 0.7"
+"InfluenzaA 250317 FlexStepwise nb nr 15 1 0.7"
+"InfluenzaB 250317 Mobility X X 15 1 0.7"
+"InfluenzaB 250317 Mobility X nr 15 1 0.7"
+"InfluenzaB 250317 Mobility nb X 15 1 0.7"
+"InfluenzaB 250317 Mobility nb nr 15 1 0.7"
+"InfluenzaB 250317 FlexStepwise X X 15 1 0.7"
+"InfluenzaB 250317 FlexStepwise X nr 15 1 0.7"
+"InfluenzaB 250317 FlexStepwise nb X 15 1 0.7"
+"InfluenzaB 250317 FlexStepwise nb nr 15 1 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"

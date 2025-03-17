@@ -92,14 +92,14 @@ if lockdown == 'YoungEarly':
 bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1], "P_OBS": [0,0.1], "AGE_OBS_YOUNG": [0,1], "AGE_OBS_OLD": [0,1], "AGE_OBS_YOUNG_OLD": [0,1]}
 
 if option1 == "nb":
-    bounds_dict["OVERDISPERSION"] = [0,15]
+    bounds_dict["OVERDISPERSION"] = [-5,10]
 if option1 != "ni":
-    bounds_dict["IMPORT_RATE"] = [0,1]
+    bounds_dict["IMPORT_RATE"] = [0,0.1]
 if (pathogen == "RSV") or (option2 == "nr"):
-    bounds_dict["S_REL1"] = [0,1]
-    bounds_dict["S_REL2"] = [0,1]
-    bounds_dict["D_REL1"] = [0,1]
-    bounds_dict["D_REL2"] = [0,1]
+    bounds_dict["S_REL1"] = [0.1,1]
+    bounds_dict["S_REL2"] = [0.1,1]
+    bounds_dict["D_REL1"] = [0.1,1]
+    bounds_dict["D_REL2"] = [0.1,1]
 else:
     bounds_dict["EXTRA_IMMUNITY"] = [0,1]
     bounds_dict["FIRST_IMMUNITY"] = [0,1]
@@ -147,14 +147,16 @@ def likelihood(x):
     n += 1
     if lockdown == 'FlexStepwise':
         Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
-        Fs = np.array([1,x[n+3],x[n+4],x[n+5],x[n+6]])
+        # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
+        a = x[n+3]+x[n+4]-x[n+3]*x[n+4] # value between x[n+3] and 1
+        Fs = np.array([1,x[n+3],a,a*x[n+5],a+x[n+6]+a*x[n+6]])
         @jit
         def contact(t,seasonality,offset):
             return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
         sim_params["contact"] = contact
         n += 7
     if option1 == 'nb':
-        overdispersion = np.exp(x[n]-5)
+        overdispersion = np.exp(x[n])
         n += 1
     obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
     try:

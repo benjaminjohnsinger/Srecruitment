@@ -4,7 +4,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-# import scipy as sp
+import scipy as sp
 import pandas as pd
 # import itertools as it
 # from plotting import *
@@ -16,13 +16,19 @@ import pickle
 # import time
 # # import corner
 
+
 i=0
-pathogen = "RSV"
-for lockdown in ["Mobility","FlexStepwise"]:
-    for option1 in ["X","ni","nb"]:
-        if pathogen == "RSV":
-            i+=1
-            print("\""+pathogen,"250311",lockdown,option1,"X","15 1 0.7\"")
+for pathogen in ["RSV","InfluenzaA","InfluenzaB"]:
+    for lockdown in ["Mobility","FlexStepwise"]:
+        for option1 in ["X","nb"]:
+            if pathogen == "RSV":
+                i+=1
+                print("\""+pathogen,"250317",lockdown,option1,"X","15 1 0.7\"")
+            else:
+                for option2 in ["X","nr"]:
+                    i+=1
+                    print("\""+pathogen,"250317",lockdown,option1,option2,"15 1 0.7\"")
+print(i)
 
 # infectious_contact = np.genfromtxt("Data/Processed/infectious_contact_rsv.csv",delimiter=',',dtype=np.float64)
 # import_contact = np.genfromtxt("Data/Processed/import_contact_rsv.csv",delimiter=',',dtype=np.float64)
