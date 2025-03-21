@@ -12,7 +12,7 @@ NAG = 7
 # Number of susceptibility classes
 N_S = 3
 # Waning rates for susceptibles into lower susceptibilty class - for index plus one, i.e. [0,1,0] means only last class wanes
-WANE = np.array([0.0,1/(30*365),0.0])
+WANE = np.array([0.0,1/365,0.0])
 # WANE = np.array([0,1.195e-01,0])/365
 # Recovery rates for each susceptibility class
 REC_UP = np.array([1/4.9,1/4.1,0.0]) # Recovery to higher susceptibility class - Okiro 2010
@@ -31,7 +31,6 @@ P_OBS = P_OBS_MAX*P_OBS_REL
 S_AGE = np.ones(NAG)
 # Age-specific relative probability of detection
 OBS_AGE = np.array([1,0.75,0.5,0.05,0.05,0.15,1])
-# OBS_AGE = np.array([1,0.8229,0.6458,0.4687,0.2916,0.1375,0.8626])
 ## Other
 # Seasonality parameters
 SEASONALITY = 0.4

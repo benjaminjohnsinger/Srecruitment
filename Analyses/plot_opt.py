@@ -104,7 +104,7 @@ n += 1
 if lockdown == 'FlexStepwise':
     Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
     a = x[n+3]+x[n+4]-x[n+3]*x[n+4] # value between x[n+3] and 1
-    Fs = np.array([1,x[n+3],a,a*x[n+5],a+x[n+6]+a*x[n+6]])
+    Fs = np.array([1,x[n+3],a,a*x[n+5],1])
     @jit
     def contact(t,seasonality,offset):
         return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
@@ -121,8 +121,6 @@ print("OBS_AGE",OBS_AGE)
 if lockdown == 'FlexStepwise':
     print("Ts",[t_to_date(t) for t in Ts])
     print("Fs",Fs)
-
-np.set_printoptions(threshold=np.inf)
 
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
@@ -154,22 +152,22 @@ print("R0:",np.median(R0s),"("+str(np.min(R0s))+"–"+str(np.max(R0s))+")")
 print("Rt:",np.median(Rts),"("+str(np.min(Rts))+"–"+str(np.max(Rts))+")")
 print("Ratio of import-caused cases to internal transmission:",np.median(contact_ratios),"("+str(np.min(contact_ratios))+"–"+str(np.max(contact_ratios))+")")
 
-# fig = plt.figure(figsize=(6.5,6.5))
-# ax1 = fig.add_subplot(3,1,1)
-# ax2 = fig.add_subplot(3,1,2, sharex=ax1, sharey=ax1)
-# ax3 = fig.add_subplot(3,1,3, sharex=ax1)
-# ax = [ax1,ax2,ax3]
-# kpsc_positive_test_plot(ax[0],pathogen=pathogen,AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
-# ax[0].set_xlabel("")
-# ax[0].set_title("Observed incidence")
-# ax[0].set_ylabel("Incidence per 10k")
-# mx = lockdown_incidence_plot(ax[1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2020-03-19'),365,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-# lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
-# ax[1].set_title("Simulated incidence")
-# ax[1].set_xlabel("")
-# ax[1].set_ylabel("Incidence per 10k")
-# lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),result=result,relative=False)
-# lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
-# ax[2].set_xlabel("Date")
-# plt.tight_layout()
-# plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_test.png",dpi=300)
+fig = plt.figure(figsize=(6.5,6.5))
+ax1 = fig.add_subplot(3,1,1)
+ax2 = fig.add_subplot(3,1,2, sharex=ax1, sharey=ax1)
+ax3 = fig.add_subplot(3,1,3, sharex=ax1)
+ax = [ax1,ax2,ax3]
+kpsc_positive_test_plot(ax[0],pathogen=pathogen,AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
+ax[0].set_xlabel("")
+ax[0].set_title("Observed incidence")
+ax[0].set_ylabel("Incidence per 10k")
+mx = lockdown_incidence_plot(ax[1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2020-03-19'),365,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
+ax[1].set_title("Simulated incidence")
+ax[1].set_xlabel("")
+ax[1].set_ylabel("Incidence per 10k")
+lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),result=result,relative=False)
+lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
+ax[2].set_xlabel("Date")
+plt.tight_layout()
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_test.png",dpi=300)

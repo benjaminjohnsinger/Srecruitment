@@ -18,16 +18,11 @@ import pickle
 
 
 i=0
-for pathogen in ["RSV","InfluenzaA","InfluenzaB"]:
-    for lockdown in ["Mobility","FlexStepwise"]:
-        for option1 in ["X","nb"]:
-            if pathogen == "RSV":
-                i+=1
-                print("\""+pathogen,"250317",lockdown,option1,"X","15 1 0.7\"")
-            else:
-                for option2 in ["X","nr"]:
-                    i+=1
-                    print("\""+pathogen,"250317",lockdown,option1,option2,"15 1 0.7\"")
+for max_import in [0.01,0.001,0.0001]:
+    for pathogen in ["RSV","InfluenzaA","InfluenzaB"]:
+        for lockdown in ["Mobility","FlexStepwise"]:
+            i+=1
+            print("\""+pathogen,"250321",lockdown,"X","X",str(max_import),"15 1 0.7\"")
 print(i)
 
 # infectious_contact = np.genfromtxt("Data/Processed/infectious_contact_rsv.csv",delimiter=',',dtype=np.float64)

@@ -32,7 +32,7 @@ if pathogen == 'RSV':
     [0,0.5], # SEASONALITY
     [0,1], # OFFSET
     [0,0.5], # BETA
-    [0,1e-10], # IMPORT_RATE
+    [0,0.1], # IMPORT_RATE
     [0,0.1], # P_OBS
     [0,1], # AGE_OBS - young_immunity
     [0,1], # AGE_OBS - old_immunity
@@ -131,5 +131,6 @@ if __name__ == '__main__':
     lh_sampler = sp.stats.qmc.LatinHypercube(d=len(bounds), seed=250212)
     lh_samples = lh_sampler.random(n_samples)
     lh_samples_scaled = sp.stats.qmc.scale(lh_samples, bounds[:,0], bounds[:,1])
-    with Pool(int(os.getenv('SLURM_CPUS_ON_NODE'))) as p:
+    # with Pool(int(os.getenv('SLURM_CPUS_ON_NODE'))) as p:
+    with Pool(4) as p:
         np.savetxt("Outputs/lhnm_"+pathogen+str(n_samples)+".csv",np.array(p.map(optimizer,lh_samples_scaled)))

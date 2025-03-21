@@ -21,7 +21,7 @@ from mobility_and_import import *
 from fit_MCMC import SIS_likelihood
 
 
-pathogen, seed, lockdown, option1, option2, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], int(sys.argv[6]), float(sys.argv[7]), float(sys.argv[8])
+pathogen, seed, lockdown, option1, option2, import_cap, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
 
 # set seed
 np.random.seed(seed)
@@ -94,7 +94,7 @@ bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": 
 if option1 == "nb":
     bounds_dict["OVERDISPERSION"] = [-5,10]
 if option1 != "ni":
-    bounds_dict["IMPORT_RATE"] = [0,0.1]
+    bounds_dict["IMPORT_RATE"] = [0,import_cap]
 if (pathogen == "RSV") or (option2 == "nr"):
     bounds_dict["S_REL1"] = [0.1,1]
     bounds_dict["S_REL2"] = [0.1,1]
@@ -102,7 +102,7 @@ if (pathogen == "RSV") or (option2 == "nr"):
     bounds_dict["D_REL2"] = [0.1,1]
 else:
     bounds_dict["EXTRA_IMMUNITY"] = [0,1]
-    bounds_dict["FIRST_IMMUNITY"] = [0,1]
+    bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
     bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
 if lockdown == "FlexStepwise":
     bounds_dict["DT1"] = [0,1]
@@ -148,8 +148,11 @@ def likelihood(x):
     if lockdown == 'FlexStepwise':
         Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
         # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
-        a = x[n+3]+x[n+4]-x[n+3]*x[n+4] # value between x[n+3] and 1
-        Fs = np.array([1,x[n+3],a,a*x[n+5],a+x[n+6]+a*x[n+6]])
+        F1 = x[n+3] # value between 0 and 1 (first lockdown)
+        F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
+        F3 = F2*x[n+5] # value less than F2 (second lockdown)
+        F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
+        Fs = np.array([1,F1,F2,F3,F4])
         @jit
         def contact(t,seasonality,offset):
             return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
