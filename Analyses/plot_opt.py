@@ -103,8 +103,11 @@ params["P_OBS"] = x[n]*pobsrel
 n += 1
 if lockdown == 'FlexStepwise':
     Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
-    a = x[n+3]+x[n+4]-x[n+3]*x[n+4] # value between x[n+3] and 1
-    Fs = np.array([1,x[n+3],a,a*x[n+5],1])
+    F1 = x[n+3] # value between 0 and 1 (first lockdown)
+    F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
+    F3 = F2*x[n+5] # value less than F2 (second lockdown)
+    F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
+    Fs = np.array([1,F1,F2,F3,F4])
     @jit
     def contact(t,seasonality,offset):
         return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT

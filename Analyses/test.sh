@@ -1,7 +1,10 @@
 combinations=(
-"RSV 250317 Mobility X X 15 1 0.7"
-"RSV 250317 Mobility nb X 15 1 0.7"
-"RSV 250317 FlexStepwise X X 15 1 0.7"
+"RSV 250321 Mobility X X"
+"RSV 250321 FlexStepwise X X"
+"InfluenzaA 250321 Mobility X X"
+"InfluenzaA 250321 FlexStepwise X X"
+"InfluenzaB 250321 Mobility X X"
+"InfluenzaB 250321 FlexStepwise X X"
 )
 
 for combination in "${combinations[@]}"; do
