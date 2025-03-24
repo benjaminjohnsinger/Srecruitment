@@ -113,8 +113,7 @@ def likelihood(x):
 start = time.time()
 if __name__ == '__main__':
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,
-    workers = 4)
-    # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
     with open("Data/Processed/DE_cm_opt_"+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)
