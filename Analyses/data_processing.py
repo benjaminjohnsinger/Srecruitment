@@ -8,6 +8,76 @@ from plotting import *
 import pickle
 
 ############### CDC data ###############
+### full NREVSS data
+data = pd.read_excel('Data/Raw/NREVSS_all.xlsx',sheet_name='Final')
+# drop REGNAME column
+data.drop(columns=["REGNAME"],inplace=True)
+
+# sum data (RSVpos,RSVtest,PIV3pos,PIVtest,RAdenopos,RAdenotest,HMetapneumopos,HMetapneumotest) with same date, region, and test type
+data = data.groupby(["RepWeekDate","HHS_REGION","TestType"]).sum().reset_index()
+data["Date"] = pd.to_datetime(data["RepWeekDate"],format='%m/%d/%Y')
+
+data["RSV Percent Positive"] = 100*data["RSVpos"]/data["RSVtest"]
+data["PIV3 Percent Positive"] = 100*data["PIV3pos"]/data["PIVtest"]
+data["Adenovirus Percent Positive"] = 100*data["RAdenopos"]/data["RAdenotest"]
+data["Metapneumovirus Percent Positive"] = 100*data["HMetapneumopos"]/data["HMetapneumotest"]
+
+# add "Region" in front of "HHS_REGION" column
+data["Region"] = "Region " + data["HHS_REGION"].astype(str)
+
+# index and pivot
+antigen_pp_RSV = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="RSV Percent Positive")
+antigen_pp_PIV3 = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="PIV3 Percent Positive")
+antigen_pp_AdV = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="Adenovirus Percent Positive")
+antigen_pp_MPV = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="Metapneumovirus Percent Positive")
+
+culture_pp_RSV = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="RSV Percent Positive")
+culture_pp_PIV3 = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="PIV3 Percent Positive")
+culture_pp_AdV = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="Adenovirus Percent Positive")
+culture_pp_MPV = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="Metapneumovirus Percent Positive")
+
+pcr_pp_RSV = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="RSV Percent Positive")
+pcr_pp_PIV3 = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="PIV3 Percent Positive")
+pcr_pp_AdV = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="Adenovirus Percent Positive")
+pcr_pp_MPV = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="Metapneumovirus Percent Positive")
+
+print(pcr_pp_RSV)
+
+# save to csv
+antigen_pp_RSV.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_RSV.csv')
+antigen_pp_PIV3.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_PIV3.csv')
+antigen_pp_AdV.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_AdV.csv')
+antigen_pp_MPV.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_MPV.csv')
+culture_pp_RSV.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_RSV.csv')
+culture_pp_PIV3.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_PIV3.csv')
+culture_pp_AdV.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_AdV.csv')
+culture_pp_MPV.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_MPV.csv')
+pcr_pp_RSV.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_RSV.csv')
+pcr_pp_PIV3.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_PIV3.csv')
+pcr_pp_AdV.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_AdV.csv')
+pcr_pp_MPV.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_MPV.csv')
+
+# plot
+antigen_pp_RSV = antigen_pp_RSV[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+antigen_pp_PIV3 = antigen_pp_PIV3[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+antigen_pp_AdV = antigen_pp_AdV[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+antigen_pp_MPV = antigen_pp_MPV[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+colors = colormaps.get_cmap('Greys',9)(np.linspace(1,0.3,9)).tolist()
+colors.append('red')
+fig, ax = plt.subplots(4,1,figsize=(13.3,10),sharex=True,sharey=True)
+antigen_pp_RSV.plot(ax=ax[0],legend=False,color=colors)
+antigen_pp_PIV3.plot(ax=ax[1],legend=False,color=colors)
+antigen_pp_AdV.plot(ax=ax[2],legend=False,color=colors)
+antigen_pp_MPV.plot(ax=ax[3],legend=False,color=colors)
+ax[0].set_ylabel("RSV")
+ax[1].set_ylabel("PIV3")
+ax[2].set_ylabel("Adenovirus")
+ax[3].set_ylabel("Metapneumovirus")
+ax[3].set_xlabel("Date")
+fig.suptitle("NREVSS Percent Antigen Positive by HHS Region")
+plt.tight_layout()
+plt.savefig('Figures/NREVSS_Antigen_PercentPositive.png')
+
 # ### RSV data
 # rsv_pre2020 = pd.read_csv('Data/Raw/Respiratory_Syncytial_Virus_Laboratory_Data__NREVSS_.csv')
 # rsv_post2020 = pd.read_csv('Data/Raw/Percent_Positivity_of_Respiratory_Syncytial_Virus_Nucleic_Acid_Amplification_Tests_by_HHS_Region__National_Respiratory_and_Enteric_Virus_Surveillance_System_20250213.csv')
@@ -42,58 +112,58 @@ import pickle
 
 
 # ### flu data
-flu_pre2015 = pd.read_csv('Data/Raw/FluViewPhase2Data_States/WHO_NREVSS_Combined_prior_to_2015_16.csv')
-flu_clinical = pd.read_csv('Data/Raw/FluViewPhase2Data_States/WHO_NREVSS_Clinical_Labs.csv')
-flu_ph = pd.read_csv('Data/Raw/FluViewPhase2Data_States/WHO_NREVSS_Public_Health_Labs.csv')
+# flu_pre2015 = pd.read_csv('Data/Raw/FluViewPhase2Data_States/WHO_NREVSS_Combined_prior_to_2015_16.csv')
+# flu_clinical = pd.read_csv('Data/Raw/FluViewPhase2Data_States/WHO_NREVSS_Clinical_Labs.csv')
+# flu_ph = pd.read_csv('Data/Raw/FluViewPhase2Data_States/WHO_NREVSS_Public_Health_Labs.csv')
 
-flu_pre2015["Date"] = pd.to_datetime(flu_pre2015["YEAR"].astype(int).astype(str) + '-01-01') + pd.to_timedelta(flu_pre2015["WEEK"]*7,unit='D')
-flu_clinical["Date"] = pd.to_datetime(flu_clinical["YEAR"].astype(int).astype(str) + '-01-01') + pd.to_timedelta(flu_clinical["WEEK"]*7,unit='D')
+# flu_pre2015["Date"] = pd.to_datetime(flu_pre2015["YEAR"].astype(int).astype(str) + '-01-01') + pd.to_timedelta(flu_pre2015["WEEK"]*7,unit='D')
+# flu_clinical["Date"] = pd.to_datetime(flu_clinical["YEAR"].astype(int).astype(str) + '-01-01') + pd.to_timedelta(flu_clinical["WEEK"]*7,unit='D')
 
-# remove Pueto Rico, Virgin Islands, District of Columbia, New York City, and Rhode Island
-flu_pre2015 = flu_pre2015[~flu_pre2015["REGION"].isin(["Puerto Rico","Virgin Islands","New York City"])]
-flu_clinical = flu_clinical[~flu_clinical["REGION"].isin(["Puerto Rico","Virgin Islands","New York City"])]
+# # remove Pueto Rico, Virgin Islands, District of Columbia, New York City, and Rhode Island
+# flu_pre2015 = flu_pre2015[~flu_pre2015["REGION"].isin(["Puerto Rico","Virgin Islands","New York City"])]
+# flu_clinical = flu_clinical[~flu_clinical["REGION"].isin(["Puerto Rico","Virgin Islands","New York City"])]
 
-# replace "X" with NA
-flu_pre2015.replace("X",0.0,inplace=True)
-flu_clinical.replace("X",0.0,inplace=True)
+# # replace "X" with NA
+# flu_pre2015.replace("X",0.0,inplace=True)
+# flu_clinical.replace("X",0.0,inplace=True)
 
-# flu A columns are A (2009 H1N1),A (H1),A (H3),A (Subtyping not Performed),A (Unable to Subtype),H3N2v,A (H5)
-flu_pre2015["A"] = flu_pre2015["A (2009 H1N1)"].astype(float) + flu_pre2015["A (H1)"].astype(float) + flu_pre2015["A (H3)"].astype(float) + flu_pre2015["A (Subtyping not Performed)"].astype(float) + flu_pre2015["A (Unable to Subtype)"].astype(float) + flu_pre2015["H3N2v"].astype(float) + flu_pre2015["A (H5)"].astype(float)
-flu_pre2015["PERCENT A"] = 100*flu_pre2015["A"]/flu_pre2015["TOTAL SPECIMENS"].astype(float)
-flu_pre2015["PERCENT B"] = 100*flu_pre2015["B"].astype(float)/flu_pre2015["TOTAL SPECIMENS"].astype(float)
-# NA to 0
-flu_pre2015.fillna(0,inplace=True)
+# # flu A columns are A (2009 H1N1),A (H1),A (H3),A (Subtyping not Performed),A (Unable to Subtype),H3N2v,A (H5)
+# flu_pre2015["A"] = flu_pre2015["A (2009 H1N1)"].astype(float) + flu_pre2015["A (H1)"].astype(float) + flu_pre2015["A (H3)"].astype(float) + flu_pre2015["A (Subtyping not Performed)"].astype(float) + flu_pre2015["A (Unable to Subtype)"].astype(float) + flu_pre2015["H3N2v"].astype(float) + flu_pre2015["A (H5)"].astype(float)
+# flu_pre2015["PERCENT A"] = 100*flu_pre2015["A"]/flu_pre2015["TOTAL SPECIMENS"].astype(float)
+# flu_pre2015["PERCENT B"] = 100*flu_pre2015["B"].astype(float)/flu_pre2015["TOTAL SPECIMENS"].astype(float)
+# # NA to 0
+# flu_pre2015.fillna(0,inplace=True)
 
-# get PERCENT POSITIVE for each week by concatenating time series from pre-2015 and post-2015 clinical data
-fluA_pp = pd.concat([flu_pre2015[["Date","REGION","PERCENT A"]],flu_clinical[["Date","REGION","PERCENT A"]]])
-fluA_pp.rename(columns={"PERCENT A":"PERCENT POSITIVE"},inplace=True)
-fluB_pp = pd.concat([flu_pre2015[["Date","REGION","PERCENT B"]],flu_clinical[["Date","REGION","PERCENT B"]]])
-fluB_pp.rename(columns={"PERCENT B":"PERCENT POSITIVE"},inplace=True)
-# index
-fluA_pp_regional = fluA_pp.pivot(index="Date",columns="REGION",values="PERCENT POSITIVE")
-# convert values type into float
-fluA_pp_regional = fluA_pp_regional.astype(float)
-# fluA_pp_regional = fluA_pp_regional[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
-fluB_pp_regional = fluB_pp.pivot(index="Date",columns="REGION",values="PERCENT POSITIVE")
-fluB_pp_regional = fluB_pp_regional.astype(float)
-# fluB_pp_regional = fluB_pp_regional[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
-fluA_pp_regional.to_csv('Data/Processed/FluView_PercentPositive_States_A.csv')
-fluB_pp_regional.to_csv('Data/Processed/FluView_PercentPositive_States_B.csv')
+# # get PERCENT POSITIVE for each week by concatenating time series from pre-2015 and post-2015 clinical data
+# fluA_pp = pd.concat([flu_pre2015[["Date","REGION","PERCENT A"]],flu_clinical[["Date","REGION","PERCENT A"]]])
+# fluA_pp.rename(columns={"PERCENT A":"PERCENT POSITIVE"},inplace=True)
+# fluB_pp = pd.concat([flu_pre2015[["Date","REGION","PERCENT B"]],flu_clinical[["Date","REGION","PERCENT B"]]])
+# fluB_pp.rename(columns={"PERCENT B":"PERCENT POSITIVE"},inplace=True)
+# # index
+# fluA_pp_regional = fluA_pp.pivot(index="Date",columns="REGION",values="PERCENT POSITIVE")
+# # convert values type into float
+# fluA_pp_regional = fluA_pp_regional.astype(float)
+# # fluA_pp_regional = fluA_pp_regional[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+# fluB_pp_regional = fluB_pp.pivot(index="Date",columns="REGION",values="PERCENT POSITIVE")
+# fluB_pp_regional = fluB_pp_regional.astype(float)
+# # fluB_pp_regional = fluB_pp_regional[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+# fluA_pp_regional.to_csv('Data/Processed/FluView_PercentPositive_States_A.csv')
+# fluB_pp_regional.to_csv('Data/Processed/FluView_PercentPositive_States_B.csv')
 
 
-# plots
-# colors = colormaps.get_cmap('Greys',9)(np.linspace(1,0.3,9)).tolist()
-# colors.append('red')
-fig, ax = plt.subplots(2,1,figsize=(13.3,7.5),sharey=True,sharex=True)
-fluA_pp_regional.plot(ax=ax[0],legend=False,color='k',alpha=0.3)
-fluB_pp_regional.plot(ax=ax[1],legend=False,color='k',alpha=0.3)
-ax[0].set_ylabel("Percent positive for flu A")
-ax[1].set_ylabel("Percent positive for flu B")
-# legend label is State
-# ax[1].legend(title="State")
-fig.suptitle("FluView Percent Positive by State")
-plt.tight_layout()
-plt.savefig('Figures/FluView_PercentPositive_States_ppt.png',dpi=300)
+# # plots
+# # colors = colormaps.get_cmap('Greys',9)(np.linspace(1,0.3,9)).tolist()
+# # colors.append('red')
+# fig, ax = plt.subplots(2,1,figsize=(13.3,7.5),sharey=True,sharex=True)
+# fluA_pp_regional.plot(ax=ax[0],legend=False,color='k',alpha=0.3)
+# fluB_pp_regional.plot(ax=ax[1],legend=False,color='k',alpha=0.3)
+# ax[0].set_ylabel("Percent positive for flu A")
+# ax[1].set_ylabel("Percent positive for flu B")
+# # legend label is State
+# # ax[1].legend(title="State")
+# fig.suptitle("FluView Percent Positive by State")
+# plt.tight_layout()
+# plt.savefig('Figures/FluView_PercentPositive_States_ppt.png',dpi=300)
 
 # # plots
 # # plot the region between 2022-01-01 and 2022-06-01

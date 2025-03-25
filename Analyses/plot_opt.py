@@ -102,11 +102,12 @@ else:
 params["P_OBS"] = x[n]*pobsrel
 n += 1
 if lockdown == 'FlexStepwise':
-    Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
-    F1 = x[n+3] # value between 0 and 1 (first lockdown)
-    F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
-    F3 = F2*x[n+5] # value less than F2 (second lockdown)
-    F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
+    x_temp = [0.32241058,0.73757945,0.87255653,0.42419,0.94062185,0.90933979,0.45970209]
+    Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x_temp[0]*365,date_to_t('2020-03-19')+(x_temp[0]+x_temp[0+1])*365,date_to_t('2020-03-19')+(x_temp[0]+x_temp[0+1]+x_temp[0+2])*365])
+    F1 = x_temp[0+3] # value between 0 and 1 (first lockdown)
+    F2 = F1 + x_temp[0+4] - F1*x_temp[0+4] # value between x_temp[0+3] and 1 (inter-lockdown)
+    F3 = F2*x_temp[0+5] # value less than F2 (second lockdown)
+    F4 = F2 + x_temp[0+6] - F2*x_temp[0+6] # value between F2 and 1 (post-lockdown)
     Fs = np.array([1,F1,F2,F3,F4])
     @jit
     def contact(t,seasonality,offset):
@@ -173,4 +174,4 @@ lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-0
 lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
 ax[2].set_xlabel("Date")
 plt.tight_layout()
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_test.png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_cmopt_mie2.png",dpi=300)

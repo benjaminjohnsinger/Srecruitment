@@ -16,14 +16,15 @@ import pickle
 # import time
 # # import corner
 
+print(date_to_t("2010-10-01"))
 
-i=0
-for max_import in [0.01,0.001,0.0001]:
-    for pathogen in ["RSV","InfluenzaA","InfluenzaB"]:
-        for lockdown in ["Mobility","FlexStepwise"]:
-            i+=1
-            print("\""+pathogen,"250321",lockdown,"X","X",str(max_import),"15 1 0.7\"")
-print(i)
+# i=0
+# for max_import in [0.01,0.001,0.0001]:
+#     for pathogen in ["RSV","InfluenzaA","InfluenzaB"]:
+#         for lockdown in ["Mobility","FlexStepwise"]:
+#             i+=1
+#             print("\""+pathogen,"250321",lockdown,"X","X",str(max_import),"15 1 0.7\"")
+# print(i)
 
 # infectious_contact = np.genfromtxt("Data/Processed/infectious_contact_rsv.csv",delimiter=',',dtype=np.float64)
 # import_contact = np.genfromtxt("Data/Processed/import_contact_rsv.csv",delimiter=',',dtype=np.float64)

@@ -1,9 +1,6 @@
 combinations=(
-"RSV 250321 Mobility X X"
 "RSV 250321 FlexStepwise X X"
-"InfluenzaA 250321 Mobility X X"
 "InfluenzaA 250321 FlexStepwise X X"
-"InfluenzaB 250321 Mobility X X"
 "InfluenzaB 250321 FlexStepwise X X"
 )
 
