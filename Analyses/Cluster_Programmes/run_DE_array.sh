@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=oip
-#SBATCH --account=ac_idmodels
+#SBATCH --account=fc_coronamodel
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
 #SBATCH --time=72:00:00
