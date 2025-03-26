@@ -45,7 +45,7 @@ def ACOV(t,SP,ap,AR):
 
 IMPORT_RATE = 0
 
-PP = pd.read_csv("Data/Processed/NREVSS_PCR_PercentPositive_Regions_AdV.csv")
+PP = pd.read_csv("Data/Processed/NREVSS_PCR_PercentPositive_AdV.csv")
 PP.index = pd.to_datetime(PP["Date"], format="%Y-%m-%d")
 PP.index = (PP.index - pd.to_datetime("1970-01-01")).days
 # PP_NP = np.array(PP['Region 9'])/100
