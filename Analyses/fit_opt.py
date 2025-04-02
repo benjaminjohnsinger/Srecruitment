@@ -40,55 +40,8 @@ END = pd.to_datetime(end_date)
 PERIOD = pd.date_range(start=START, end=END, freq='D')
 POINTS = np.array(date_to_t(PERIOD))
 
-if pathogen == 'RSV':
-    from Parameters.RSV import *
-    # Parameters for the ODE
-    params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-    'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
-    'contact': contact}
-    p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-    incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
-elif pathogen == 'InfluenzaA':
-    from Parameters.InfluenzaA import *
-    # Parameters for the ODE
-    params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
-    'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
-    'contact': contact}
-    p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-    incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
-elif pathogen == 'InfluenzaB':
-    from Parameters.InfluenzaB import *
-    # Parameters for the ODE
-    params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
-    'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
-    'contact': contact}
-    p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-    incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
-elif pathogen == 'Parainfluenza3':
-    from Parameters.Parainfluenza3 import *
-    # Parameters for the ODE
-    params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-    'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
-    'contact': contact}
-    p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-    incidence = pd.read_csv("Data/Processed/KPSC_Parainfluenza3_incidence_age_daily.csv",index_col=0)
-elif pathogen == 'Adenovirus':
-    from Parameters.Adenovirus import *
-    # Parameters for the ODE
-    params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-    'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
-    'contact': contact}
-    p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-    incidence = pd.read_csv("Data/Processed/KPSC_Adenovirus_incidence_age_daily.csv",index_col=0)
-elif pathogen == 'Metapneumovirus':
-    from Parameters.Metapneumovirus import *
-    # Parameters for the ODE
-    params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-    'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
-    'contact': contact}
-    p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-    incidence = pd.read_csv("Data/Processed/KPSC_Metapneumovirus_incidence_age_daily.csv",index_col=0)
-
+params, p_time_to_obs, incidence = pathogen_parameters(pathogen, lockdown, CONTACT)
+N_S, NAG = params["N_S"], params["NAG"]
 
 # trim incidence so that Date is between START and END
 incidence.index = pd.to_datetime(incidence.index)
@@ -99,26 +52,11 @@ STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
-if lockdown == 'Mobility':
-    @jit
-    def contact(t,seasonality,offset):
-        return cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-    params["contact"] = contact
-
-if lockdown == 'YoungEarly':
-    @jit
-    def contact(t,seasonality,offset):
-        cont = cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-        if t > 18702: # 2021-03-16 where majority of schoools returned to in-person according to burbio
-            cont[0:4] = (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT[0:4]
-        return cont
-    params["contact"] = contact
-
-bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1], "P_OBS": [0,0.1], "AGE_OBS_YOUNG": [0,1], "AGE_OBS_OLD": [0,1], "AGE_OBS_YOUNG_OLD": [0,1]}
+bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
 
 if option1 == "nb":
     bounds_dict["OVERDISPERSION"] = [-5,10]
-if option1 != "ni":
+if option1 != "ni" and option1 != "setimport":
     bounds_dict["IMPORT_RATE"] = [0,import_cap]
 if (pathogen == "RSV") or (option2 == "nr"):
     bounds_dict["S_REL1"] = [0.1,1]
@@ -129,6 +67,19 @@ else:
     bounds_dict["EXTRA_IMMUNITY"] = [0,1]
     bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
     bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
+if option2 == "flexage":
+    bounds_dict["AGE_OBS_NEWBORN"] = [0,0.1]
+    bounds_dict["AGE_OBS_INFANT"] = [0,0.1]
+    bounds_dict["AGE_OBS_TODDLER"] = [0,0.1]
+    bounds_dict["AGE_OBS_CHILD"] = [0,0.1]
+    bounds_dict["AGE_OBS_YOUNGADULT"] = [0,0.1]
+    bounds_dict["AGE_OBS_MIDDLEAGE"] = [0,0.1]
+    bounds_dict["AGE_OBS_ELDERLY"] = [0,0.1]
+else:
+    bounds_dict["P_OBS"] = [0,0.1]
+    bounds_dict["AGE_OBS_YOUNG"] = [0,1]
+    bounds_dict["AGE_OBS_OLD"] = [0,1]
+    bounds_dict["AGE_OBS_YOUNG_OLD"] = [0,1]
 if lockdown == "FlexStepwise":
     bounds_dict["DT1"] = [0,1]
     bounds_dict["DT2"] = [0,1]
@@ -138,7 +89,7 @@ if lockdown == "FlexStepwise":
     bounds_dict["F3"] = [0,1]
     bounds_dict["F4"] = [0,1]
 
-bounds = np.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD"]
+bounds = np.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","P_OBS","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_NEWBORN","AGE_OBS_INFANT","AGE_OBS_TODDLER","AGE_OBS_CHILD","AGE_OBS_YOUNGADULT","AGE_OBS_MIDDLEAGE","AGE_OBS_ELDERLY"]
 if key in bounds_dict.keys()])
 
 def likelihood(x):
@@ -157,6 +108,8 @@ def likelihood(x):
     n = 4
     if option1 == 'ni':
         sim_params["IMPORT_RATE"] = 0
+    elif option1 == 'setimport':
+        sim_params["IMPORT_RATE"] = import_cap
     else:
         sim_params["IMPORT_RATE"] = x[n]
         n += 1
@@ -168,8 +121,6 @@ def likelihood(x):
         srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
         sim_params["S_REL"] = srel
         n += 3
-    sim_params["P_OBS"] = x[n]*pobsrel
-    n += 1
     if lockdown == 'FlexStepwise':
         Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
         # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
@@ -186,7 +137,11 @@ def likelihood(x):
     if option1 == 'nb':
         overdispersion = np.exp(x[n])
         n += 1
-    obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
+    if option2 == 'fa':
+        obs_age = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
+    else:
+        sim_params["P_OBS"] = x[n]*pobsrel
+        obs_age = age_detection(NAG,x[n+1],x[n+2],x[n+3])
     try:
         lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True,overdispersion=overdispersion)
     except:

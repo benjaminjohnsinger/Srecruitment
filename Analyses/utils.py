@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import re
+from numba import jit
+import contact_model as cm
 
 ####### Utility functions #######
 
@@ -94,14 +96,31 @@ def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
         elif name == "ACQUIRED_IMMUNITY":
             params["S_REL"] = increment_to_vec(scalar_values_dict[name],N_S)
         elif re.search(r"S_REL\d+",name):
-            params["S_REL"][int(name[5:])] = scalar_values_dict[name]
+            i = int(name[5:])
+            params["S_REL"][i] = np.product(np.array([scalar_values_dict["S_REL"+str(j)] for j in range(1,i+1)]))
+        elif re.search(r"D_REL\d+",name):
+            i = int(name[5:])
+            pobsrel = np.array([1]+[np.product(np.array([scalar_values_dict["D_REL"+str(j)] for j in range(1,i+1)])) for i in range(1,N_S)])
+            params["P_OBS"] = pobsrel*scalar_values_dict["P_OBS"]
         elif re.search(r"ACQUIRED_IMMUNITY\d+",name):
             params["S_REL"][int(name[17:])] = scalar_values_dict[name]
         elif re.search(r"P_OBS\d+",name):
             params["P_OBS"][int(name[5:])] = scalar_values_dict[name]
         elif name in ["EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR"]:
             params["S_REL"], obs_rel = constrained_immunity(scalar_values_dict["EXTRA_IMMUNITY"],scalar_values_dict["FIRST_IMMUNITY"],scalar_values_dict["FIRST_DIS_INF_FACTOR"])
-            params["P_OBS"] = obs_rel*np.max(params["P_OBS"])
+            params["P_OBS"] = obs_rel*scalar_values_dict["P_OBS"]
+        elif name in ["DT1","DT2","DT3","F1","F2","F3","F4"]:
+            Ts = np.array([date_to_t('1970-01-01'),date_to_t('2020-03-19'),date_to_t('2020-03-19')+scalar_values_dict["DT1"]*365,date_to_t('2020-03-19')+(scalar_values_dict["DT1"]+scalar_values_dict["DT2"])*365,date_to_t('2020-03-19')+(scalar_values_dict["DT1"]+scalar_values_dict["DT2"]+scalar_values_dict["DT3"])*365])
+            F1 = scalar_values_dict["F1"] # value between 0 and 1 (first lockdown)
+            F2 = F1 + scalar_values_dict["F2"] - F1*scalar_values_dict["F2"] # value between x_temp[0+3] and 1 (inter-lockdown)
+            F3 = F2*scalar_values_dict["F3"] # value less than F2 (second lockdown)
+            F4 = F2 + scalar_values_dict["F4"] - F2*scalar_values_dict["F4"] # value between F2 and 1 (post-lockdown)
+            Fs = np.array([1,F1,F2,F3,F4])
+            CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
+            @jit
+            def contact(t,seasonality,offset):
+                return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+            params["contact"] = contact
     #     elif re.search(r"OBS_AGE\d+",name):
     #         params["OBS_AGE"][int(name[8:])] = scalar_values_dict[name]
     # if "OBS_AGE_YOUNG" in scalar_values_dict.keys() or "OBS_AGE_OLD" in scalar_values_dict.keys() or "OBS_AGE_YOUNG_OLD" in scalar_values_dict.keys():
@@ -132,6 +151,84 @@ def params_to_scalars(param_dict,scalar_names):
         elif re.search(r"P_OBS\d+",name):
             scalar_dict[name] = param_dict["P_OBS"][int(name[5:])]
     return scalar_dict
+
+def pathogen_parameters(pathogen, lockdown=None, CONTACT=None):
+    from Parameters.census_population import AGING_RATE
+    from demography import birth_rate
+    from vaccination import birth_vax, all_vax, flu_rate
+    from mobility_and_import import arrivals
+    if lockdown == 'Mobility':
+        @jit
+        def contact(t,seasonality,offset):
+            return cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+    elif lockdown == 'YoungEarly':
+        @jit
+        def contact(t,seasonality,offset):
+            cont = cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+            if t > 18702: # 2021-03-16 where majority of schoools returned to in-person according to burbio
+                cont[0:4] = (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT[0:4]
+            return cont
+    else:
+        Ts = np.array([date_to_t('1970-01-01'),
+        date_to_t('2020-03-19'), # Newsom announces stay-at-home order
+        date_to_t('2021-04-27'), # CDC amends mask guidance to allow vaccinated individuals to go maskless
+        date_to_t('2021-12-15'), # CDC reinstates mask guidance
+        date_to_t('2022-03-01')]) # End of mask mandate in California
+        # date_to_t('2021-12-20')])
+        Fs = np.array([1,0.2,1,0.2,1]) # 0.2 minimum relative contact rate between COMIX and POLYMOD
+        @jit
+        def contact(t,seasonality,offset):
+            return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+    if pathogen == 'RSV':
+        from Parameters.RSV import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, ACOV, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
+        # Parameters for the ODE
+        params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+        'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+        'contact': contact}
+        p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+        incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
+    elif pathogen == 'InfluenzaA':
+        from Parameters.InfluenzaA import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
+        # Parameters for the ODE
+        params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
+        'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+        'contact': contact}
+        p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+        incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
+    elif pathogen == 'InfluenzaB':
+        from Parameters.InfluenzaB import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
+        # Parameters for the ODE
+        params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
+        'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+        'contact': contact}
+        p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+        incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
+    elif pathogen == 'Parainfluenza3':
+        from Parameters.Parainfluenza3 import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, ACOV, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
+        # Parameters for the ODE
+        params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+        'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+        'contact': contact}
+        p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+        incidence = pd.read_csv("Data/Processed/KPSC_Parainfluenza3_incidence_age_daily.csv",index_col=0)
+    elif pathogen == 'Adenovirus':
+        from Parameters.Adenovirus import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, ACOV, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
+        # Parameters for the ODE
+        params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+        'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+        'contact': contact}
+        p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+        incidence = pd.read_csv("Data/Processed/KPSC_Adenovirus_incidence_age_daily.csv",index_col=0)
+    elif pathogen == 'Metapneumovirus':
+        from Parameters.Metapneumovirus import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, ACOV, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
+        # Parameters for the ODE
+        params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+        'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+        'contact': contact}
+        p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+        incidence = pd.read_csv("Data/Processed/KPSC_Metapneumovirus_incidence_age_daily.csv",index_col=0)
+    return params, p_time_to_obs, incidence
+
 
 ####### Generating interesting quantities from ODE results #######
 

@@ -10,19 +10,26 @@ import pandas as pd
 # from plotting import *
 # from math import comb
 from utils import *
-# from sas7bdat import SAS7BDAT
+from sas7bdat import SAS7BDAT
 import pickle
 # from scipy.optimize import curve_fit
 # import time
 # # import corner
 
-print(date_to_t("2010-10-01"))
+# with SAS7BDAT('Data/Raw/KPSC/demographics.sas7bdat') as f:
+#     demography = f.to_data_frame()
+# # pivot table to just give number in each age group in each year
+# demography = demography.pivot_table(index='age',columns='YEAR',values='n',aggfunc='sum')
+# # save to csv
+# demography.to_csv('Data/Processed/ages_for_Noah.csv')
+
+# print(date_to_t("2010-10-01"))
 
 i=0
-for pathogen in ["Metapneumovirus","Adenovirus","Parainfluenza3"]:
-    for lockdown in ["Mobility","FlexStepwise"]:
+for pathogen in ["RSV","InfluenzaA","InfluenzaB","Metapneumovirus","Adenovirus","Parainfluenza3"]:
+    for option1 in ["X","setimport"]:
         i+=1
-        print("\""+pathogen,"250325",lockdown,"X","X",str(0.01),"15 1 0.7\"")
+        print("\""+pathogen,"250325","FlexStepwise",option1,"flexage",str(0.01),"15 1 0.7\"")
 print(i)
 
 # infectious_contact = np.genfromtxt("Data/Processed/infectious_contact_rsv.csv",delimiter=',',dtype=np.float64)
