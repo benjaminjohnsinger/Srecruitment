@@ -97,10 +97,10 @@ def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
             params["S_REL"] = increment_to_vec(scalar_values_dict[name],N_S)
         elif re.search(r"S_REL\d+",name):
             i = int(name[5:])
-            params["S_REL"][i] = np.product(np.array([scalar_values_dict["S_REL"+str(j)] for j in range(1,i+1)]))
+            params["S_REL"][i] = np.prod(np.array([scalar_values_dict["S_REL"+str(j)] for j in range(1,i+1)]))
         elif re.search(r"D_REL\d+",name):
             i = int(name[5:])
-            pobsrel = np.array([1]+[np.product(np.array([scalar_values_dict["D_REL"+str(j)] for j in range(1,i+1)])) for i in range(1,N_S)])
+            pobsrel = np.array([1]+[np.prod(np.array([scalar_values_dict["D_REL"+str(j)] for j in range(1,i+1)])) for i in range(1,N_S)])
             params["P_OBS"] = pobsrel*scalar_values_dict["P_OBS"]
         elif re.search(r"ACQUIRED_IMMUNITY\d+",name):
             params["S_REL"][int(name[17:])] = scalar_values_dict[name]
