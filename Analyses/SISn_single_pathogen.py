@@ -33,6 +33,21 @@ from fit_MCMC import *
 # print all numpy array elements
 np.set_printoptions(threshold=np.inf)
 
+# # plot contact matrix (CONTACT) with age group labels
+# from Parameters.times_and_contacts import *
+# from Parameters.RSV import *
+# fig, ax = plt.subplots(figsize=(6.5,6.5))
+# ax.imshow(CONTACT, cmap='viridis', aspect='auto')
+# cbar = plt.colorbar(ax.imshow(CONTACT, cmap='viridis', aspect='auto'), ax=ax)
+# cbar.set_label('Contact rate')
+# ax.set_xticks(np.arange(NAG), AGE_GROUP_NAMES, rotation=45)
+# ax.set_yticks(np.arange(NAG), AGE_GROUP_NAMES)
+# ax.set_xlabel('Age group')
+# ax.set_ylabel('Age group')
+# ax.set_title('Contact matrix')
+# plt.tight_layout()
+# plt.savefig('Figures/contact_matrix.png', dpi=300)
+
 # fig, ax = plt.subplots(2,1,figsize=(13.3,7.5),sharey=True)
 # kpsc_positive_test_plot(ax[0],pathogen="Influenza A",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
 # ax[0].set_xlabel('Time (years)')
@@ -74,78 +89,78 @@ np.set_printoptions(threshold=np.inf)
 # POINTS = np.array(date_to_t(PERIOD))
 
 
-from Parameters.times_and_contacts import *
-from Parameters.RSV_Lowensteyn import *
-p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+# from Parameters.times_and_contacts import *
+# from Parameters.RSV_Lowensteyn import *
+# p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 
 
-## Initial conditions
-STATE0 = np.zeros((2*N_S+2)*NAG)
-STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
-STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
+# ## Initial conditions
+# STATE0 = np.zeros((2*N_S+2)*NAG)
+# STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
+# STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
-# Parameters for the ODE
-params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
-'contact': contact}
-params["ACOV"] = ACOV
+# # Parameters for the ODE
+# params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+# 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+# 'contact': contact}
+# params["ACOV"] = ACOV
 
-# @jit
-# def contact(t,seasonality,offset):
-#     return cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-# params["contact"] = contact
+# # @jit
+# # def contact(t,seasonality,offset):
+# #     return cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+# # params["contact"] = contact
 
-incidence = np.array(pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0))
+# incidence = np.array(pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0))
 
-def likelihood(x):
-    sim_params = params.copy()
-    sim_params["WANE"] = np.array([0.0,x[0],0.0])
-    sim_params["SEASONALITY"] = x[1]
-    sim_params["OFFSET"] = x[2]
-    sim_params["BETA"] = x[3]
-    sim_params["IMPORT_RATE"] = x[4]
-    sim_params["P_OBS"] = x[5]*np.array([1,0.4,0])
-    obs_age = age_detection(NAG,x[6],x[7],x[8])
-    return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["WANE"] = np.array([0.0,x[0],0.0])
+#     sim_params["SEASONALITY"] = x[1]
+#     sim_params["OFFSET"] = x[2]
+#     sim_params["BETA"] = x[3]
+#     sim_params["IMPORT_RATE"] = x[4]
+#     sim_params["P_OBS"] = x[5]*np.array([1,0.4,0])
+#     obs_age = age_detection(NAG,x[6],x[7],x[8])
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
 
-# nelders-mead optimization
-opt = sp.optimize.minimize(likelihood,[1/365,0.13,(274/365)+3.65/(2*np.pi),0.046,0.01,0.072*0.45,0.4,0.05,0.95],method='Nelder-Mead')
-print(opt)
-print(opt.x)
+# # nelders-mead optimization
+# opt = sp.optimize.minimize(likelihood,[1/365,0.13,(274/365)+3.65/(2*np.pi),0.046,0.01,0.072*0.45,0.4,0.05,0.95],method='Nelder-Mead')
+# print(opt)
+# print(opt.x)
 
-x = opt.x
-params["WANE"] = np.array([0.0,x[0],0.0])
-params["SEASONALITY"] = x[1]
-params["OFFSET"] = x[2]
-params["BETA"] = x[3]
-params["IMPORT_RATE"] = x[4]
-params["P_OBS"] = x[5]*np.array([1,0.4,0])
-OBS_AGE = age_detection(NAG,x[6],x[7],x[8])
+# x = opt.x
+# params["WANE"] = np.array([0.0,x[0],0.0])
+# params["SEASONALITY"] = x[1]
+# params["OFFSET"] = x[2]
+# params["BETA"] = x[3]
+# params["IMPORT_RATE"] = x[4]
+# params["P_OBS"] = x[5]*np.array([1,0.4,0])
+# OBS_AGE = age_detection(NAG,x[6],x[7],x[8])
 
 
-# # # # # # # # # # #### One-shot line plot #####
-fig, ax = plt.subplots(1,1,figsize=(6.5,4.5))
-# # # params['contact'] = lambda t,seasonality,offset: contact(t,seasonality,offset)*(1-flu_eff_coverage(t,S_REL))
-# # # params['BETA'] = 0
-result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-# # # vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
-# # # hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
-# # # hsv_colors[3] = colormaps.hsv((3/7)+0.04)
-# # # pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
-# # # for i in range(NAG): 
-# # #     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# # #     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# # # # ax[0].plot(result.t,[np.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/np.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
-# # # # ax[1].plot(result.t,np.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/np.sum(pop_size_by_age,axis=1),color="#648FFF")
-# # # plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
-obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
-mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2020-03-19'),365,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
-# ax.plot(POINTS,[10*cm.piecewise(pt,Ts,Fs) for pt in POINTS],label='Mobility',color='k')
-# ax.plot(POINTS,[100*regional_positivity(pt) for pt in POINTS],label='Positivity',color='k',linestyle='--',alpha=0.5)
-# # # for i in range(NAG):
-# # #     ax.plot(POINTS,[np.sum(contact(t,params["SEASONALITY"],params["OFFSET"]),axis=1)[i] for t in POINTS],c=hsv_colors[i],linestyle='--',dashes=(1,0.5+i/NAG),label=AGE_GROUP_NAMES[i])
-plt.savefig('Figures/RSV_NMfromLowensteyn.png',dpi=300)
+# # # # # # # # # # # #### One-shot line plot #####
+# fig, ax = plt.subplots(1,1,figsize=(6.5,4.5))
+# # # # params['contact'] = lambda t,seasonality,offset: contact(t,seasonality,offset)*(1-flu_eff_coverage(t,S_REL))
+# # # # params['BETA'] = 0
+# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+# # # # vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
+# # # # hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
+# # # # hsv_colors[3] = colormaps.hsv((3/7)+0.04)
+# # # # pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+# # # # for i in range(NAG): 
+# # # #     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+# # # #     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+# # # # # ax[0].plot(result.t,[np.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/np.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
+# # # # # ax[1].plot(result.t,np.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/np.sum(pop_size_by_age,axis=1),color="#648FFF")
+# # # # plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
+# obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
+# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2020-03-19'),365,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+# lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
+# # ax.plot(POINTS,[10*cm.piecewise(pt,Ts,Fs) for pt in POINTS],label='Mobility',color='k')
+# # ax.plot(POINTS,[100*regional_positivity(pt) for pt in POINTS],label='Positivity',color='k',linestyle='--',alpha=0.5)
+# # # # for i in range(NAG):
+# # # #     ax.plot(POINTS,[np.sum(contact(t,params["SEASONALITY"],params["OFFSET"]),axis=1)[i] for t in POINTS],c=hsv_colors[i],linestyle='--',dashes=(1,0.5+i/NAG),label=AGE_GROUP_NAMES[i])
+# plt.savefig('Figures/RSV_NMfromLowensteyn.png',dpi=300)
 
 # # params["WANE"] = np.array([0,1.195e-01,0])/365
 # # params["P_OBS"] = 3.396e-02*np.array([1,0.46,0.31])
@@ -335,6 +350,27 @@ plt.savefig('Figures/RSV_NMfromLowensteyn.png',dpi=300)
 # trajectory_ax.set_ylabel('Parameter value')
 # # plt.tight_layout()
 # plt.savefig('Figures/example_MCMC_trajectory_multivariate.png',dpi=300)
+
+# ###### cumulative cases seasonal plot ######
+fig, ax = plt.subplots(2,6,figsize=(13.3,7.5),sharex=True)
+pathogens = ["RSV","Influenza_A","Influenza_B","Metapneumovirus","Adenovirus","Parainfluenza_3"]
+for i,pathogen in enumerate(pathogens):
+    season_plot(ax[0,i],pathogen,incidence=False,relative=False)
+    season_plot(ax[1,i],pathogen,incidence=False,relative=True)
+    ax[0,i].set_title(pathogen.replace("_"," "))
+    ax[1,i].set_ylim(0,1)
+ax[0,0].set_ylabel("Cases")
+ax[0,0].set_xticks(range(0,8),["2015/16","2016/17","2017/18","2018/19","2019/20","2020/21","2021/22","2022/23"])
+ax[1,0].set_ylabel("Age group share")
+# add space at bottom for legend
+fig.subplots_adjust(bottom=0.2)
+# add horizontal space between plots
+fig.subplots_adjust(hspace=0.4)
+# horizontal legend at bottom of figure for age groups
+fig.legend(["<3m","3–11m","1–4y","5–17y","18–39y","40–64y",">=65y"],loc='lower center',bbox_to_anchor=(0.5,0),ncol=7,frameon=False)
+
+# plt.tight_layout()
+plt.savefig("Figures/cumulative_seasons.png",dpi=300)
 
 # # ####### Computing observations ########
 # with open('Data/Processed/SIS_3D_little.pickle','rb') as f:

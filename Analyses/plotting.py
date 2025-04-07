@@ -74,10 +74,8 @@ def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,resul
     ## Calculate susceptibility
     sus = susceptibility(result,params)
     if by_age:
-        cmap = plt.get_cmap('viridis')
-        rel_sus = sus/np.sum(sus,axis=1)[:,np.newaxis]
         for i in range(NAG):
-            ax.plot(dates,rel_sus[:,i], label=AGE_GROUP_NAMES[i], color=cmap(i/(NAG-1)),linestyle=style)
+            ax.plot(dates,sus[:,i], label=AGE_GROUP_NAMES[i], color=hsv_colors[i],linestyle=style)
     else:
         total_sus = np.sum(sus,axis=1)
         if relative:
@@ -549,4 +547,3 @@ def season_plot(ax,pathogen,incidence=False,relative=False):
         season_relative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
     else:
         season_cumulative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
-    
