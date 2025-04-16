@@ -138,6 +138,7 @@ def likelihood(x):
         overdispersion = np.exp(x[n])
         n += 1
     if option2 == 'flexage':
+        sim_params["P_OBS"] = pobsrel
         obs_age = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
     else:
         sim_params["P_OBS"] = x[n]*pobsrel

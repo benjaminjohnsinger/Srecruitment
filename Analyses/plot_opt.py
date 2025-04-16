@@ -37,6 +37,7 @@ else:
     print(opt.x)
     sys.exit()
 x = opt.x
+print(x)
 
 params, p_time_to_obs, incidence = pathogen_parameters(pathogen, lockdown, CONTACT)
 
@@ -52,7 +53,11 @@ params["SEASONALITY"] = x[1]
 params["OFFSET"] = x[2]
 params["BETA"] = x[3]
 n = 4
-if option1 != 'ni':
+if option1 == 'ni':
+    params["IMPORT_RATE"] = 0
+elif option1 == 'setimport':
+    params["IMPORT_RATE"] = 0.01
+else:
     params["IMPORT_RATE"] = x[n]
     n += 1
 if (pathogen == 'RSV') or (option2 == 'nr'):
@@ -63,8 +68,6 @@ else:
     srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
     params["S_REL"] = srel
     n += 3
-params["P_OBS"] = x[n]*pobsrel
-n += 1
 if lockdown == 'FlexStepwise':
     Ts = np.array([date_to_t('1970-01-01'),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
     F1 = x[n+3] # value between 0 and 1 (first lockdown)
@@ -81,7 +84,12 @@ if option1 == 'nb':
     overdispersion = np.exp(x[n]-5)
     print("Overdispersion",overdispersion)
     n += 1
-OBS_AGE = age_detection(NAG,x[n],x[n+1],x[n+2])
+if option2 == 'flexage':
+    sim_params["P_OBS"] = pobsrel
+    OBS_AGE = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
+else:
+    sim_params["P_OBS"] = x[n]*pobsrel
+    OBS_AGE = age_detection(NAG,x[n+1],x[n+2],x[n+3])
 
 print(params)
 print("OBS_AGE",OBS_AGE)
@@ -145,4 +153,4 @@ lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-0
 lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
 ax[2].set_xlabel("Date")
 plt.tight_layout()
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_cmopt_mie2_ppt_age.png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_ppt.png",dpi=300)

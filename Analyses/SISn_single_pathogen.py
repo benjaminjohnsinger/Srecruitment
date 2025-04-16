@@ -48,12 +48,14 @@ np.set_printoptions(threshold=np.inf)
 # plt.tight_layout()
 # plt.savefig('Figures/contact_matrix.png', dpi=300)
 
-# fig, ax = plt.subplots(2,1,figsize=(13.3,7.5),sharey=True)
-# kpsc_positive_test_plot(ax[0],pathogen="Influenza A",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
-# ax[0].set_xlabel('Time (years)')
-# kpsc_positive_test_plot(ax[1],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
-# plt.show()
-# plt.savefig('Figures/KPSC_RSV_daily.png',dpi=300)
+fig, ax = plt.subplots(1,1,figsize=(13.3,7.5),sharey=True)
+kpsc_positive_test_plot(ax,pathogen="Influenza",incidence=True,legend=False,aggregation=None,color="#648FFF")
+ax.set_xlabel('Time (years)')
+kpsc_positive_test_plot(ax,pathogen="RSV",incidence=True,legend=False,aggregation=None,color="#DC267F")
+kpsc_positive_test_plot(ax,pathogen="Metapneumovirus",incidence=True,legend=False,aggregation=None,color="#FFB000")
+# legend
+ax.legend(["Influenza","RSV","Metapneumovirus"],loc='upper left',title='Pathogen')
+plt.savefig('Figures/KPSC_flu_v_RSV_v_metapneumovirus.png',dpi=300)
 
 
 # ## Period of simulation
@@ -351,26 +353,26 @@ np.set_printoptions(threshold=np.inf)
 # # plt.tight_layout()
 # plt.savefig('Figures/example_MCMC_trajectory_multivariate.png',dpi=300)
 
-# ###### cumulative cases seasonal plot ######
-fig, ax = plt.subplots(2,6,figsize=(13.3,7.5),sharex=True)
-pathogens = ["RSV","Influenza_A","Influenza_B","Metapneumovirus","Adenovirus","Parainfluenza_3"]
-for i,pathogen in enumerate(pathogens):
-    season_plot(ax[0,i],pathogen,incidence=False,relative=False)
-    season_plot(ax[1,i],pathogen,incidence=False,relative=True)
-    ax[0,i].set_title(pathogen.replace("_"," "))
-    ax[1,i].set_ylim(0,1)
-ax[0,0].set_ylabel("Cases")
-ax[0,0].set_xticks(range(0,8),["2015/16","2016/17","2017/18","2018/19","2019/20","2020/21","2021/22","2022/23"])
-ax[1,0].set_ylabel("Age group share")
-# add space at bottom for legend
-fig.subplots_adjust(bottom=0.2)
-# add horizontal space between plots
-fig.subplots_adjust(hspace=0.4)
-# horizontal legend at bottom of figure for age groups
-fig.legend(["<3m","3–11m","1–4y","5–17y","18–39y","40–64y",">=65y"],loc='lower center',bbox_to_anchor=(0.5,0),ncol=7,frameon=False)
+# # ###### cumulative cases seasonal plot ######
+# fig, ax = plt.subplots(2,6,figsize=(13.3,7.5),sharex=True)
+# pathogens = ["RSV","Influenza_A","Influenza_B","Metapneumovirus","Adenovirus","Parainfluenza_3"]
+# for i,pathogen in enumerate(pathogens):
+#     season_plot(ax[0,i],pathogen,incidence=False,relative=False)
+#     season_plot(ax[1,i],pathogen,incidence=False,relative=True)
+#     ax[0,i].set_title(pathogen.replace("_"," "))
+#     ax[1,i].set_ylim(0,1)
+# ax[0,0].set_ylabel("Cases")
+# ax[0,0].set_xticks(range(0,8),["2015/16","2016/17","2017/18","2018/19","2019/20","2020/21","2021/22","2022/23"])
+# ax[1,0].set_ylabel("Age group share")
+# # add space at bottom for legend
+# fig.subplots_adjust(bottom=0.2)
+# # add horizontal space between plots
+# fig.subplots_adjust(hspace=0.4)
+# # horizontal legend at bottom of figure for age groups
+# fig.legend(["<3m","3–11m","1–4y","5–17y","18–39y","40–64y",">=65y"],loc='lower center',bbox_to_anchor=(0.5,0),ncol=7,frameon=False)
 
-# plt.tight_layout()
-plt.savefig("Figures/cumulative_seasons.png",dpi=300)
+# # plt.tight_layout()
+# plt.savefig("Figures/cumulative_seasons.png",dpi=300)
 
 # # ####### Computing observations ########
 # with open('Data/Processed/SIS_3D_little.pickle','rb') as f:
