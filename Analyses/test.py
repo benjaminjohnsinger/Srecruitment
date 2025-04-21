@@ -16,21 +16,23 @@ import pickle
 # import time
 # # import corner
 
-# with SAS7BDAT('Data/Raw/KPSC/demographics.sas7bdat') as f:
-#     demography = f.to_data_frame()
-# # pivot table to just give number in each age group in each year
-# demography = demography.pivot_table(index='age',columns='YEAR',values='n',aggfunc='sum')
-# # save to csv
-# demography.to_csv('Data/Processed/ages_for_Noah.csv')
-
-# print(date_to_t("2010-10-01"))
-
-i=0
-for pathogen in ["RSV","InfluenzaA","InfluenzaB","Metapneumovirus","Adenovirus","Parainfluenza3"]:
-    for option1 in ["X","setimport"]:
-        i+=1
-        print("\""+pathogen,"250325","FlexStepwise",option1,"flexage",str(0.01),"15 1 0.7\"")
-print(i)
+# n=0
+# x = [0.2,0.2,0.2,0.2,0.3,0.9]
+# OBS_AGE = np.zeros((7))
+# remaining = 1.0
+# for i in range(1,7):
+#     allocation = x[n+i-1]*remaining
+#     OBS_AGE[i-1] = allocation
+#     remaining -= allocation
+# OBS_AGE[6] = remaining
+# OBS_AGE = OBS_AGE/np.max(OBS_AGE)
+# print(OBS_AGE)
+# i=0
+# for pathogen in ["RSV","InfluenzaA","InfluenzaB","Metapneumovirus","Adenovirus","Parainfluenza3"]:
+#     for option1 in ["X","setimport"]:
+#         i+=1
+#         print("\""+pathogen,"250325","FlexStepwise",option1,"flexage",str(0.01),"15 1 0.7\"")
+# print(i)
 
 # infectious_contact = np.genfromtxt("Data/Processed/infectious_contact_rsv.csv",delimiter=',',dtype=np.float64)
 # import_contact = np.genfromtxt("Data/Processed/import_contact_rsv.csv",delimiter=',',dtype=np.float64)

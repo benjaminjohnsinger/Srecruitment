@@ -52,7 +52,7 @@ STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
-bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
+bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1], "P_OBS": [0,0.1]}
 
 if option1 == "nb":
     bounds_dict["OVERDISPERSION"] = [-5,10]
@@ -68,15 +68,13 @@ else:
     bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
     bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
 if option2 == "flexage":
-    bounds_dict["AGE_OBS_NEWBORN"] = [0,0.1]
-    bounds_dict["AGE_OBS_INFANT"] = [0,0.1]
-    bounds_dict["AGE_OBS_TODDLER"] = [0,0.1]
-    bounds_dict["AGE_OBS_CHILD"] = [0,0.1]
-    bounds_dict["AGE_OBS_YOUNGADULT"] = [0,0.1]
-    bounds_dict["AGE_OBS_MIDDLEAGE"] = [0,0.1]
-    bounds_dict["AGE_OBS_ELDERLY"] = [0,0.1]
+    bounds_dict["AGE_OBS_1"] = [0,1]
+    bounds_dict["AGE_OBS_2"] = [0,1]
+    bounds_dict["AGE_OBS_3"] = [0,1]
+    bounds_dict["AGE_OBS_4"] = [0,1]
+    bounds_dict["AGE_OBS_5"] = [0,1]
+    bounds_dict["AGE_OBS_6"] = [0,1]
 else:
-    bounds_dict["P_OBS"] = [0,0.1]
     bounds_dict["AGE_OBS_YOUNG"] = [0,1]
     bounds_dict["AGE_OBS_OLD"] = [0,1]
     bounds_dict["AGE_OBS_YOUNG_OLD"] = [0,1]
@@ -89,7 +87,7 @@ if lockdown == "FlexStepwise":
     bounds_dict["F3"] = [0,1]
     bounds_dict["F4"] = [0,1]
 
-bounds = np.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","P_OBS","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_NEWBORN","AGE_OBS_INFANT","AGE_OBS_TODDLER","AGE_OBS_CHILD","AGE_OBS_YOUNGADULT","AGE_OBS_MIDDLEAGE","AGE_OBS_ELDERLY"]
+bounds = np.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","P_OBS","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6"]\
 if key in bounds_dict.keys()])
 
 def likelihood(x):
@@ -121,6 +119,8 @@ def likelihood(x):
         srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
         sim_params["S_REL"] = srel
         n += 3
+    sim_params["P_OBS"] = x[n]*pobsrel
+    n += 1
     if lockdown == 'FlexStepwise':
         Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
         # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
@@ -138,10 +138,16 @@ def likelihood(x):
         overdispersion = np.exp(x[n])
         n += 1
     if option2 == 'flexage':
-        sim_params["P_OBS"] = pobsrel
-        obs_age = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
+        # barycentric parameterization of the age observation probabilities
+        obs_age = np.zeros((7))
+        remaining = 1.0
+        for i in range(1,7):
+            allocation = x[n+i-1]*remaining
+            obs_age[i] = allocation
+            remaining -= allocation
+        obs_age[0] = remaining
+        obs_age = obs_age/np.max(obs_age)
     else:
-        sim_params["P_OBS"] = x[n]*pobsrel
         obs_age = age_detection(NAG,x[n+1],x[n+2],x[n+3])
     try:
         lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True,overdispersion=overdispersion)

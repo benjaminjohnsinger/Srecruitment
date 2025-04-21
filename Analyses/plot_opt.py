@@ -68,6 +68,8 @@ else:
     srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
     params["S_REL"] = srel
     n += 3
+params["P_OBS"] = x[n]*pobsrel
+n += 1
 if lockdown == 'FlexStepwise':
     Ts = np.array([date_to_t('1970-01-01'),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
     F1 = x[n+3] # value between 0 and 1 (first lockdown)
@@ -85,10 +87,14 @@ if option1 == 'nb':
     print("Overdispersion",overdispersion)
     n += 1
 if option2 == 'flexage':
-    sim_params["P_OBS"] = pobsrel
-    OBS_AGE = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
+    OBS_AGE = np.zeros((7))
+    remaining = 1.0
+    for i in range(1,7):
+        allocation = x[n+i]*remaining
+        OBS_AGE[i] = allocation
+        remaining -= allocation
+    OBS_AGE[0] = remaining
 else:
-    sim_params["P_OBS"] = x[n]*pobsrel
     OBS_AGE = age_detection(NAG,x[n+1],x[n+2],x[n+3])
 
 print(params)
