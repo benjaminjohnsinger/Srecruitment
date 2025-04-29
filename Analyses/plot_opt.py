@@ -60,7 +60,10 @@ elif option1 == 'setimport':
 else:
     params["IMPORT_RATE"] = x[n]
     n += 1
-if (pathogen == 'RSV') or (option2 == 'nr'):
+if pathogen == 'RSV':
+    sim_params["S_REL"] = np.array([1,0.25,0.025])
+    pobsrel = np.array([1,0.46,0.31])
+elif option2 == 'nr':
     params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
     pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
     n += 4
@@ -87,15 +90,20 @@ if option1 == 'nb':
     print("Overdispersion",overdispersion)
     n += 1
 if option2 == 'flexage':
-    OBS_AGE = np.zeros((7))
-    remaining = 1.0
-    for i in range(1,7):
-        allocation = x[n+i]*remaining
-        OBS_AGE[i] = allocation
-        remaining -= allocation
-    OBS_AGE[0] = remaining
+    # OBS_AGE = np.zeros((7))
+    # remaining = 1.0
+    # for i in range(1,7):
+    #     allocation = x[n+i-1]*remaining
+    #     OBS_AGE[i] = allocation
+    #     remaining -= allocation
+    # OBS_AGE[0] = remaining
+    # OBS_AGE = OBS_AGE/np.max(OBS_AGE)
+    OBS_AGE=0.1*np.array([0.54,0.77,1,0.05,0.05,0.07,0.66])
+    # OBS_AGE = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
+elif option2 == 'maternal':
+    OBS_AGE = age_detection(NAG,x[n],x[n+1],x[n+2],x[n+3],min_obs=0.025)
 else:
-    OBS_AGE = age_detection(NAG,x[n+1],x[n+2],x[n+3])
+    OBS_AGE = age_detection(NAG,x[n],x[n+1],x[n+2])
 
 print(params)
 print("OBS_AGE",OBS_AGE)
@@ -155,8 +163,8 @@ lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
 ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 ax[1].set_xlabel("")
 ax[1].set_ylabel("Incidence per 10k")
-lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),result=result,relative=False, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),result=result,relative=False,proportion=False, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
 lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
 ax[2].set_xlabel("Date")
 plt.tight_layout()
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_ppt.png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_test.png",dpi=300)

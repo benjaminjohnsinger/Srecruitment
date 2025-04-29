@@ -16,6 +16,12 @@ import pickle
 # import time
 # # import corner
 
+# x = [0.06161061,0.06693856,0.09797388,0.00336862,0.00132866,0.00746335
+# ,0.06506893]
+
+# print(x/np.max(x))
+print(np.arange(2,0,-1))
+
 # n=0
 # x = [0.2,0.2,0.2,0.2,0.3,0.9]
 # OBS_AGE = np.zeros((7))

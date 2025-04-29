@@ -1,10 +1,8 @@
 combinations=(
-"RSV 250416 FlexStepwise setimport flexage"
-"InfluenzaA 250416 FlexStepwise setimport flexage"
-"InfluenzaB 250416 FlexStepwise setimport flexage"
-"Metapneumovirus 250416 FlexStepwise setimport flexage"
-"Adenovirus 250416 FlexStepwise setimport flexage"
-"Parainfluenza3 250416 FlexStepwise setimport flexage"
+# "RSV 250407 FlexStepwise setimport flexage"
+"RSV 250321 FlexStepwise X X"
+# "InfluenzaA 250421 FlexStepwise setimport flexage"
+# "InfluenzaB 250421 FlexStepwise setimport flexage"
 )
 
 for combination in "${combinations[@]}"; do

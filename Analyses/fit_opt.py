@@ -61,12 +61,13 @@ if option1 != "ni" and option1 != "setimport":
 if (pathogen == "RSV") or (option2 == "nr"):
     bounds_dict["S_REL1"] = [0.1,1]
     bounds_dict["S_REL2"] = [0.1,1]
-    bounds_dict["D_REL1"] = [0.1,1]
-    bounds_dict["D_REL2"] = [0.1,1]
 else:
     bounds_dict["EXTRA_IMMUNITY"] = [0,1]
     bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
     bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
+if option2 == "nr":
+    bounds_dict["D_REL1"] = [0.1,1]
+    bounds_dict["D_REL2"] = [0.1,1]
 if option2 == "flexage":
     bounds_dict["AGE_OBS_1"] = [0,1]
     bounds_dict["AGE_OBS_2"] = [0,1]
@@ -78,6 +79,8 @@ else:
     bounds_dict["AGE_OBS_YOUNG"] = [0,1]
     bounds_dict["AGE_OBS_OLD"] = [0,1]
     bounds_dict["AGE_OBS_YOUNG_OLD"] = [0,1]
+if option2 == "maternal":
+    bounds_dict["AGE_OBS_MATERNAL"] = [0,1]
 if lockdown == "FlexStepwise":
     bounds_dict["DT1"] = [0,1]
     bounds_dict["DT2"] = [0,1]
@@ -87,7 +90,7 @@ if lockdown == "FlexStepwise":
     bounds_dict["F3"] = [0,1]
     bounds_dict["F4"] = [0,1]
 
-bounds = np.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","P_OBS","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6"]\
+bounds = np.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","P_OBS","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6"]\
 if key in bounds_dict.keys()])
 
 def likelihood(x):
@@ -111,7 +114,11 @@ def likelihood(x):
     else:
         sim_params["IMPORT_RATE"] = x[n]
         n += 1
-    if (pathogen == 'RSV') or (option2 == 'nr'):
+    if pathogen == 'RSV':
+        sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
+        pobsrel = np.array([1,0.46,0.31]) # Henderson 1979
+        n += 2
+    elif option2 == 'nr':
         sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
         pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
         n += 4
@@ -147,8 +154,10 @@ def likelihood(x):
             remaining -= allocation
         obs_age[0] = remaining
         obs_age = obs_age/np.max(obs_age)
+    elif option2 == 'maternal':
+        obs_age = age_detection(NAG,x[n],x[n+1],x[n+2],x[n+3],min_obs=0.025)
     else:
-        obs_age = age_detection(NAG,x[n+1],x[n+2],x[n+3])
+        obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
     try:
         lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True,overdispersion=overdispersion)
     except:

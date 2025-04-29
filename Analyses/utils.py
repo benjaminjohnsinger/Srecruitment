@@ -46,21 +46,29 @@ def to_increment(vec):
     else:
         return vec
 
-def age_detection(NAG,young_immunity,old_immunity,young_old,linear=True,min_obs=0.05):
+def age_detection(NAG,young_immunity,old_immunity,young_old,maternal_immunity=None,linear=True,min_obs=0.05,n_infant_groups=2):
     """
     Calculate age-specific relative probabilty of detection from parameters.
     young_immunity: immunity gained by aging an age group
     old_immunity: immunity lost by aging an age group
     young_old: half the ratio of young to old susceptibility
+    maternal_immunity: extra protection given to infants (optional)
     """
-    x = np.arange(NAG)
-    if not linear:
-        OBS = np.minimum(1,2*young_old)*young_immunity**x+np.minimum(1,2*(1-young_old))*old_immunity**(NAG-1-x)
-    elif linear:
-        OBS = np.max((min_obs*np.ones(NAG),np.minimum(1,2*young_old)-young_immunity*x,np.minimum(1,2*(1-young_old))-old_immunity*(NAG-1-x)),axis=0)
+    if maternal_immunity is None:
+        x = np.arange(NAG)
+        if not linear:
+            OBS = np.minimum(1,2*young_old)*young_immunity**x+np.minimum(1,2*(1-young_old))*old_immunity**(NAG-1-x)
+        elif linear:
+            OBS = np.max((min_obs*np.ones(NAG),np.minimum(1,2*young_old)-young_immunity*x,np.minimum(1,2*(1-young_old))-old_immunity*(NAG-1-x)),axis=0)
+    else:
+        x = np.arange(NAG-n_infant_groups)
+        OBS_noninfant = np.max((min_obs*np.ones(NAG-n_infant_groups),np.minimum(1,2*young_old)-young_immunity*x,np.minimum(1,2*(1-young_old))-old_immunity*(NAG-1-n_infant_groups-x)),axis=0)
+        OBS_infant = np.max((min_obs*np.ones(n_infant_groups),np.min((np.ones(n_infant_groups),np.minimum(1,2*young_old)-2*(maternal_immunity-0.5)*np.arange(n_infant_groups,0,-1)),axis=0)),axis=0)
+        OBS = np.concatenate((OBS_infant,OBS_noninfant))
     return OBS/np.max(OBS)
 
-# print(age_detection(7, 0.05,0.8,0.1,linear=True))
+# print(age_detection(7, 1,0.59,0.67,0.615,linear=True,min_obs=0.025))
+print(age_detection(7, 1,0.9,0.05,0.475,linear=False,min_obs=0.025))
 
 def constrained_immunity(extra_immunity,first_immunity,first_dis_inf_factor,DIS_INF_RATIO=0.674,MIN_EFF=0.39,CHILD_EFF_RATIO=1.54):
     """
