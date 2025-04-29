@@ -60,17 +60,18 @@ elif option1 == 'setimport':
 else:
     params["IMPORT_RATE"] = x[n]
     n += 1
-if pathogen == 'RSV':
-    sim_params["S_REL"] = np.array([1,0.25,0.025])
-    pobsrel = np.array([1,0.46,0.31])
-elif option2 == 'nr':
-    params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
-    pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
-    n += 4
-else:
+if ("Influenza" in pathogen) and (option2 != 'nr'):
     srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
     params["S_REL"] = srel
     n += 3
+elif pathogen == 'RSV':
+    params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
+    pobsrel = np.array([1,0.46,0.31]) # Henderson 1979
+    n += 2
+else:
+    params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
+    pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
+    n += 4
 params["P_OBS"] = x[n]*pobsrel
 n += 1
 if lockdown == 'FlexStepwise':
@@ -98,8 +99,7 @@ if option2 == 'flexage':
     #     remaining -= allocation
     # OBS_AGE[0] = remaining
     # OBS_AGE = OBS_AGE/np.max(OBS_AGE)
-    OBS_AGE=0.1*np.array([0.54,0.77,1,0.05,0.05,0.07,0.66])
-    # OBS_AGE = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
+    OBS_AGE = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
 elif option2 == 'maternal':
     OBS_AGE = age_detection(NAG,x[n],x[n+1],x[n+2],x[n+3],min_obs=0.025)
 else:

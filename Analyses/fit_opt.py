@@ -58,14 +58,16 @@ if option1 == "nb":
     bounds_dict["OVERDISPERSION"] = [-5,10]
 if option1 != "ni" and option1 != "setimport":
     bounds_dict["IMPORT_RATE"] = [0,import_cap]
-if (pathogen == "RSV") or (option2 == "nr"):
-    bounds_dict["S_REL1"] = [0.1,1]
-    bounds_dict["S_REL2"] = [0.1,1]
-else:
+if ("Influenza" in pathogen) and (option2 != "nr"):
     bounds_dict["EXTRA_IMMUNITY"] = [0,1]
     bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
     bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
-if option2 == "nr":
+elif pathogen == "RSV":
+    bounds_dict["S_REL1"] = [0.1,1]
+    bounds_dict["S_REL2"] = [0.1,1]
+else:
+    bounds_dict["S_REL1"] = [0.1,1]
+    bounds_dict["S_REL2"] = [0.1,1]
     bounds_dict["D_REL1"] = [0.1,1]
     bounds_dict["D_REL2"] = [0.1,1]
 if option2 == "flexage":
@@ -114,18 +116,18 @@ def likelihood(x):
     else:
         sim_params["IMPORT_RATE"] = x[n]
         n += 1
-    if pathogen == 'RSV':
-        sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
-        pobsrel = np.array([1,0.46,0.31]) # Henderson 1979
-        n += 2
-    elif option2 == 'nr':
-        sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
-        pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
-        n += 4
-    else:
+    if ("Influenza" in pathogen) and (option2 != 'nr'):
         srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
         sim_params["S_REL"] = srel
         n += 3
+    elif pathogen == 'RSV':
+        sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
+        pobsrel = np.array([1,0.46,0.31]) # Henderson 1979
+        n += 2
+    else:
+        sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
+        pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
+        n += 4
     sim_params["P_OBS"] = x[n]*pobsrel
     n += 1
     if lockdown == 'FlexStepwise':

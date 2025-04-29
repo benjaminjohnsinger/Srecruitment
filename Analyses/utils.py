@@ -68,7 +68,7 @@ def age_detection(NAG,young_immunity,old_immunity,young_old,maternal_immunity=No
     return OBS/np.max(OBS)
 
 # print(age_detection(7, 1,0.59,0.67,0.615,linear=True,min_obs=0.025))
-print(age_detection(7, 1,0.9,0.05,0.475,linear=False,min_obs=0.025))
+# print(age_detection(7, 1,0.9,0.05,0.475,linear=False,min_obs=0.025))
 
 def constrained_immunity(extra_immunity,first_immunity,first_dis_inf_factor,DIS_INF_RATIO=0.674,MIN_EFF=0.39,CHILD_EFF_RATIO=1.54):
     """
