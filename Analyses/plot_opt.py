@@ -37,7 +37,8 @@ else:
     print(opt.x)
     sys.exit()
 x = opt.x
-print(x)
+# print likelihood
+print("Log-Likelihood:",-1*opt.fun)
 
 params, p_time_to_obs, incidence = pathogen_parameters(pathogen, lockdown, CONTACT)
 
@@ -167,4 +168,4 @@ lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-0
 lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
 ax[2].set_xlabel("Date")
 plt.tight_layout()
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_test.png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_ppt.png",dpi=300)

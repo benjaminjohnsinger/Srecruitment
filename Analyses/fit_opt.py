@@ -33,6 +33,8 @@ if re.match(r'\d{4}-\d{2}-\d{2}',option1):
     start_date = option1
 if re.match(r'\d{4}-\d{2}-\d{2}',option2):
     end_date = option2
+    option2 = "maternal" #this is super hacky sorry
+
 
 EPOCH = pd.to_datetime('1970-01-01')
 START = pd.to_datetime(start_date) 

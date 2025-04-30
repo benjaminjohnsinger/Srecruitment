@@ -1,7 +1,10 @@
 ## SIS model with n susceptibility classes, for a single pathogen
 ## BJS September 2024
 
+# from autograd import numpy as np
+# from autograd import grad, jacobian
 import numpy as np
+import numdifftools as nd
 import scipy as sp
 import pandas as pd
 import time
@@ -21,6 +24,7 @@ from vaccination import birth_vax, birth_vax, all_vax, flu_rate, flu_eff_coverag
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
+from Parameters.times_and_contacts import *
 
 from utils import *
 from demography import *
@@ -48,14 +52,85 @@ np.set_printoptions(threshold=np.inf)
 # plt.tight_layout()
 # plt.savefig('Figures/contact_matrix.png', dpi=300)
 
-fig, ax = plt.subplots(1,1,figsize=(13.3,7.5),sharey=True)
-kpsc_positive_test_plot(ax,pathogen="Influenza",incidence=True,legend=False,aggregation=None,color="#648FFF")
-ax.set_xlabel('Time (years)')
-kpsc_positive_test_plot(ax,pathogen="RSV",incidence=True,legend=False,aggregation=None,color="#DC267F")
-kpsc_positive_test_plot(ax,pathogen="Metapneumovirus",incidence=True,legend=False,aggregation=None,color="#FFB000")
-# legend
-ax.legend(["Influenza","RSV","Metapneumovirus"],loc='upper left',title='Pathogen')
-plt.savefig('Figures/KPSC_flu_v_RSV_v_metapneumovirus.png',dpi=300)
+# fig, ax = plt.subplots(1,1,figsize=(13.3,7.5),sharey=True)
+# kpsc_positive_test_plot(ax,pathogen="Influenza",incidence=True,legend=False,aggregation=None,color="#648FFF")
+# ax.set_xlabel('Time (years)')
+# kpsc_positive_test_plot(ax,pathogen="RSV",incidence=True,legend=False,aggregation=None,color="#DC267F")
+# kpsc_positive_test_plot(ax,pathogen="Metapneumovirus",incidence=True,legend=False,aggregation=None,color="#FFB000")
+# # legend
+# ax.legend(["Influenza","RSV","Metapneumovirus"],loc='upper left',title='Pathogen')
+# plt.savefig('Figures/KPSC_flu_v_RSV_v_metapneumovirus.png',dpi=300)
+
+
+start_date = '2015-07-04'
+end_date = '2023-10-01'
+EPOCH = pd.to_datetime('1970-01-01')
+START = pd.to_datetime(start_date) 
+END = pd.to_datetime(end_date)
+PERIOD = pd.date_range(start=START, end=END, freq='D')
+POINTS = np.array(date_to_t(PERIOD))
+Ts = np.array([date_to_t('1970-01-01'), date_to_t('2020-03-19'), date_to_t('2020-12-05'), date_to_t('2020-12-10'), date_to_t('2021-08-12')])
+Fs = np.array([1,0.4001427,0.89507013,0.70283776,0.93153405])
+@jit
+def contact(t,seasonality,offset):
+    return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+from Parameters.RSV import *
+# Parameters from differential evolution
+RSV_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0.        , 0.00438131, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1.        , 0.10871732, 0.0372482 ]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': np.array([0.01273131, 0.01272225, 0.00913129]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.008897365162093825, 'BETA': 0.47973501805559776, 'SEASONALITY': 0.09607721848972506, 'OFFSET': 0.12504213724959057,
+'contact': contact}
+OBS_AGE = np.array([1,0.68056091,0.36112182,0.05,0.05,0.09321769,0.9479402])
+p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+## Initial conditions
+STATE0 = np.zeros((2*N_S+2)*NAG)
+STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
+STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
+
+incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
+
+# NON-NEGATIVE log likelihood
+def likelihood(x):
+    sim_params = RSV_params.copy()
+    sim_params["WANE"] = np.array([0.0,x[0],0.0])
+    sim_params["SEASONALITY"] = x[1]
+    sim_params["OFFSET"] = x[2]
+    sim_params["BETA"] = x[3]
+    n = 4
+    sim_params["IMPORT_RATE"] = x[n]
+    n += 1
+    sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
+    pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
+    n += 4
+    sim_params["P_OBS"] = x[n]*pobsrel
+    n += 1
+    Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
+    # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
+    F1 = x[n+3] # value between 0 and 1 (first lockdown)
+    F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
+    F3 = F2*x[n+5] # value less than F2 (second lockdown)
+    F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
+    Fs = np.array([1,F1,F2,F3,F4])
+    @jit
+    def contact(t,seasonality,offset):
+        return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+    sim_params["contact"] = contact
+    n += 7
+    obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
+    lh = SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+    # print("neg log likelihood: ",lh)
+    return lh
+x_init = np.array([0.00438131,0.09607721848972506,0.12504213724959057,0.47973501805559776,0.008897365162093825,0.10871732,0.0372482/0.10871732, 0.01272225/0.01273131, 0.00913129/(0.01273131*0.01272225), 0.01273131, 261/365, 5/365, 245/365, 0.4001427, 0.89507013, 0.70283776, 0.93153405, 1-0.68056091, 0.9479402-0.09321769, 0.5-((1-0.9479402)/2)])
+print(likelihood(x_init))
+# calculate the hessian - could try method="forward" for faster but less reliable results. May want to choose a smaller order, 1-2.
+hessian_f = nd.Hessian(likelihood,method="forward",order="1")
+hessian = hessian_f(x_init)
+print(hessian)
+fisher_info = np.linalg.inv(-hessian)
+prop_sigma = np.sqrt(np.diag(fisher_info))
+upper_bound = x_init + 1.96*prop_sigma
+lower_bound = x_init - 1.96*prop_sigma
+print("Upper bound: ", upper_bound)
+print("Lower bound: ", lower_bound)
 
 
 # ## Period of simulation

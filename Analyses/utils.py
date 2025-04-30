@@ -169,6 +169,10 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None):
         @jit
         def contact(t,seasonality,offset):
             return cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+    elif lockdown == 'X':
+        @jit
+        def contact(t,seasonality,offset):
+            return CONTACT*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))
     elif lockdown == 'YoungEarly':
         @jit
         def contact(t,seasonality,offset):
