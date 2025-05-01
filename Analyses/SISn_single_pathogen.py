@@ -86,51 +86,79 @@ STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
-incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
+params = RSV_params.copy()
+start_date = '2009-01-01'
+end_date = '2020-01-01'
+EPOCH = pd.to_datetime('1970-01-01')
+START = pd.to_datetime(start_date) 
+END = pd.to_datetime(end_date)
+PERIOD = pd.date_range(start=START, end=END, freq='D')
+POINTS = np.array(date_to_t(PERIOD))
+T_LOCKDOWN = date_to_t('2014-01-01')
+LOCKDOWN_DURATION = 365
+Ts = np.array([date_to_t('1970-01-01'), T_LOCKDOWN, T_LOCKDOWN+LOCKDOWN_DURATION])
+Fs = np.array([1,0.4,1])
+@jit
+def contact(t,seasonality,offset):
+    return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+params["contact"] =  contact
 
-# NON-NEGATIVE log likelihood
-def likelihood(x):
-    sim_params = RSV_params.copy()
-    sim_params["WANE"] = np.array([0.0,x[0],0.0])
-    sim_params["SEASONALITY"] = x[1]
-    sim_params["OFFSET"] = x[2]
-    sim_params["BETA"] = x[3]
-    n = 4
-    sim_params["IMPORT_RATE"] = x[n]
-    n += 1
-    sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
-    pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
-    n += 4
-    sim_params["P_OBS"] = x[n]*pobsrel
-    n += 1
-    Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
-    # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
-    F1 = x[n+3] # value between 0 and 1 (first lockdown)
-    F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
-    F3 = F2*x[n+5] # value less than F2 (second lockdown)
-    F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
-    Fs = np.array([1,F1,F2,F3,F4])
-    @jit
-    def contact(t,seasonality,offset):
-        return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-    sim_params["contact"] = contact
-    n += 7
-    obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
-    lh = SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-    # print("neg log likelihood: ",lh)
-    return lh
-x_init = np.array([0.00438131,0.09607721848972506,0.12504213724959057,0.47973501805559776,0.008897365162093825,0.10871732,0.0372482/0.10871732, 0.01272225/0.01273131, 0.00913129/(0.01273131*0.01272225), 0.01273131, 261/365, 5/365, 245/365, 0.4001427, 0.89507013, 0.70283776, 0.93153405, 1-0.68056091, 0.9479402-0.09321769, 0.5-((1-0.9479402)/2)])
-print(likelihood(x_init))
-# calculate the hessian - could try method="forward" for faster but less reliable results. May want to choose a smaller order, 1-2.
-hessian_f = nd.Hessian(likelihood,method="forward",order="1")
-hessian = hessian_f(x_init)
-print(hessian)
-fisher_info = np.linalg.inv(-hessian)
-prop_sigma = np.sqrt(np.diag(fisher_info))
-upper_bound = x_init + 1.96*prop_sigma
-lower_bound = x_init - 1.96*prop_sigma
-print("Upper bound: ", upper_bound)
-print("Lower bound: ", lower_bound)
+# start = time.time()
+# params, results = sim_grid(STATE0,params,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
+# grid_params=(("BETA",),("WANE",),("S_REL",)),
+# N=20,factors=(1,1,1),grid_mode=("scale","scale","fade_vec"))
+# print(f"Simulation took {time.time()-start:.2f} seconds")
+# # Save the results
+# with open('Data/Processed/SIS_3D_big.pickle','wb') as f:
+#     pickle.dump(results,f)
+# with open('Data/Processed/SIS_3D_big_params.pickle','wb') as f:
+    # pickle.dump(params,f)
+
+# incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
+
+# # NON-NEGATIVE log likelihood
+# def likelihood(x):
+#     sim_params = RSV_params.copy()
+#     sim_params["WANE"] = np.array([0.0,x[0],0.0])
+#     sim_params["SEASONALITY"] = x[1]
+#     sim_params["OFFSET"] = x[2]
+#     sim_params["BETA"] = x[3]
+#     n = 4
+#     sim_params["IMPORT_RATE"] = x[n]
+#     n += 1
+#     sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
+#     pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
+#     n += 4
+#     sim_params["P_OBS"] = x[n]*pobsrel
+#     n += 1
+#     Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
+#     # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
+#     F1 = x[n+3] # value between 0 and 1 (first lockdown)
+#     F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
+#     F3 = F2*x[n+5] # value less than F2 (second lockdown)
+#     F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
+#     Fs = np.array([1,F1,F2,F3,F4])
+#     @jit
+#     def contact(t,seasonality,offset):
+#         return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+#     sim_params["contact"] = contact
+#     n += 7
+#     obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
+#     lh = SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+#     # print("neg log likelihood: ",lh)
+#     return lh
+# x_init = np.array([0.00438131,0.09607721848972506,0.12504213724959057,0.47973501805559776,0.008897365162093825,0.10871732,0.0372482/0.10871732, 0.01272225/0.01273131, 0.00913129/(0.01273131*0.01272225), 0.01273131, 261/365, 5/365, 245/365, 0.4001427, 0.89507013, 0.70283776, 0.93153405, 1-0.68056091, 0.9479402-0.09321769, 0.5-((1-0.9479402)/2)])
+# print(likelihood(x_init))
+# # calculate the hessian - could try method="forward" for faster but less reliable results. May want to choose a smaller order, 1-2.
+# hessian_f = nd.Hessian(likelihood,method="forward",order="1")
+# hessian = hessian_f(x_init)
+# print(hessian)
+# fisher_info = np.linalg.inv(-hessian)
+# prop_sigma = np.sqrt(np.diag(fisher_info))
+# upper_bound = x_init + 1.96*prop_sigma
+# lower_bound = x_init - 1.96*prop_sigma
+# print("Upper bound: ", upper_bound)
+# print("Lower bound: ", lower_bound)
 
 
 # ## Period of simulation
@@ -450,20 +478,20 @@ print("Lower bound: ", lower_bound)
 # plt.savefig("Figures/cumulative_seasons.png",dpi=300)
 
 # # ####### Computing observations ########
-# with open('Data/Processed/SIS_3D_little.pickle','rb') as f:
-#     results = pickle.load(f)
-# with open('Data/Processed/SIS_3D_little_params.pickle','rb') as f:
-#     param_dict = pickle.load(f)
-# obses = {}
-# for key,result in results.items():
-#     if np.all(np.array(key[1:]) == 0):
-#         print(key)
-#     params = param_dict[key]
-#     # params['contact'] = lambda t, seasonality, offset : contact(t,shape_static,seasonality,offset)
-#     obs = observations(result,params,OBS_AGE,incidence=True)
-#     obses[key] = obs
-# with open('Data/Processed/SIS_3D_little_obs.pickle','wb') as f:
-#     pickle.dump(obses,f)
+with open('Data/Processed/SIS_3D_big.pickle','rb') as f:
+    results = pickle.load(f)
+with open('Data/Processed/SIS_3D_big_params.pickle','rb') as f:
+    param_dict = pickle.load(f)
+obses = {}
+for key,result in results.items():
+    if np.all(np.array(key[1:]) == 0):
+        print(key)
+    params = param_dict[key]
+    # params['contact'] = lambda t, seasonality, offset : contact(t,shape_static,seasonality,offset)
+    obs = observations(result,params,OBS_AGE,incidence=True)
+    obses[key] = obs
+with open('Data/Processed/SIS_3D_big_obs.pickle','wb') as f:
+    pickle.dump(obses,f)
 
 # # ######## Plotting clusters ########
 # with open('Data/Processed/SIS_3D_little.pickle','rb') as f:

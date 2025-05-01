@@ -6,7 +6,7 @@ from clustering import cluster_sims
 from plotting import cluster_plot
 from plotting import age_of_first_infection
 
-from Parameters.test_population import MEDIAN_AGE
+from Parameters.census_population import MEDIAN_AGE
 
 
 with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
@@ -124,4 +124,4 @@ for row in range(3):
     panel2_axes[row,1].set_ylabel("")
 panel2_axes[1,1].set_ylabel("Time to rebound (years)")
 plt.tight_layout()
-plt.savefig('Figures/SIS_3D_based_complex_full_clusters_panel2_slide.png',dpi=500)
+plt.savefig('Figures/SIS_3D_based_complex_full_clusters_panel2_slide.svg',transparent=True)

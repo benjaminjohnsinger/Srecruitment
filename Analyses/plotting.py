@@ -21,7 +21,7 @@ hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 
 ##### Simple line plots #####
-def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,start_t=date_to_t(pd.to_datetime('2015-10-01')),end_t=date_to_t(pd.to_datetime('2023-09-30')),factor=1,p_time_to_obs=[1]):
+def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2023-09-30'),factor=1,p_time_to_obs=[1]):
     if params is not None:
         NAG, N_S = params["NAG"], params["N_S"]
     if result is None:
@@ -31,6 +31,8 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
     dates = [t_to_date(t) for t in times]
     start_index = np.argmin(times<=start_t)
     end_index = np.argmin(times<=end_t)
+    if end_index <= start_index:
+        end_index = len(times)
     if by_age:
         pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
         if obs is None:
@@ -297,7 +299,7 @@ def cluster_plot(axes,results,obses,n_clusters,labels,cluster_centers,relative=F
     parameters=["BETA","WANE","S_REL"],param_labels=["Infectiousness","Waning","Acquired\nimmunity"],
     grid_mode=["scale","scale","based_vec"],base_values=[40,1/30,1/4],factors=[0.7,3,1],N=25,
     y_value=("time to rebound"),y_label="Time to rebound",
-    t_lockdown="2007-01-01",LOCKDOWN_DURATION=365):
+    t_lockdown="2014-01-01",LOCKDOWN_DURATION=365):
     if clusters is None:
         clusters = set(labels)
     T_LOCKDOWN = date_to_t(pd.to_datetime(t_lockdown))
@@ -337,10 +339,12 @@ def cluster_plot(axes,results,obses,n_clusters,labels,cluster_centers,relative=F
             if color:
                 if np.random.rand() < 500/len(idx):
                     mxs = lockdown_incidence_plot(axes[i,0],None,None,None,None,None,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,relative=relative,
+                    start_t=date_to_t('2009-01-01'),end_t=date_to_t('2020-01-01'),
                     color=color_values[n_j],alpha=1)
                     mx = max(mx,mxs)
             else:
                 mxs = lockdown_incidence_plot(axes[i,0],None,None,None,None,None,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,relative=relative,
+                start_t=date_to_t('2009-01-01'),end_t=date_to_t('2020-01-01'),
                 color='black',alpha=0.01)
                 mx = max(mx,mxs)
         if cluster_centers is not None:

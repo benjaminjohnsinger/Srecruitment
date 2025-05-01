@@ -26,6 +26,12 @@ from fit_MCMC import *
 
 pathogen, seed, lockdown, option1, option2 = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5]
 
+if re.match(r'\d{4}-\d{2}-\d{2}',option1):
+    start_date = option1
+if re.match(r'\d{4}-\d{2}-\d{2}',option2):
+    end_date = option2
+    option2 = "maternal" #this is super hacky sorry
+
 with open("Data/Processed/results"+str(seed)+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
     opt = pickle.load(f)
 # check that optimization converged

@@ -4,7 +4,7 @@ import itertools as it
 from SISn_ODEs import single_pathogen_deltas as deltas_SIS
 
 def sim_grid(state0,params,points,T_LOCKDOWN,LOCKDOWN_DURATION,
-            grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),N=10,factors=(1,1),deltas=deltas_SIS):
+            grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),N=25,factors=(1,1),deltas=deltas_SIS):
     N_params = len(grid_params)
     results = {}
     params_dict = {}
@@ -29,7 +29,7 @@ def sim_grid(state0,params,points,T_LOCKDOWN,LOCKDOWN_DURATION,
                     vec = vec.reshape(params[pname].shape)
                     params_n[pname] = vec
         # Run simulation
-        result = sp.integrate.solve_ivp(deltas, (points[0],points[-1]), state0, method='RK45', t_eval=points, args=(params_n,))
+        result = sp.integrate.solve_ivp(deltas, (points[0],points[-1]), state0, method='RK45', t_eval=points, args=params_n.values())
         results[p_n] = result
         params_dict[p_n] = params_n
     return(params_dict,results)
