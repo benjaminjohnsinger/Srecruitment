@@ -62,46 +62,46 @@ np.set_printoptions(threshold=np.inf)
 # plt.savefig('Figures/KPSC_flu_v_RSV_v_metapneumovirus.png',dpi=300)
 
 
-start_date = '2015-07-04'
-end_date = '2023-10-01'
-EPOCH = pd.to_datetime('1970-01-01')
-START = pd.to_datetime(start_date) 
-END = pd.to_datetime(end_date)
-PERIOD = pd.date_range(start=START, end=END, freq='D')
-POINTS = np.array(date_to_t(PERIOD))
-Ts = np.array([date_to_t('1970-01-01'), date_to_t('2020-03-19'), date_to_t('2020-12-05'), date_to_t('2020-12-10'), date_to_t('2021-08-12')])
-Fs = np.array([1,0.4001427,0.89507013,0.70283776,0.93153405])
-@jit
-def contact(t,seasonality,offset):
-    return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-from Parameters.RSV import *
-# Parameters from differential evolution
-RSV_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0.        , 0.00438131, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1.        , 0.10871732, 0.0372482 ]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': np.array([0.01273131, 0.01272225, 0.00913129]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.008897365162093825, 'BETA': 0.47973501805559776, 'SEASONALITY': 0.09607721848972506, 'OFFSET': 0.12504213724959057,
-'contact': contact}
-OBS_AGE = np.array([1,0.68056091,0.36112182,0.05,0.05,0.09321769,0.9479402])
-p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-## Initial conditions
-STATE0 = np.zeros((2*N_S+2)*NAG)
-STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
-STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
+# start_date = '2015-07-04'
+# end_date = '2023-10-01'
+# EPOCH = pd.to_datetime('1970-01-01')
+# START = pd.to_datetime(start_date) 
+# END = pd.to_datetime(end_date)
+# PERIOD = pd.date_range(start=START, end=END, freq='D')
+# POINTS = np.array(date_to_t(PERIOD))
+# Ts = np.array([date_to_t('1970-01-01'), date_to_t('2020-03-19'), date_to_t('2020-12-05'), date_to_t('2020-12-10'), date_to_t('2021-08-12')])
+# Fs = np.array([1,0.4001427,0.89507013,0.70283776,0.93153405])
+# @jit
+# def contact(t,seasonality,offset):
+#     return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+# from Parameters.RSV import *
+# # Parameters from differential evolution
+# RSV_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0.        , 0.00438131, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1.        , 0.10871732, 0.0372482 ]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': np.array([0.01273131, 0.01272225, 0.00913129]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+# 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.008897365162093825, 'BETA': 0.47973501805559776, 'SEASONALITY': 0.09607721848972506, 'OFFSET': 0.12504213724959057,
+# 'contact': contact}
+# OBS_AGE = np.array([1,0.68056091,0.36112182,0.05,0.05,0.09321769,0.9479402])
+# p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+# ## Initial conditions
+# STATE0 = np.zeros((2*N_S+2)*NAG)
+# STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
+# STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
-params = RSV_params.copy()
-start_date = '2009-01-01'
-end_date = '2020-01-01'
-EPOCH = pd.to_datetime('1970-01-01')
-START = pd.to_datetime(start_date) 
-END = pd.to_datetime(end_date)
-PERIOD = pd.date_range(start=START, end=END, freq='D')
-POINTS = np.array(date_to_t(PERIOD))
-T_LOCKDOWN = date_to_t('2014-01-01')
-LOCKDOWN_DURATION = 365
-Ts = np.array([date_to_t('1970-01-01'), T_LOCKDOWN, T_LOCKDOWN+LOCKDOWN_DURATION])
-Fs = np.array([1,0.4,1])
-@jit
-def contact(t,seasonality,offset):
-    return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-params["contact"] =  contact
+# params = RSV_params.copy()
+# start_date = '2009-01-01'
+# end_date = '2020-01-01'
+# EPOCH = pd.to_datetime('1970-01-01')
+# START = pd.to_datetime(start_date) 
+# END = pd.to_datetime(end_date)
+# PERIOD = pd.date_range(start=START, end=END, freq='D')
+# POINTS = np.array(date_to_t(PERIOD))
+# T_LOCKDOWN = date_to_t('2014-01-01')
+# LOCKDOWN_DURATION = 365
+# Ts = np.array([date_to_t('1970-01-01'), T_LOCKDOWN, T_LOCKDOWN+LOCKDOWN_DURATION])
+# Fs = np.array([1,0.4,1])
+# @jit
+# def contact(t,seasonality,offset):
+#     return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+# params["contact"] =  contact
 
 # start = time.time()
 # params, results = sim_grid(STATE0,params,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
