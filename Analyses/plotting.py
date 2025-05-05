@@ -10,6 +10,7 @@ from matplotlib import cm as colormaps
 from math import comb
 import corner
 import pickle
+import colorsys
 
 from utils import *
 
@@ -19,6 +20,7 @@ from SISn_ODEs import single_pathogen_deltas as deltas_SIS
 ##### General plotting parameters #####
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
+# '#ff0000', '#ffb700', '#6cff00', '#00ffc0', '#00bbff', '#1900ff', '#f300ff'
 
 ##### Simple line plots #####
 def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2023-09-30'),factor=1,p_time_to_obs=[1]):
@@ -513,13 +515,15 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
     if AGE_GROUPS is not None:
         # cases.plot(ax=ax,legend=legend,color=color,label=AGE_GROUP_NAMES,title=f"{pathogen} positive tests")
         for i in range(len(AGE_GROUP_NAMES)):
-            ax.plot(cases.index,cases[AGE_GROUP_NAMES[i]],label=AGE_GROUP_NAMES[i],color=color[i])
+            ax.plot(cases.index, cases[AGE_GROUP_NAMES[i]], label=AGE_GROUP_NAMES[i], color=color[i])
+            # ax.set_xticks(cases.index)
+            # ax.set_xticklabels([year if year % 2 == 0 else '' for year in cases.index.year], rotation=45)
     else:
         # cases.plot(ax=ax,legend=False,color=color,title=f"{pathogen} positive tests")
         ax.plot(cases.index,cases["Count"],color=color)
     ax.set_title(title)
     if incidence:
-        ax.set_ylabel("Incidence per 10k")
+        ax.set_ylabel("Incidence per 10k members")
     else:
         ax.set_ylabel("Cases")
     if legend:

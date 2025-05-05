@@ -22,6 +22,11 @@ def sim_grid(state0,params,points,T_LOCKDOWN,LOCKDOWN_DURATION,
                     vec = np.array([(1-j*(p/(N*(vec_len-1))))**factors[i] for j in range(vec_len)])
                     vec = vec.reshape(params[pname].shape)
                     params_n[pname] = vec
+                elif grid_mode[i] == "power_vec":
+                    vec_len = len(params[pname])
+                    vec = np.array([(1-(p/N))**(j*factors[i]) for j in range(vec_len)])
+                    vec = vec.reshape(params[pname].shape)
+                    params_n[pname] = vec
                 elif grid_mode[i] == "based_vec":
                     vec_len = len(params[pname])
                     base_value = params[pname][0]-params[pname][1]

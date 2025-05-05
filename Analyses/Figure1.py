@@ -10,9 +10,9 @@ from utils import *
 from Parameters.census_population import MEDIAN_AGE
 
 
-with open('Data/Processed/SIS_3D_big.pickle','rb') as f:
+with open('Data/Processed/SIS_3D_power.pickle','rb') as f:
     results = pickle.load(f)
-with open('Data/Processed/SIS_3D_big_obs.pickle','rb') as f:
+with open('Data/Processed/SIS_3D_power_obs.pickle','rb') as f:
     obses = pickle.load(f)
 
 N = max([max(key) for key in results.keys()])+1
@@ -117,4 +117,4 @@ for row in range(3):
 panel1_axes[1,1].set_ylabel("Time to rebound (years)")
 panel2_axes[1,1].set_ylabel("Time to rebound (years)")
 
-plt.savefig('Figures/SIS_3D_big_complex_clusters_split1of3in5_poster_test.png',dpi=500)
+plt.savefig('Figures/SIS_3D_power_complex_clusters_split1of3in5_poster_test.png',dpi=500)
