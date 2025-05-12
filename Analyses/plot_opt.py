@@ -39,6 +39,7 @@ else:
     with open("Data/Processed/results"+str(seed)+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
         opt = pickle.load(f)
 # check that optimization converged
+print(pathogen)
 if opt.success:
     print("Optimization converged")
 else:
@@ -128,15 +129,15 @@ if option2 == 'flexage':
     # OBS_AGE = OBS_AGE/np.max(OBS_AGE)
     OBS_AGE = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
 elif option2 == 'maternal':
-    OBS_AGE = age_detection(NAG,x[n],x[n+1],x[n+2],x[n+3],min_obs=0.025)
+    OBS_AGE = age_detection(NAG,x[n],x[n+1],x[n+2],x[n+3],min_obs=0.025,n_infant_groups=1)
 else:
     OBS_AGE = age_detection(NAG,x[n],x[n+1],x[n+2])
 
-# print(params)
-# print("OBS_AGE",OBS_AGE)
-# if lockdown == 'FlexStepwise' or re.match(r'\d{6}',lockdown):
-#     print("Ts",[t_to_date(t) for t in Ts])
-#     print("Fs",Fs)
+print(params)
+print("OBS_AGE",OBS_AGE)
+if lockdown == 'FlexStepwise' or re.match(r'\d{6}',lockdown):
+    print("Ts",[t_to_date(t) for t in Ts])
+    print("Fs",Fs)
 
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
@@ -208,4 +209,4 @@ ax[1].set_xlabel("")
 ax[1].ticklabel_format(axis='y', style='sci', scilimits=(0,0))
 ax[1].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
 # plt.tight_layout()
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_cmopt_poster.svg",transparent=True)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)

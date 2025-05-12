@@ -159,7 +159,7 @@ def likelihood(x):
         obs_age[0] = remaining
         obs_age = obs_age/np.max(obs_age)
     elif option2 == 'maternal':
-        obs_age = age_detection(NAG,x[n],x[n+1],x[n+2],x[n+3],min_obs=0.025)
+        obs_age = age_detection(NAG,x[n],x[n+1],x[n+2],x[n+3],min_obs=0.025,n_infant_groups=1)
     else:
         obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
     try:

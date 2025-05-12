@@ -67,8 +67,20 @@ def age_detection(NAG,young_immunity,old_immunity,young_old,maternal_immunity=No
         OBS = np.concatenate((OBS_infant,OBS_noninfant))
     return OBS/np.max(OBS)
 
-# print(age_detection(7, 1,0.59,0.67,0.615,linear=True,min_obs=0.025))
-# print(age_detection(7, 1,0.9,0.05,0.475,linear=False,min_obs=0.025))
+    # else:
+    #     if maternal_immunity <= young_immunity:
+    #         OBS_infant = np.max((min_obs*np.ones(n_infant_groups),np.minimum(1,2*young_old)-(young_immunity-maternal_immunity)*np.arange(n_infant_groups),axis=0))
+    #         young_start = np.minimum(1,2*young_old)-n_infant_groups*(young_immunity-maternal_immunity)
+    #     else:
+    #         m_i = (maternal_immunity-young_immunity)/(1-young_immunity)
+    #         OBS_infant = np.max((min_obs*np.ones(n_infant_groups),np.minimum(1,2*young_old)-mi*np.arange(n_infant_groups,0,-1),axis=0))
+    #         young_start = np.minimum(1,2*young_old)
+    #     x = np.arange(NAG-n_infant_groups)
+    #     OBS_noninfant = np.max((min_obs*np.ones(NAG-n_infant_groups),young_start-young_immunity*x,np.minimum(1,2*(1-young_old))-old_immunity*(NAG-1-n_infant_groups-x)),axis=0)
+        
+
+# print(age_detection(7, 1,0.59,0.67,0.615,linear=True,min_obs=0.025,n_infant_groups=1))
+# print(age_detection(7, 1,0.9,0.05,0.475,linear=True,min_obs=0.025,n_infant_groups=1))
 
 def constrained_immunity(extra_immunity,first_immunity,first_dis_inf_factor,DIS_INF_RATIO=0.674,MIN_EFF=0.39,CHILD_EFF_RATIO=1.54):
     """

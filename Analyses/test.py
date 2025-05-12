@@ -16,9 +16,28 @@ import pickle
 # import time
 # # import corner
  
-with open("Data/Processed/DE_cm_opt_250501.pickle","rb") as f:
-    opt = pickle.load(f)
-print(opt.x)
+
+
+y = np.array([[0.24594159,0.1857486,0.12555562,0.02660094,0.025,0.09684663,1],
+[0.40500959,0.25868484,0.11236009,0.02751321,0.025,0.09997146,1],
+[0.16297547,0.52178387,0.21929624,0.04318071,0.04170955,0.11397942,1],
+[0.10025676,1,0.71161871,0.0370452,0.0293728,0.12880827,0.90285049],
+[0.02507071,0.06970037,0.11433003,0.025,0.025,0.16546965,1],
+[0.025,0.025,0.10121682,0.025,0.025,0.13514337,1]])
+x = np.arange(0,7)
+pathogens = ["RSV","InfluenzaA","InfluenzaB","Metapneumovirus","Adenovirus","Parainfluenza3"]
+for i in range(6):
+    plt.plot(x,y[i],label=pathogens[i])
+plt.legend()
+plt.show()
+# Ts = np.array([date_to_t(date) for date in ['1970-01-01', '2020-03-19', '2020-08-28', '2021-08-28', '2022-04-16']])
+# Fs = np.array([1,0.74649061,0.97616163,0.84107913,0.97878123])
+
+# x = np.linspace(date_to_t('2015-10-01'),date_to_t('2024-01-01'),1000)
+# y = [cm.piecewise(t,Ts,Fs) for t in x]
+# plt.plot(x,y)
+# plt.show()
+
 
 # hessian = np.array([[-1.35654718e+02,6.37871872e+04,-8.30702240e+02,9.71857854e+05
 # ,1.63771113e+05,4.87044664e+06,1.58916544e+04,-2.22072870e+02
