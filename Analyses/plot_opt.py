@@ -149,25 +149,25 @@ if lockdown == 'FlexStepwise' or re.match(r'\d{6}',lockdown):
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
 
-# # for each season from the 2015/16 season onwards, sum the total number of infections
-# seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01']])
-# season_infection_array = np.zeros((len(seasons)-1,3))
+# for each season from the 2015/16 season onwards, sum the total number of infections
+seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01']])
+season_infection_array = np.zeros((len(seasons)-1,3))
 # season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
-# for i in range(len(seasons)-1):
-#     # get the number of infections in each season
-#     season_start = np.argmax(result.t>=seasons[i])
-#     season_end = np.argmax(result.t>=seasons[i+1])
-#     pop_size = np.sum(result.y[:,season_start],dtype=np.float64)
-#     age_pops = np.array([np.sum(result.y[range(i_age,(2*N_S+1)*NAG,NAG),season_start],axis=0) for i_age in range(NAG)])
-#     season_infection_array[i,0] = np.sum(result.y[2*NAG:3*NAG,season_start:season_end])*params["REC_UP"][0]/pop_size
-#     season_infection_array[i,1] = np.sum(result.y[4*NAG:5*NAG,season_start:season_end])*params["REC_UP"][1]/pop_size
-#     season_infection_array[i,2] = np.sum(result.y[6*NAG:7*NAG,season_start:season_end])*params["REC_SAME"][2]/pop_size
-#     season_infection_by_age[i,:,0] = np.sum(result.y[2*NAG:3*NAG,season_start:season_end],axis=1)*params["REC_UP"][0]/age_pops
-#     season_infection_by_age[i,:,1] = np.sum(result.y[4*NAG:5*NAG,season_start:season_end],axis=1)*params["REC_UP"][1]/age_pops
-#     season_infection_by_age[i,:,2] = np.sum(result.y[6*NAG:7*NAG,season_start:season_end],axis=1)*params["REC_SAME"][2]/age_pops 
-# season_infections = np.sum(season_infection_array,axis=1)
+for i in range(len(seasons)-1):
+    # get the number of infections in each season
+    season_start = np.argmax(result.t>=seasons[i])
+    season_end = np.argmax(result.t>=seasons[i+1])
+    pop_size = np.sum(result.y[:,season_start],dtype=np.float64)
+    age_pops = np.array([np.sum(result.y[range(i_age,(2*N_S+1)*NAG,NAG),season_start],axis=0) for i_age in range(NAG)])
+    season_infection_array[i,0] = np.sum(result.y[2*NAG:3*NAG,season_start:season_end])*params["REC_UP"][0]/pop_size
+    season_infection_array[i,1] = np.sum(result.y[4*NAG:5*NAG,season_start:season_end])*params["REC_UP"][1]/pop_size
+    season_infection_array[i,2] = np.sum(result.y[6*NAG:7*NAG,season_start:season_end])*params["REC_SAME"][2]/pop_size
+    # season_infection_by_age[i,:,0] = np.sum(result.y[2*NAG:3*NAG,season_start:season_end],axis=1)*params["REC_UP"][0]/age_pops
+    # season_infection_by_age[i,:,1] = np.sum(result.y[4*NAG:5*NAG,season_start:season_end],axis=1)*params["REC_UP"][1]/age_pops
+    # season_infection_by_age[i,:,2] = np.sum(result.y[6*NAG:7*NAG,season_start:season_end],axis=1)*params["REC_SAME"][2]/age_pops 
+season_infections = np.sum(season_infection_array,axis=1)
 # season_infection_by_age = np.sum(season_infection_by_age,axis=2)
-# print("Proportion infected per season (including reinfections):",season_infections)
+print("Proportion infected per season (including reinfections):",season_infections)
 # print("Proportion infected per season (by age):",season_infection_by_age)
 
 
@@ -239,4 +239,4 @@ ax[1].set_title("Effective susceptibles")
 # ax[1].ticklabel_format(axis='y', style='sci', scilimits=(0,0))
 # ax[1].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
 plt.tight_layout()
-# plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
