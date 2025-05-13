@@ -14,12 +14,12 @@
 module load python/3.11.6-gcc-11.4.0
 
 combinations=(
-"RSV 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
-"InfluenzaA 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
-"InfluenzaB 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
-"Metapneumovirus 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
-"Adenovirus 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
-"Parainfluenza3 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
+"RSV 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
+"InfluenzaA 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
+"InfluenzaB 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
+"Metapneumovirus 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
+"Adenovirus 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
+"Parainfluenza3 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
