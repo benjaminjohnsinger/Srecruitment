@@ -175,7 +175,7 @@ if __name__ == "__main__":
     # Configuration
     n_chains = cpu_count()  # Number of chains
     temperatures = np.exp(np.linspace(0, 3, n_chains))  # from 1.0 to ~20.1
-    n_iterations = 1e5  # Increased for better adaptation
+    n_iterations = int(1e5)  # Increased for better adaptation
     swap_interval = 100
     save_interval = 5
     
