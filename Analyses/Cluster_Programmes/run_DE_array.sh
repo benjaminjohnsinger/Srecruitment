@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=oip
+#SBATCH --job-name=prec19
 #SBATCH --account=fc_coronamodel
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
 #SBATCH --time=72:00:00
-#SBATCH --array=0-11
+#SBATCH --array=0-5
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -14,18 +14,12 @@
 module load python/3.11.6-gcc-11.4.0
 
 combinations=(
-"RSV 250325 FlexStepwise X flexage 0.01 15 1 0.7"
-"RSV 250325 FlexStepwise setimport flexage 0.01 15 1 0.7"
-"InfluenzaA 250325 FlexStepwise X flexage 0.01 15 1 0.7"
-"InfluenzaA 250325 FlexStepwise setimport flexage 0.01 15 1 0.7"
-"InfluenzaB 250325 FlexStepwise X flexage 0.01 15 1 0.7"
-"InfluenzaB 250325 FlexStepwise setimport flexage 0.01 15 1 0.7"
-"Metapneumovirus 250325 FlexStepwise X flexage 0.01 15 1 0.7"
-"Metapneumovirus 250325 FlexStepwise setimport flexage 0.01 15 1 0.7"
-"Adenovirus 250325 FlexStepwise X flexage 0.01 15 1 0.7"
-"Adenovirus 250325 FlexStepwise setimport flexage 0.01 15 1 0.7"
-"Parainfluenza3 250325 FlexStepwise X flexage 0.01 15 1 0.7"
-"Parainfluenza3 250325 FlexStepwise setimport flexage 0.01 15 1 0.7"
+"RSV 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
+"InfluenzaA 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
+"InfluenzaB 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
+"Metapneumovirus 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
+"Adenovirus 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
+"Parainfluenza3 250512 FlexStepwise setimport maternal 0.01 15 1 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"

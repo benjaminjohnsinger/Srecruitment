@@ -5,23 +5,26 @@ from matplotlib.gridspec import GridSpec
 from clustering import cluster_sims
 from plotting import cluster_plot
 from plotting import age_of_first_infection
+from utils import *
 
-from Parameters.test_population import MEDIAN_AGE
+from Parameters.census_population import MEDIAN_AGE
 
 
-with open('Data/Processed/SIS_3D_based.pickle','rb') as f:
+with open('Data/Processed/SIS_3D_power.pickle','rb') as f:
     results = pickle.load(f)
-with open('Data/Processed/SIS_3D_based_obs.pickle','rb') as f:
+with open('Data/Processed/SIS_3D_power_obs.pickle','rb') as f:
     obses = pickle.load(f)
 
 N = max([max(key) for key in results.keys()])+1
 
-T_LOCKDOWN = 37*12
-LOCKDOWN_DURATION = 12
+# print(results.values())
+
+T_LOCKDOWN = date_to_t('2014-01-01')
+LOCKDOWN_DURATION = 365
 
 #### complex figure
 # Gridspec for row of five axes across top of figure, with two 3x4 panels below
-fig = plt.figure(figsize=(8.5,6.5),layout='constrained')
+fig = plt.figure(figsize=(14,10.5),layout='constrained')
 gs = GridSpec(5,2,figure=fig)
 # top row of five axes
 gs_top = gs[0:2,:].subgridspec(2,4)
@@ -58,16 +61,25 @@ model = cluster_sims(results,obses,T_LOCKDOWN,3)
 #     pickle.dump(model,f)
 # with open('Data/Processed/SIS_3D_2_cluster6_no_cap.pickle','rb') as f:
 #     model = pickle.load(f)
-with open('Data/Processed/SIS_3D_based_5clusters_of_cluster1of3.pickle','rb') as f:
-    model_5of1 = pickle.load(f)
+# with open('Data/Processed/SIS_3D_based_5clusters_of_cluster1of3.pickle','rb') as f:
+#     model_5of1 = pickle.load(f)
+## caculate five clusters of cluster 1, first by filtering cluster 1 out of results and then doing clustering
+results_5of1 = {}
+obses_5of1 = {}
+for i in range(len(results.keys())):
+    key = list(results.keys())[i]
+    if model.labels_[i] == 1:
+        results_5of1[key] = results[key]
+        obses_5of1[key] = obses[key]
+model_5of1 = cluster_sims(results_5of1,obses_5of1,T_LOCKDOWN,5)
 # relabel cluster 1 in model
+model.labels_[model.labels_==0] = 5
 model.labels_[model.labels_==2] = 5
-model.labels_[model.labels_==1] = 5
-model.labels_[model.labels_==0] = model_5of1.labels_
+model.labels_[model.labels_==1] = model_5of1.labels_
 model.n_clusters = 6
 
 model1 = cluster_sims(results,obses,T_LOCKDOWN,1)
-ages = np.array([np.mean(age_of_first_infection(results[key],MEDIAN_AGE)[np.argmax(results[key].t>=T_LOCKDOWN-5*12):np.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
+ages = np.array([np.mean(age_of_first_infection(results[key],MEDIAN_AGE)[np.argmax(results[key].t>=T_LOCKDOWN-5*365):np.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
 ages_label = np.array([int(age>3) + int(age>12) + int(age>5*12) + int(age>18*12) + int(age>40*12) + int(age>65*12) for age in ages])
 n_age_clusters = max(ages_label)+1
 cluster_colors = np.array([["#FF832B", "#FFB000", "#DC267F", "#648FFF", "#BBBBBB", "#785EF0", "#8B0000", "#00FF00"][i] for i in model.labels_])
@@ -105,4 +117,4 @@ for row in range(3):
 panel1_axes[1,1].set_ylabel("Time to rebound (years)")
 panel2_axes[1,1].set_ylabel("Time to rebound (years)")
 
-plt.savefig('Figures/SIS_3D_based_complex_clusters_split1of3in5.png',dpi=500)
+plt.savefig('Figures/SIS_3D_power_complex_clusters_split1of3in5_poster_test.png',dpi=500)

@@ -10,6 +10,7 @@ from matplotlib import cm as colormaps
 from math import comb
 import corner
 import pickle
+import colorsys
 
 from utils import *
 
@@ -19,9 +20,10 @@ from SISn_ODEs import single_pathogen_deltas as deltas_SIS
 ##### General plotting parameters #####
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
+# '#ff0000', '#ffb700', '#6cff00', '#00ffc0', '#00bbff', '#1900ff', '#f300ff'
 
 ##### Simple line plots #####
-def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,start_t=date_to_t(pd.to_datetime('2015-10-01')),end_t=date_to_t(pd.to_datetime('2023-09-30')),factor=1,p_time_to_obs=[1]):
+def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas_SIS,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2023-09-30'),factor=1,p_time_to_obs=[1]):
     if params is not None:
         NAG, N_S = params["NAG"], params["N_S"]
     if result is None:
@@ -31,6 +33,8 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
     dates = [t_to_date(t) for t in times]
     start_index = np.argmin(times<=start_t)
     end_index = np.argmin(times<=end_t)
+    if end_index <= start_index:
+        end_index = len(times)
     if by_age:
         pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
         if obs is None:
@@ -66,18 +70,20 @@ def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,y
     ax.set_xlabel('Time (years)')
     ax.set_title(title)
 
-def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,result=None,label='Susceptible_population',color='#648FFF',relative=True,by_age=False,AGE_GROUP_NAMES=None,style='-',delta=deltas_SIS):
+def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,result=None,label='Susceptible_population',color='#648FFF',relative=True,proportion=False,by_age=False,AGE_GROUP_NAMES=None,style='-',delta=deltas_SIS):
     NAG = params["NAG"]
+    N_S = params["N_S"]
     if result is None:
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
     dates = [t_to_date(t) for t in result.t]
     ## Calculate susceptibility
     sus = susceptibility(result,params)
     if by_age:
-        cmap = plt.get_cmap('viridis')
-        rel_sus = sus/np.sum(sus,axis=1)[:,np.newaxis]
+        if proportion:
+            pop_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+            sus = sus/pop_by_age
         for i in range(NAG):
-            ax.plot(dates,rel_sus[:,i], label=AGE_GROUP_NAMES[i], color=cmap(i/(NAG-1)),linestyle=style)
+            ax.plot(dates,sus[:,i], label=AGE_GROUP_NAMES[i], color=hsv_colors[i],linestyle=style)
     else:
         total_sus = np.sum(sus,axis=1)
         if relative:
@@ -295,7 +301,7 @@ def cluster_plot(axes,results,obses,n_clusters,labels,cluster_centers,relative=F
     parameters=["BETA","WANE","S_REL"],param_labels=["Infectiousness","Waning","Acquired\nimmunity"],
     grid_mode=["scale","scale","based_vec"],base_values=[40,1/30,1/4],factors=[0.7,3,1],N=25,
     y_value=("time to rebound"),y_label="Time to rebound",
-    t_lockdown="2007-01-01",LOCKDOWN_DURATION=365):
+    t_lockdown="2014-01-01",LOCKDOWN_DURATION=365):
     if clusters is None:
         clusters = set(labels)
     T_LOCKDOWN = date_to_t(pd.to_datetime(t_lockdown))
@@ -335,10 +341,12 @@ def cluster_plot(axes,results,obses,n_clusters,labels,cluster_centers,relative=F
             if color:
                 if np.random.rand() < 500/len(idx):
                     mxs = lockdown_incidence_plot(axes[i,0],None,None,None,None,None,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,relative=relative,
+                    start_t=date_to_t('2009-01-01'),end_t=date_to_t('2020-01-01'),
                     color=color_values[n_j],alpha=1)
                     mx = max(mx,mxs)
             else:
                 mxs = lockdown_incidence_plot(axes[i,0],None,None,None,None,None,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,relative=relative,
+                start_t=date_to_t('2009-01-01'),end_t=date_to_t('2020-01-01'),
                 color='black',alpha=0.01)
                 mx = max(mx,mxs)
         if cluster_centers is not None:
@@ -507,13 +515,15 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
     if AGE_GROUPS is not None:
         # cases.plot(ax=ax,legend=legend,color=color,label=AGE_GROUP_NAMES,title=f"{pathogen} positive tests")
         for i in range(len(AGE_GROUP_NAMES)):
-            ax.plot(cases.index,cases[AGE_GROUP_NAMES[i]],label=AGE_GROUP_NAMES[i],color=color[i])
+            ax.plot(cases.index, cases[AGE_GROUP_NAMES[i]], label=AGE_GROUP_NAMES[i], color=color[i])
+            # ax.set_xticks(cases.index)
+            # ax.set_xticklabels([year if year % 2 == 0 else '' for year in cases.index.year], rotation=45)
     else:
         # cases.plot(ax=ax,legend=False,color=color,title=f"{pathogen} positive tests")
         ax.plot(cases.index,cases["Count"],color=color)
     ax.set_title(title)
     if incidence:
-        ax.set_ylabel("Incidence per 10k")
+        ax.set_ylabel("Incidence per 10k members")
     else:
         ax.set_ylabel("Cases")
     if legend:
@@ -549,4 +559,3 @@ def season_plot(ax,pathogen,incidence=False,relative=False):
         season_relative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
     else:
         season_cumulative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
-    
