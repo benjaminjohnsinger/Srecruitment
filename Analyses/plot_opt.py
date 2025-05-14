@@ -33,10 +33,10 @@ if re.match(r'\d{4}-\d{2}-\d{2}',option2):
     option2 = "maternal" #this is super hacky sorry
 
 if re.match(r'\d{6}',lockdown):
-    with open("Data/Processed/results"+str(seed)+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
+    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
         opt = pickle.load(f)
 else:
-    with open("Data/Processed/results"+str(seed)+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
         opt = pickle.load(f)
 # check that optimization converged
 print(pathogen)
@@ -148,7 +148,8 @@ if lockdown == 'FlexStepwise' or re.match(r'\d{6}',lockdown):
 
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
-
+# print likelihood
+print("Log-Likelihood:",SIS_likelihood(incidence,params,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True,overdispersion=False))
 # for each season from the 2015/16 season onwards, sum the total number of infections
 seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01']])
 season_infection_array = np.zeros((len(seasons)-1,3))
@@ -239,4 +240,4 @@ ax[1].set_title("Effective susceptibles")
 # ax[1].ticklabel_format(axis='y', style='sci', scilimits=(0,0))
 # ax[1].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
 plt.tight_layout()
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_test.png",dpi=300)
