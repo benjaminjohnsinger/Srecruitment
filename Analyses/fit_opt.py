@@ -54,7 +54,7 @@ STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
-bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1], "P_OBS": [0,0.05]}
+bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1], "P_OBS": [0,0.1]}
 
 if option1 == "nb":
     bounds_dict["OVERDISPERSION"] = [-5,10]
@@ -173,7 +173,7 @@ def likelihood(x):
 
 start = time.time()
 if __name__ == '__main__':
-    opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,
+    opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",
     workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
     with open("Data/Processed/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:

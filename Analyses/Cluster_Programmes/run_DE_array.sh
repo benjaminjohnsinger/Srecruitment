@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=bigDE
+#SBATCH --job-name=prec19
 #SBATCH --account=fc_coronamodel
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
@@ -14,12 +14,12 @@
 module load python/3.11.6-gcc-11.4.0
 
 combinations=(
-"RSV 250514 FlexStepwise setimport flexage 0.01 20 1.2 0.8"
-"InfluenzaA 250514 FlexStepwise setimport flexage 0.01 20 1.2 0.8"
-"InfluenzaB 250514 FlexStepwise setimport flexage 0.01 20 1.2 0.8"
-"Metapneumovirus 250514 FlexStepwise setimport flexage 0.01 20 1.2 0.8"
-"Adenovirus 250514 FlexStepwise setimport flexage 0.01 20 1.2 0.8"
-"Parainfluenza3 250514 FlexStepwise setimport flexage 0.01 20 1.2 0.8"
+"RSV 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
+"InfluenzaA 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
+"InfluenzaB 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
+"Metapneumovirus 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
+"Adenovirus 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
+"Parainfluenza3 250513 FlexStepwise setimport flexage 0.01 15 1 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
