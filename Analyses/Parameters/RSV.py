@@ -22,7 +22,7 @@ REC_SAME = np.array([0.0,0.0,1/4.1]) # Recovery to same susceptibility class - O
 S_REL = np.array([1,0.25,0.025]) # Nokes 2008
 I_REL = np.array([[1],[1],[1]])
 # Probability of detection of cases for each susceptibility class
-P_OBS_REL = np.array([1,0.46,0.31]) # Henderson 1979
+P_OBS_REL = np.array([1,0.46,0.31]) # Henderson 1979 - assuming that hospitalization risk is proportional to LRTI risk (an assumption borrowed from Ginny Pitzer), and 2nd and 3rd infections probably occur in older children
 # P_OBS_MAX = 3.396e-02
 P_OBS_MAX = 0.03
 P_OBS = P_OBS_MAX*P_OBS_REL
