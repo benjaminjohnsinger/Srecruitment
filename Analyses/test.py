@@ -15,7 +15,9 @@ import pickle
 # from scipy.optimize import curve_fit
 # import time
 # # import corner
- 
+
+i = np.array([1,7,13,14,15,17])
+print(i%6)
 
 
 # y = np.array([[0.24594159,0.1857486,0.12555562,0.02660094,0.025,0.09684663,1],

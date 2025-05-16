@@ -6,77 +6,78 @@ from matplotlib import cm as colormaps
 from Parameters.census_population import *
 from plotting import *
 import pickle
+import time
 
-############### CDC data ###############
-### full NREVSS data
-data = pd.read_excel('Data/Raw/NREVSS_all.xlsx',sheet_name='Final')
-# drop REGNAME column
-data.drop(columns=["REGNAME"],inplace=True)
+# ############### CDC data ###############
+# ### full NREVSS data
+# data = pd.read_excel('Data/Raw/NREVSS_all.xlsx',sheet_name='Final')
+# # drop REGNAME column
+# data.drop(columns=["REGNAME"],inplace=True)
 
-# sum data (RSVpos,RSVtest,PIV3pos,PIVtest,RAdenopos,RAdenotest,HMetapneumopos,HMetapneumotest) with same date, region, and test type
-data = data.groupby(["RepWeekDate","HHS_REGION","TestType"]).sum().reset_index()
-data["Date"] = pd.to_datetime(data["RepWeekDate"],format='%m/%d/%Y')
+# # sum data (RSVpos,RSVtest,PIV3pos,PIVtest,RAdenopos,RAdenotest,HMetapneumopos,HMetapneumotest) with same date, region, and test type
+# data = data.groupby(["RepWeekDate","HHS_REGION","TestType"]).sum().reset_index()
+# data["Date"] = pd.to_datetime(data["RepWeekDate"],format='%m/%d/%Y')
 
-data["RSV Percent Positive"] = 100*data["RSVpos"]/data["RSVtest"]
-data["PIV3 Percent Positive"] = 100*data["PIV3pos"]/data["PIVtest"]
-data["Adenovirus Percent Positive"] = 100*data["RAdenopos"]/data["RAdenotest"]
-data["Metapneumovirus Percent Positive"] = 100*data["HMetapneumopos"]/data["HMetapneumotest"]
+# data["RSV Percent Positive"] = 100*data["RSVpos"]/data["RSVtest"]
+# data["PIV3 Percent Positive"] = 100*data["PIV3pos"]/data["PIVtest"]
+# data["Adenovirus Percent Positive"] = 100*data["RAdenopos"]/data["RAdenotest"]
+# data["Metapneumovirus Percent Positive"] = 100*data["HMetapneumopos"]/data["HMetapneumotest"]
 
-# add "Region" in front of "HHS_REGION" column
-data["Region"] = "Region " + data["HHS_REGION"].astype(str)
+# # add "Region" in front of "HHS_REGION" column
+# data["Region"] = "Region " + data["HHS_REGION"].astype(str)
 
-# index and pivot
-antigen_pp_RSV = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="RSV Percent Positive")
-antigen_pp_PIV3 = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="PIV3 Percent Positive")
-antigen_pp_AdV = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="Adenovirus Percent Positive")
-antigen_pp_MPV = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="Metapneumovirus Percent Positive")
+# # index and pivot
+# antigen_pp_RSV = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="RSV Percent Positive")
+# antigen_pp_PIV3 = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="PIV3 Percent Positive")
+# antigen_pp_AdV = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="Adenovirus Percent Positive")
+# antigen_pp_MPV = data.loc[data["TestType"] == 1].pivot(index="Date",columns="Region",values="Metapneumovirus Percent Positive")
 
-culture_pp_RSV = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="RSV Percent Positive")
-culture_pp_PIV3 = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="PIV3 Percent Positive")
-culture_pp_AdV = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="Adenovirus Percent Positive")
-culture_pp_MPV = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="Metapneumovirus Percent Positive")
+# culture_pp_RSV = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="RSV Percent Positive")
+# culture_pp_PIV3 = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="PIV3 Percent Positive")
+# culture_pp_AdV = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="Adenovirus Percent Positive")
+# culture_pp_MPV = data.loc[data["TestType"] == 2].pivot(index="Date",columns="Region",values="Metapneumovirus Percent Positive")
 
-pcr_pp_RSV = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="RSV Percent Positive")
-pcr_pp_PIV3 = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="PIV3 Percent Positive")
-pcr_pp_AdV = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="Adenovirus Percent Positive")
-pcr_pp_MPV = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="Metapneumovirus Percent Positive")
+# pcr_pp_RSV = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="RSV Percent Positive")
+# pcr_pp_PIV3 = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="PIV3 Percent Positive")
+# pcr_pp_AdV = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="Adenovirus Percent Positive")
+# pcr_pp_MPV = data.loc[data["TestType"] == 4].pivot(index="Date",columns="Region",values="Metapneumovirus Percent Positive")
 
-print(pcr_pp_RSV)
+# print(pcr_pp_RSV)
 
-# save to csv
-antigen_pp_RSV.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_RSV.csv')
-antigen_pp_PIV3.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_PIV3.csv')
-antigen_pp_AdV.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_AdV.csv')
-antigen_pp_MPV.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_MPV.csv')
-culture_pp_RSV.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_RSV.csv')
-culture_pp_PIV3.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_PIV3.csv')
-culture_pp_AdV.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_AdV.csv')
-culture_pp_MPV.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_MPV.csv')
-pcr_pp_RSV.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_RSV.csv')
-pcr_pp_PIV3.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_PIV3.csv')
-pcr_pp_AdV.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_AdV.csv')
-pcr_pp_MPV.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_MPV.csv')
+# # save to csv
+# antigen_pp_RSV.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_RSV.csv')
+# antigen_pp_PIV3.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_PIV3.csv')
+# antigen_pp_AdV.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_AdV.csv')
+# antigen_pp_MPV.to_csv('Data/Processed/NREVSS_Antigen_PercentPositive_MPV.csv')
+# culture_pp_RSV.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_RSV.csv')
+# culture_pp_PIV3.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_PIV3.csv')
+# culture_pp_AdV.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_AdV.csv')
+# culture_pp_MPV.to_csv('Data/Processed/NREVSS_Culture_PercentPositive_MPV.csv')
+# pcr_pp_RSV.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_RSV.csv')
+# pcr_pp_PIV3.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_PIV3.csv')
+# pcr_pp_AdV.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_AdV.csv')
+# pcr_pp_MPV.to_csv('Data/Processed/NREVSS_PCR_PercentPositive_MPV.csv')
 
-# plot
-antigen_pp_RSV = antigen_pp_RSV[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
-antigen_pp_PIV3 = antigen_pp_PIV3[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
-antigen_pp_AdV = antigen_pp_AdV[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
-antigen_pp_MPV = antigen_pp_MPV[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
-colors = colormaps.get_cmap('Greys',9)(np.linspace(1,0.3,9)).tolist()
-colors.append('red')
-fig, ax = plt.subplots(4,1,figsize=(13.3,10),sharex=True,sharey=True)
-antigen_pp_RSV.plot(ax=ax[0],legend=False,color=colors)
-antigen_pp_PIV3.plot(ax=ax[1],legend=False,color=colors)
-antigen_pp_AdV.plot(ax=ax[2],legend=False,color=colors)
-antigen_pp_MPV.plot(ax=ax[3],legend=False,color=colors)
-ax[0].set_ylabel("RSV")
-ax[1].set_ylabel("PIV3")
-ax[2].set_ylabel("Adenovirus")
-ax[3].set_ylabel("Metapneumovirus")
-ax[3].set_xlabel("Date")
-fig.suptitle("NREVSS Percent Antigen Positive by HHS Region")
-plt.tight_layout()
-plt.savefig('Figures/NREVSS_Antigen_PercentPositive.png')
+# # plot
+# antigen_pp_RSV = antigen_pp_RSV[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+# antigen_pp_PIV3 = antigen_pp_PIV3[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+# antigen_pp_AdV = antigen_pp_AdV[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+# antigen_pp_MPV = antigen_pp_MPV[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
+# colors = colormaps.get_cmap('Greys',9)(np.linspace(1,0.3,9)).tolist()
+# colors.append('red')
+# fig, ax = plt.subplots(4,1,figsize=(13.3,10),sharex=True,sharey=True)
+# antigen_pp_RSV.plot(ax=ax[0],legend=False,color=colors)
+# antigen_pp_PIV3.plot(ax=ax[1],legend=False,color=colors)
+# antigen_pp_AdV.plot(ax=ax[2],legend=False,color=colors)
+# antigen_pp_MPV.plot(ax=ax[3],legend=False,color=colors)
+# ax[0].set_ylabel("RSV")
+# ax[1].set_ylabel("PIV3")
+# ax[2].set_ylabel("Adenovirus")
+# ax[3].set_ylabel("Metapneumovirus")
+# ax[3].set_xlabel("Date")
+# fig.suptitle("NREVSS Percent Antigen Positive by HHS Region")
+# plt.tight_layout()
+# plt.savefig('Figures/NREVSS_Antigen_PercentPositive.png')
 
 # ### RSV data
 # rsv_pre2020 = pd.read_csv('Data/Raw/Respiratory_Syncytial_Virus_Laboratory_Data__NREVSS_.csv')
@@ -218,8 +219,13 @@ plt.savefig('Figures/NREVSS_Antigen_PercentPositive.png')
 
 ############### Processing KPSC data into time series of test-confirmed cases ###############
 
-# # # with SAS7BDAT('Data/Raw/KPSC/testing.sas7bdat') as f:
-# # #     test_data = f.to_data_frame()
+time_start = time.time()
+test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat')
+print("Time to load test data: ",time.time()-time_start)
+
+# print column names
+print(test_data.columns)
+
 
 # with SAS7BDAT('Data/Raw/KPSC/clinical_20241202.sas7bdat') as f:
 #     clinical_data = f.to_data_frame()

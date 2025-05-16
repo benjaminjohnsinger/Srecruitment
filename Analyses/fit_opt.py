@@ -135,6 +135,8 @@ def likelihood(x):
     if option2 != 'flexage':
         sim_params["P_OBS"] = x[n]*pobsrel
         n += 1
+    else:
+        sim_params["P_OBS"] = pobsrel
     if lockdown == 'FlexStepwise':
         Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
         # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2

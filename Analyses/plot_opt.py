@@ -87,6 +87,8 @@ else:
 if ((seed > 250407) and (seed <= 250514)) or (option2 != 'flexage'):
     params["P_OBS"] = x[n]*pobsrel
     n += 1
+elif option2 == 'flexage':
+    params["P_OBS"] = pobsrel
 if lockdown == 'FlexStepwise':
     Ts = np.array([date_to_t('1970-01-01'),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
     F1 = x[n+3] # value between 0 and 1 (first lockdown)
