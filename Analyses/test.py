@@ -9,16 +9,19 @@ import pandas as pd
 # import itertools as it
 # from plotting import *
 # from math import comb
-from utils import *
-from sas7bdat import SAS7BDAT
-import pickle
+# from utils import *
+# import pickle
 # from scipy.optimize import curve_fit
 # import time
 # # import corner
 
-i = np.array([1,7,13,14,15,17])
-print(i%6)
-
+pathogens = ["RSV","InfluenzaA","InfluenzaB","Metapneumovirus","Adenovirus","Parainfluenza3"]
+successes = 4*np.ones(len(pathogens))
+idxs = [1,3,6,7,11,13,18,19,20,22]
+for i in idxs:
+    successes[i%len(pathogens)] -= 1
+data_series = pd.Series(successes,index=pathogens)
+print(data_series)
 
 # y = np.array([[0.24594159,0.1857486,0.12555562,0.02660094,0.025,0.09684663,1],
 # [0.40500959,0.25868484,0.11236009,0.02751321,0.025,0.09997146,1],

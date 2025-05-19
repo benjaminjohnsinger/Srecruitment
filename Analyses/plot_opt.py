@@ -32,14 +32,16 @@ if re.match(r'\d{4}-\d{2}-\d{2}',option2):
     end_date = option2
     option2 = "maternal" #this is super hacky sorry
 
+print(pathogen, seed)
 if re.match(r'\d{6}',lockdown):
     with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
         opt = pickle.load(f)
 else:
-    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
-        opt = pickle.load(f)
-# check that optimization converged
-print(pathogen)
+    try:
+        with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+            opt = pickle.load(f)
+    except FileNotFoundError:
+        print('No file found')
 if opt.success:
     print("Optimization converged")
 else:

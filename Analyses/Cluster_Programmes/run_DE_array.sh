@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=lpbDE
+#SBATCH --job-name=bbDE
 #SBATCH --account=fc_coronamodel
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
 #SBATCH --time=72:00:00
-#SBATCH --array=0-23
+#SBATCH --array=0-5
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -14,30 +14,12 @@
 module load python/3.11.6-gcc-11.4.0
 
 combinations=(
-"RSV 250516 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"InfluenzaA 250516 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"InfluenzaB 250516 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Metapneumovirus 250516 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Adenovirus 250516 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Parainfluenza3 250516 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"RSV 2505162 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"InfluenzaA 2505162 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"InfluenzaB 2505162 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Metapneumovirus 2505162 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Adenovirus 2505162 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Parainfluenza3 2505162 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"RSV 2505163 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"InfluenzaA 2505163 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"InfluenzaB 2505163 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Metapneumovirus 2505163 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Adenovirus 2505163 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Parainfluenza3 2505163 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"RSV 2505164 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"InfluenzaA 2505164 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"InfluenzaB 2505164 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Metapneumovirus 2505164 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Adenovirus 2505164 FlexStepwise setimport flexage 0.01 20 1 0.7"
-"Parainfluenza3 2505164 FlexStepwise setimport flexage 0.01 20 1 0.7"
+"RSV 250519 FlexStepwise setimport flexage 0.01 40 1.2 0.7"
+"InfluenzaA 250519 FlexStepwise setimport flexage 0.01 40 1.2 0.7"
+"InfluenzaB 250519 FlexStepwise setimport flexage 0.01 40 1.2 0.7"
+"Metapneumovirus 250519 FlexStepwise setimport flexage 0.01 40 1.2 0.7"
+"Adenovirus 250519 FlexStepwise setimport flexage 0.01 40 1.2 0.7"
+"Parainfluenza3 250519 FlexStepwise setimport flexage 0.01 40 1.2 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
