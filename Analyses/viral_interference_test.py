@@ -143,6 +143,7 @@ def perform_cmh_test(positivity_table,pathogen1,pathogen2,period,threshold=0):
     # Calculate odds ratio
     D, C, B, A = cmh_tables[:, 0, 0], cmh_tables[:, 0, 1], cmh_tables[:, 1, 0], cmh_tables[:, 1, 1]
     T = np.sum(cmh_tables, axis=(1,2))
+    print(np.sum(A), np.sum(B), np.sum(C), np.sum(D))
     R = np.sum(A*D/T)/np.sum(B*C/T)
 
     # calculate test statistic
@@ -183,13 +184,13 @@ for restrictive in [False, True]:
         for i, pathogen1 in enumerate(pathogens_of_interest):
             for pathogen2 in pathogens_of_interest[i+1:]:
                 print(f"Testing {pathogen1} and {pathogen2}...")
-                start_time = time.time()
-                pt = create_positivity_table(df_random, pathogen1, pathogen2, period, restrictive=True)
-                print(f"Positivity table created in {time.time() - start_time} seconds")
+                # start_time = time.time()
+                # pt = create_positivity_table(df_random, pathogen1, pathogen2, period, restrictive=True)
+                # print(f"Positivity table created in {time.time() - start_time} seconds")
                 # save the positivity table
                 # pt.to_csv('Data/Processed/positivity_table_'+pathogen1+pathogen2+period+["","_restrictive"][restrictive]+'.csv', index=False)
-                # # load the positivity table
-                # pt = pd.read_csv('Data/Processed/positivity_table_'+pathogen1+pathogen2+period+'.csv')
+                # load the positivity table
+                pt = pd.read_csv('Data/Processed/positivity_table_'+pathogen1+pathogen2+period+'.csv')
                 # perform the CMH test
                 start_time = time.time()
                 R, p_value = perform_cmh_test(pt, pathogen1, pathogen2, period,0)

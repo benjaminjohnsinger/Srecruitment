@@ -42,6 +42,7 @@ else:
             opt = pickle.load(f)
     except FileNotFoundError:
         print('No file found')
+        sys.exit()
 if opt.success:
     print("Optimization converged")
 else:
@@ -149,6 +150,12 @@ print("OBS_AGE",OBS_AGE)
 if lockdown == 'FlexStepwise' or re.match(r'\d{6}',lockdown):
     print("Ts",[t_to_date(t) for t in Ts])
     print("Fs",Fs)
+
+# sys.argv = ["fit_opt.py", pathogen, seed, lockdown, option1, option2, 0.01, 20, 1, 0.7]
+# from fit_opt import likelihood
+# # minimize the likelihood function from x using neldermead
+# opt = sp.optimize.minimize(likelihood, x,method='Nelder-Mead', options={'maxiter': 10000})
+# print(opt.x)
 
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
