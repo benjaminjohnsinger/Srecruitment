@@ -9,9 +9,15 @@ import time
 import types
 
 ## POINTS must start (at least) len(p_time_to_obs) days before the first observation to avoid issues from np.roll behaviour
-def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')),overdispersion=False):
+def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, result=None):
     # run simulation
-    result = sp.integrate.solve_ivp(sis_deltas,(start_t,POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+    if result is None:
+        result = sp.integrate.solve_ivp(sis_deltas,(start_t,POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+        ry = result.y
+    else:
+        if type(result) == dict:
+            ry = result["y"]
+
     # convert into observed cases
     trajectory = observations(result,params,OBS_AGE,incidence=False,time_conversion=1)
     if not age:
@@ -22,9 +28,9 @@ def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=Tru
         if age:
             NAG = params["NAG"]
             N_S = params["N_S"]
-            cases = np.round(data*np.array([np.sum(result.y[range(i,(N_S*N_C+1)*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)]).T)
+            cases = np.round(data*np.array([np.sum(ry[range(i,(N_S*N_C+1)*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)]).T)
         else:
-            cases = data*np.sum(result.y,axis=0)
+            cases = data*np.sum(ry,axis=0)
     else:
         cases = data.copy()
 

@@ -9,16 +9,12 @@ import pandas as pd
 # import itertools as it
 # from plotting import *
 # from math import comb
-# from utils import *
+from utils import *
 # import pickle
 # from scipy.optimize import curve_fit
 # import time
 # # import corner
 
-x = [94.0,9442.0,5969.0,95104.0]
-x = np.array(x)
-x = x/np.sum(x)
-print(x*100)
 
 # pathogens = ["RSV","InfluenzaA","InfluenzaB","Metapneumovirus","Adenovirus","Parainfluenza3"]
 # successes = 4*np.ones(len(pathogens))

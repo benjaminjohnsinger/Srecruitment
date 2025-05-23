@@ -29,14 +29,21 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
     if result is None:
         result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
     if times is None:
-        times = result.t
+        if type(result) == dict:
+            times = result["t"]
+        else:
+            times = result.t
+    if type(result) == dict:
+        ry = result["y"]
+    else:
+        ry = result.y
     dates = [t_to_date(t) for t in times]
     start_index = np.argmin(times<=start_t)
     end_index = np.argmin(times<=end_t)
     if end_index <= start_index:
         end_index = len(times)
     if by_age:
-        pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+        pop_size_by_age = np.array([np.sum(ry[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
         if obs is None:
             obs = factor*observations(result,params,OBS_AGE,incidence=False)
         else:

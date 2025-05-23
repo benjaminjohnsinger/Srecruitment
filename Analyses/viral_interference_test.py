@@ -86,14 +86,19 @@ def process_data(df):
 # create a wide format dataset with one row per patient-test date for a given pathogen pair
 def create_positivity_table(df,pathogen1,pathogen2,period,restrictive=False):
     # Filter for the two pathogens of interest
-    # df = df[(df['pathogen_group'] == pathogen1) | (df['pathogen_group'] == pathogen2)].copy()
+    if pathogen1 != None and pathogen2 != None:
+        df = df[(df['pathogen_group'] == pathogen1) | (df['pathogen_group'] == pathogen2)].copy()
     if restrictive:
-        index = ["StudyID", period, "date"]
-        dfindex = ['StudyID', period, 'date', 'age_group', 'ndi_group']
+        if period == 'date':
+            index = ["StudyID", "date"]
+            dfindex = ['StudyID', "date", 'age_group', 'ndi_group']
+        else:
+            index = ["StudyID", period, "date"]
+            dfindex = ['StudyID', period, 'date', 'age_group', 'ndi_group']
     else:
         index = ["StudyID", period]
         dfindex = ['StudyID', period, 'age_group', 'ndi_group']
-    # print(f"Creating positivity table for {pathogen1} and {pathogen2}...")
+    print(f"Creating positivity table for {pathogen1} and {pathogen2}...")
     # Create a new DataFrame with one row per patient-test period for a given pathogen pair
     # Use aggfunc='max' so that if any of the tests in the pathogen category in the period are positive, a positive is recorded
     df_wide = df.pivot_table(index=index, 
@@ -101,7 +106,8 @@ def create_positivity_table(df,pathogen1,pathogen2,period,restrictive=False):
                              values='is_positive', 
                              aggfunc='max').reset_index()
     # remove rows with NAs
-    # df_wide = df_wide.dropna()
+    if pathogen1 != None and pathogen2 != None:
+        df_wide = df_wide.dropna()
     # add demographic information
     df_wide = df_wide.merge(df[dfindex].drop_duplicates(), on=index, how='left')
     
@@ -143,7 +149,7 @@ def perform_cmh_test(positivity_table,pathogen1,pathogen2,period,threshold=0):
     # Calculate odds ratio
     D, C, B, A = cmh_tables[:, 0, 0], cmh_tables[:, 0, 1], cmh_tables[:, 1, 0], cmh_tables[:, 1, 1]
     T = np.sum(cmh_tables, axis=(1,2))
-    print(np.sum(A), np.sum(B), np.sum(C), np.sum(D))
+    print("Overall counts:",np.sum(A), np.sum(B), np.sum(C), np.sum(D))
     R = np.sum(A*D/T)/np.sum(B*C/T)
 
     # calculate test statistic
@@ -167,8 +173,8 @@ def perform_cmh_test(positivity_table,pathogen1,pathogen2,period,threshold=0):
 # load the processed data
 df = pd.read_csv('Data/Processed/testing.csv')
 
-# # calculate overal positivity rate for respiratory pathogens
-# pt = create_positivity_table(df,"A","B","year_month",restrictive=True)
+# # calculate overall positivity rate for respiratory pathogens
+# pt = create_positivity_table(df,None,None,"year_month",restrictive=True)
 # pt.to_csv("Data/Processed/positivity_table_all_pathogens_year_month_restrictive.csv", index=False)
 # pt = pd.read_csv("Data/Processed/positivity_table_all_pathogens_year_month_restrictive.csv")
 # test_results = pt[["RSV", "Influenza"]]
@@ -179,18 +185,18 @@ df = pd.read_csv('Data/Processed/testing.csv')
 pathogens_of_interest = ["RSV", "HMPV", "Adenovirus", "Influenza", "Parainfluenza", "SARS-CoV-2", "Enterovirus"]
 results = []
 for restrictive in [False, True]:
-    periods = ['month','week','year_month','year_week','date'][2*(1-int(restrictive)):]
+    periods = ['week', 'month', 'year_week', 'year_month', 'date'] if restrictive else ['year_week', 'year_month', 'date']
     for period in periods:
         for i, pathogen1 in enumerate(pathogens_of_interest):
             for pathogen2 in pathogens_of_interest[i+1:]:
                 print(f"Testing {pathogen1} and {pathogen2}...")
-                # start_time = time.time()
-                # pt = create_positivity_table(df_random, pathogen1, pathogen2, period, restrictive=True)
-                # print(f"Positivity table created in {time.time() - start_time} seconds")
+                start_time = time.time()
+                pt = create_positivity_table(df, pathogen1, pathogen2, period, restrictive=restrictive)
+                print(f"Positivity table created in {time.time() - start_time} seconds")
                 # save the positivity table
-                # pt.to_csv('Data/Processed/positivity_table_'+pathogen1+pathogen2+period+["","_restrictive"][restrictive]+'.csv', index=False)
-                # load the positivity table
-                pt = pd.read_csv('Data/Processed/positivity_table_'+pathogen1+pathogen2+period+'.csv')
+                pt.to_csv('Data/Processed/positivity_table_'+pathogen1+pathogen2+period+["","_restrictive"][restrictive]+'.csv', index=False)
+                # # load the positivity table
+                # pt = pd.read_csv('Data/Processed/positivity_table_'+pathogen1+pathogen2+period+'.csv')
                 # perform the CMH test
                 start_time = time.time()
                 R, p_value = perform_cmh_test(pt, pathogen1, pathogen2, period,0)

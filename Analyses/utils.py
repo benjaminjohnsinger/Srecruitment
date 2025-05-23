@@ -261,17 +261,23 @@ def observations(result,params,OBS_AGE,incidence=False,cap=False,N_C=2,time_conv
     Generate observed cases or incidence from ODE results
     """
     NAG, N_S, BETA, contact, SEASONALITY, OFFSET, S_REL, I_REL, P_OBS = params["NAG"], params["N_S"], params["BETA"], params["contact"], params["SEASONALITY"], params["OFFSET"], params["S_REL"], params["I_REL"], params["P_OBS"]
-    obs = np.zeros((len(result.t),NAG))
-    pop_size = np.sum(result.y,axis=0)
-    for i_t,t in enumerate(result.t):
-        foi = BETA*np.dot(contact(t,SEASONALITY,OFFSET),np.sum((np.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
+    if type(result) == dict:
+        ry = result["y"]
+        rt = result["t"]
+    else:
+        ry = result.y
+        rt = result.t
+    obs = np.zeros((len(rt),NAG))
+    pop_size = np.sum(ry,axis=0)
+    for i_t,t in enumerate(rt):
+        foi = BETA*np.dot(contact(t,SEASONALITY,OFFSET),np.sum((np.array([ry[(N_C*j+2)*NAG:(N_C*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
         for i in range(N_S):
             if cap:
                 class_foi = np.minimum(1,S_REL[i]*foi)
             else:
                 class_foi = S_REL[i]*foi
             # S_REL*foi tells you what proportion of the population gets infected, the maximum is all of them
-            obs[i_t,:] += OBS_AGE*P_OBS[i]*class_foi*result.y[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
+            obs[i_t,:] += OBS_AGE*P_OBS[i]*class_foi*ry[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
     if incidence:
         obs = np.sum(obs,axis=1)/pop_size
     return(time_conversion*obs)
