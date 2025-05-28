@@ -93,10 +93,12 @@ if option2 == "flexage":
     bounds_dict["AGE_OBS_4"] = [0,1]
     bounds_dict["AGE_OBS_5"] = [0,1]
     bounds_dict["AGE_OBS_6"] = [0,1]
+    bounds_dict["AGE_OBS_7"] = [0,1]
 else:
     bounds_dict["AGE_OBS_YOUNG"] = [0,1]
     bounds_dict["AGE_OBS_OLD"] = [0,1]
     bounds_dict["AGE_OBS_YOUNG_OLD"] = [0,1]
+    bounds_dict["P_OBS"] = [0,1]
 if option2 == "maternal":
     bounds_dict["AGE_OBS_MATERNAL"] = [0,1]
 if lockdown == "FlexStepwise":
@@ -108,7 +110,7 @@ if lockdown == "FlexStepwise":
     bounds_dict["F3"] = [0,1]
     bounds_dict["F4"] = [0,1]
 
-bounds = np.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","P_OBS","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6"]\
+bounds = np.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","P_OBS","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7"]\
 if key in bounds_dict.keys()])
 print("Dimension of optimisation problem: ", len(bounds))
 
@@ -144,8 +146,6 @@ def likelihood(x):
         sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
         pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
         n += 4
-    # overall scale of observation parameters
-    sim_params["P_OBS"] = pobsrel
     # contact variation over course of pandemic
     if lockdown == 'FlexStepwise':
         Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
@@ -166,13 +166,17 @@ def likelihood(x):
         n += 1
     # set age observation parameters
     if option2 == 'flexage':
+        # overall scale of observation parameters
+        sim_params["P_OBS"] = pobsrel
         obs_age = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
     elif option2 == 'maternal':
-        obs_age = age_detection(NAG,x[n],x[n+1],x[n+2],x[n+3],min_obs=0.025,n_infant_groups=1)
+        # overall scale of observation parameters
+        sim_params["P_OBS"] = x[n]*pobsrel
+        obs_age = age_detection(NAG,x[n+1],x[n+2],x[n+3],x[n+4],min_obs=0.025,n_infant_groups=1)
     else:
-        obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
-    print(sim_params)
-    print(obs_age)
+        # overall scale of observation parameters
+        sim_params["P_OBS"] = x[n]*pobsrel
+        obs_age = age_detection(NAG,x[n+1],x[n+2],x[n+3])
     # if the paramters cause an exception, return a very high negative log likelihood
     try:
         lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True,overdispersion=overdispersion)
@@ -181,8 +185,3 @@ def likelihood(x):
         return 1e10
     print("neg log likelihood: ",lh)
     return lh
-
-
-x = np.array([0.003956471238552184, 0.0896529807571384, 0.18329654609521207, 0.6609232504601557, 0.11615855224316518, 0.18793333494878783, 0.9673438757762447, 0.4813150907561293, 0.6686053572141353, 0.7403209667310804, 0.7888686868311693, 0.8331652625135997, 0.3421443417313491, 0.0015179010411695893, 0.002863223671003722, 0.004933568441041792, 0.000187785669240971, 4.497174365041077e-05, 0.00036941222820743424, 0.0033316654258731503]
-)
-print(likelihood(x))
