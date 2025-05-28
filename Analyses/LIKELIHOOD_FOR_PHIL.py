@@ -68,7 +68,7 @@ STATE0 = np.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
-bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1], "P_OBS": [0,0.1]}
+bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
 
 if option1 == "nb":
     bounds_dict["OVERDISPERSION"] = [-5,10]
