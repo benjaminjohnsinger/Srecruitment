@@ -2,28 +2,144 @@
 ## BJS September 2024
 
 import numpy as np
+from numba import jit
+N_C = 3 # three types of compartment: susceptible, infected, recovered
 
+@jit
 ## Differential equations
-def single_pathogen_deltas(t,state,params):
+def single_pathogen_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact):
     delta = np.zeros(state.shape)
     pop_size = np.sum(state)
-    NAG, N_S, AGING_RATE, BIRTH_RATE, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, IMPORT, BETA, contact = params.values()
-    # Susceptible, infected, recovered - waning, aging, infection, recovery for all susceptibility classes
+    print(state)
+    # age_pops = np.array([np.sum(state[range(i_age,(N_C*N_S+1)*NAG,NAG)],axis=0) for i_age in range(NAG)])
+    age_pops = np.zeros(NAG)
+    for i_age in range(NAG):
+        for i in range(N_S):
+            for j in range(N_C):
+                # Sum the population in each age group across all susceptibility classes and compartments
+                age_pops[i_age] += state[(N_C*i+j)*NAG + i_age]
+    infectious_states = np.zeros((N_S, NAG))
+    for j in range(N_S):
+        infectious_states[j] = state[(3*j+2)*NAG:(3*j+3)*NAG]
+    # delta[NAG] += birth_rate(t)*pop_size
+    # # Susceptible, infected, recovered - waning, aging, infection, recovery for all susceptibility classes
+    # for i in range(N_S):
+    #     for age in range(NAG):
+    #         S = state[(3*i+1)*NAG + age]
+    #         I = state[(3*i+2)*NAG + age]
+    #         R = state[(3*i+3)*NAG + age]
+    #         # infection
+    #         infection_rate = 0
+    #         for j in range(N_S):
+    #             for agej in range(NAG):
+    #                 infectious_persons = state[(3*j+2)*NAG + agej]
+    #                 i_delt = (S*S_REL[i]*S_AGE[age]*BETA*contact(t,SEASONALITY,OFFSET)[age, agej]*(IMPORT_RATE*regional_positivity(t)*arrivals(t)*age_pops[agej] + infectious_persons*I_REL[j]))[0]/pop_size
+    #                 infection_rate += i_delt
+    #         delta[(3*i+1)*NAG + age] -= infection_rate
+    #         delta[(3*i+2)*NAG + age] += infection_rate
+    #         # waning
+    #         delta[(3*i+1)*NAG + age] += WANE_UP[i-1]*state[(3*i)*NAG + age] + WANE_SAME[i]*R
+    #         delta[(3*i+3)*NAG + age] -= (WANE_UP[i]+WANE_SAME[i])*R
+    #         # recovery
+    #         delta[(3*i+2)*NAG + age] -= REC[i]*I
+    #         delta[(3*i+3)*NAG + age] += REC[i]*I
+    #         # aging
+    #         delta[(3*i+1)*NAG + age] -= AGING_RATE[age]*S + (AGING_RATE[age-1] if age > 0 else 0)*state[(3*i+1)*NAG + age-1]
+    #         delta[(3*i+2)*NAG + age] -= AGING_RATE[age]*I + (AGING_RATE[age-1] if age > 0 else 0)*state[(3*i+2)*NAG + age-1]
+    #         delta[(3*i+3)*NAG + age] -= AGING_RATE[age]*R + (AGING_RATE[age-1] if age > 0 else 0)*state[(3*i+3)*NAG + age-1]
     for i in range(N_S):
         # Susceptibile class i = birth - infection + waning + aging in - aging out +/- vaccination
         # WANE_UP[-1] is zero
-        delta[(3*i+1)*NAG:(3*i+2)*NAG] = birth_vax(t,i,S_VAX,BCOV,T_VAX)*BIRTH_RATE*pop_size*np.concatenate((np.ones(1),np.zeros(NAG-1)))\
-            -S_REL[i]*S_AGE*BETA*(np.dot(contact(t),np.sum(np.array(([state[(3*j+2)*NAG:(3*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
+        delta[(3*i+1)*NAG:(3*i+2)*NAG] = birth_vax(t,BCOV,S_VAX,NAG,N_S,N_C)[(3*i+1)*NAG:(3*i+2)*NAG]*birth_rate(t)*pop_size*np.concatenate((np.ones(1),np.zeros(NAG-1)))\
+            - S_REL[i]*S_AGE*BETA*(np.dot(contact(t,SEASONALITY,OFFSET),np.sum(IMPORT_RATE*regional_positivity(t)*arrivals(t)*age_pops+infectious_states*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
             + WANE_UP[i-1]*state[(3*i)*NAG:(3*i+1)*NAG] + WANE_SAME[i]*state[(3*i+3)*NAG:(3*i+4)*NAG]\
-            - AGING_RATE*state[(3*i+1)*NAG:(3*i+2)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+1)*NAG:(3*i+2)*NAG-1]))\
-            + (all_vax(t,i,ACOV,S_VAX,T_VAX,NAG,N_S)*state).reshape((3*N_S+1,NAG)).sum(axis=0)
+            - AGING_RATE*state[(3*i+1)*NAG:(3*i+2)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+1)*NAG:(3*i+2)*NAG-1]))
         # Infectious class i = infection - recovery + aging in - aging out - vaccination + importations
-        delta[(3*i+2)*NAG:(3*i+3)*NAG] = S_REL[i]*S_AGE*BETA*(np.dot(contact(t),np.sum(np.array(([state[(3*j+2)*NAG:(3*j+3)*NAG] for j in range(N_S)]))*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
+        delta[(3*i+2)*NAG:(3*i+3)*NAG] = S_REL[i]*S_AGE*BETA*(np.dot(contact(t,SEASONALITY,OFFSET),np.sum(IMPORT_RATE*regional_positivity(t)*arrivals(t)+infectious_states*I_REL,axis=0))/pop_size)*state[(3*i+1)*NAG:(3*i+2)*NAG]\
             - REC[i]*state[(3*i+2)*NAG:(3*i+3)*NAG]\
             - AGING_RATE*state[(3*i+2)*NAG:(3*i+3)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+2)*NAG:(3*i+3)*NAG-1]))\
-            + IMPORT
         # Recovered class i = recovery - waning + aging in - aging out - vaccination
         delta[(3*i+3)*NAG:(3*i+4)*NAG] = REC[i]*state[(3*i+2)*NAG:(3*i+3)*NAG]\
             - (WANE_UP[i]+WANE_SAME[i])*state[(3*i+3)*NAG:(3*i+4)*NAG]\
             - AGING_RATE*state[(3*i+3)*NAG:(3*i+4)*NAG] + np.concatenate((np.zeros(1), AGING_RATE[:-1]*state[(3*i+3)*NAG:(3*i+4)*NAG-1]))
     return delta
+
+# test that single_pathogen_deltas runs
+if __name__ == "__main__":
+    NAG = 7
+    N_S = 3
+    from Parameters.census_population import AGING_RATE
+    from demography import birth_rate
+    WANE_UP = np.array([1/365, 1/365, 0.0])
+    WANE_SAME = np.array([0.0, 0.0, 1/365])
+    REC = np.array([1/4.9, 1/4.1, 1/4.1])
+    S_REL = np.array([1, 0.25, 0.025])
+    S_AGE = np.ones(NAG)
+    I_REL = np.array([[1], [1], [1]])
+    P_OBS = np.array([1, 0.46, 0.31]) * 0.03
+    S_VAX = 2
+    from vaccination import birth_vax, flu_rate
+    from Parameters.RSV import BCOV, ACOV, regional_positivity
+    from mobility_and_import import arrivals
+    CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
+    IMPORT_RATE = 0.01
+    BETA = 0.5
+    SEASONALITY = 0.2
+    OFFSET = 0.2
+    @jit
+    def contact(t, seasonality, offset):
+        return (1 + seasonality * np.cos(2 * np.pi * ((t - 274) / 365 - offset))) * CONTACT
+
+    params = {
+        "NAG": NAG,
+        "N_S": N_S,
+        "AGING_RATE": AGING_RATE,
+        "birth_rate": birth_rate,
+        "WANE_UP": WANE_UP,
+        "WANE_SAME": WANE_SAME,
+        "REC": REC,
+        "S_REL": S_REL,
+        "S_AGE": S_AGE,
+        "I_REL": I_REL,
+        "P_OBS": P_OBS,
+        "birth_vax": birth_vax,
+        "all_vax": flu_rate,
+        "S_VAX": S_VAX,
+        "ACOV": ACOV,
+        "BCOV": BCOV,
+        "regional_positivity": regional_positivity,
+        "arrivals": arrivals,
+        "IMPORT_RATE": IMPORT_RATE,
+        "BETA": BETA,
+        "SEASONALITY": SEASONALITY,
+        "OFFSET": OFFSET,
+        "contact": contact
+    }
+
+    from Parameters.census_population import CENSUS_AGE_POP
+    STATE0 = np.zeros((1+N_S*3)*(NAG))
+    STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
+    STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
+
+    # t = 0
+    # delta = single_pathogen_deltas(t, STATE0, NAG, N_S, AGING_RATE, birth_rate,
+    #                                WANE_UP, WANE_SAME, REC, S_REL, S_AGE,
+    #                                I_REL, P_OBS, birth_vax, flu_rate,
+    #                                S_VAX, ACOV, BCOV, arrivals,
+    #                                regional_positivity,
+    #                                IMPORT_RATE, BETA,
+    #                                SEASONALITY, OFFSET, contact)
+    # print(delta)
+    # try solve_ivp
+    from scipy.integrate import solve_ivp
+    from utils import date_to_t
+    import pandas as pd
+    result = solve_ivp(
+        single_pathogen_deltas,
+        (date_to_t('1970-01-01'), date_to_t('2023-10-01')),
+        STATE0,
+        args=params.values(),
+        t_eval=np.array(date_to_t(pd.date_range(pd.to_datetime('2015-10-01'), pd.to_datetime('2023-10-01'), freq='D'))),
+        method='RK45'
+    )
+    print(result)

@@ -24,7 +24,7 @@ from matplotlib import cm as colormaps
 
 @jit
 def birth_vax(t,cov,S_VAX=2,nag=7,ns=3,nc=3,T_VAX=0):
-    out_vec = np.zeros(nag*(2*ns+1+(3-nc)))
+    out_vec = np.zeros(nag*(nc*ns+1+(3-nc)))
     out_vec[nag] = 1-cov(t)
     out_vec[nag*(nc*S_VAX+1)] = cov(t)
     return out_vec
