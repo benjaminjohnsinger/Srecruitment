@@ -21,32 +21,6 @@ def single_pathogen_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE_UP, 
     infectious_states = np.zeros((N_S, NAG))
     for j in range(N_S):
         infectious_states[j] = state[(3*j+2)*NAG:(3*j+3)*NAG]
-    # delta[NAG] += birth_rate(t)*pop_size
-    # # Susceptible, infected, recovered - waning, aging, infection, recovery for all susceptibility classes
-    # for i in range(N_S):
-    #     for age in range(NAG):
-    #         S = state[(3*i+1)*NAG + age]
-    #         I = state[(3*i+2)*NAG + age]
-    #         R = state[(3*i+3)*NAG + age]
-    #         # infection
-    #         infection_rate = 0
-    #         for j in range(N_S):
-    #             for agej in range(NAG):
-    #                 infectious_persons = state[(3*j+2)*NAG + agej]
-    #                 i_delt = (S*S_REL[i]*S_AGE[age]*BETA*contact(t,SEASONALITY,OFFSET)[age, agej]*(IMPORT_RATE*regional_positivity(t)*arrivals(t)*age_pops[agej] + infectious_persons*I_REL[j]))[0]/pop_size
-    #                 infection_rate += i_delt
-    #         delta[(3*i+1)*NAG + age] -= infection_rate
-    #         delta[(3*i+2)*NAG + age] += infection_rate
-    #         # waning
-    #         delta[(3*i+1)*NAG + age] += WANE_UP[i-1]*state[(3*i)*NAG + age] + WANE_SAME[i]*R
-    #         delta[(3*i+3)*NAG + age] -= (WANE_UP[i]+WANE_SAME[i])*R
-    #         # recovery
-    #         delta[(3*i+2)*NAG + age] -= REC[i]*I
-    #         delta[(3*i+3)*NAG + age] += REC[i]*I
-    #         # aging
-    #         delta[(3*i+1)*NAG + age] -= AGING_RATE[age]*S + (AGING_RATE[age-1] if age > 0 else 0)*state[(3*i+1)*NAG + age-1]
-    #         delta[(3*i+2)*NAG + age] -= AGING_RATE[age]*I + (AGING_RATE[age-1] if age > 0 else 0)*state[(3*i+2)*NAG + age-1]
-    #         delta[(3*i+3)*NAG + age] -= AGING_RATE[age]*R + (AGING_RATE[age-1] if age > 0 else 0)*state[(3*i+3)*NAG + age-1]
     for i in range(N_S):
         # Susceptibile class i = birth - infection + waning + aging in - aging out +/- vaccination
         # WANE_UP[-1] is zero

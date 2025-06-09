@@ -32,7 +32,7 @@ def birth_vax(t,cov,S_VAX=2,nag=7,ns=3,nc=3,T_VAX=0):
 # Annual mass vaccination (a rate)
 # S_VAX is the susceptibility class of vaccinated individuals
 # coverage is the time-varying proportion of the population vaccinated each month - this can be an age-dependent vector
-# @jit
+@jit
 def all_vax(t,s_class,rate,S_VAX=2,NAG=7,N_S=3,N_C=3,cov_args=[np.ones(2),np.ones(7),np.ones(7)],age_group=None):
     if s_class != S_VAX:
         # (3-N_C) here is a really hacky way of making this work with SIS model, which needs to reference an extra empty compartment
@@ -46,11 +46,11 @@ def all_vax(t,s_class,rate,S_VAX=2,NAG=7,N_S=3,N_C=3,cov_args=[np.ones(2),np.one
     rate_val = rate(t,cov_args[0],cov_args[1],cov_args[2])
     if isinstance(rate_val,(int,float)):
         return rate_val*vec
-    # elif age_group is not None: # to get vax rate for a specific age group, for numba compliant ODEs
-    #     return rate_val[age_group]*vec[age_group]
+    elif age_group is not None: # to get vax rate for a specific age group, for numba compliant ODEs
+        return rate_val[age_group]*vec[age_group]
     else:
-        return np.tile(rate_val,N_C*N_S+1+(3-N_C))*vec # tile is not numba compliant
-        # return rate_val.repeat(N_C*N_S+1+(3-N_C)).reshape((-1,N_C*N_S+1+(3-N_C))).T.flatten()*vec # this is numba compliant but slower
+        # return np.tile(rate_val,N_C*N_S+1+(3-N_C))*vec # tile is not numba compliant
+        return rate_val.repeat(N_C*N_S+1+(3-N_C)).reshape((-1,N_C*N_S+1+(3-N_C))).T.flatten()*vec # this is numba compliant but slower
 
 # Flu vaccination coverage
 VAX_FLU = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)

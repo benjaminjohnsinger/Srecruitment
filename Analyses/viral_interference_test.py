@@ -6,11 +6,16 @@ import seaborn as sns
 from datetime import datetime
 import time
 
-# adjust plot text size
-plt.rcParams.update({'font.size':20})
-# text type is palatino
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['font.serif'] = ['Palatino']
+# # adjust plot text size
+# plt.rcParams.update({'font.size':20})
+# # text type is palatino
+# plt.rcParams['font.family'] = 'serif'
+# plt.rcParams['font.serif'] = ['Palatino']
+
+plt.rcParams.update({'font.size':11})
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Arial']
+
 
 # Function to categorize pathogens
 def categorize_pathogens(pathogen):
@@ -118,7 +123,7 @@ def create_positivity_table(df,pathogen1,pathogen2,period,restrictive=False):
     return df_wide
 
 # perform a Chochran-Mantel-Haenszel test, stratifying by age group and NDI group
-def perform_cmh_test(positivity_table,pathogen1,pathogen2,period,prevalence_correction1=1,prevalence_correction2=1,threshold=0):
+def perform_cmh_test(positivity_table,pathogen1,pathogen2,period,prevalence_correction1=1,prevalence_correction2=1,threshold=0,Ps=None):
     # Create set of contingency tables for each age group and NDI group
     NAG = len(positivity_table['age_group'].unique())
     NNDIG = len(positivity_table['ndi_group'].unique())
@@ -158,7 +163,13 @@ def perform_cmh_test(positivity_table,pathogen1,pathogen2,period,prevalence_corr
         ab = prevalence_correction1 / prevalence_correction2
         C = ab*C + (ab - 1)*A
         D = D + (1 - ab)*(A + C) + (prevalence_correction1 - 1)*(A + B + C + D)
-    print("Corrected prevalence:", np.sum(A + B) / np.sum(A + B + C + D), np.sum(A + C) / np.sum(A + B + C + D))
+        print("Corrected prevalence:", np.sum(A + B) / np.sum(A + B + C + D), np.sum(A + C) / np.sum(A + B + C + D))
+    if Ps != None:
+        pA, pB, pS = Ps
+        A = A / max(pA, pB)
+        B = B / pA
+        C = C / pB
+        D = D / pS
     T = A + B + C + D
     R = np.sum(A*D/T)/np.sum(B*C/T)
 
@@ -171,7 +182,7 @@ def perform_cmh_test(positivity_table,pathogen1,pathogen2,period,prevalence_corr
 
     return R, p_value
 
-def generate_tables(pathogens_of_interest,proportion_symptomatic=[],restrictive=False,period='year_month',load=False,threshold=0):
+def generate_tables(pathogens_of_interest,proportion_symptomatic=[],restrictive=False,period='year_month',load=False,threshold=0,bias=False):
     results = []
     for i, pathogen1 in enumerate(pathogens_of_interest):
         for pathogen2 in pathogens_of_interest[i+1:]:
@@ -190,8 +201,14 @@ def generate_tables(pathogens_of_interest,proportion_symptomatic=[],restrictive=
             pc2 = 1/proportion_symptomatic[pathogen2] if pathogen2 in proportion_symptomatic else 1
             # perform the CMH test
             start_time = time.time()
+            if bias:
+                M, Ps = M_bias(pt, pathogen1, pathogen2, p_hospA=proportion_hospitalized[pathogen1],
+                                    p_hospB=proportion_hospitalized[pathogen2])
+                print(f"Bias factor: {M}")
+            else:
+                Ps = None
             R, p_value = perform_cmh_test(pt, pathogen1, pathogen2, period,
-                prevalence_correction1=pc1, prevalence_correction2=pc2, threshold=threshold)
+                prevalence_correction1=pc1, prevalence_correction2=pc2, threshold=threshold, Ps=Ps)
             print(f"CMH test performed in {time.time() - start_time} seconds")
             print(f"Odds Ratio: {R}")
             print(f"P-value: {p_value}")
@@ -206,7 +223,7 @@ def generate_tables(pathogens_of_interest,proportion_symptomatic=[],restrictive=
             })
             # save the results
             results_df = pd.DataFrame(results)
-            results_df.to_csv('Data/Processed/viral_interference_CMH_tests' + ["", "_prevalence_correction"][proportion_symptomatic != []] + ["", "_restrictive"][restrictive] + "_threshold" + str(threshold) + '.csv', index=False)
+            results_df.to_csv('Data/Processed/viral_interference_CMH_tests' + ["", "_prevalence_correction"][proportion_symptomatic != []] + ["", "_restrictive"][restrictive] + ["", "_Mbias"][bias] + "_threshold" + str(threshold) + '.csv', index=False)
 
 # plot heatmap of odds ratios
 def plot_heatmap(ax, results, pathogens_of_interest, title='Viral Interference Heatmap', significance=None):
@@ -236,6 +253,16 @@ def plot_heatmap(ax, results, pathogens_of_interest, title='Viral Interference H
     ax.set_xticklabels([pathogen_abbreviations[p.get_text()] for p in ax.get_xticklabels()], rotation=45, ha='right')
     ax.set_yticklabels([pathogen_abbreviations[p.get_text()] for p in ax.get_yticklabels()])
 
+# approximation of bias based on conservative assumptions in Chin .. Lipsitch mBio 2024
+def M_bias(positivity_table, pathogenA, pathogenB, hospA=0.03, p_hospA=0.85, hospB=0.03, p_hospB=0.85):
+    # find the probability of appearing in study with neither pathogen
+    N_NA_NB = np.sum((positivity_table[pathogenA] == 0) & (positivity_table[pathogenB] == 0))
+    N_S = 4590046 # maximum Kaiser population
+    pS = N_NA_NB / N_S # assuming very low prevalence
+    # probability of appearing in study with each pathogen
+    pA = hospA/p_hospA + pS
+    pB = hospB/p_hospB + pS
+    return pS/max(pA, pB), [pA, pB, pS] # return the bias factor and the probabilities of appearing in study with each pathogen and neither pathogen
 
 pathogens_of_interest = ["RSV", "HMPV", "Adenovirus", "Influenza", "Parainfluenza"]
 proportion_symptomatic = {"All": 0.2894586894586895,
@@ -246,37 +273,43 @@ proportion_symptomatic = {"All": 0.2894586894586895,
 "Rhinovirus": 0.2529914529914531,
 "Adenovirus": 0.19601139601139594,
 "Coronavirus": 0.2780626780626781} # Galanti et al. 2019 Epidemiology & Infection
+proportion_hospitalized = {"Influenza": 0.6,
+"RSV": 0.86,
+"Parainfluenza": 0.85,
+"HMPV": 0.85,
+"Adenovirus": 0.85} # Proportion recieving tests in data who are hospitalized
 
 if __name__ == "__main__":
+    # from plotting import pathogen_names
+    # for pathogen in pathogens_of_interest:
+    #     print(pathogen, pathogen_names[pathogen])
+
     # test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', encoding='utf-8')
-    # test_data = test_data.loc[(test_data["lab_type"]=="PCR") & (test_data["pathogen"] != "SARS-COV-2 (COVID-19)")].copy()
-    # # ((test_data["pathogen"] == "RESPIRATORY SYNCYTIAL VIRUS") | (test_data["pathogen"] == "RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A") | (test_data["pathogen"] == "RESPIRATORY SYNCYTIAL VIRUS SUBTYPE B"))].copy()
-    #     # ((test_data["pathogen"] == "INFLUENZA VIRUS A") | (test_data["pathogen"] == "INFLUENZA VIRUS B") | (test_data["pathogen"] == "INFLUENZA VIRUS A H1N1 2009") | (test_data["pathogen"] == "INFLUENZA VIRUS A SUBTYPE H1") | (test_data["pathogen"] == "INFLUENZA VIRUS A SUBTYPE/HEMAGGLUTININ H3") | (test_data["pathogen"] == "INFLUENZA A VIRUS") | (test_data["pathogen"] == "INFLUENZA VIRUS A+B"))]
-    # N_T = len(test_data["StudyID"].unique())
-    # print(N_T, "patients with non-covid PCR tests")
+    # test_data = test_data.loc[test_data["lab_type"]=="PCR"]
+    # print(test_data["pathogen"].value_counts())
+    # print(len(test_data["StudyID"].unique()), "patients in the testing dataset")
     # clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat', encoding='utf-8')
     # print(len(clinical_data["StudyID"].unique()), "patients in the clinical dataset")
     # clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
 
-    # clinical_tests = test_data[test_data["StudyID"].isin(clinical_data["StudyID"])]
-    # clinical_tests = clinical_tests[clinical_tests["lab_type"] == "PCR"].copy()
-    # # clinical_data = clinical_data[clinical_data["setting"] == "Hospital admission"].copy()
-    # clinical_data = clinical_data[clinical_data["StudyID"].isin(clinical_tests["StudyID"])]
-    # print(clinical_data["setting"].value_counts())
-    # print(len(clinical_data["StudyID"].unique()), "hospitalized patients in the clinical dataset with non-covid PCR tests")
-    # clinical_tests["Date"] = pd.to_datetime(clinical_tests["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_tests["lab_days"],unit='D')
-    # print('Y')
-    # clinical_tests = clinical_data.merge(clinical_tests[["StudyID","Date"]],on="StudyID",how="left")
-    # print('A')
-    # clinical_tests = clinical_tests.rename(columns={"Date_x":"Clinical date","Date_y":"Test date"})
-    # print('B')
-    # matched_tests = clinical_tests[np.abs((pd.to_datetime(clinical_tests["Clinical date"]) - pd.to_datetime(clinical_tests["Test date"])).dt.days) <= 14]
-    # print(matched_tests.head())
-    # print(len(matched_tests), "non-covid PCR tests correspond to a hospital admission within 14 days")
-    # # hospital_tests = matched_tests[matched_tests["setting"] == "Hospital admission"].copy()
-    # # print(len(hospital_tests), "non-covid PCR tests correspond to a hospital admission within 14 days")
-    # print(len(matched_tests["StudyID"].unique())/ N_T, "of patients receiving non-covid PCR tests have a corresponding to a hospital admission within 14 days")
-    # # print(len(hospital_tests["StudyID"].unique())/ N_T, "of non-covid PCR tests have a corresponding to a hospital admission within 14 days")
+    # for pathogen in pathogens_of_interest:
+    #     print(pathogen_names[pathogen])
+    #     test_data_pathogen = test_data[test_data['pathogen'].isin(pathogen_names[pathogen])].copy()
+    #     N_T = len(test_data_pathogen["StudyID"].unique())
+    #     print(N_T, f"patients with {pathogen} PCR tests")
+    #     clinical_tests = test_data_pathogen[test_data_pathogen["StudyID"].isin(clinical_data["StudyID"])]
+    #     clinical_data_pathogen = clinical_data[clinical_data["StudyID"].isin(clinical_tests["StudyID"])]
+    #     print(clinical_data_pathogen["setting"].value_counts())
+    #     print(len(clinical_data_pathogen["StudyID"].unique()), f"hospitalized patients in the clinical dataset with {pathogen} PCR tests")
+    #     clinical_tests["Date"] = pd.to_datetime(clinical_tests["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_tests["lab_days"],unit='D')
+    #     clinical_tests = clinical_data_pathogen.merge(clinical_tests[["StudyID","Date"]],on="StudyID",how="left")
+    #     clinical_tests = clinical_tests.rename(columns={"Date_x":"Clinical date","Date_y":"Test date"})
+    #     matched_tests = clinical_tests[np.abs((pd.to_datetime(clinical_tests["Clinical date"]) - pd.to_datetime(clinical_tests["Test date"])).dt.days) <= 14]
+    #     print(len(matched_tests), f" {pathogen} PCR tests correspond to a hospital admission within 14 days")
+    #     # hospital_tests = matched_tests[matched_tests["setting"] == "Hospital admission"].copy()
+    #     # print(len(hospital_tests), f"non-covid {pathogen} PCR tests correspond to a hospital admission within 14 days")
+    #     print(len(matched_tests["StudyID"].unique())/ N_T, f"of patients receiving {pathogen} PCR tests have a corresponding to a hospital admission within 14 days")
+    #     # print(len(hospital_tests["StudyID"].unique())/ N_T, f"of non-covid {pathogen} PCR tests have a corresponding to a hospital admission within 14 days")
 
 
     # demographic_data = pd.read_sas('Data/Raw/KPSC/demographics.sas7bdat', encoding='utf-8')
@@ -288,12 +321,16 @@ if __name__ == "__main__":
     # for i, pathogen1 in enumerate(pathogens_of_interest):
     #     for pathogen2 in pathogens_of_interest[i+1:]:
     #         pt = pd.read_csv('Data/Processed/positivity_table_'+pathogen1+pathogen2+"date_restrictive.csv")
-    #         prev1 = 0.05
-    #         prev2 = 0.05
+    #         print(M_bias(pt, pathogen1, pathogen2, p_hospA=proportion_hospitalized[pathogen1], p_hospB=proportion_hospitalized[pathogen2]))
+    #         prev1 = 0.1
+    #         prev2 = 0.1
     #         # find number negative for both pathogens
     #         N_NA_NB = np.sum((pt[pathogen1] == 0) & (pt[pathogen2] == 0))
     #         N_AORB = np.sum((pt[pathogen1] == 1) | (pt[pathogen2] == 1))
-    #         print(f"{pathogen1} and {pathogen2}: {N_NA_NB/(N_S*(1-prev1)*(1-prev2))}")
+    #         print(f"Proportion of patients in study for {pathogen1} and {pathogen2}: {(N_NA_NB+N_AORB)/N_S}")
+    #         print(f"Probability of appearing in study given negativity for both, assuming very low prevalence: {N_NA_NB/N_S}")
+    #         print(f"Probability of appearing in study given negativity for both, assuming high prevalence: {N_NA_NB/(N_S*(1-prev1)*(1-prev2))}")
+    #         print("\n")
  
     # # start_time = time.time()
     # # df = process_data(test_data)
@@ -303,16 +340,25 @@ if __name__ == "__main__":
     # # print(df["pathogen_group"].value_counts())
     # # load the processed data
     # df = pd.read_csv('Data/Processed/testing.csv')
+    # generate_tables(pathogens_of_interest, restrictive=True, period='year_month', load=True, threshold=0, bias=True)
 
     results = pd.read_csv('Data/Processed/viral_interference_CMH_tests.csv')
     results = results[(results['match_by_date'] == False) & (results['period'] == 'year_month')].copy()
-    results_corrected = pd.read_csv('Data/Processed/viral_interference_CMH_tests_prevalence_correction.csv')
-    results_corrected_reverse_order = pd.read_csv('Data/Processed/viral_interference_CMH_tests_prevalence_correction_reverse_order.csv')
-    results_corrected_combined = pd.concat([results_corrected, results_corrected_reverse_order], ignore_index=True)
-    fig, axes = plt.subplots(1,2,figsize=(13.3, 7.5))
-    plot_heatmap(axes[0], results, pathogens_of_interest, title='Unadjusted')
-
-    plot_heatmap(axes[1], results_corrected_combined, pathogens_of_interest, title='With prevalence adjustment',significance=0.005)
-    plt.suptitle('Chochran-Mantel-Haenszel odds ratios for viral interference', fontsize=24)
+    results_corrected = pd.read_csv('Data/Processed/viral_interference_CMH_tests_restrictive_Mbias_threshold0.csv')
+    # results_corrected_reverse_order = pd.read_csv('Data/Processed/viral_interference_CMH_tests_prevalence_correction_reverse_order.csv')
+    # results_corrected_combined = pd.concat([results_corrected, results_corrected_reverse_order], ignore_index=True)
+    fig, axes = plt.subplots(1,2,figsize=(6.5, 3.5))
+    # Create the heatmaps without color bars
+    plot_heatmap(axes[0], results, pathogens_of_interest, title='Naïve', significance=None)
+    plot_heatmap(axes[1], results_corrected, pathogens_of_interest, title='With correction factor', significance=None)
     plt.tight_layout()
-    plt.savefig('Figures/viral_interference_heatmap_combined.png', dpi=300)
+    # remove color bar
+    axes[0].collections[0].colorbar.remove()
+    axes[1].collections[0].colorbar.remove()
+
+    # Add a shared color bar
+    cbar = fig.colorbar(axes[0].collections[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
+    cbar.set_label('Odds Ratio')
+    # plt.suptitle('Chochran-Mantel-Haenszel odds ratios for viral interference')
+
+    plt.savefig('Figures/viral_interference_heatmap_wMbias.png', dpi=300)

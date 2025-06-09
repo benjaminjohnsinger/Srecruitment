@@ -47,6 +47,7 @@ def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=Tru
         likelihood = sp.stats.poisson.logpmf(cases,expected_obs).sum()
     return likelihood
 
+
 ## OBS_AGE parameters must be last three in initial_scalars, POINTS must start (at least) len(p_time_to_obs) days before the first observation
 def mcmc(data, init_params, POINTS, STATE0, OBS_AGE, likelihood, p_time_to_obs, variables, initial_scalars, log_priors, proposal_cov, n_iter, age=False, incidence=False,n_messages=20):
     n_v = len(variables)
