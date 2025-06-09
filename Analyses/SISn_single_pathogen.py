@@ -298,9 +298,16 @@ def contact2(t,seasonality,offset):
     for i in range(NAG):
         eff_CONTACT[i,:] = CONTACT[i,:]*(1-0.3*proportion_infected(t,S_REL,S_VAX,ACOV)[i])
     return (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*eff_CONTACT
+@jit
+def contact3(t,seasonality,offset):
+    """Contact function where infected persons don't make contacts"""
+    eff_CONTACT = CONTACT.copy()
+    for i in range(NAG):
+        eff_CONTACT[i,:] = CONTACT[i,:]*(1-0.1*proportion_infected(t,S_REL,S_VAX,ACOV)[i])
+    return (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*eff_CONTACT
+
 params2 = params.copy()
 params2["OFFSET"] = 0.3
-
 result2 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2.values(),t_eval=POINTS,method='RK45')
 params3 = params.copy()
 params3["OFFSET"] = 0.4
@@ -314,6 +321,10 @@ result2_crossimmunity = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POIN
 params2_interference = params2.copy()
 params2_interference["contact"] = contact2
 result2_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_interference.values(),t_eval=POINTS,method='RK45')
+
+params3_interference = params3.copy()
+params3_interference["contact"] = contact3
+result3_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_interference.values(),t_eval=POINTS,method='RK45')
 
 params3_behaviour = params3.copy()
 params3_behaviour["contact"] = contact2
@@ -333,6 +344,7 @@ obs = observations(result,params,OBS_AGE,incidence=True,time_conversion=30.44)
 obs2 = observations(result2,params2,OBS_AGE,incidence=True,time_conversion=30.44)
 obs2_crossimmunity = observations(result2_crossimmunity,params2_crossimmunity,OBS_AGE,incidence=True,time_conversion=30.44)
 obs2_interference = observations(result2_interference,params2_interference,OBS_AGE,incidence=True,time_conversion=30.44)
+obs3_interference = observations(result3_interference,params3_interference,OBS_AGE,incidence=True,time_conversion=30.44)
 obs3 = observations(result3,params3,OBS_AGE,incidence=True,time_conversion=30.44)
 obs3_behaviour = observations(result3_behaviour,params3_behaviour,OBS_AGE,incidence=True,time_conversion=30.44)
 # panel 0 0 - no interaction
@@ -350,7 +362,7 @@ mx01 = np.max((mx, mx2, mx3))
 # panel 1 0 - interference
 mx = lockdown_incidence_plot(ax[1,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
 mx2 = lockdown_incidence_plot(ax[1,0],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
-mx3 = lockdown_incidence_plot(ax[1,0],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_behaviour,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
+mx3 = lockdown_incidence_plot(ax[1,0],STATE0,params3_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_interference,obs=obs3_interference,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
 mx10 = np.max((mx, mx2, mx3))
 # lockdown_incidence_format(ax[1,0],date_to_t('2024-03-19'),365,mx10,year_window=2)
 # panel 1 1 - behaviour change
@@ -374,7 +386,7 @@ ax[1,0].text(0.01, 0.98, 'C', transform=ax[1,0].transAxes, fontsize=14, fontweig
 ax[1,1].text(0.01, 0.98, 'D', transform=ax[1,1].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
 
 plt.tight_layout()
-plt.savefig('Figures/interaction_demonstration.png',dpi=300)
+plt.savefig('Figures/interaction_demonstration2.png',dpi=300)
 
 # # params["WANE"] = np.array([0,1.195e-01,0])/365
 # # params["P_OBS"] = 3.396e-02*np.array([1,0.46,0.31])
