@@ -1,7 +1,7 @@
 ## Influenza parameters
 ## Literature paramdeters on flu, and guesses to match KPSC data
 
-import numpy as np
+import jax.numpy as np
 from numba import jit
 import pandas as pd
 # from Analyses.utils import age_detection
@@ -37,10 +37,10 @@ OFFSET = 0.8
 BETA = 0.0884
 # Vaccination paramters
 S_VAX = 2
-@jit
+# @jit
 def BCOV(t):
     return 0
-@jit
+# @jit
 def ACOV(t):
     return 0
 
@@ -52,8 +52,8 @@ PP.index = (PP.index - pd.to_datetime("1970-01-01")).days
 # PP_NP = np.array(PP['Region 9'])/100
 PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean(axis=1))/100
 PP_IDX = np.array(PP.index)
-@jit
-def regional_positivity(t):
+# @jit
+def regional_positivity(t, PP_NP=PP_NP, PP_IDX=PP_IDX):
     if t < PP_IDX[0] or t > PP_IDX[-1]:
         day_in_season = (t + 92)%365
         time_1998 = 10500 + day_in_season

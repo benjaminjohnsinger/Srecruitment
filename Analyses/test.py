@@ -2,7 +2,7 @@
 ## Code to explore how susceptibles recruitment affects outbreak dynamics
 ## BJS August 2024
 
-import numpy as np
+import jax.numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd

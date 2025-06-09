@@ -1,20 +1,20 @@
-import numpy as np
+import jax.numpy as np
 import pandas as pd
 from numba import jit
 
-@jit
+# @jit
 def STATIC(t):
     return 1
 
-@jit
+# @jit
 def STEP(t,t_lockdown,duration,reduction):
     return 1-reduction if t < t_lockdown + duration and t > t_lockdown else 1
 
-@jit
+# @jit
 def RAMP(t,t_lockdown,duration,recovery_duration,reduction):
     return 1-reduction if t < t_lockdown + duration and t > t_lockdown else 1 + reduction*((t-t_lockdown-duration)/recovery_duration - 1) if t > t_lockdown and t < t_lockdown + duration + recovery_duration else 1
 
-@jit
+# @jit
 def piecewise(t,ts,fs):
     return fs[np.where(ts <= t)[0][-1]]
 
@@ -32,8 +32,8 @@ RELATIVE_CONTACT_WORK = 1.3169 - 4.7718*MOBILITY_WORK_MA + 5.7062*MOBILITY_WORK_
 IDX = np.array(MOBILITY_CA.index)
 RELATIVE_CONTACT_WORK_NP = np.array(RELATIVE_CONTACT_WORK)
 # print(RELATIVE_CONTACT_WORK_NP)
-@jit
-def google_prestige_work(t):
+# @jit
+def google_prestige_work(t, RELATIVE_CONTACT_WORK_NP=RELATIVE_CONTACT_WORK_NP, IDX=IDX):
     # if t<18355: # if before first dip below baseline
     #     return 1
     # elif t<18952: # if before first recovery to 95% of baseline

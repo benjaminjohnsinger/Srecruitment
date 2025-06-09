@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
+import jax.numpy as np
 from numba import jit
 from utils import date_to_t, t_to_date
 
@@ -50,16 +50,19 @@ def births(t):
     """
     return BIRTHS.iloc[(BIRTHS.index<=t).argmin()]["Births"]/30.44
 
-@jit
-def birth_rate(t):
+# @jit
+def birth_rate(t, BIRTHS_NP=BIRTHS_NP, BIRTHS_IDX=BIRTHS_IDX, POPULATION_NP=POPULATION_NP, POPULATION_IDX=POPULATION_IDX):
     """
     Return number of births per person per day at time t, with t the number of days since 1970-01-01
     """
     bths = BIRTHS_NP[np.argmax(BIRTHS_IDX>=t)]/30.44
     pop = POPULATION_NP[np.argmax(POPULATION_IDX>=t)]
-    if t>BIRTHS_IDX[-1] or t>POPULATION_IDX[-1]:
-        bths = BIRTHS_NP[-1]/30.44
-        pop = POPULATION_NP[-1]
+    # if t>BIRTHS_IDX[-1] or t>POPULATION_IDX[-1]:
+    #     bths = BIRTHS_NP[-1]/30.44
+    #     pop = POPULATION_NP[-1]
+    out_of_bounds = (t > BIRTHS_IDX[-1]) | (t > POPULATION_IDX[-1])
+    bths = np.where(out_of_bounds, BIRTHS_NP[-1]/30.44, bths)
+    pop = np.where(out_of_bounds, POPULATION_NP[-1], pop)
     return bths/pop
 
 

@@ -1,7 +1,7 @@
 ## Pitzer RSV parameters
 ## Parameters from Pitzer et al. 2015 in PLOS Pathogens
 
-import numpy as np
+import jax.numpy as np
 from numba import jit
 
 NAG = 25
@@ -33,6 +33,6 @@ OFFSET = 0
 BETA = 0.2 # this gives results much closer to Fig 2, but about 3.5 bigger than what I think the value should be
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
-@jit
+# @jit
 def ACOV(t,T_VAX):
     return 0

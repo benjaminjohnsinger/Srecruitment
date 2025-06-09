@@ -1,7 +1,7 @@
 ## SIR model with n susceptibility classes, for a single pathogen
 ## BJS September 2024
 
-import numpy as np
+import jax.numpy as np
 import scipy as sp
 import time
 import itertools as it

@@ -1,4 +1,4 @@
-import numpy as np
+import jax.numpy as np
 import pandas as pd
 import re
 from numba import jit
@@ -137,7 +137,7 @@ def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
             F4 = F2 + scalar_values_dict["F4"] - F2*scalar_values_dict["F4"] # value between F2 and 1 (post-lockdown)
             Fs = np.array([1,F1,F2,F3,F4])
             CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=np.float64)
-            @jit
+            # @jit
             def contact(t,seasonality,offset):
                 return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
             params["contact"] = contact
@@ -178,15 +178,15 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None):
     from vaccination import birth_vax, all_vax, flu_rate
     from mobility_and_import import arrivals
     if lockdown == 'Mobility':
-        @jit
+        # @jit
         def contact(t,seasonality,offset):
             return cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
     elif lockdown == 'X':
-        @jit
+        # @jit
         def contact(t,seasonality,offset):
             return CONTACT*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))
     elif lockdown == 'YoungEarly':
-        @jit
+        # @jit
         def contact(t,seasonality,offset):
             cont = cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
             if t > 18702: # 2021-03-16 where majority of schoools returned to in-person according to burbio
@@ -200,7 +200,7 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None):
         date_to_t('2022-03-01')]) # End of mask mandate in California
         # date_to_t('2021-12-20')])
         Fs = np.array([1,0.2,1,0.2,1]) # 0.2 minimum relative contact rate between COMIX and POLYMOD
-        @jit
+        # @jit
         def contact(t,seasonality,offset):
             return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
     if pathogen == 'RSV':
@@ -277,7 +277,7 @@ def observations(result,params,OBS_AGE,incidence=False,cap=False,N_C=2,time_conv
             else:
                 class_foi = S_REL[i]*foi
             # S_REL*foi tells you what proportion of the population gets infected, the maximum is all of them
-            obs[i_t,:] += OBS_AGE*P_OBS[i]*class_foi*ry[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t]
+            obs = obs.at[i_t,:].set(obs[i_t,:] + OBS_AGE*P_OBS[i]*class_foi*ry[(N_C*i+1)*NAG:(N_C*i+2)*NAG,i_t])
     if incidence:
         obs = np.sum(obs,axis=1)/pop_size
     return(time_conversion*obs)

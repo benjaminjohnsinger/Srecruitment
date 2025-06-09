@@ -1,9 +1,9 @@
 ## SIS model with n susceptibility classes, for a single pathogen
 ## BJS September 2024
 
-# from autograd import numpy as np
+# from autograd import jax.numpy as np
 # from autograd import grad, jacobian
-import numpy as np
+import jax.numpy as jnp
 import numdifftools as nd
 import scipy as sp
 import pandas as pd
@@ -92,10 +92,10 @@ EPOCH = pd.to_datetime('1970-01-01')
 START = pd.to_datetime(start_date) 
 END = pd.to_datetime(end_date)
 PERIOD = pd.date_range(start=START, end=END, freq='D')
-POINTS = np.array(date_to_t(PERIOD))
+POINTS = jnp.array(date_to_t(PERIOD))
 # Ts = np.array([date_to_t('1970-01-01'), date_to_t('2020-03-19'), date_to_t('2020-12-05'), date_to_t('2020-12-10'), date_to_t('2021-08-12')])
 # Fs = np.array([1,0.4001427,0.89507013,0.70283776,0.93153405])
-# @jit
+# # @jit
 # def contact(t,seasonality,offset):
 #     return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
 from Parameters.CDA_example import *
@@ -103,15 +103,15 @@ from Parameters.CDA_example import *
 # RSV_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0.        , 0.00136468, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1.        , 0.10032712, 0.04941595]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': np.array([0.04535184, 0.02086185, 0.01405907]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
 # 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01, 'BETA': 0.5001441612672278, 'SEASONALITY': 0.0875344346283, 'OFFSET': 0.13221726766772357,
 # 'contact': contact}
-params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
 # OBS_AGE = np.array([0.24594159,0.1857486,0.12555562,0.02660094,0.025,0.09684663,1])
-p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=','))
 ## Initial conditions
-STATE0 = np.zeros((2*N_S+2)*NAG)
-STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
-STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
+STATE0 = jnp.zeros((2*N_S+2)*NAG)
+STATE0 = STATE0.at[NAG:2*NAG].set(CENSUS_AGE_POP-1) # Everyone is susceptible except
+STATE0 = STATE0.at[2*NAG:3*NAG].set(1) # one individual in each age group that is infected.
 
 # params = RSV_params.copy()
 # start_date = '2015-10-01'
@@ -125,9 +125,9 @@ T_LOCKDOWN = date_to_t('2016-01-01')
 LOCKDOWN_DURATION = 365
 # Ts = np.array([date_to_t('1970-01-01'), T_LOCKDOWN, T_LOCKDOWN+LOCKDOWN_DURATION])
 # Fs = np.array([1,0.4,1])
-@jit
-def contact(t,seasonality,offset):
-    return (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+# @jit
+def contact(t,seasonality,offset,CONTACT=CONTACT):
+    return (1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
 params["contact"] =  contact
 
 # start = time.time()
@@ -165,7 +165,7 @@ params["contact"] =  contact
 #     F3 = F2*x[n+5] # value less than F2 (second lockdown)
 #     F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
 #     Fs = np.array([1,F1,F2,F3,F4])
-#     @jit
+#     # @jit
 #     def contact(t,seasonality,offset):
 #         return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
 #     sim_params["contact"] = contact
@@ -209,7 +209,7 @@ params["contact"] =  contact
 # LOCKDOWN_REDUCTION = 0.4
 # Ts = np.array([date_to_t(EPOCH),T_LOCKDOWN,date_to_t('2021-05-01'),date_to_t('2021-12-01'),date_to_t('2022-03-01')])
 # Fs = np.array([1,0.4,1,0.4,1])
-# @jit
+# # @jit
 # def contact(t,seasonality,offset):
 #     return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
 
@@ -237,7 +237,7 @@ params["contact"] =  contact
 # 'contact': contact}
 # params["ACOV"] = ACOV
 
-# # @jit
+# @jit
 # # def contact(t,seasonality,offset):
 # #     return cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
 # # params["contact"] = contact
@@ -276,117 +276,142 @@ plt.rcParams.update({'font.size':11})
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
 
-fig, ax = plt.subplots(2,2,figsize=(6.5,4.5),sharex=True,sharey=True)
+
 # # # # params['contact'] = lambda t,seasonality,offset: contact(t,seasonality,offset)*(1-flu_eff_coverage(t,S_REL))
 # # # # params['BETA'] = 0
-result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-# get total infectious compartment over time
-I = np.sum(np.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,:] for j in range(N_S)]),axis=0)
-age_pops = np.array([np.sum(result.y[range(i_age,(2*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)])
-@jit
-def proportion_infected(t,SP,ap,AR,rt=result.t):
-    """Calculate the proportion of the population that is infected at time t."""
-    if t < rt[0] or t > rt[-1]:
-        return np.zeros(NAG)
-    idx = np.searchsorted(rt, t)
-    return I[:,idx]/age_pops[:,idx]
+from diffrax import diffeqsolve, ODETerm, Dopri5, PIDController, SaveAt
+term = ODETerm(sis_deltas)
+solver = Dopri5()
+saveat = SaveAt(ts=POINTS)
+stepsize_controller = PIDController(rtol=1e-5,atol=1e-5)
+solution = diffeqsolve(term, solver, t0=date_to_t(EPOCH), t1=POINTS[-1], dt0=0.1, y0=STATE0, args=(NAG,N_S,AGING_RATE,birth_rate,WANE,REC_UP,REC_SAME,S_REL,S_AGE,I_REL,P_OBS,birth_vax,S_VAX,ACOV,BCOV,arrivals,regional_positivity,IMPORT_RATE,BETA,SEASONALITY,OFFSET,contact)
+,saveat=saveat,stepsize_controller=stepsize_controller, max_steps=1000000)
+print(solution)
 
-@jit
-def contact2(t,seasonality,offset):
-    """Contact function where infected persons don't make contacts"""
-    eff_CONTACT = CONTACT.copy()
-    for i in range(NAG):
-        eff_CONTACT[i,:] = CONTACT[i,:]*(1-0.3*proportion_infected(t,S_REL,S_VAX,ACOV)[i])
-    return (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*eff_CONTACT
-@jit
-def contact3(t,seasonality,offset):
-    """Contact function where infected persons don't make contacts"""
-    eff_CONTACT = CONTACT.copy()
-    for i in range(NAG):
-        eff_CONTACT[i,:] = CONTACT[i,:]*(1-0.1*proportion_infected(t,S_REL,S_VAX,ACOV)[i])
-    return (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*eff_CONTACT
+# import jax
+# sis_deltas = jax.jit(sis_deltas, static_argnames=('NAG', 'N_S', 'birth_rate', 'birth_vax', 'S_VAX', 'ACOV', 'BCOV', 'arrivals', 'regional_positivity', 'IMPORT_RATE', 'BETA', 'SEASONALITY', 'OFFSET', 'contact'))
 
-params2 = params.copy()
-params2["OFFSET"] = 0.3
-result2 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2.values(),t_eval=POINTS,method='RK45')
-params3 = params.copy()
-params3["OFFSET"] = 0.4
-result3 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3.values(),t_eval=POINTS,method='RK45')
+# start = time.time()
+# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+# print("result took ",time.time()-start," seconds")
+# # get total infectious compartment over time
+# I = np.sum(np.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,:] for j in range(N_S)]),axis=0)
+# age_pops = np.array([np.sum(result.y[np.arange(i_age,(2*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)])
+# # @jit
+# def proportion_infected(t,SP,ap,AR,rt=result.t):
+#     """Calculate the proportion of the population that is infected at time t."""
+#     idx = np.searchsorted(rt, t)
+#     return I[:,idx]/age_pops[:,idx]
 
-params2_crossimmunity = params2.copy()
-params2_crossimmunity["ACOV"] = proportion_infected
-params2_crossimmunity["all_vax"] = all_vax
-result2_crossimmunity = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_crossimmunity.values(),t_eval=POINTS,method='RK45')
+# # @jit
+# def contact2(t,seasonality,offset):
+#     """Contact function where infected persons don't make contacts"""
+#     eff_CONTACT = CONTACT.copy()
+#     for i in range(NAG):
+#         eff_CONTACT = eff_CONTACT.at[i,:].set(CONTACT[i,:] * (1 - 0.3 * proportion_infected(t, S_REL, S_VAX, ACOV)[i]))
+#     return (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*eff_CONTACT
+# # @jit
+# def contact3(t,seasonality,offset):
+#     """Contact function where infected persons don't make contacts"""
+#     eff_CONTACT = CONTACT.copy()
+#     for i in range(NAG):
+#         eff_CONTACT = eff_CONTACT.at[i,:].set(CONTACT[i,:] * (1 - 0.1 * proportion_infected(t, S_REL, S_VAX, ACOV)[i]))
+#     return (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*eff_CONTACT
 
-params2_interference = params2.copy()
-params2_interference["contact"] = contact2
-result2_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_interference.values(),t_eval=POINTS,method='RK45')
+# params2 = params.copy()
+# params2["OFFSET"] = 0.3
+# start = time.time()
+# result2 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2.values(),t_eval=POINTS,method='RK45')
+# print("result2 took ",time.time()-start," seconds")
+# params3 = params.copy()
+# params3["OFFSET"] = 0.4
+# start = time.time()
+# result3 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3.values(),t_eval=POINTS,method='RK45')
+# print("result3 took ",time.time()-start," seconds")
 
-params3_interference = params3.copy()
-params3_interference["contact"] = contact3
-result3_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_interference.values(),t_eval=POINTS,method='RK45')
+# params2_crossimmunity = params2.copy()
+# params2_crossimmunity["ACOV"] = proportion_infected
+# start = time.time()
+# result2_crossimmunity = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_crossimmunity.values(),t_eval=POINTS,method='RK45')
+# print("result2 took ",time.time()-start," seconds")
 
-params3_behaviour = params3.copy()
-params3_behaviour["contact"] = contact2
-result3_behaviour = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_behaviour.values(),t_eval=POINTS,method='RK45')
+# params2_interference = params2.copy()
+# params2_interference["contact"] = contact2
+# start = time.time()
+# result2_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_interference.values(),t_eval=POINTS,method='RK45')
+# print("result2 took ",time.time()-start," seconds")
 
-# # # # vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
-# # # # hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
-# # # # hsv_colors[3] = colormaps.hsv((3/7)+0.04)
-# # # # pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
-# # # # for i in range(NAG): 
-# # # #     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# # # #     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# # # # # ax[0].plot(result.t,[np.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/np.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
-# # # # # ax[1].plot(result.t,np.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/np.sum(pop_size_by_age,axis=1),color="#648FFF")
-# # # # plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
-obs = observations(result,params,OBS_AGE,incidence=True,time_conversion=30.44)
-obs2 = observations(result2,params2,OBS_AGE,incidence=True,time_conversion=30.44)
-obs2_crossimmunity = observations(result2_crossimmunity,params2_crossimmunity,OBS_AGE,incidence=True,time_conversion=30.44)
-obs2_interference = observations(result2_interference,params2_interference,OBS_AGE,incidence=True,time_conversion=30.44)
-obs3_interference = observations(result3_interference,params3_interference,OBS_AGE,incidence=True,time_conversion=30.44)
-obs3 = observations(result3,params3,OBS_AGE,incidence=True,time_conversion=30.44)
-obs3_behaviour = observations(result3_behaviour,params3_behaviour,OBS_AGE,incidence=True,time_conversion=30.44)
-# panel 0 0 - no interaction
-mx = lockdown_incidence_plot(ax[0,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-mx2 = lockdown_incidence_plot(ax[0,0],STATE0,params2,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2,obs=obs2,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
-mx3 = lockdown_incidence_plot(ax[0,0],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
-mx00 = np.max((mx, mx2, mx3))
-# lockdown_incidence_format(ax[0,0],date_to_t('2024-03-19'),365,mx00,year_window=2)
-# panel 0 1 - cross-immunity
-mx = lockdown_incidence_plot(ax[0,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-mx2 = lockdown_incidence_plot(ax[0,1],STATE0,params2_crossimmunity,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_crossimmunity,obs=obs2_crossimmunity,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
-mx3 = lockdown_incidence_plot(ax[0,1],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
-mx01 = np.max((mx, mx2, mx3))
-# lockdown_incidence_format(ax[0,1],date_to_t('2024-03-19'),365,mx01,year_window=2)
-# panel 1 0 - interference
-mx = lockdown_incidence_plot(ax[1,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-mx2 = lockdown_incidence_plot(ax[1,0],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
-mx3 = lockdown_incidence_plot(ax[1,0],STATE0,params3_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_interference,obs=obs3_interference,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
-mx10 = np.max((mx, mx2, mx3))
-# lockdown_incidence_format(ax[1,0],date_to_t('2024-03-19'),365,mx10,year_window=2)
-# panel 1 1 - behaviour change
-mx = lockdown_incidence_plot(ax[1,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-mx2 = lockdown_incidence_plot(ax[1,1],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
-mx3 = lockdown_incidence_plot(ax[1,1],STATE0,params3_behaviour,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_behaviour,obs=obs3_behaviour,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
-# lockdown_incidence_format(ax[1,1],date_to_t('2024-03-19'),365,mx10,year_window=2)
-# # ax.plot(POINTS,[10*cm.piecewise(pt,Ts,Fs) for pt in POINTS],label='Mobility',color='k')
-# # ax.plot(POINTS,[100*regional_positivity(pt) for pt in POINTS],label='Positivity',color='k',linestyle='--',alpha=0.5)
-# # # # for i in range(NAG):
-# # # #     ax.plot(POINTS,[np.sum(contact(t,params["SEASONALITY"],params["OFFSET"]),axis=1)[i] for t in POINTS],c=hsv_colors[i],linestyle='--',dashes=(1,0.5+i/NAG),label=AGE_GROUP_NAMES[i])
+# params3_interference = params3.copy()
+# params3_interference["contact"] = contact3
+# start = time.time()
+# result3_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_interference.values(),t_eval=POINTS,method='RK45')
+# print("result3 took ",time.time()-start," seconds")
 
-ax[0,0].set_yticks([])
-ax[0,0].set_xticks([])
+# params3_behaviour = params3.copy()
+# params3_behaviour["contact"] = contact2
+# start = time.time()
+# result3_behaviour = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_behaviour.values(),t_eval=POINTS,method='RK45')
+# print("result2 took ",time.time()-start," seconds")
+
+# # # # # vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
+# # # # # hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
+# # # # # hsv_colors[3] = colormaps.hsv((3/7)+0.04)
+# # # # # pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+# # # # # for i in range(NAG): 
+# # # # #     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+# # # # #     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+# # # # # # ax[0].plot(result.t,[np.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/np.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
+# # # # # # ax[1].plot(result.t,np.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/np.sum(pop_size_by_age,axis=1),color="#648FFF")
+# # # # # plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
+# obs = observations(result,params,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs2 = observations(result2,params2,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs2_crossimmunity = observations(result2_crossimmunity,params2_crossimmunity,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs2_interference = observations(result2_interference,params2_interference,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs3_interference = observations(result3_interference,params3_interference,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs3 = observations(result3,params3,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs3_behaviour = observations(result3_behaviour,params3_behaviour,OBS_AGE,incidence=True,time_conversion=30.44)
+
+# fig, ax = plt.subplots(2,2,figsize=(6.5,4.5),sharex=True,sharey=True)
+# # panel 0 0 - no interaction
+# mx = lockdown_incidence_plot(ax[0,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+# mx2 = lockdown_incidence_plot(ax[0,0],STATE0,params2,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2,obs=obs2,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
+# mx3 = lockdown_incidence_plot(ax[0,0],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
+# # mx00 = np.max(np.array((mx, mx2, mx3)))
+# # lockdown_incidence_format(ax[0,0],date_to_t('2024-03-19'),365,mx00,year_window=2)
+# # panel 0 1 - cross-immunity
+# mx = lockdown_incidence_plot(ax[0,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+# mx2 = lockdown_incidence_plot(ax[0,1],STATE0,params2_crossimmunity,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_crossimmunity,obs=obs2_crossimmunity,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
+# mx3 = lockdown_incidence_plot(ax[0,1],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
+# # mx01 = np.max(np.array((mx, mx2, mx3)))
+# # lockdown_incidence_format(ax[0,1],date_to_t('2024-03-19'),365,mx01,year_window=2)
+# # panel 1 0 - interference
+# mx = lockdown_incidence_plot(ax[1,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+# mx2 = lockdown_incidence_plot(ax[1,0],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
+# mx3 = lockdown_incidence_plot(ax[1,0],STATE0,params3_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_interference,obs=obs3_interference,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
+# # mx10 = np.max(np.array((mx, mx2, mx3)))
+# # lockdown_incidence_format(ax[1,0],date_to_t('2024-03-19'),365,mx10,year_window=2)
+# # panel 1 1 - behaviour change
+# mx = lockdown_incidence_plot(ax[1,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+# mx2 = lockdown_incidence_plot(ax[1,1],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
+# mx3 = lockdown_incidence_plot(ax[1,1],STATE0,params3_behaviour,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_behaviour,obs=obs3_behaviour,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
+# # lockdown_incidence_format(ax[1,1],date_to_t('2024-03-19'),365,mx10,year_window=2)
+# # # ax.plot(POINTS,[10*cm.piecewise(pt,Ts,Fs) for pt in POINTS],label='Mobility',color='k')
+# # # ax.plot(POINTS,[100*regional_positivity(pt) for pt in POINTS],label='Positivity',color='k',linestyle='--',alpha=0.5)
+# # # # # for i in range(NAG):
+# # # # #     ax.plot(POINTS,[np.sum(contact(t,params["SEASONALITY"],params["OFFSET"]),axis=1)[i] for t in POINTS],c=hsv_colors[i],linestyle='--',dashes=(1,0.5+i/NAG),label=AGE_GROUP_NAMES[i])
+
+# ax[0,0].set_yticks([])
+# ax[0,0].set_xticks([])
 
 
-# write a capital A in the top left corner of the first panel
-ax[0,0].text(0.01, 0.98, 'A', transform=ax[0,0].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
-ax[0,1].text(0.01, 0.98, 'B', transform=ax[0,1].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
-ax[1,0].text(0.01, 0.98, 'C', transform=ax[1,0].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
-ax[1,1].text(0.01, 0.98, 'D', transform=ax[1,1].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
+# # write a capital A in the top left corner of the first panel
+# ax[0,0].text(0.01, 0.98, 'A', transform=ax[0,0].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
+# ax[0,1].text(0.01, 0.98, 'B', transform=ax[0,1].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
+# ax[1,0].text(0.01, 0.98, 'C', transform=ax[1,0].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
+# ax[1,1].text(0.01, 0.98, 'D', transform=ax[1,1].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
 
-plt.tight_layout()
-plt.savefig('Figures/interaction_demonstration2.png',dpi=300)
+# plt.tight_layout()
+# plt.savefig('Figures/interaction_demonstration_jaxtest.png',dpi=300)
 
 # # params["WANE"] = np.array([0,1.195e-01,0])/365
 # # params["P_OBS"] = 3.396e-02*np.array([1,0.46,0.31])
@@ -471,7 +496,7 @@ plt.savefig('Figures/interaction_demonstration2.png',dpi=300)
 # axes[1].legend(axes[1].lines,['<1y','1-4y','5-17y','18-39y','40-64y','>=65y'],loc='upper left',title='Age group')
 # # axes[1].vlines(18952,0,mx,linestyle=':',color='black')
 # axes[1].set_xlim(POINTS[0],POINTS[-1])
-# @jit
+# # @jit
 # def contact(t,seasonality,offset):
 #     return cm.google_prestige_work(t)*(1+seasonality*np.cos(2*np.pi*(t/365-offset)))*CONTACT
 # params['contact'] = contact

@@ -1,7 +1,7 @@
 ## Adult disease parameters
 ## Epidemiological parameters for a flu-like disease
 
-import numpy as np
+import jax.numpy as np
 
 ## Flu-like parameters
 ## Parameters that vary by susceptibility class

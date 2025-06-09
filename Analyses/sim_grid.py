@@ -1,4 +1,4 @@
-import numpy as np
+import jax.numpy as np
 import scipy as sp
 import itertools as it
 from SISn_ODEs import single_pathogen_deltas as deltas_SIS

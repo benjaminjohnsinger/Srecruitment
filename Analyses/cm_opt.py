@@ -1,7 +1,7 @@
 ## BJS Jan 2025
 ## Fitting models to data using out-of-the-box optimisation tools
 
-import numpy as np
+import jax.numpy as np
 import scipy as sp
 import pandas as pd
 import time
@@ -118,7 +118,7 @@ def likelihood(x):
     F3 = F2*x[5] # value less than F2 (second lockdown)
     F4 = F2 + x[6] - F2*x[6] # value between F2 and 1 (post-lockdown)
     Fs = np.array([1,F1,F2,F3,F4])
-    @jit
+    # @jit
     def contact(t,seasonality,offset):
         return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
     RSV_params["contact"] = contact

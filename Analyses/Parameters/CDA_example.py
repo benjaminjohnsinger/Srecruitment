@@ -1,7 +1,7 @@
 ## CDA example disease parameters
 ## Epidemiological parameters for a disease with annual outbreaks
 
-import numpy as np
+import jax.numpy as np
 import pandas as pd
 from numba import jit
 # from Analyses.utils import age_detection
@@ -36,15 +36,15 @@ OFFSET = 0.2
 BETA = 0.275
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
-@jit
+# @jit
 def BCOV(t):
     return 0
-@jit
+# @jit
 def ACOV(t,SP,ap,AR):
     return 0
 
 IMPORT_RATE = 0
 
-@jit
+# @jit
 def regional_positivity(t):
     return(0)

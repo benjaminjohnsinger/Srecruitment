@@ -1,7 +1,7 @@
 ## Simultaneous optimization of pathogens with shared lockdown model
 ## BJS March 2025
 
-import numpy as np
+import jax.numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
@@ -117,7 +117,7 @@ if (lockdown == 'FlexStepwise'):
 
         Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[39]*365,date_to_t('2020-03-19')+(x[39]+x[40])*365,date_to_t('2020-03-19')+(x[39]+x[40]+x[41])*365])
         Fs = np.array([1,x[42],x[43],x[44],x[45]])
-        @jit
+        # @jit
         def contact(t,seasonality,offset):
             return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
         sim_params_RSV["contact"] = sim_params_InfluenzaA["contact"] = sim_params_InfluenzaB["contact"] = contact

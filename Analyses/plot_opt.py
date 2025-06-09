@@ -1,7 +1,7 @@
 ## BJS March 2025
 ## Plotting results of fitting
 
-import numpy as np
+import jax.numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
@@ -99,7 +99,7 @@ if lockdown == 'FlexStepwise':
     F3 = F2*x[n+5] # value less than F2 (second lockdown)
     F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
     Fs = np.array([1,F1,F2,F3,F4])
-    @jit
+    # @jit
     def contact(t,seasonality,offset):
         return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
     params["contact"] = contact
@@ -114,7 +114,7 @@ else:
     F3 = F2*y[5] # value less than F2 (second lockdown)
     F4 = F2 + y[6] - F2*y[6] # value between F2 and 1 (post-lockdown)
     Fs = np.array([1,F1,F2,F3,F4])
-    @jit
+    # @jit
     def contact(t,seasonality,offset):
         return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
     params["contact"] = contact

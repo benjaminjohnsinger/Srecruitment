@@ -1,4 +1,4 @@
-import numpy as np
+import jax.numpy as np
 
 ## Load data
 # Load synthetic contact matrices from Prem et al. 2021

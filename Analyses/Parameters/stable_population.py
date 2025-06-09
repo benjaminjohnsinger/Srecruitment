@@ -1,7 +1,7 @@
 ## Test population parameters
 ## Rough estimates of population size and age distribution
 
-import numpy as np
+import jax.numpy as np
 
 ## Population size and age distribution
 POP_SIZE = 3.9e7 # California population in 2022

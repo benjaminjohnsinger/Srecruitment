@@ -1,4 +1,4 @@
-import numpy as np
+import jax.numpy as np
 import pandas as pd
 import scipy as sp
 from numba import jit
@@ -22,27 +22,27 @@ from matplotlib import cm as colormaps
 #         else:
 #             return 0
 
-@jit
+# @jit
 def birth_vax(t,cov,S_VAX=2,nag=7,ns=3,nc=3,T_VAX=0):
     out_vec = np.zeros(nag*(nc*ns+1+(3-nc)))
-    out_vec[nag] = 1-cov(t)
-    out_vec[nag*(nc*S_VAX+1)] = cov(t)
+    out_vec = out_vec.at[nag].set(1-cov(t))
+    out_vec = out_vec.at[nag*(nc*S_VAX+1)].set(cov(t))
     return out_vec
 
 # Annual mass vaccination (a rate)
 # S_VAX is the susceptibility class of vaccinated individuals
 # coverage is the time-varying proportion of the population vaccinated each month - this can be an age-dependent vector
-@jit
+# @jit
 def all_vax(t,s_class,rate,S_VAX=2,NAG=7,N_S=3,N_C=3,cov_args=[np.ones(2),np.ones(7),np.ones(7)],age_group=None):
     if s_class != S_VAX:
         # (3-N_C) here is a really hacky way of making this work with SIS model, which needs to reference an extra empty compartment
         vec = np.zeros((N_C*N_S+1+(3-N_C))*NAG)
-        vec[(N_C*s_class+1)*NAG:(N_C*s_class+2)*NAG] = -1
+        vec = vec.at[(N_C*s_class+1)*NAG:(N_C*s_class+2)*NAG].set(-1)
     else:
         vec = np.zeros((N_C*N_S+1+(3-N_C))*NAG)
         for i in range(N_S):
             if i != s_class:
-                vec[(i*N_C+1)*NAG:(i*N_C+2)*NAG] = 1
+                vec = vec.at[(i*N_C+1)*NAG:(i*N_C+2)*NAG].set(1)
     rate_val = rate(t,cov_args[0],cov_args[1],cov_args[2])
     if isinstance(rate_val,(int,float)):
         return rate_val*vec
@@ -72,14 +72,17 @@ EFF = (1/100)*np.array([37, 61, 51, 44, 39, 53, 7, 52, 19, 33, 25, 34, 37, 32, 2
 # EFF_CI_MAX = (1/100)*np.array([100,84.8,62,60,48,64,33,61,34,44,37,44,100,52,54,47,100])
 EFF_IDX = np.array([(pd.to_datetime('2008-10-01') + pd.DateOffset(years=i) - pd.to_datetime('1970-01-01')).days for i in range(17)])
 
-@jit
-def flu_eff_coverage(t,protection,eff_cap=True):
+# @jit
+def flu_eff_coverage(t,protection,eff_cap=True,
+                     VAX_FLU_NP=VAX_FLU_NP, VAX_FLU_IDX=VAX_FLU_IDX):
     '''
     Calculate the effective coverage (proportion of people protected) of the flu vaccine at time t
     t: time in days since 1970-01-01
     protection: relative risk of disease given exposure for each susceptibility class
     eff_cap: whether to cap the efficacy at 1
     '''
+    EFF = (1/100)*np.array([37, 61, 51, 44, 39, 53, 7, 52, 19, 33, 25, 34, 37, 32, 23, 41, 37]) # VE in 18-49yo (or age group containing this range) from studies that went into Data/Raw/vaccine-effectiveness-chart-2024.xlsx, with missing data filled in with mean (37)
+    EFF_IDX = np.array([(pd.to_datetime('2008-10-01') + pd.DateOffset(years=i) - pd.to_datetime('1970-01-01')).days for i in range(17)])
     max_eff = (protection[-2]-protection[-1])/protection[-2] # this is assuming that most people are in the last two susceptibility classes
     raw_eff = EFF[np.argmin(EFF_IDX<=t)]
     adj_eff = raw_eff/max_eff
@@ -100,23 +103,23 @@ def flu_eff_coverage(t,protection,eff_cap=True):
         return adj_eff*VAX_FLU_NP[np.argmax(VAX_FLU_IDX>=t)]
 
 # # Flu vaccination rate
-@jit
+# @jit
 def flu_rate(t,protection,pops,aging_rate,eff_cap=True):
     v = flu_eff_coverage(t,protection)
     v_next_month = flu_eff_coverage(t+31,protection)
     pop_ratio = np.zeros(len(pops))
-    pop_ratio[:-1] = pops[:-1]/pops[1:]
+    pop_ratio = pop_ratio.at[:-1].set(pops[:-1]/pops[1:])
     v_shift = v.copy()
-    v_shift[:-1] = v_shift[1:] - v[:-1]
+    v_shift = v_shift.at[:-1].set(v_shift[1:] - v[:-1])
     age_rate_shift = np.zeros(len(aging_rate))
-    age_rate_shift[1:] = aging_rate[:-1]
+    age_rate_shift = age_rate_shift.at[1:].set(aging_rate[:-1])
     if np.any(v>=1):
         rate = np.zeros(len(v))
         for i in range(len(v)):
             if v[i] >= 1:
-                rate[i] = 0
+                rate = rate.at[i].set(0)
             else:
-                rate[i] = (1/(1-v[i]))*((v_next_month[i]-v[i])/31 + (1/365)*v[i] + age_rate_shift[i]*pop_ratio[i]*v_shift[i])
+                rate = rate.at[i].set((1/(1-v[i]))*((v_next_month[i]-v[i])/31 + (1/365)*v[i] + age_rate_shift[i]*pop_ratio[i]*v_shift[i]))
     else:
         rate = (1/(1-v))*((v_next_month-v)/31 + (1/365)*v + age_rate_shift*pop_ratio*v_shift)
     return np.maximum(0,rate)

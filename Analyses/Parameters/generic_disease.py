@@ -1,7 +1,7 @@
 ## Generic disease parameters
 ## Blank canvas epi parameters with SIS model in mind
 
-import numpy as np
+import jax.numpy as np
 from numba import jit
 from utils import age_detection
 
@@ -36,6 +36,6 @@ OFFSET = 0.2
 BETA = 1/10
 # Vaccination paramters
 S_VAX, BCOV = 2, 0 
-@jit
+# @jit
 def ACOV(t,T_VAX):
     return 0.0

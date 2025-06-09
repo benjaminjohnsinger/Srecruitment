@@ -3,7 +3,7 @@
 ## This code defines a variable called "bounds" which is a list of lists, each containing the lower and upper bounds for a set of parameters.
 ## It also defines a function called "likelihood" which calculates the negative log likelihood of a set of parameters in those bounds.
 
-import numpy as np
+import jax.numpy as np
 import scipy as sp
 import pandas as pd
 import time
@@ -155,7 +155,7 @@ def likelihood(x):
         F3 = F2*x[n+5] # value less than F2 (second lockdown)
         F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
         Fs = np.array([1,F1,F2,F3,F4])
-        @jit
+        # @jit
         def contact(t,seasonality,offset):
             return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
         sim_params["contact"] = contact

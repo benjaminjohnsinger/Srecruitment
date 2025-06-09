@@ -1,7 +1,7 @@
 ## RSV parameters
 ## Parameters from literature cited by Pitzer et al. 2015, and guesses to match KPSC data
 
-import numpy as np
+import jax.numpy as np
 import pandas as pd
 from numba import jit
 # from Analyses.utils import age_detection
@@ -36,10 +36,10 @@ OFFSET = 0.2
 BETA = 0.5
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
-@jit
+# @jit
 def BCOV(t):
     return 0
-@jit
+# @jit
 def ACOV(t,SP,ap,AR):
     return 0
 
@@ -51,8 +51,8 @@ PP.index = (PP.index - pd.to_datetime("1970-01-01")).days
 # PP_NP = np.array(PP['Region 9'])/100
 PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean(axis=1))/100
 PP_IDX = np.array(PP.index)
-@jit
-def regional_positivity(t):
+# @jit
+def regional_positivity(t, PP_NP=PP_NP, PP_IDX=PP_IDX):
     if t < 14883 or t > PP_IDX[-1]:
         day_in_season = (t + 92)%365
         time_2010 = 14883 + day_in_season

@@ -1,7 +1,7 @@
 ## Code to construct a mobility time series for California from Google Mobility Data
 ## with optional separation between work, residential, and other locations
 
-import numpy as np
+import jax.numpy as jnp
 import pandas as pd
 import matplotlib.pyplot as plt
 from numba import jit
@@ -42,9 +42,9 @@ from utils import date_to_t, t_to_date
 # other_quadratic_model_of_ma = 2.9441 - 9.2762*ma_other_mobility + 8.5566*ma_other_mobility**2
 
 # # find the time at which ma_work_contacts_quadratic first becomes greater than 1, after January 1 2021
-# t = np.array(ma_work_contacts_quadratic.index)
+# t = jnp.array(ma_work_contacts_quadratic.index)
 # t = t[t > date_to_t(pd.to_datetime('2021-01-01'))]
-# t = t[np.argmax(ma_work_contacts_quadratic[t] > 0.95)]
+# t = t[jnp.argmax(ma_work_contacts_quadratic[t] > 0.95)]
 # print(t)
 
 # fig, ax = plt.subplots(figsize=(6,6))
@@ -84,28 +84,39 @@ MONTHLY_ARRIVALS = FLIGHTS.loc[FLIGHTS['Arrival_Departure'] == 'Arrival'].groupb
 MONTHLY_ARRIVALS.index = pd.to_datetime(MONTHLY_ARRIVALS.index, format='%m/%d/%Y %H:%M:%S %p')
 MONTHLY_ARRIVALS = MONTHLY_ARRIVALS.sort_index()
 MONTHLY_ARRIVALS.index = (MONTHLY_ARRIVALS.index - pd.to_datetime('1970-01-01')).days
+PASSENGER_COUNT = jnp.asarray(MONTHLY_ARRIVALS['Passenger_Count'])
 
-IDX = np.array(MONTHLY_ARRIVALS.index)
-MONTHLY_ARRIVALS_NP = np.array(MONTHLY_ARRIVALS['Passenger_Count'])/np.max(MONTHLY_ARRIVALS['Passenger_Count'])
+IDX = jnp.array(MONTHLY_ARRIVALS.index)
+MONTHLY_ARRIVALS_NP = jnp.array(PASSENGER_COUNT)/jnp.max(PASSENGER_COUNT)
 
-@jit
-def arrivals(t):
+# @jit
+def arrivals(t, MONTHLY_ARRIVALS_NP=MONTHLY_ARRIVALS_NP, IDX=IDX):
     """
     Return daily of arrivals at time t, with t the number of days since 1970-01-01
     """
-    # This code is used to repeat seasonal patterns outside of data scope
-    if t < 13149: # 16709 is the number of days since 1970-01-01 to 2006-10-01, the start of the data
-        day_in_season = (t - 13149)%365
-        time_2006 = 13149 + day_in_season
-        return MONTHLY_ARRIVALS_NP[np.argmax(IDX>=time_2006)]/30.44
-    elif t > 19266:
-        day_in_season = (t - 19266)%365
-        time_2022 = 19266 + day_in_season
-        return MONTHLY_ARRIVALS_NP[np.argmax(IDX>=time_2022)]/30.44
-    else:
-        return MONTHLY_ARRIVALS_NP[np.argmax(IDX>=t)]/30.44
+    # Calculate all possible values
+    day_in_season_2006 = (t - 13149) % 365
+    time_2006 = 13149 + day_in_season_2006
+    arrivals_2006 = MONTHLY_ARRIVALS_NP[jnp.argmax(IDX >= time_2006)] / 30.44
+    
+    day_in_season_2022 = (t - 19266) % 365
+    time_2022 = 19266 + day_in_season_2022
+    arrivals_2022 = MONTHLY_ARRIVALS_NP[jnp.argmax(IDX >= time_2022)] / 30.44
+    
+    arrivals_normal = MONTHLY_ARRIVALS_NP[jnp.argmax(IDX >= t)] / 30.44
+    
+    # Use nested jnp.where to select the appropriate value
+    return jnp.where(
+        t < 13149,
+        arrivals_2006,
+        jnp.where(
+            t > 19266,
+            arrivals_2022,
+            arrivals_normal
+        )
+    )
 
-# arrivals_by_month = np.array([arrivals(t) for t in np.array(date_to_t(pd.date_range(start=pd.to_datetime('2016-01-01'), end=pd.to_datetime('2024-01-01'), freq='MS')))])
+# arrivals_by_month = jnp.array([arrivals(t) for t in jnp.array(date_to_t(pd.date_range(start=pd.to_datetime('2016-01-01'), end=pd.to_datetime('2024-01-01'), freq='MS')))])
 # plt.plot(arrivals_by_month)
 # plt.show()
 
@@ -123,9 +134,9 @@ def arrivals(t):
 # ax[0].set_xticks([date_to_t("2016-01-01"),date_to_t("2018-01-01"),date_to_t("2020-01-01"),date_to_t("2022-01-01"),date_to_t("2024-01-01")])
 # ax[0].set_xticklabels(["2016","2018","2020","2022","2024"])
 # import contact_model as cm
-# Ts = np.array([date_to_t(date) for date in ['1970-01-01', '2020-03-19', '2020-08-28', '2021-08-28', '2022-04-16']])
-# Fs = np.array([1,0.74649061,0.97616163,0.84107913,0.97878123])
-# x = np.linspace(date_to_t('2015-10-01'),date_to_t('2024-01-01'),1000)
+# Ts = jnp.array([date_to_t(date) for date in ['1970-01-01', '2020-03-19', '2020-08-28', '2021-08-28', '2022-04-16']])
+# Fs = jnp.array([1,0.74649061,0.97616163,0.84107913,0.97878123])
+# x = jnp.linspace(date_to_t('2015-10-01'),date_to_t('2024-01-01'),1000)
 # y = [cm.piecewise(t,Ts,Fs) for t in x]
 # ax[1].plot(x,y,color="k")
 # plt.tight_layout()

@@ -1,11 +1,11 @@
 ## Ordinary differential equations defining SIR models with n susceptibility classes
 ## BJS September 2024
 
-import numpy as np
+import jax.numpy as np
 from numba import jit
 N_C = 3 # three types of compartment: susceptible, infected, recovered
 
-@jit
+# @jit
 ## Differential equations
 def single_pathogen_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact):
     delta = np.zeros(state.shape)
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     BETA = 0.5
     SEASONALITY = 0.2
     OFFSET = 0.2
-    @jit
+    # @jit
     def contact(t, seasonality, offset):
         return (1 + seasonality * np.cos(2 * np.pi * ((t - 274) / 365 - offset))) * CONTACT
 

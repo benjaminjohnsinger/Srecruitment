@@ -1,7 +1,7 @@
 ## SIR model with n susceptibility classes, for a single pathogen
 ## BJS September 2024
 
-import numpy as np
+import jax.numpy as np
 import scipy as sp
 import pandas as pd
 import itertools as it
@@ -49,7 +49,7 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
         else:
             obs = factor*obs
         # using roll to account for detection delays, note that frist len(p_time_to_obs) days should not be used due to wrap-around
-        obs = np.sum([np.roll(obs,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
+        obs = np.sum(np.array([np.roll(obs,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))]),axis=0)
         for i_age in range(NAG):
             ax.plot(dates[start_index:end_index],obs[start_index:end_index,i_age]/pop_size_by_age[start_index:end_index,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)
         mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[start_index:end_index])
@@ -58,14 +58,14 @@ def lockdown_incidence_plot(ax,state0,params,OBS_AGE,period,points,T_LOCKDOWN,LO
             obs = factor*observations(result,params,OBS_AGE,incidence=True)
         else:
             obs = factor*obs
-        obs = np.sum([np.roll(obs,i)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
+        obs = np.sum(np.array([np.roll(obs,i)*p_time_to_obs[i] for i in range(len(p_time_to_obs))]),axis=0)
         if relative:
             pre_mx = np.max(obs[start_index:np.argmin(times<=T_LOCKDOWN)])
             ax.plot(dates[start_index:end_index], obs[start_index:end_index]/pre_mx[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
             mx = 1.1*np.max(obs[start_index:end_index])/pre_mx
         else:
             ax.plot(dates[start_index:end_index], obs[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
-            mx = 1.1*np.max(obs[start_index:end_index])
+            mx = 1.1*np.max(np.array(obs[start_index:end_index]))
     return(mx)
 
 def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,year_skip=1,title='Incidence of disease'):

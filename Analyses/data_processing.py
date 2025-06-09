@@ -1,5 +1,5 @@
 import pandas as pd
-import numpy as np
+import jax.numpy as np
 from matplotlib import pyplot as plt
 from sas7bdat import SAS7BDAT
 from matplotlib import cm as colormaps
