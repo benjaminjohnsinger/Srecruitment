@@ -1,7 +1,7 @@
 ## BJS Jan 2025
 ## Fitting models to data using out-of-the-box optimisation tools
 
-import jax.numpy as np
+import jax.numpy as jnp
 import scipy as sp
 import pandas as pd
 import time
@@ -24,7 +24,7 @@ from fit_MCMC import SIS_likelihood
 pathogen, seed, lockdown, option1, option2, import_cap, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
 
 # set seed
-np.random.seed(seed)
+jnp.random.seed(seed)
 
 start_date = '2015-07-04'
 end_date = '2023-10-01'
@@ -40,7 +40,7 @@ EPOCH = pd.to_datetime('1970-01-01')
 START = pd.to_datetime(start_date) 
 END = pd.to_datetime(end_date)
 PERIOD = pd.date_range(start=START, end=END, freq='D')
-POINTS = np.array(date_to_t(PERIOD))
+POINTS = jnp.array(date_to_t(PERIOD))
 
 params, p_time_to_obs, incidence = pathogen_parameters(pathogen, lockdown, CONTACT)
 N_S, NAG = params["N_S"], params["NAG"]
@@ -50,7 +50,7 @@ incidence.index = pd.to_datetime(incidence.index)
 incidence = incidence.loc[START+pd.Timedelta(days=89):END]
 
 ## Initial conditions
-STATE0 = np.zeros((2*N_S+2)*NAG)
+STATE0 = jnp.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
@@ -96,7 +96,7 @@ if lockdown == "FlexStepwise":
     bounds_dict["F3"] = [0,1]
     bounds_dict["F4"] = [0,1]
 
-bounds = np.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7"]\
+bounds = jnp.array([bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7"]\
 if key in bounds_dict.keys()])
 
 def likelihood(x):
@@ -104,11 +104,11 @@ def likelihood(x):
     overdispersion = False
     print("time: ",time.time()-start)
     print(x)
-    if np.any(x < 0) or np.any(np.isnan(x)):
+    if jnp.any(x < 0) or jnp.any(jnp.isnan(x)):
         print("Invalid parameters")
         return 1e10
     sim_params = params.copy()
-    sim_params["WANE"] = np.array([0.0,x[0],0.0])
+    sim_params["WANE"] = jnp.array([0.0,x[0],0.0])
     sim_params["SEASONALITY"] = x[1]
     sim_params["OFFSET"] = x[2]
     sim_params["BETA"] = x[3]
@@ -125,12 +125,12 @@ def likelihood(x):
         sim_params["S_REL"] = srel
         n += 3
     elif pathogen == 'RSV':
-        sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
-        pobsrel = np.array([1,0.46,0.31]) # Henderson 1979
+        sim_params["S_REL"] = jnp.array([1,x[n],x[n]*x[n+1]])
+        pobsrel = jnp.array([1,0.46,0.31]) # Henderson 1979
         n += 2
     else:
-        sim_params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
-        pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
+        sim_params["S_REL"] = jnp.array([1,x[n],x[n]*x[n+1]])
+        pobsrel = jnp.array([1,x[n+2],x[n+2]*x[n+3]])
         n += 4
     if option2 != 'flexage':
         sim_params["P_OBS"] = x[n]*pobsrel
@@ -138,32 +138,32 @@ def likelihood(x):
     else:
         sim_params["P_OBS"] = pobsrel
     if lockdown == 'FlexStepwise':
-        Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
+        Ts = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
         # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
         F1 = x[n+3] # value between 0 and 1 (first lockdown)
         F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
         F3 = F2*x[n+5] # value less than F2 (second lockdown)
         F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
-        Fs = np.array([1,F1,F2,F3,F4])
+        Fs = jnp.array([1,F1,F2,F3,F4])
         # @jit
         def contact(t,seasonality,offset):
-            return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+            return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
         sim_params["contact"] = contact
         n += 7
     if option1 == 'nb':
-        overdispersion = np.exp(x[n])
+        overdispersion = jnp.exp(x[n])
         n += 1
     if option2 == 'flexage':
         # # barycentric parameterization of the age observation probabilities
-        # obs_age = np.zeros((7))
+        # obs_age = jnp.zeros((7))
         # remaining = 1.0
         # for i in range(1,7):
         #     allocation = x[n+i-1]*remaining
         #     obs_age[i] = allocation
         #     remaining -= allocation
         # obs_age[0] = remaining
-        # obs_age = obs_age/np.max(obs_age)
-        obs_age = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
+        # obs_age = obs_age/jnp.max(obs_age)
+        obs_age = jnp.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
     elif option2 == 'maternal':
         obs_age = age_detection(NAG,x[n],x[n+1],x[n+2],x[n+3],min_obs=0.025,n_infant_groups=1)
     else:

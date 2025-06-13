@@ -1,9 +1,10 @@
 ## Ordidxnary differential equations defining SIR models with n susceptibility classes
 ## BJS September 2024
 
-# from numba import jit
+from numba import jit
 import jax.numpy as jnp
-import numpy as np
+import jax.numpy as jnp
+# import contact_model as cm
 N_C = 2 # two types of compartment
 
 # separate function for recovery and waning immunity, since this is fasted in a numba-compiled for loop
@@ -17,8 +18,7 @@ def delta_helper(state,nag,ns,REC_UP,REC_SAME,WANE):
     return delta
 
 # vectorized ODEs for SIS model with 3 susceptibility classes
-def single_pathogen_deltas(t, state, args):
-    NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = args
+def single_pathogen_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact):
     delta = jnp.zeros(state.shape)
     pop_size = jnp.sum(state)
     age_pops = jnp.sum(state.reshape(((2*N_S+2),NAG)),axis=0)
@@ -26,7 +26,7 @@ def single_pathogen_deltas(t, state, args):
     delta = delta + birth_vax(t,BCOV,S_VAX,NAG,N_S,N_C)*birth_rate(t)*pop_size
     # infections are negative for susceptibles and positive for infected
     contact_t = contact(t,SEASONALITY,OFFSET)
-    infectious_contact = jnp.dot(contact_t,jnp.sum(jnp.array([state[j] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0]).reshape((N_S,NAG))*I_REL,axis=0))/pop_size
+    infectious_contact = jnp.dot(contact_t,jnp.sum(jnp.array([state[j] for j in range(NAG,(N_C*N_S+1)*NAG) if ((j//NAG)-1)%N_C==1]).reshape((N_S,NAG))*I_REL,axis=0))/pop_size
     import_contact = IMPORT_RATE*regional_positivity(t)*arrivals(t)*jnp.dot(contact_t,age_pops)/pop_size
     infection = jnp.repeat(S_REL,NAG*N_C)*jnp.tile(S_AGE,N_S*N_C)*BETA*jnp.tile(infectious_contact+import_contact,N_S*N_C)*jnp.repeat(jnp.tile(jnp.array([-1,1]+[0]*(N_C-2)),N_S),NAG)*jnp.array([jnp.tile(state[(2*i+1)*NAG:(2*i+2)*NAG],N_C) for i in range(N_S)]).flatten()
     # recovery and waning immunity, which have references to zero buffers at beginning and end of state
@@ -36,13 +36,13 @@ def single_pathogen_deltas(t, state, args):
     temp_age = AGING_RATE.copy()
     temp_age = temp_age.at[-1].set(0)
     aging_in = (temp_age*state[NAG:-NAG].reshape((N_C*N_S,NAG))).flatten() # aging into age groups
-    delta = delta.at[(NAG+1):-(NAG-1)].set(delta[(NAG+1):-(NAG-1)] + aging_in)
+    delta = delta.at[(NAG+1):-(NAG-1)].add(aging_in)
     # vaccination
     vax_out = (ACOV(t,S_REL*P_OBS,age_pops,AGING_RATE)*jnp.array([(i%N_C==0 and i//N_C!=S_VAX)*state[(i+1)*NAG:(i+2)*NAG] for i in range(N_S*N_C)])).flatten()
     vax_in = ACOV(t,S_REL*P_OBS,age_pops,AGING_RATE)*jnp.sum(jnp.array([(i%N_C==0 and i//N_C!=S_VAX)*state[(i+1)*NAG:(i+2)*NAG] for i in range(N_S*N_C)]).reshape((N_S*N_C,NAG)),axis=0)
-    delta = delta.at[(S_VAX*N_C+1)*NAG:(S_VAX*N_C+2)*NAG].set(delta[(S_VAX*N_C+1)*NAG:(S_VAX*N_C+2)*NAG] + vax_in)
+    delta = delta.at[(S_VAX*N_C+1)*NAG:(S_VAX*N_C+2)*NAG].add(vax_in)
     
-    delta = delta.at[NAG:-NAG].set(delta[NAG:-NAG] + infection - aging_out - vax_out)
+    delta = delta.at[NAG:-NAG].add(infection - aging_out - vax_out)
     return delta
 
 # def two_pathogen_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, arrivals, contact, INTERFERENCE,

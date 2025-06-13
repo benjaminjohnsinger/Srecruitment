@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import jax.numpy as np
+import jax.numpy as jnp
 from numba import jit
 from utils import date_to_t, t_to_date
 
@@ -38,10 +38,10 @@ POPULATION.index = (POPULATION.index - pd.to_datetime("1970-01-01")).days
 
 
 # BIRTHS and POPULATION as numpy vectors
-BIRTHS_IDX =np.array(BIRTHS.index)
-POPULATION_IDX = np.array(POPULATION.index)
-BIRTHS_NP = np.array(BIRTHS["Births"])
-POPULATION_NP = np.array(POPULATION["Population"])
+BIRTHS_IDX =jnp.array(BIRTHS.index)
+POPULATION_IDX = jnp.array(POPULATION.index)
+BIRTHS_NP = jnp.array(BIRTHS["Births"])
+POPULATION_NP = jnp.array(POPULATION["Population"])
 # print(POPULATION_NP)
 
 def births(t):
@@ -55,21 +55,21 @@ def birth_rate(t, BIRTHS_NP=BIRTHS_NP, BIRTHS_IDX=BIRTHS_IDX, POPULATION_NP=POPU
     """
     Return number of births per person per day at time t, with t the number of days since 1970-01-01
     """
-    bths = BIRTHS_NP[np.argmax(BIRTHS_IDX>=t)]/30.44
-    pop = POPULATION_NP[np.argmax(POPULATION_IDX>=t)]
+    bths = BIRTHS_NP[jnp.argmax(BIRTHS_IDX>=t)]/30.44
+    pop = POPULATION_NP[jnp.argmax(POPULATION_IDX>=t)]
     # if t>BIRTHS_IDX[-1] or t>POPULATION_IDX[-1]:
     #     bths = BIRTHS_NP[-1]/30.44
     #     pop = POPULATION_NP[-1]
     out_of_bounds = (t > BIRTHS_IDX[-1]) | (t > POPULATION_IDX[-1])
-    bths = np.where(out_of_bounds, BIRTHS_NP[-1]/30.44, bths)
-    pop = np.where(out_of_bounds, POPULATION_NP[-1], pop)
+    bths = jnp.where(out_of_bounds, BIRTHS_NP[-1]/30.44, bths)
+    pop = jnp.where(out_of_bounds, POPULATION_NP[-1], pop)
     return bths/pop
 
 
 
 # PERIOD = pd.date_range(start=pd.to_datetime('2000-10-01'), end=pd.to_datetime('2024-10-01'), freq='D')
 
-# POINTS = np.array(date_to_t(PERIOD))
+# POINTS = jnp.array(date_to_t(PERIOD))
 
 # plt.plot([t_to_date(pt) for pt in POINTS],[birth_rate(pt) for pt in POINTS])
 # plt.show()

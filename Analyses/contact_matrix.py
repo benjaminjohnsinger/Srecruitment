@@ -1,16 +1,16 @@
-import jax.numpy as np
+import jax.numpy as jnp
 
 ## Load data
 # Load synthetic contact matrices from Prem et al. 2021
-PREM_HOME = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_home.csv', delimiter=',')
-PREM_WORK = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_work.csv', delimiter=',')
-PREM_SCHOOL = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_school.csv', delimiter=',')
-PREM_OTHERS = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_others.csv', delimiter=',')
-PREM_ALL = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_all.csv', delimiter=',')
+PREM_HOME = jnp.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_home.csv', delimiter=',')
+PREM_WORK = jnp.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_work.csv', delimiter=',')
+PREM_SCHOOL = jnp.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_school.csv', delimiter=',')
+PREM_OTHERS = jnp.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_others.csv', delimiter=',')
+PREM_ALL = jnp.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_all.csv', delimiter=',')
 
 # Load population by each age in months from 0 to 1199
-AGE_POP = np.genfromtxt('Data/Processed/US_Census_population_by_age.csv', delimiter=',')
-AGE_POP_norm = AGE_POP/np.sum(AGE_POP)
+AGE_POP = jnp.genfromtxt('Data/Processed/US_Census_population_by_age.csv', delimiter=',')
+AGE_POP_norm = AGE_POP/jnp.sum(AGE_POP)
 
 ## Define matrix to map between age groups
 # Define age groups
@@ -23,20 +23,20 @@ MIKE_AGE_GROUPS = [range(0,4*12),range(4*12,6*12),range(6*12,18*12),range(18*12,
 NAG = len(MIKE_AGE_GROUPS)
 
 # Create matrix of population overlap between age groups
-AGE_MAP = np.zeros((NAG,16))
+AGE_MAP = jnp.zeros((NAG,16))
 for age in range(1200):
-    AGE_MAP[np.where([age in group for group in MIKE_AGE_GROUPS])[0][0],np.where([age in group for group in PREM_AGE_GROUPS])[0][0]] += AGE_POP_norm[age]
+    AGE_MAP[jnp.where([age in group for group in MIKE_AGE_GROUPS])[0][0],jnp.where([age in group for group in PREM_AGE_GROUPS])[0][0]] += AGE_POP_norm[age]
 # Columns sum to 1
-AGE_MAP = AGE_MAP/np.sum(AGE_MAP,axis=0)
+AGE_MAP = AGE_MAP/jnp.sum(AGE_MAP,axis=0)
 # Rows sum to 1
-AGE_INC = AGE_MAP/np.sum(AGE_MAP,axis=1)[:,np.newaxis]
+AGE_INC = AGE_MAP/jnp.sum(AGE_MAP,axis=1)[:,jnp.newaxis]
 
 ## Transform contact matrices to MIKE age groups
-MIKE_HOME = np.dot(np.dot(AGE_INC,PREM_HOME),AGE_MAP.T)
-MIKE_WORK = np.dot(np.dot(AGE_INC,PREM_WORK),AGE_MAP.T)
-MIKE_SCHOOL = np.dot(np.dot(AGE_INC,PREM_SCHOOL),AGE_MAP.T)
-MIKE_OTHERS = np.dot(np.dot(AGE_INC,PREM_OTHERS),AGE_MAP.T)
-MIKE_ALL = np.dot(np.dot(AGE_INC,PREM_ALL),AGE_MAP.T)
+MIKE_HOME = jnp.dot(jnp.dot(AGE_INC,PREM_HOME),AGE_MAP.T)
+MIKE_WORK = jnp.dot(jnp.dot(AGE_INC,PREM_WORK),AGE_MAP.T)
+MIKE_SCHOOL = jnp.dot(jnp.dot(AGE_INC,PREM_SCHOOL),AGE_MAP.T)
+MIKE_OTHERS = jnp.dot(jnp.dot(AGE_INC,PREM_OTHERS),AGE_MAP.T)
+MIKE_ALL = jnp.dot(jnp.dot(AGE_INC,PREM_ALL),AGE_MAP.T)
 
 # ## Plot contact matrices
 # import matplotlib.pyplot as plt
@@ -60,8 +60,8 @@ MIKE_ALL = np.dot(np.dot(AGE_INC,PREM_ALL),AGE_MAP.T)
 # plt.show()
 
 ## Save contact matrices
-np.savetxt('Data/Processed/contact_matrices/MIKE_contact_home_US_Census.csv',MIKE_HOME,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/MIKE_contact_work_US_Census.csv',MIKE_WORK,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/MIKE_contact_school_US_Census.csv',MIKE_SCHOOL,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/MIKE_contact_others_US_Census.csv',MIKE_OTHERS,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/MIKE_contact_all_US_Census.csv',MIKE_ALL,delimiter=',')
+jnp.savetxt('Data/Processed/contact_matrices/MIKE_contact_home_US_Census.csv',MIKE_HOME,delimiter=',')
+jnp.savetxt('Data/Processed/contact_matrices/MIKE_contact_work_US_Census.csv',MIKE_WORK,delimiter=',')
+jnp.savetxt('Data/Processed/contact_matrices/MIKE_contact_school_US_Census.csv',MIKE_SCHOOL,delimiter=',')
+jnp.savetxt('Data/Processed/contact_matrices/MIKE_contact_others_US_Census.csv',MIKE_OTHERS,delimiter=',')
+jnp.savetxt('Data/Processed/contact_matrices/MIKE_contact_all_US_Census.csv',MIKE_ALL,delimiter=',')

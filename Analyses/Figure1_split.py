@@ -1,4 +1,4 @@
-import jax.numpy as np
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import pickle
 from matplotlib.gridspec import GridSpec
@@ -33,14 +33,14 @@ model = cluster_sims(results,obses,T_LOCKDOWN,6)
 # model.n_clusters = 6
 
 model1 = cluster_sims(results,obses,T_LOCKDOWN,1)
-ages = np.array([np.mean(age_of_first_infection(results[key],MEDIAN_AGE)[np.argmax(results[key].t>=T_LOCKDOWN-5*12):np.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
-ages_label = np.array([int(age>3) + int(age>12) + int(age>5*12) + int(age>18*12) + int(age>40*12) + int(age>65*12) for age in ages])
+ages = jnp.array([jnp.mean(age_of_first_infection(results[key],MEDIAN_AGE)[jnp.argmax(results[key].t>=T_LOCKDOWN-5*12):jnp.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
+ages_label = jnp.array([int(age>3) + int(age>12) + int(age>5*12) + int(age>18*12) + int(age>40*12) + int(age>65*12) for age in ages])
 n_age_clusters = max(ages_label)+1
-cluster_colors = np.array([["#FF832B", "#FFB000", "#DC267F", "#648FFF", "#BBBBBB", "#785EF0", "#8B0000", "#00FF00"][i] for i in model.labels_])
+cluster_colors = jnp.array([["#FF832B", "#FFB000", "#DC267F", "#648FFF", "#BBBBBB", "#785EF0", "#8B0000", "#00FF00"][i] for i in model.labels_])
 
 incidences = {}
 for obs_key in obses.keys():
-    incidences[obs_key] = np.sum(obses[obs_key],axis=1)/np.sum(results[obs_key].y,axis=0)
+    incidences[obs_key] = jnp.sum(obses[obs_key],axis=1)/jnp.sum(results[obs_key].y,axis=0)
 
 #### top row of complex figure
 # Top row plot
@@ -50,8 +50,8 @@ gs = GridSpec(2,4,figure=fig)
 big_axis = fig.add_subplot(gs[:,0])
 big_axis_hidden = big_axis.twinx()
 big_axis_hidden.set_visible(False)
-top_row_up = np.array([big_axis_hidden] + [fig.add_subplot(gs[0,j]) for j in range(1,4)])
-top_row_down = np.array([big_axis] + [fig.add_subplot(gs[1,j]) for j in range(1,4)])
+top_row_up = jnp.array([big_axis_hidden] + [fig.add_subplot(gs[0,j]) for j in range(1,4)])
+top_row_down = jnp.array([big_axis] + [fig.add_subplot(gs[1,j]) for j in range(1,4)])
 top_row_up.shape = (1,4)
 top_row_down.shape = (1,4)
 top_row_up[0,1].sharey(top_row_up[0,2])

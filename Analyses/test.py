@@ -2,7 +2,7 @@
 ## Code to explore how susceptibles recruitment affects outbreak dynamics
 ## BJS August 2024
 
-import jax.numpy as np
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
@@ -17,35 +17,35 @@ from utils import *
 
 
 # pathogens = ["RSV","InfluenzaA","InfluenzaB","Metapneumovirus","Adenovirus","Parainfluenza3"]
-# successes = 4*np.ones(len(pathogens))
+# successes = 4*jnp.ones(len(pathogens))
 # idxs = [1,3,6,7,11,13,18,19,20,22]
 # for i in idxs:
 #     successes[i%len(pathogens)] -= 1
 # data_series = pd.Series(successes,index=pathogens)
 # print(data_series)
 
-# y = np.array([[0.24594159,0.1857486,0.12555562,0.02660094,0.025,0.09684663,1],
+# y = jnp.array([[0.24594159,0.1857486,0.12555562,0.02660094,0.025,0.09684663,1],
 # [0.40500959,0.25868484,0.11236009,0.02751321,0.025,0.09997146,1],
 # [0.16297547,0.52178387,0.21929624,0.04318071,0.04170955,0.11397942,1],
 # [0.10025676,1,0.71161871,0.0370452,0.0293728,0.12880827,0.90285049],
 # [0.02507071,0.06970037,0.11433003,0.025,0.025,0.16546965,1],
 # [0.025,0.025,0.10121682,0.025,0.025,0.13514337,1]])
-# x = np.arange(0,7)
+# x = jnp.arange(0,7)
 # pathogens = ["RSV","InfluenzaA","InfluenzaB","Metapneumovirus","Adenovirus","Parainfluenza3"]
 # for i in range(6):
 #     plt.plot(x,y[i],label=pathogens[i])
 # plt.legend()
 # plt.show()
-# Ts = np.array([date_to_t(date) for date in ['1970-01-01', '2020-03-19', '2020-08-28', '2021-08-28', '2022-04-16']])
-# Fs = np.array([1,0.74649061,0.97616163,0.84107913,0.97878123])
+# Ts = jnp.array([date_to_t(date) for date in ['1970-01-01', '2020-03-19', '2020-08-28', '2021-08-28', '2022-04-16']])
+# Fs = jnp.array([1,0.74649061,0.97616163,0.84107913,0.97878123])
 
-# x = np.linspace(date_to_t('2015-10-01'),date_to_t('2024-01-01'),1000)
+# x = jnp.linspace(date_to_t('2015-10-01'),date_to_t('2024-01-01'),1000)
 # y = [cm.piecewise(t,Ts,Fs) for t in x]
 # plt.plot(x,y)
 # plt.show()
 
 
-# hessian = np.array([[-1.35654718e+02,6.37871872e+04,-8.30702240e+02,9.71857854e+05
+# hessian = jnp.array([[-1.35654718e+02,6.37871872e+04,-8.30702240e+02,9.71857854e+05
 # ,1.63771113e+05,4.87044664e+06,1.58916544e+04,-2.22072870e+02
 # ,-7.78329613e-01,-2.26614395e+04,-2.40650601e+03,-3.20770526e+03
 # ,-1.94903182e+03,1.21906192e+03,2.73243484e+02,-2.02679020e+03
@@ -145,18 +145,18 @@ from utils import *
 # ,-4.18354065e+00,-5.89125635e+05,-5.73813317e+03,-6.07145357e+03
 # ,1.38346838e+03,3.56568860e+02,1.89120925e+03,2.43160780e+02
 # ,-6.07956795e+00,6.75581301e+04,-5.55148120e-08,-7.09564928e+04]])
-# fisher_info = np.linalg.inv(-hessian)
-# print(np.diag(fisher_info))
+# fisher_info = jnp.linalg.inv(-hessian)
+# print(jnp.diag(fisher_info))
 # n=0
 # x = [0.2,0.2,0.2,0.2,0.3,0.9]
-# OBS_AGE = np.zeros((7))
+# OBS_AGE = jnp.zeros((7))
 # remaining = 1.0
 # for i in range(1,7):
 #     allocation = x[n+i-1]*remaining
 #     OBS_AGE[i-1] = allocation
 #     remaining -= allocation
 # OBS_AGE[6] = remaining
-# OBS_AGE = OBS_AGE/np.max(OBS_AGE)
+# OBS_AGE = OBS_AGE/jnp.max(OBS_AGE)
 # print(OBS_AGE)
 # i=0
 # for pathogen in ["RSV","InfluenzaA","InfluenzaB","Metapneumovirus","Adenovirus","Parainfluenza3"]:
@@ -165,14 +165,14 @@ from utils import *
 #         print("\""+pathogen,"250325","FlexStepwise",option1,"flexage",str(0.01),"15 1 0.7\"")
 # print(i)
 
-# infectious_contact = np.genfromtxt("Data/Processed/infectious_contact_rsv.csv",delimiter=',',dtype=np.float64)
-# import_contact = np.genfromtxt("Data/Processed/import_contact_rsv.csv",delimiter=',',dtype=np.float64)
+# infectious_contact = jnp.genfromtxt("Data/Processed/infectious_contact_rsv.csv",delimiter=',',dtype=jnp.float64)
+# import_contact = jnp.genfromtxt("Data/Processed/import_contact_rsv.csv",delimiter=',',dtype=jnp.float64)
 
-# print(np.median(infectious_contact/import_contact,axis=0))
-# print(np.sum(infectious_contact,axis=0)/np.sum(import_contact,axis=0))
-# print(np.max(infectious_contact,axis=0)/np.max(import_contact,axis=0))
-# print(np.mean(infectious_contact,axis=0)/np.mean(import_contact,axis=0))
-# print(np.median(infectious_contact,axis=0)/np.median(import_contact,axis=0))
+# print(jnp.median(infectious_contact/import_contact,axis=0))
+# print(jnp.sum(infectious_contact,axis=0)/jnp.sum(import_contact,axis=0))
+# print(jnp.max(infectious_contact,axis=0)/jnp.max(import_contact,axis=0))
+# print(jnp.mean(infectious_contact,axis=0)/jnp.mean(import_contact,axis=0))
+# print(jnp.median(infectious_contact,axis=0)/jnp.median(import_contact,axis=0))
 
 # files = [
 # "InfluenzaB_deFBfl250304"

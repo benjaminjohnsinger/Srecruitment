@@ -1,5 +1,5 @@
 import pandas as pd
-import jax.numpy as np
+import jax.numpy as jnp
 from matplotlib import pyplot as plt
 from sas7bdat import SAS7BDAT
 from matplotlib import cm as colormaps
@@ -12,7 +12,7 @@ import time
 # ### full NREVSS data
 # data = pd.read_excel('Data/Raw/NREVSS_all.xlsx',sheet_name='Final')
 # # drop REGNAME column
-# data.drop(columns=["REGNAME"],inplace=True)
+# data.drop(columns=["REGNAME"],ijnplace=True)
 
 # # sum data (RSVpos,RSVtest,PIV3pos,PIVtest,RAdenopos,RAdenotest,HMetapneumopos,HMetapneumotest) with same date, region, and test type
 # data = data.groupby(["RepWeekDate","HHS_REGION","TestType"]).sum().reset_index()
@@ -63,7 +63,7 @@ import time
 # antigen_pp_PIV3 = antigen_pp_PIV3[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
 # antigen_pp_AdV = antigen_pp_AdV[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
 # antigen_pp_MPV = antigen_pp_MPV[["Region " + str(i) for i in range(1,9)]+["Region 10"]+["Region 9"]]
-# colors = colormaps.get_cmap('Greys',9)(np.linspace(1,0.3,9)).tolist()
+# colors = colormaps.get_cmap('Greys',9)(jnp.linspace(1,0.3,9)).tolist()
 # colors.append('red')
 # fig, ax = plt.subplots(4,1,figsize=(13.3,10),sharex=True,sharey=True)
 # antigen_pp_RSV.plot(ax=ax[0],legend=False,color=colors)
@@ -90,7 +90,7 @@ import time
 
 # # positivity pre 2020 is column "RSV Detections"/"RSV Tests"
 # rsv_pre2020["Percent Positive"] = 100*rsv_pre2020["RSV Detections"]/rsv_pre2020["RSV Tests"]
-# rsv_pre2020.fillna(0,inplace=True)
+# rsv_pre2020.fillna(0,ijnplace=True)
 # # positivity post 2020 is column "pcr_percent_positive"
 # rsv_post2020["Percent Positive"] = rsv_post2020["pcr_percent_positive"]
 
@@ -98,7 +98,7 @@ import time
 # rsv_pre2020["Region"] = "Region " + rsv_pre2020["HHS region "].astype(str)
 # # drop "National" level from post 2020 data and rename
 # rsv_post2020 = rsv_post2020[rsv_post2020["level"] != "National"]
-# rsv_post2020.rename(columns={"level":"Region"},inplace=True)
+# rsv_post2020.rename(columns={"level":"Region"},ijnplace=True)
 
 # # concatenate time series
 # rsv_pp = pd.concat([rsv_pre2020[["Date","Region","Percent Positive"]],rsv_post2020[["Date","Region","Percent Positive"]]])
@@ -125,21 +125,21 @@ import time
 # flu_clinical = flu_clinical[~flu_clinical["REGION"].isin(["Puerto Rico","Virgin Islands","New York City"])]
 
 # # replace "X" with NA
-# flu_pre2015.replace("X",0.0,inplace=True)
-# flu_clinical.replace("X",0.0,inplace=True)
+# flu_pre2015.replace("X",0.0,ijnplace=True)
+# flu_clinical.replace("X",0.0,ijnplace=True)
 
 # # flu A columns are A (2009 H1N1),A (H1),A (H3),A (Subtyping not Performed),A (Unable to Subtype),H3N2v,A (H5)
 # flu_pre2015["A"] = flu_pre2015["A (2009 H1N1)"].astype(float) + flu_pre2015["A (H1)"].astype(float) + flu_pre2015["A (H3)"].astype(float) + flu_pre2015["A (Subtyping not Performed)"].astype(float) + flu_pre2015["A (Unable to Subtype)"].astype(float) + flu_pre2015["H3N2v"].astype(float) + flu_pre2015["A (H5)"].astype(float)
 # flu_pre2015["PERCENT A"] = 100*flu_pre2015["A"]/flu_pre2015["TOTAL SPECIMENS"].astype(float)
 # flu_pre2015["PERCENT B"] = 100*flu_pre2015["B"].astype(float)/flu_pre2015["TOTAL SPECIMENS"].astype(float)
 # # NA to 0
-# flu_pre2015.fillna(0,inplace=True)
+# flu_pre2015.fillna(0,ijnplace=True)
 
 # # get PERCENT POSITIVE for each week by concatenating time series from pre-2015 and post-2015 clinical data
 # fluA_pp = pd.concat([flu_pre2015[["Date","REGION","PERCENT A"]],flu_clinical[["Date","REGION","PERCENT A"]]])
-# fluA_pp.rename(columns={"PERCENT A":"PERCENT POSITIVE"},inplace=True)
+# fluA_pp.rename(columns={"PERCENT A":"PERCENT POSITIVE"},ijnplace=True)
 # fluB_pp = pd.concat([flu_pre2015[["Date","REGION","PERCENT B"]],flu_clinical[["Date","REGION","PERCENT B"]]])
-# fluB_pp.rename(columns={"PERCENT B":"PERCENT POSITIVE"},inplace=True)
+# fluB_pp.rename(columns={"PERCENT B":"PERCENT POSITIVE"},ijnplace=True)
 # # index
 # fluA_pp_regional = fluA_pp.pivot(index="Date",columns="REGION",values="PERCENT POSITIVE")
 # # convert values type into float
@@ -153,7 +153,7 @@ import time
 
 
 # # plots
-# # colors = colormaps.get_cmap('Greys',9)(np.linspace(1,0.3,9)).tolist()
+# # colors = colormaps.get_cmap('Greys',9)(jnp.linspace(1,0.3,9)).tolist()
 # # colors.append('red')
 # fig, ax = plt.subplots(2,1,figsize=(13.3,7.5),sharey=True,sharex=True)
 # fluA_pp_regional.plot(ax=ax[0],legend=False,color='k',alpha=0.3)
@@ -241,7 +241,7 @@ print(test_data.columns)
 # # # sort by age in months, then translate into age groups
 # # AGE_GROUPS = [range(0,3), range(3,12),range(12,5*12),range(5*12,18*12),range(18*12,40*12),range(40*12,65*12),range(65*12,120*12)]
 # # AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-17y','18-39y','40-64y','>=65y']
-# # assign_age_group = lambda x: AGE_GROUP_NAMES[np.argmax([x in group for group in AGE_GROUPS])]
+# # assign_age_group = lambda x: AGE_GROUP_NAMES[jnp.argmax([x in group for group in AGE_GROUPS])]
 # # clinical_data["AGE_GROUP"] = clinical_data["age_in_mo"].apply(assign_age_group)
 # # # get proportion of clinical cases with flu_vac == 1 in each month, for each age group.
 # vaccination_proportion = clinical_data.groupby(["Year","age"])["flu_vac"].mean().unstack()
@@ -268,7 +268,7 @@ print(test_data.columns)
 # print(vaccination_proportion[['<3m','3-11m']])
 # # plot
 # fig, ax = plt.subplots(figsize=(6.5,6.5))
-# hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
+# hsv_colors = colormaps.hsv(-0.02+jnp.arange(7)/7)
 # hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 # vaccination_proportion.plot(ax=ax,color=hsv_colors)
 # # # plot dashed vertical lines at october each year
@@ -290,7 +290,7 @@ print(test_data.columns)
 # positive_tests["Date"] = pd.to_datetime(positive_tests["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(positive_tests["lab_days"],unit='D')
 # positive_tests = clinical_data.merge(positive_tests[["StudyID","Date","pathogen","lab_type","lab_days"]],on="StudyID",how="left")
 # positive_tests = positive_tests.rename(columns={"Date_x":"Clinical date","Date_y":"Test date"})
-# positive_tests = positive_tests[np.abs((pd.to_datetime(positive_tests["Clinical date"]) - pd.to_datetime(positive_tests["Test date"])).dt.days) <= 14]
+# positive_tests = positive_tests[jnp.abs((pd.to_datetime(positive_tests["Clinical date"]) - pd.to_datetime(positive_tests["Test date"])).dt.days) <= 14]
 
 # # save to csv
 # positive_tests.to_csv('Data/Processed/KPSC_positive_matched_all_clinical.csv',index=False)
@@ -328,7 +328,7 @@ print(test_data.columns)
 # # # # rename columns
 # positive_tests = positive_tests.rename(columns={"Date_x":"Hospitalization date","Date_y":"Test date"})
 # # # # keep only rows where Hospitalization date is within 14 days of Test date
-# positive_tests = positive_tests[np.abs((pd.to_datetime(positive_tests["Hospitalization date"]) - pd.to_datetime(positive_tests["Test date"])).dt.days) <= 14]
+# positive_tests = positive_tests[jnp.abs((pd.to_datetime(positive_tests["Hospitalization date"]) - pd.to_datetime(positive_tests["Test date"])).dt.days) <= 14]
 
 # # # save to csv
 # positive_tests.to_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv',index=False)

@@ -1,4 +1,4 @@
-import jax.numpy as np
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import pickle
 from matplotlib.gridspec import GridSpec
@@ -31,15 +31,15 @@ gs_top = gs[0:2,:].subgridspec(2,4)
 big_axis = fig.add_subplot(gs_top[:,0])
 big_axis_hidden = big_axis.twinx()
 big_axis_hidden.set_visible(False)
-top_row_up = np.array([big_axis_hidden] + [fig.add_subplot(gs_top[0,j]) for j in range(1,4)])
-top_row_down = np.array([big_axis] + [fig.add_subplot(gs_top[1,j]) for j in range(1,4)])
+top_row_up = jnp.array([big_axis_hidden] + [fig.add_subplot(gs_top[0,j]) for j in range(1,4)])
+top_row_down = jnp.array([big_axis] + [fig.add_subplot(gs_top[1,j]) for j in range(1,4)])
 top_row_up.shape = (1,4)
 top_row_down.shape = (1,4)
 # Two 3x4 panels below
 gs_panel1 = gs[2:5,0].subgridspec(3,4)
-panel1_axes = np.array([[fig.add_subplot(gs_panel1[i,j]) for j in range(4)] for i in range(3)])
+panel1_axes = jnp.array([[fig.add_subplot(gs_panel1[i,j]) for j in range(4)] for i in range(3)])
 gs_panel2 = gs[2:5,1].subgridspec(3,4)
-panel2_axes = np.array([[fig.add_subplot(gs_panel2[i,j]) for j in range(4)] for i in range(3)])
+panel2_axes = jnp.array([[fig.add_subplot(gs_panel2[i,j]) for j in range(4)] for i in range(3)])
 
 top_row_up[0,1].sharey(top_row_up[0,2])
 top_row_up[0,2].sharey(top_row_up[0,3])
@@ -79,10 +79,10 @@ model.labels_[model.labels_==1] = model_5of1.labels_
 model.n_clusters = 6
 
 model1 = cluster_sims(results,obses,T_LOCKDOWN,1)
-ages = np.array([np.mean(age_of_first_infection(results[key],MEDIAN_AGE)[np.argmax(results[key].t>=T_LOCKDOWN-5*365):np.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
-ages_label = np.array([int(age>3) + int(age>12) + int(age>5*12) + int(age>18*12) + int(age>40*12) + int(age>65*12) for age in ages])
+ages = jnp.array([jnp.mean(age_of_first_infection(results[key],MEDIAN_AGE)[jnp.argmax(results[key].t>=T_LOCKDOWN-5*365):jnp.argmax(results[key].t>T_LOCKDOWN)]) for key in results.keys()])
+ages_label = jnp.array([int(age>3) + int(age>12) + int(age>5*12) + int(age>18*12) + int(age>40*12) + int(age>65*12) for age in ages])
 n_age_clusters = max(ages_label)+1
-cluster_colors = np.array([["#FF832B", "#FFB000", "#DC267F", "#648FFF", "#BBBBBB", "#785EF0", "#8B0000", "#00FF00"][i] for i in model.labels_])
+cluster_colors = jnp.array([["#FF832B", "#FFB000", "#DC267F", "#648FFF", "#BBBBBB", "#785EF0", "#8B0000", "#00FF00"][i] for i in model.labels_])
 
 cluster_plot(top_row_up,results,obses,model1.n_clusters,model1.labels_,None,color=False,N=N)
 cluster_plot(top_row_down,results,obses,model1.n_clusters,model1.labels_,None,color=True,line=False,color_values_all=cluster_colors,N=N)

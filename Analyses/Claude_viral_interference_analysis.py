@@ -1,5 +1,5 @@
 import pandas as pd
-import jax.numpy as np
+import jax.numpy as jnp
 import pyreadstat
 from scipy.stats import chi2_contingency
 import matplotlib.pyplot as plt
@@ -347,9 +347,9 @@ def logistic_regression_analysis(wide_df, pathogens_of_interest, time_var='month
                 # Extract coefficient for virus1
                 coef = model.params[virus1]
                 p_value = model.pvalues[virus1]
-                odds_ratio = np.exp(coef)
-                ci_lower = np.exp(coef - 1.96 * model.bse[virus1])
-                ci_upper = np.exp(coef + 1.96 * model.bse[virus1])
+                odds_ratio = jnp.exp(coef)
+                ci_lower = jnp.exp(coef - 1.96 * model.bse[virus1])
+                ci_upper = jnp.exp(coef + 1.96 * model.bse[virus1])
                 
                 results.append({
                     'Virus1': virus1,
@@ -386,7 +386,7 @@ def plot_odds_ratios(results_df, title):
     # Format for plotting
     plot_data = results_df.copy()
     plot_data['Pair'] = plot_data['Virus1'] + ' + ' + plot_data['Virus2']
-    plot_data['log_OR'] = np.log(plot_data['Odds Ratio'])
+    plot_data['log_OR'] = jnp.log(plot_data['Odds Ratio'])
     
     # Sort by odds ratio
     plot_data = plot_data.sort_values('Odds Ratio')

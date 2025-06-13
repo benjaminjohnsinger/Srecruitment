@@ -1,4 +1,4 @@
-import jax.numpy as np
+import jax.numpy as jnp
 import scipy as sp
 import itertools as it
 from SISn_ODEs import single_pathogen_deltas as deltas_SIS
@@ -19,18 +19,18 @@ def sim_grid(state0,params,points,T_LOCKDOWN,LOCKDOWN_DURATION,
                     params_n[pname] = params[pname]*(1+(p/N-1/2))**factors[i]
                 elif grid_mode[i] == "fade_vec":
                     vec_len = len(params[pname])
-                    vec = np.array([(1-j*(p/(N*(vec_len-1))))**factors[i] for j in range(vec_len)])
+                    vec = jnp.array([(1-j*(p/(N*(vec_len-1))))**factors[i] for j in range(vec_len)])
                     vec = vec.reshape(params[pname].shape)
                     params_n[pname] = vec
                 elif grid_mode[i] == "power_vec":
                     vec_len = len(params[pname])
-                    vec = np.array([(1-(p/N))**(j*factors[i]) for j in range(vec_len)])
+                    vec = jnp.array([(1-(p/N))**(j*factors[i]) for j in range(vec_len)])
                     vec = vec.reshape(params[pname].shape)
                     params_n[pname] = vec
                 elif grid_mode[i] == "based_vec":
                     vec_len = len(params[pname])
                     base_value = params[pname][0]-params[pname][1]
-                    vec = np.array([(1-j*(base_value+(1/(vec_len-1)-base_value)*p/N))**factors[i] for j in range(vec_len)])
+                    vec = jnp.array([(1-j*(base_value+(1/(vec_len-1)-base_value)*p/N))**factors[i] for j in range(vec_len)])
                     vec = vec.reshape(params[pname].shape)
                     params_n[pname] = vec
         # Run simulation

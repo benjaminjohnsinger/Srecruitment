@@ -9,11 +9,11 @@
 # print("BETA estimation time:",time_1param)
 # print(opt)
 
-# params["P_OBS"] = 0.02*np.ones(N_S)
+# params["P_OBS"] = 0.02*jnp.ones(N_S)
 # def likelihood(pms):
 #     pams = params.copy()
 #     pams["BETA"] = pms[0]
-#     pams["P_OBS"] = pms[1]*np.ones(N_S)
+#     pams["P_OBS"] = pms[1]*jnp.ones(N_S)
 #     return -SIS_likelihood(noisy_incidence,pams,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
 # time0 = time.time()
 # opt = sp.optimize.minimize(likelihood,[0.1,0.02],method='Nelder-Mead')
@@ -25,7 +25,7 @@
 # def likelihood(pms):
 #     pams = params.copy()
 #     pams["BETA"] = pms[0]
-#     pams["P_OBS"] = pms[1]*np.ones(N_S)
+#     pams["P_OBS"] = pms[1]*jnp.ones(N_S)
 #     pams["SEASONALITY"] = pms[2]
 #     return -SIS_likelihood(noisy_incidence,pams,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
 # time0 = time.time()
@@ -38,7 +38,7 @@
 # def likelihood(pms):
 #     pams = params.copy()
 #     pams["BETA"] = pms[0]
-#     pams["P_OBS"] = pms[1]*np.ones(N_S)
+#     pams["P_OBS"] = pms[1]*jnp.ones(N_S)
 #     pams["SEASONALITY"] = pms[2]
 #     pams["OFFSET"] = pms[3]
 #     return -SIS_likelihood(noisy_incidence,pams,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
@@ -48,14 +48,14 @@
 # print("BETA, P_OBS, SEASONALITY and OFFSET estimation time:",time_4param)
 # print(opt)
 
-# params["WANE"] = 1/30*np.array([0.0,1.0,0.0])/365
+# params["WANE"] = 1/30*jnp.array([0.0,1.0,0.0])/365
 # def likelihood(pms):
 #     pams = params.copy()
 #     pams["BETA"] = pms[0]
-#     pams["P_OBS"] = pms[1]*np.ones(N_S)
+#     pams["P_OBS"] = pms[1]*jnp.ones(N_S)
 #     pams["SEASONALITY"] = pms[2]
 #     pams["OFFSET"] = pms[3]
-#     pams["WANE"] = 1/30*np.array([0.0,pms[4],0.0])/365
+#     pams["WANE"] = 1/30*jnp.array([0.0,pms[4],0.0])/365
 #     return -SIS_likelihood(noisy_incidence,pams,POINTS,STATE0,OBS_AGE,p_time_to_obs,age=True,incidence=True)
 # time0 = time.time()
 # opt = sp.optimize.minimize(likelihood,[0.1,0.02,0.05,0.1,1.0],method='Nelder-Mead')
@@ -67,10 +67,10 @@
 # def likelihood(pms):
 #     pams = params.copy()
 #     pams["BETA"] = pms[0]
-#     pams["P_OBS"] = pms[1]*np.ones(N_S)
+#     pams["P_OBS"] = pms[1]*jnp.ones(N_S)
 #     pams["SEASONALITY"] = pms[2]
 #     pams["OFFSET"] = pms[3]
-#     pams["WANE"] = 1/30*np.array([0.0,pms[4],0.0])/365
+#     pams["WANE"] = 1/30*jnp.array([0.0,pms[4],0.0])/365
 #     obs_age = age_detection(NAG,pms[5],0.85,0.1)
 #     return -SIS_likelihood(noisy_incidence,pams,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
 # time0 = time.time()
@@ -83,10 +83,10 @@
 # def likelihood(pms):
 #     pams = params.copy()
 #     pams["BETA"] = pms[0]
-#     pams["P_OBS"] = pms[1]*np.ones(N_S)
+#     pams["P_OBS"] = pms[1]*jnp.ones(N_S)
 #     pams["SEASONALITY"] = pms[2]
 #     pams["OFFSET"] = pms[3]
-#     pams["WANE"] = 1/30*np.array([0.0,pms[4],0.0])/365
+#     pams["WANE"] = 1/30*jnp.array([0.0,pms[4],0.0])/365
 #     obs_age = age_detection(NAG,pms[5],pms[6],0.1)
 #     return -SIS_likelihood(noisy_incidence,pams,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
 # time0 = time.time()
@@ -99,10 +99,10 @@
 # def likelihood(pms):
 #     pams = params.copy()
 #     pams["BETA"] = pms[0]
-#     pams["P_OBS"] = pms[1]*np.ones(N_S)
+#     pams["P_OBS"] = pms[1]*jnp.ones(N_S)
 #     pams["SEASONALITY"] = pms[2]
 #     pams["OFFSET"] = pms[3]
-#     pams["WANE"] = 1/30*np.array([0.0,pms[4],0.0])/365
+#     pams["WANE"] = 1/30*jnp.array([0.0,pms[4],0.0])/365
 #     obs_age = age_detection(NAG,pms[5],pms[6],pms[7])
 #     return -SIS_likelihood(noisy_incidence,pams,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
 # time0 = time.time()
@@ -124,18 +124,18 @@
 # print(-likelihood(opt.x[0],opt.x[1]))
 
 # fig, ax = plt.subplots(1,1,figsize=(6.5,6.5))
-# im = ax.imshow([[-likelihood([beta,pobs]) for beta in np.linspace(0.75,0.85,10)] for pobs in np.linspace(0.009,0.011,10)],cmap='viridis')
-# ax.set_xticks(np.linspace(0,9,5))
-# ax.set_xticklabels(np.round(np.linspace(0.80,0.82,5),2))
-# ax.set_yticks(np.linspace(0,9,5))
-# ax.set_yticklabels(np.round(np.linspace(0.009,0.011,5),3))
+# im = ax.imshow([[-likelihood([beta,pobs]) for beta in jnp.linspace(0.75,0.85,10)] for pobs in jnp.linspace(0.009,0.011,10)],cmap='viridis')
+# ax.set_xticks(jnp.linspace(0,9,5))
+# ax.set_xticklabels(jnp.round(jnp.linspace(0.80,0.82,5),2))
+# ax.set_yticks(jnp.linspace(0,9,5))
+# ax.set_yticklabels(jnp.round(jnp.linspace(0.009,0.011,5),3))
 # plt.colorbar(im)
 # plt.xlabel('BETA')
 # plt.ylabel('P_OBS')
 # plt.title('Log likelihood of simulated noisy data for different values of BETA and P_OBS')
 # plt.savefig('Figures/likelihood_BETA_P_OBS.png',dpi=300)
 
-# plt.plot(np.linspace(0.01,0.1,50),[-likelihood(x) for x in np.linspace(0.01,0.1,50)])
+# plt.plot(jnp.linspace(0.01,0.1,50),[-likelihood(x) for x in jnp.linspace(0.01,0.1,50)])
 # plt.scatter(opt.x,-likelihood(opt.x),color='red')
 # plt.scatter(0.08,-likelihood(0.08),color='green')
 # plt.xlabel('BETA')

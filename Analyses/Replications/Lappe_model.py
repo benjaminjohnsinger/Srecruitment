@@ -1,11 +1,11 @@
-import numpy as np
+import jax.numpy as jnp
 from scipy.integrate import odeint
 
 def mu(t):
     if t < 30*365:
         return 12.21/(1000*365)
     else:
-        mus = np.array([12.21,11.84,11.59,11.42,10.97,11.04,11.00])/(1000*365)
+        mus = jnp.array([12.21,11.84,11.59,11.42,10.97,11.04,11.00])/(1000*365)
         time = (t-30*365) / 365
         return mus[int(time)]
 
@@ -14,7 +14,7 @@ def sir_model(y, t, q, sigma, chirho, A, theta):
     N = S + I + R
 
     # Seasonal force of infection
-    beta = q * (1 + A * np.cos(theta + 2 * np.pi * t / 365))
+    beta = q * (1 + A * jnp.cos(theta + 2 * jnp.pi * t / 365))
     mu_t = mu(t)
 
     dSdt = mu_t * N - beta * S * I / N - mu_t * S - chirho * S
@@ -41,7 +41,7 @@ y0 = [S0, I0, R0]
 
 # Time vector
 period = 36
-times = np.linspace(0, 365*period, 365*period)
+times = jnp.linspace(0, 365*period, 365*period)
 
 # Solve the ODE system
 sol = odeint(sir_model, y0, times, args=(q, sigma, chirho, A, theta))
@@ -51,7 +51,7 @@ import matplotlib.pyplot as plt
 
 start_year = 30
 plt.plot(times[365*start_year:], sol[365*start_year:, 1]*reporting, label='I')
-plt.xticks(np.arange(365*start_year, 365*period+1, 365), np.arange(2024-period+start_year-1, 2024))
+plt.xticks(jnp.arange(365*start_year, 365*period+1, 365), jnp.arange(2024-period+start_year-1, 2024))
 
 
 plt.xlabel('Time (Years)')

@@ -1,7 +1,7 @@
 ## Influenza parameters
 ## Literature paramdeters on flu, and guesses to match KPSC data
 
-import jax.numpy as np
+import jax.numpy as jnp
 from numba import jit
 import pandas as pd
 # from utils import age_detection
@@ -12,11 +12,11 @@ NAG = 7
 # Number of susceptibility classes
 N_S = 3
 # Waning rates for susceptibles into lower susceptibilty class - for index plus one, i.e. [0,1,0] means only last class wanes
-WANE = np.array([0.0,1/270,0.0]) # Ferguson 2003
-# WANE = np.array([0.0,1/365,0.0])
+WANE = jnp.array([0.0,1/270,0.0]) # Ferguson 2003
+# WANE = jnp.array([0.0,1/365,0.0])
 # Recovery rates for each susceptibility class
-REC_UP = np.array([1/3,1/3,0.0]) # Bjornstad 2016
-REC_SAME = np.array([0.0,0.0,1/3]) # Bjornstad 2016
+REC_UP = jnp.array([1/3,1/3,0.0]) # Bjornstad 2016
+REC_SAME = jnp.array([0.0,0.0,1/3]) # Bjornstad 2016
 
 ## Immunity
 # Immunity relationships determined by vaccine parameters
@@ -31,7 +31,7 @@ CHILD_EFF_RATIO = 1.54
 # maximum lower CI of vaccine effectiveness in adults is 0.39, ESP should be at least this large
 # cannot be larger than 1/CHILD_EFF_RATIO
 ESP = 0.39 + IMM_ABOVE_MIN*(1/CHILD_EFF_RATIO-0.39)
-factor = ((1 - R) + np.sqrt(1 + R**2 + 2*R*(1-2*ESP)))/2
+factor = ((1 - R) + jnp.sqrt(1 + R**2 + 2*R*(1-2*ESP)))/2
 # Relative susceptability and infectiousness, for each susceptibility class
 # S1 has to be >= (1-1.54*ESP)/(1-ESP) for D1 to be >= 1
 S1 = ((1-CHILD_EFF_RATIO*ESP)/(1-ESP) + FIRST_IMM_MAG*(1-(1-CHILD_EFF_RATIO*ESP)/(1-ESP)))**FIRST_DIS_INF_FACTOR
@@ -42,18 +42,18 @@ S2 = S1*(1-ESP)/factor
 D1 = ((1-CHILD_EFF_RATIO*ESP)/(1-ESP) + FIRST_IMM_MAG*(1-(1-CHILD_EFF_RATIO*ESP)/(1-ESP)))**(1-FIRST_DIS_INF_FACTOR)
 D2 = D1*factor
 
-S_REL = np.array([1,S1,S2])
-I_REL = np.array([[1],[1],[1]])
-P_OBS_REL = np.array([1,D1,D2])
+S_REL = jnp.array([1,S1,S2])
+I_REL = jnp.array([[1],[1],[1]])
+P_OBS_REL = jnp.array([1,D1,D2])
 
 P_OBS_MAX = 0.05
 P_OBS = P_OBS_MAX*P_OBS_REL
 
 ## Parameters that vary by age group
 # Age-specific susceptibility
-S_AGE = np.ones(NAG)
+S_AGE = jnp.ones(NAG)
 # Age-specific relative probability of detection
-OBS_AGE = np.array([0.2,0.15,0.1,0.05,0.05,0.2,1])
+OBS_AGE = jnp.array([0.2,0.15,0.1,0.05,0.05,0.2,1])
 ## Other
 # Seasonality parameters
 SEASONALITY = 0.04
@@ -71,13 +71,13 @@ IMPORT_RATE = 0
 PP = pd.read_csv("Data/Processed/FluView_PercentPositive_Regions_A.csv")
 PP.index = pd.to_datetime(PP["Date"], format="%Y-%m-%d")
 PP.index = (PP.index - pd.to_datetime("1970-01-01")).days
-# PP_NP = np.array(PP['Region 9'])/100
-PP_NP = np.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean(axis=1))/100
-PP_IDX = np.array(PP.index)
+# PP_NP = jnp.array(PP['Region 9'])/100
+PP_NP = jnp.array(PP[['Region '+str(i) for i in range(1,9)] + ['Region 10']].mean(axis=1))/100
+PP_IDX = jnp.array(PP.index)
 # @jit
 def regional_positivity(t, PP_NP=PP_NP, PP_IDX=PP_IDX):
     if t < PP_IDX[0] or t > PP_IDX[-1]:
         day_in_season = (t + 92)%365
         time_1998 = 10500 + day_in_season
-        return PP_NP[np.argmax(PP_IDX>=time_1998)]
-    return PP_NP[np.argmax(PP_IDX>=t)]
+        return PP_NP[jnp.argmax(PP_IDX>=time_1998)]
+    return PP_NP[jnp.argmax(PP_IDX>=t)]

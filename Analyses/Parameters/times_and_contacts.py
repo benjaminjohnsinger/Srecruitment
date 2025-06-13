@@ -1,6 +1,6 @@
 import pandas as pd
 import jax.numpy as jnp
-import numpy as np
+import jax.numpy as jnp
 from numba import jit
 import contact_model as cm
 from utils import date_to_t
@@ -29,4 +29,4 @@ def contact(t,seasonality,offset,CONTACT=CONTACT,Ts=Ts,Fs=Fs):
 
 T_VAX = date_to_t('2035-01-01')
 
-POINTS = jnp.array(date_to_t(PERIOD))
+POINTS = jnp.array(date_to_t(PERIOD), dtype=jnp.float32)

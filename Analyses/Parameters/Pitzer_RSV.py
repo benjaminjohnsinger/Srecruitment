@@ -1,7 +1,7 @@
 ## Pitzer RSV parameters
 ## Parameters from Pitzer et al. 2015 in PLOS Pathogens
 
-import jax.numpy as np
+import jax.numpy as jnp
 from numba import jit
 
 NAG = 25
@@ -10,20 +10,20 @@ NAG = 25
 # Number of susceptibility classes
 N_S = 4
 # Waning rates for susceptibles into lower susceptibilty class - for index plus one, i.e. [0,1,0] means only last class wanes
-WANE = np.zeros(N_S)
+WANE = jnp.zeros(N_S)
 # Recovery rates for each susceptibility class
-REC_UP = np.array([1/10,1/7,1/5,0.0]) # Recovery to higher susceptibility class
-REC_SAME = np.array([0.0,0.0,0.0,1/5]) # Recovery to same susceptibility class
+REC_UP = jnp.array([1/10,1/7,1/5,0.0]) # Recovery to higher susceptibility class
+REC_SAME = jnp.array([0.0,0.0,0.0,1/5]) # Recovery to same susceptibility class
 # Relative susceptability and infectiousness, for each susceptibility class
-S_REL = np.array([1,0.76,0.6,0.4])
-I_REL = np.array([[1],[0.75],[0.51],[0.51]])
+S_REL = jnp.array([1,0.76,0.6,0.4])
+I_REL = jnp.array([[1],[0.75],[0.51],[0.51]])
 # Probability of detection of cases for each susceptibility class
-P_OBS = 0.032*np.array([1,0.75,0,0])
+P_OBS = 0.032*jnp.array([1,0.75,0,0])
 ## Parameters that vary by age group
 # Age-specific susceptibility
-S_AGE = np.ones(NAG)
+S_AGE = jnp.ones(NAG)
 # Age-specific probability of detection
-OBS_AGE = np.concatenate((np.array([0.5,0.3,0.2,0.1,0.1,0.1]),0.1*np.ones(NAG-6)))
+OBS_AGE = jnp.concatenate((jnp.array([0.5,0.3,0.2,0.1,0.1,0.1]),0.1*jnp.ones(NAG-6)))
 ## Other 
 # Seasonality parameters
 SEASONALITY = 0.2

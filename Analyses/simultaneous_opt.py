@@ -1,7 +1,7 @@
 ## Simultaneous optimization of pathogens with shared lockdown model
 ## BJS March 2025
 
-import jax.numpy as np
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
@@ -28,7 +28,7 @@ from fit_MCMC import *
 seed, lockdown, desize, max_mutation, recombination = int(sys.argv[1]), sys.argv[2], int(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
 
 # set seed
-np.random.seed(seed)
+jnp.random.seed(seed)
 
 
 from Parameters.RSV import *
@@ -36,30 +36,30 @@ from Parameters.RSV import *
 params_RSV = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
-p_time_to_obs_RSV = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+p_time_to_obs_RSV = jnp.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=jnp.float64)
 incidence_RSV = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
 
 from Parameters.InfluenzaA import *
 params_InfluenzaA = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
-p_time_to_obs_InfluenzaA = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+p_time_to_obs_InfluenzaA = jnp.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=jnp.float64)
 incidence_InfluenzaA = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
 
 from Parameters.InfluenzaB import *
 params_InfluenzaB = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
 'contact': contact}
-p_time_to_obs_InfluenzaB = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+p_time_to_obs_InfluenzaB = jnp.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=jnp.float64)
 incidence_InfluenzaB = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
 
 ## Initial conditions
-STATE0 = np.zeros((2*N_S+2)*NAG)
+STATE0 = jnp.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 if (lockdown == 'FlexStepwise'):
-    bounds = np.array([[0,1e-2], # WANE
+    bounds = jnp.array([[0,1e-2], # WANE
     [0,1], # SEASONALITY
     [0,1], # OFFSET
     [0,1], # BETA
@@ -72,54 +72,54 @@ if (lockdown == 'FlexStepwise'):
     [0,1], # AGE_OBS - young_immunity
     [0,1], # AGE_OBS - old_immunity
     [0,1]]) # AGE_OBS - young - old immunity
-    bounds = np.tile(bounds,(3,1))
-    lockdown_bounds = np.array([[0,1], # DT1 - first lockdown duration in years
+    bounds = jnp.tile(bounds,(3,1))
+    lockdown_bounds = jnp.array([[0,1], # DT1 - first lockdown duration in years
     [0,1], # DT2 - inter-lockdown duration in years
     [0,1], # DT3 - second lockdown duration in years
     [0,1], # F1 - first lockdown relative contact rate
     [0,1], # F2 - inter-lockdown relative contact rate
     [0,1], # F3 - second lockdown relative contact rate
     [0,1]]) # F4 - post-lockdown relative contact rate
-    bounds = np.concatenate((bounds,lockdown_bounds),axis=0)
+    bounds = jnp.concatenate((bounds,lockdown_bounds),axis=0)
     def likelihood(x):
         print("time: ",time.time()-start)
         print(x)
-        if np.any(x < 0) or np.any(np.isnan(x)):
+        if jnp.any(x < 0) or jnp.any(jnp.isnan(x)):
             print("Invalid parameters")
             return 1e10
         sim_params_RSV = params_RSV.copy()
-        sim_params_RSV["WANE"] = np.array([0.0,x[0],0.0])
+        sim_params_RSV["WANE"] = jnp.array([0.0,x[0],0.0])
         sim_params_RSV["SEASONALITY"] = x[1]
         sim_params_RSV["OFFSET"] = x[2]
         sim_params_RSV["BETA"] = x[3]
         sim_params_RSV["IMPORT_RATE"] = x[4]
-        sim_params_RSV["S_REL"] = np.array([1,x[5],x[5]*x[6]])
-        sim_params_RSV["P_OBS"] = x[9]*np.array([1,x[7],x[7]*x[8]])
+        sim_params_RSV["S_REL"] = jnp.array([1,x[5],x[5]*x[6]])
+        sim_params_RSV["P_OBS"] = x[9]*jnp.array([1,x[7],x[7]*x[8]])
         age_obs_RSV = age_detection(NAG,x[10],x[11],x[12])
         sim_params_InfluenzaA = params_InfluenzaA.copy()
-        sim_params_InfluenzaA["WANE"] = np.array([0.0,x[13],0.0])
+        sim_params_InfluenzaA["WANE"] = jnp.array([0.0,x[13],0.0])
         sim_params_InfluenzaA["SEASONALITY"] = x[14]
         sim_params_InfluenzaA["OFFSET"] = x[15]
         sim_params_InfluenzaA["BETA"] = x[16]
         sim_params_InfluenzaA["IMPORT_RATE"] = x[17]
-        sim_params_InfluenzaA["S_REL"] = np.array([1,x[18],x[18]*x[19]])
-        sim_params_InfluenzaA["P_OBS"] = x[22]*np.array([1,x[20],x[20]*x[21]])
+        sim_params_InfluenzaA["S_REL"] = jnp.array([1,x[18],x[18]*x[19]])
+        sim_params_InfluenzaA["P_OBS"] = x[22]*jnp.array([1,x[20],x[20]*x[21]])
         age_obs_InfluenzaA = age_detection(NAG,x[23],x[24],x[25])
         sim_params_InfluenzaB = params_InfluenzaB.copy()
-        sim_params_InfluenzaB["WANE"] = np.array([0.0,x[26],0.0])
+        sim_params_InfluenzaB["WANE"] = jnp.array([0.0,x[26],0.0])
         sim_params_InfluenzaB["SEASONALITY"] = x[27]
         sim_params_InfluenzaB["OFFSET"] = x[28]
         sim_params_InfluenzaB["BETA"] = x[29]
         sim_params_InfluenzaB["IMPORT_RATE"] = x[30]
-        sim_params_InfluenzaB["S_REL"] = np.array([1,x[31],x[31]*x[32]])
-        sim_params_InfluenzaB["P_OBS"] = x[35]*np.array([1,x[33],x[33]*x[34]])
+        sim_params_InfluenzaB["S_REL"] = jnp.array([1,x[31],x[31]*x[32]])
+        sim_params_InfluenzaB["P_OBS"] = x[35]*jnp.array([1,x[33],x[33]*x[34]])
         age_obs_InfluenzaB = age_detection(NAG,x[36],x[37],x[38])
 
-        Ts = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[39]*365,date_to_t('2020-03-19')+(x[39]+x[40])*365,date_to_t('2020-03-19')+(x[39]+x[40]+x[41])*365])
-        Fs = np.array([1,x[42],x[43],x[44],x[45]])
+        Ts = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[39]*365,date_to_t('2020-03-19')+(x[39]+x[40])*365,date_to_t('2020-03-19')+(x[39]+x[40]+x[41])*365])
+        Fs = jnp.array([1,x[42],x[43],x[44],x[45]])
         # @jit
         def contact(t,seasonality,offset):
-            return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+            return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
         sim_params_RSV["contact"] = sim_params_InfluenzaA["contact"] = sim_params_InfluenzaB["contact"] = contact
         
         ls = 0

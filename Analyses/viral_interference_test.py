@@ -1,5 +1,5 @@
 import pandas as pd
-import jax.numpy as np
+import jax.numpy as jnp
 from scipy import stats
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -33,20 +33,22 @@ def categorize_pathogens(pathogen):
         return "Adenovirus"
     elif "SARS-COV-2" in pathogen:
         return "SARS-CoV-2"
+    elif "RHINOVIRUS" in pathogen:
+        return "Rhinovirus"
     elif "ENTEROVIRUS" in pathogen:
         return "Enterovirus"
     else:
         return "Other"
 
 def categorize_ndi(ndi):
-    thresholds = np.array([-1,0,1])
-    names = np.array(['Low', 'Medium-Low', 'Medium-High', 'High'])
-    return names[np.digitize(ndi, thresholds)]
+    thresholds = jnp.array([-1,0,1])
+    names = jnp.array(['Low', 'Medium-Low', 'Medium-High', 'High'])
+    return names[jnp.digitize(ndi, thresholds)]
 
 def categorize_age(age):
-    thresholds = np.array([3, 12, 5*12, 18*12, 40*12, 65*12])
-    names = np.array(['<3m', '3-11m', '1-4y', '5-17y', '18-39y', '40-64y', '>=65y'])
-    return names[np.digitize(age, thresholds)]
+    thresholds = jnp.array([3, 12, 5*12, 18*12, 40*12, 65*12])
+    names = jnp.array(['<3m', '3-11m', '1-4y', '5-17y', '18-39y', '40-64y', '>=65y'])
+    return names[jnp.digitize(age, thresholds)]
 
 def process_data(df):
     # convert YEAR, StudyID, lab_days, age, and age_in_mo to integers
@@ -128,7 +130,7 @@ def perform_cmh_test(positivity_table,pathogen1,pathogen2,period,prevalence_corr
     NAG = len(positivity_table['age_group'].unique())
     NNDIG = len(positivity_table['ndi_group'].unique())
     NP = len(positivity_table[period].unique())
-    cmh_tables = np.zeros([NAG, NNDIG, NP, 2, 2])
+    cmh_tables = jnp.zeros([NAG, NNDIG, NP, 2, 2])
 
     print(f"Creating {str(NAG*NNDIG*NP)} contingency tables...")
     stime = time.time()
@@ -144,26 +146,26 @@ def perform_cmh_test(positivity_table,pathogen1,pathogen2,period,prevalence_corr
                                                 (positivity_table['ndi_group'] == ndi_group) &
                                                 (positivity_table[period] == period_t)][[pathogen1, pathogen2]].values
                 contingency_table = pd.crosstab(results[:, 0], results[:, 1]).values
-                if contingency_table.shape == (2, 2) and np.sum(contingency_table) > threshold:
+                if contingency_table.shape == (2, 2) and jnp.sum(contingency_table) > threshold:
                     cmh_tables[i, j, k] = contingency_table
     
     # Collapse into age group and NDI group pairs
     cmh_tables = cmh_tables.reshape(-1, 2, 2)
     # Remove empty tables
-    cmh_tables = cmh_tables[~np.all(cmh_tables == 0, axis=(1,2))]
+    cmh_tables = cmh_tables[~jnp.all(cmh_tables == 0, axis=(1,2))]
     # # save to csv
     # cmh_tables_df = pd.DataFrame(cmh_tables.reshape(-1, 4), columns=['A', 'B', 'C', 'D'])
     # cmh_tables_df.to_csv('Data/Processed/cmh_tables.csv', index=False)
     
     # Calculate odds ratio
     D, C, B, A = cmh_tables[:, 0, 0], cmh_tables[:, 0, 1], cmh_tables[:, 1, 0], cmh_tables[:, 1, 1]
-    print("Overall counts:",np.sum(A), np.sum(B), np.sum(C), np.sum(D))
-    print("Prevalence:", np.sum(A + B) / np.sum(A + B + C + D), np.sum(A + C) / np.sum(A + B + C + D))
+    print("Overall counts:",jnp.sum(A), jnp.sum(B), jnp.sum(C), jnp.sum(D))
+    print("Prevalence:", jnp.sum(A + B) / jnp.sum(A + B + C + D), jnp.sum(A + C) / jnp.sum(A + B + C + D))
     if prevalence_correction1 != 1 or prevalence_correction2 != 1:
         ab = prevalence_correction1 / prevalence_correction2
         C = ab*C + (ab - 1)*A
         D = D + (1 - ab)*(A + C) + (prevalence_correction1 - 1)*(A + B + C + D)
-        print("Corrected prevalence:", np.sum(A + B) / np.sum(A + B + C + D), np.sum(A + C) / np.sum(A + B + C + D))
+        print("Corrected prevalence:", jnp.sum(A + B) / jnp.sum(A + B + C + D), jnp.sum(A + C) / jnp.sum(A + B + C + D))
     if Ps != None:
         pA, pB, pS = Ps
         A = A / max(pA, pB)
@@ -171,11 +173,11 @@ def perform_cmh_test(positivity_table,pathogen1,pathogen2,period,prevalence_corr
         C = C / pB
         D = D / pS
     T = A + B + C + D
-    R = np.sum(A*D/T)/np.sum(B*C/T)
+    R = jnp.sum(A*D/T)/jnp.sum(B*C/T)
 
     # calculate test statistic
     N1, N2, M1, M2 = A + B, C + D, A + C, B + D
-    chi_CMH = np.square(np.sum(A - N1*M1/T)) / np.sum(N1*N2*M1*M2/(T**2 * (T - 1)))
+    chi_CMH = jnp.square(jnp.sum(A - N1*M1/T)) / jnp.sum(N1*N2*M1*M2/(T**2 * (T - 1)))
 
     # find p-value corresponding to the test statistic
     p_value = stats.chi2.sf(chi_CMH, 1)
@@ -223,7 +225,7 @@ def generate_tables(pathogens_of_interest,proportion_symptomatic=[],restrictive=
             })
             # save the results
             results_df = pd.DataFrame(results)
-            results_df.to_csv('Data/Processed/viral_interference_CMH_tests' + ["", "_prevalence_correction"][proportion_symptomatic != []] + ["", "_restrictive"][restrictive] + ["", "_Mbias"][bias] + "_threshold" + str(threshold) + '.csv', index=False)
+            results_df.to_csv('Data/Processed/viral_interference_CMH_tests2' + ["", "_prevalence_correction"][proportion_symptomatic != []] + ["", "_restrictive"][restrictive] + ["", "_Mbias"][bias] + "_threshold" + str(threshold) + '.csv', index=False)
 
 # plot heatmap of odds ratios
 def plot_heatmap(ax, results, pathogens_of_interest, title='Viral Interference Heatmap', significance=None):
@@ -249,14 +251,15 @@ def plot_heatmap(ax, results, pathogens_of_interest, title='Viral Interference H
         "Influenza": "Flu",
         "Parainfluenza": "PIV",
         "RSV": "RSV",
-        "HMPV": "hMPV"}
+        "HMPV": "hMPV",
+        "Rhinovirus": "RV",}
     ax.set_xticklabels([pathogen_abbreviations[p.get_text()] for p in ax.get_xticklabels()], rotation=45, ha='right')
     ax.set_yticklabels([pathogen_abbreviations[p.get_text()] for p in ax.get_yticklabels()])
 
 # approximation of bias based on conservative assumptions in Chin .. Lipsitch mBio 2024
 def M_bias(positivity_table, pathogenA, pathogenB, hospA=0.03, p_hospA=0.85, hospB=0.03, p_hospB=0.85):
     # find the probability of appearing in study with neither pathogen
-    N_NA_NB = np.sum((positivity_table[pathogenA] == 0) & (positivity_table[pathogenB] == 0))
+    N_NA_NB = jnp.sum((positivity_table[pathogenA] == 0) & (positivity_table[pathogenB] == 0))
     N_S = 4590046 # maximum Kaiser population
     pS = N_NA_NB / N_S # assuming very low prevalence
     # probability of appearing in study with each pathogen
@@ -264,7 +267,7 @@ def M_bias(positivity_table, pathogenA, pathogenB, hospA=0.03, p_hospA=0.85, hos
     pB = hospB/p_hospB + pS
     return pS/max(pA, pB), [pA, pB, pS] # return the bias factor and the probabilities of appearing in study with each pathogen and neither pathogen
 
-pathogens_of_interest = ["RSV", "HMPV", "Adenovirus", "Influenza", "Parainfluenza"]
+pathogens_of_interest = ["Rhinovirus", "RSV", "HMPV", "Adenovirus", "Influenza", "Parainfluenza"]
 proportion_symptomatic = {"All": 0.2894586894586895,
 "Influenza": 0.5356125356125356,
 "RSV": 0.341880341880342,
@@ -277,10 +280,11 @@ proportion_hospitalized = {"Influenza": 0.6,
 "RSV": 0.86,
 "Parainfluenza": 0.85,
 "HMPV": 0.85,
-"Adenovirus": 0.85} # Proportion recieving tests in data who are hospitalized
+"Adenovirus": 0.85,
+"Rhinovirus": 0.85} # Proportion recieving tests in data who are hospitalized
 
 if __name__ == "__main__":
-    # from plotting import pathogen_names
+    from plotting import pathogen_names
     # for pathogen in pathogens_of_interest:
     #     print(pathogen, pathogen_names[pathogen])
 
@@ -304,7 +308,7 @@ if __name__ == "__main__":
     #     clinical_tests["Date"] = pd.to_datetime(clinical_tests["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_tests["lab_days"],unit='D')
     #     clinical_tests = clinical_data_pathogen.merge(clinical_tests[["StudyID","Date"]],on="StudyID",how="left")
     #     clinical_tests = clinical_tests.rename(columns={"Date_x":"Clinical date","Date_y":"Test date"})
-    #     matched_tests = clinical_tests[np.abs((pd.to_datetime(clinical_tests["Clinical date"]) - pd.to_datetime(clinical_tests["Test date"])).dt.days) <= 14]
+    #     matched_tests = clinical_tests[jnp.abs((pd.to_datetime(clinical_tests["Clinical date"]) - pd.to_datetime(clinical_tests["Test date"])).dt.days) <= 14]
     #     print(len(matched_tests), f" {pathogen} PCR tests correspond to a hospital admission within 14 days")
     #     # hospital_tests = matched_tests[matched_tests["setting"] == "Hospital admission"].copy()
     #     # print(len(hospital_tests), f"non-covid {pathogen} PCR tests correspond to a hospital admission within 14 days")
@@ -325,25 +329,25 @@ if __name__ == "__main__":
     #         prev1 = 0.1
     #         prev2 = 0.1
     #         # find number negative for both pathogens
-    #         N_NA_NB = np.sum((pt[pathogen1] == 0) & (pt[pathogen2] == 0))
-    #         N_AORB = np.sum((pt[pathogen1] == 1) | (pt[pathogen2] == 1))
+    #         N_NA_NB = jnp.sum((pt[pathogen1] == 0) & (pt[pathogen2] == 0))
+    #         N_AORB = jnp.sum((pt[pathogen1] == 1) | (pt[pathogen2] == 1))
     #         print(f"Proportion of patients in study for {pathogen1} and {pathogen2}: {(N_NA_NB+N_AORB)/N_S}")
     #         print(f"Probability of appearing in study given negativity for both, assuming very low prevalence: {N_NA_NB/N_S}")
     #         print(f"Probability of appearing in study given negativity for both, assuming high prevalence: {N_NA_NB/(N_S*(1-prev1)*(1-prev2))}")
     #         print("\n")
  
-    # # start_time = time.time()
-    # # df = process_data(test_data)
-    # # print(f"Data processed in {time.time() - start_time} seconds")
-    # # # save the processed data
-    # # df.to_csv('Data/Processed/testing.csv', index=False)
-    # # print(df["pathogen_group"].value_counts())
-    # # load the processed data
+    # start_time = time.time()
+    # df = process_data(test_data)
+    # print(f"Data processed in {time.time() - start_time} seconds")
+    # # save the processed data
+    # df.to_csv('Data/Processed/testing.csv', index=False)
+    # print(df["pathogen_group"].value_counts())
+    # load the processed data
     # df = pd.read_csv('Data/Processed/testing.csv')
     # generate_tables(pathogens_of_interest, restrictive=True, period='year_month', load=True, threshold=0, bias=True)
 
     results = pd.read_csv('Data/Processed/viral_interference_CMH_tests.csv')
-    results = results[(results['match_by_date'] == False) & (results['period'] == 'year_month')].copy()
+    results = results[(results['match_by_date'] == True) & (results['period'] == 'year_month')].copy()
     results_corrected = pd.read_csv('Data/Processed/viral_interference_CMH_tests_restrictive_Mbias_threshold0.csv')
     # results_corrected_reverse_order = pd.read_csv('Data/Processed/viral_interference_CMH_tests_prevalence_correction_reverse_order.csv')
     # results_corrected_combined = pd.concat([results_corrected, results_corrected_reverse_order], ignore_index=True)
@@ -361,4 +365,4 @@ if __name__ == "__main__":
     cbar.set_label('Odds Ratio')
     # plt.suptitle('Chochran-Mantel-Haenszel odds ratios for viral interference')
 
-    plt.savefig('Figures/viral_interference_heatmap_wMbias.png', dpi=300)
+    plt.savefig('Figures/viral_interference_heatmap_wMbias2.png', dpi=300)

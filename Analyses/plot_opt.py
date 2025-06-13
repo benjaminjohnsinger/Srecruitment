@@ -1,7 +1,7 @@
 ## BJS March 2025
 ## Plotting results of fitting
 
-import jax.numpy as np
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
@@ -59,11 +59,11 @@ params, p_time_to_obs, incidence = pathogen_parameters(pathogen, lockdown, CONTA
 N_S, NAG = params["N_S"], params["NAG"]
 
 ## Initial conditions
-STATE0 = np.zeros((2*N_S+2)*NAG)
-STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
-STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
+STATE0 = jnp.zeros((2*N_S+2)*NAG)
+STATE0 = STATE0.at[NAG:2*NAG].set(CENSUS_AGE_POP-1) # Everyone is susceptible except
+STATE0 = STATE0.at[2*NAG:3*NAG].set(1) # one individual in each age group that is infected.
 
-params["WANE"] = np.array([0.0,x[0],0.0])
+params["WANE"] = jnp.array([0.0,x[0],0.0])
 params["SEASONALITY"] = x[1]
 params["OFFSET"] = x[2]
 params["BETA"] = x[3]
@@ -80,12 +80,12 @@ if (("Influenza" in pathogen) and (option2 != 'nr')) or (seed <= 250407):
     params["S_REL"] = srel
     n += 3
 elif pathogen == 'RSV':
-    params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
-    pobsrel = np.array([1,0.46,0.31]) # Henderson 1979
+    params["S_REL"] = jnp.array([1,x[n],x[n]*x[n+1]])
+    pobsrel = jnp.array([1,0.46,0.31]) # Henderson 1979
     n += 2
 else:
-    params["S_REL"] = np.array([1,x[n],x[n]*x[n+1]])
-    pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
+    params["S_REL"] = jnp.array([1,x[n],x[n]*x[n+1]])
+    pobsrel = jnp.array([1,x[n+2],x[n+2]*x[n+3]])
     n += 4
 if ((seed > 250407) and (seed <= 250514)) or (option2 != 'flexage'):
     params["P_OBS"] = x[n]*pobsrel
@@ -93,49 +93,49 @@ if ((seed > 250407) and (seed <= 250514)) or (option2 != 'flexage'):
 elif option2 == 'flexage':
     params["P_OBS"] = pobsrel
 if lockdown == 'FlexStepwise':
-    Ts = np.array([date_to_t('1970-01-01'),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
+    Ts = jnp.array([date_to_t('1970-01-01'),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
     F1 = x[n+3] # value between 0 and 1 (first lockdown)
     F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
     F3 = F2*x[n+5] # value less than F2 (second lockdown)
     F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
-    Fs = np.array([1,F1,F2,F3,F4])
+    Fs = jnp.array([1,F1,F2,F3,F4])
     # @jit
     def contact(t,seasonality,offset):
-        return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+        return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
     params["contact"] = contact
     n += 7
 else:
     with open("Data/Processed/DE_cm_opt_"+lockdown+".pickle","rb") as f:
         lock_opt = pickle.load(f)
     y = lock_opt.x
-    Ts = np.array([date_to_t('1970-01-01'),date_to_t('2020-03-19'),date_to_t('2020-03-19')+y[0]*365,date_to_t('2020-03-19')+(y[0]+y[1])*365,date_to_t('2020-03-19')+(y[0]+y[1]+y[2])*365])
+    Ts = jnp.array([date_to_t('1970-01-01'),date_to_t('2020-03-19'),date_to_t('2020-03-19')+y[0]*365,date_to_t('2020-03-19')+(y[0]+y[1])*365,date_to_t('2020-03-19')+(y[0]+y[1]+y[2])*365])
     F1 = y[3] # value between 0 and 1 (first lockdown)
     F2 = F1 + y[4] - F1*y[4] # value between y[3] and 1 (inter-lockdown)
     F3 = F2*y[5] # value less than F2 (second lockdown)
     F4 = F2 + y[6] - F2*y[6] # value between F2 and 1 (post-lockdown)
-    Fs = np.array([1,F1,F2,F3,F4])
+    Fs = jnp.array([1,F1,F2,F3,F4])
     # @jit
     def contact(t,seasonality,offset):
-        return cm.piecewise(t,Ts,Fs)*(1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+        return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
     params["contact"] = contact
     n += 7
 if option1 == 'nb':
-    overdispersion = np.exp(x[n]-5)
+    overdispersion = jnp.exp(x[n]-5)
     print("Overdispersion",overdispersion)
     n += 1
 if option2 == 'flexage':
-    # OBS_AGE = np.zeros((7))
+    # OBS_AGE = jnp.zeros((7))
     # remaining = 1.0
     # for i in range(1,7):
     #     allocation = x[n+i-1]*remaining
     #     OBS_AGE[i] = allocation
     #     remaining -= allocation
     # OBS_AGE[0] = remaining
-    # OBS_AGE = OBS_AGE/np.max(OBS_AGE)
+    # OBS_AGE = OBS_AGE/jnp.max(OBS_AGE)
     if (seed <= 250512) or (seed > 250514):
-        OBS_AGE = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
+        OBS_AGE = jnp.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
     else:
-        OBS_AGE = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],1])
+        OBS_AGE = jnp.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],1])
 elif option2 == 'maternal':
     if seed <= 250512:
         nig = 2
@@ -157,29 +157,33 @@ if lockdown == 'FlexStepwise' or re.match(r'\d{6}',lockdown):
 # opt = sp.optimize.minimize(likelihood, x,method='Nelder-Mead', options={'maxiter': 10000})
 # print(opt.x)
 
+import jax
+sis_deltas = jax.jit(sis_deltas, static_argnames=('NAG','N_S','birth_rate','birth_vax','S_VAX','ACOV','BCOV','arrivals','regional_positivity','contact'))
+start = time.time()
 result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-obs = observations(result,params,OBS_AGE,incidence=False,time_conversion=30.44)
-
-# for each season from the 2015/16 season onwards, sum the total number of infections
-seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01']])
-season_infection_array = np.zeros((len(seasons)-1,3))
-season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
-for i in range(len(seasons)-1):
-    # get the number of infections in each season
-    season_start = np.argmax(result.t>=seasons[i])
-    season_end = np.argmax(result.t>=seasons[i+1])
-    pop_size = np.sum(result.y[:,season_start],dtype=np.float64)
-    age_pops = np.array([np.sum(result.y[range(i_age,(2*N_S+1)*NAG,NAG),season_start],axis=0) for i_age in range(NAG)])
-    season_infection_array[i,0] = np.sum(result.y[2*NAG:3*NAG,season_start:season_end])*params["REC_UP"][0]/pop_size
-    season_infection_array[i,1] = np.sum(result.y[4*NAG:5*NAG,season_start:season_end])*params["REC_UP"][1]/pop_size
-    season_infection_array[i,2] = np.sum(result.y[6*NAG:7*NAG,season_start:season_end])*params["REC_SAME"][2]/pop_size
-    season_infection_by_age[i,:,0] = np.sum(result.y[2*NAG:3*NAG,season_start:season_end],axis=1)*params["REC_UP"][0]/age_pops
-    season_infection_by_age[i,:,1] = np.sum(result.y[4*NAG:5*NAG,season_start:season_end],axis=1)*params["REC_UP"][1]/age_pops
-    season_infection_by_age[i,:,2] = np.sum(result.y[6*NAG:7*NAG,season_start:season_end],axis=1)*params["REC_SAME"][2]/age_pops 
-season_infections = np.sum(season_infection_array,axis=1)
-season_infection_by_age = np.sum(season_infection_by_age,axis=2)
-print("Proportion infected per season (including reinfections):",season_infections)
-print("Proportion infected per season (by age):",season_infection_by_age)
+print("ODE integration time:",time.time()-start)
+obs = observations(result.y,POINTS,params,OBS_AGE,incidence=False,time_conversion=30.44)
+print("obs time:",time.time()-start)
+# # for each season from the 2015/16 season onwards, sum the total number of infections
+# seasons = jnp.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01']])
+# season_infection_array = jnp.zeros((len(seasons)-1,3))
+# season_infection_by_age = jnp.zeros((len(seasons)-1,NAG,3))
+# for i in range(len(seasons)-1):
+#     # get the number of infections in each season
+#     season_start = jnp.argmax(result.t>=seasons[i])
+#     season_end = jnp.argmax(result.t>=seasons[i+1])
+#     pop_size = jnp.sum(result.y[:,season_start],dtype=jnp.float64)
+#     age_pops = jnp.array([jnp.sum(result.y[range(i_age,(2*N_S+1)*NAG,NAG),season_start],axis=0) for i_age in range(NAG)])
+#     season_infection_array[i,0] = jnp.sum(result.y[2*NAG:3*NAG,season_start:season_end])*params["REC_UP"][0]/pop_size
+#     season_infection_array[i,1] = jnp.sum(result.y[4*NAG:5*NAG,season_start:season_end])*params["REC_UP"][1]/pop_size
+#     season_infection_array[i,2] = jnp.sum(result.y[6*NAG:7*NAG,season_start:season_end])*params["REC_SAME"][2]/pop_size
+#     season_infection_by_age[i,:,0] = jnp.sum(result.y[2*NAG:3*NAG,season_start:season_end],axis=1)*params["REC_UP"][0]/age_pops
+#     season_infection_by_age[i,:,1] = jnp.sum(result.y[4*NAG:5*NAG,season_start:season_end],axis=1)*params["REC_UP"][1]/age_pops
+#     season_infection_by_age[i,:,2] = jnp.sum(result.y[6*NAG:7*NAG,season_start:season_end],axis=1)*params["REC_SAME"][2]/age_pops 
+# season_infections = jnp.sum(season_infection_array,axis=1)
+# season_infection_by_age = jnp.sum(season_infection_by_age,axis=2)
+# print("Proportion infected per season (including reinfections):",season_infections)
+# print("Proportion infected per season (by age):",season_infection_by_age)
 
 
 
@@ -197,23 +201,23 @@ IMPORT_RATE = params["IMPORT_RATE"]
 contact = params["contact"]
 regional_positivity = params["regional_positivity"]
 
-# get R(t)
-R0s = np.zeros(len(result.t))
-Rts = np.zeros(len(result.t))
-contact_ratios = np.zeros(len(result.t))
-for idx in range(len(result.t)):
-    pop_size = np.sum(result.y[:,idx],dtype=np.float64)
-    age_pops = np.array([np.sum(result.y[range(i_age,(2*N_S+1)*NAG,NAG),idx],axis=0) for i_age in range(NAG)])
-    contact_t = contact(result.t[idx],SEASONALITY,OFFSET)
-    infectious_contact_equal = np.dot(contact_t,np.sum(np.array([result.y[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=np.float64).reshape((N_S,NAG))*I_REL,axis=0))/np.sum(np.array([result.y[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=np.float64))
-    infectious_contact = np.dot(contact_t,np.sum(np.array([result.y[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=np.float64).reshape((N_S,NAG))*I_REL,axis=0))/pop_size
-    import_contact = IMPORT_RATE*regional_positivity(result.t[idx])*arrivals(result.t[idx])*np.dot(contact_t,age_pops)/pop_size
-    contact_ratios[idx] = np.sum(np.repeat(S_REL,NAG*N_C)*np.tile(S_AGE,N_S*N_C)*BETA*np.tile(import_contact,N_S*N_C)*np.repeat(np.tile(np.array([0,1]+[0]*(N_C-2)),N_S),NAG)*np.array([np.tile(result.y[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())/np.sum(np.repeat(S_REL,NAG*N_C)*np.tile(S_AGE,N_S*N_C)*BETA*np.tile(infectious_contact,N_S*N_C)*np.repeat(np.tile(np.array([0,1]+[0]*(N_C-2)),N_S),NAG)*np.array([np.tile(result.y[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())
-    R0s[idx] = BETA*np.sum(infectious_contact_equal)/REC_UP[0]
-    Rts[idx] = (1/pop_size)*(1/REC_UP[0])*np.sum(np.repeat(S_REL,NAG*N_C)*np.tile(S_AGE,N_S*N_C)*BETA*np.tile(infectious_contact_equal,N_S*N_C)*np.repeat(np.tile(np.array([1,0]+[0]*(N_C-2)),N_S),NAG)*np.array([np.tile(result.y[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())
-print("R0:",np.median(R0s),"("+str(np.min(R0s))+"–"+str(np.max(R0s))+")")
-print("Rt:",np.median(Rts),"("+str(np.min(Rts))+"–"+str(np.max(Rts))+")")
-print("Ratio of import-caused cases to internal transmission:",np.median(contact_ratios),"("+str(np.min(contact_ratios))+"–"+str(np.max(contact_ratios))+")")
+# # get R(t)
+# R0s = jnp.zeros(len(result.t))
+# Rts = jnp.zeros(len(result.t))
+# contact_ratios = jnp.zeros(len(result.t))
+# for idx in range(len(result.t)):
+#     pop_size = jnp.sum(result.y[:,idx],dtype=jnp.float64)
+#     age_pops = jnp.array([jnp.sum(result.y[range(i_age,(2*N_S+1)*NAG,NAG),idx],axis=0) for i_age in range(NAG)])
+#     contact_t = contact(result.t[idx],SEASONALITY,OFFSET)
+#     infectious_contact_equal = jnp.dot(contact_t,jnp.sum(jnp.array([result.y[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=jnp.float64).reshape((N_S,NAG))*I_REL,axis=0))/jnp.sum(jnp.array([result.y[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=jnp.float64))
+#     infectious_contact = jnp.dot(contact_t,jnp.sum(jnp.array([result.y[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=jnp.float64).reshape((N_S,NAG))*I_REL,axis=0))/pop_size
+#     import_contact = IMPORT_RATE*regional_positivity(result.t[idx])*arrivals(result.t[idx])*jnp.dot(contact_t,age_pops)/pop_size
+#     contact_ratios[idx] = jnp.sum(jnp.repeat(S_REL,NAG*N_C)*jnp.tile(S_AGE,N_S*N_C)*BETA*jnp.tile(import_contact,N_S*N_C)*jnp.repeat(jnp.tile(jnp.array([0,1]+[0]*(N_C-2)),N_S),NAG)*jnp.array([jnp.tile(result.y[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())/jnp.sum(jnp.repeat(S_REL,NAG*N_C)*jnp.tile(S_AGE,N_S*N_C)*BETA*jnp.tile(infectious_contact,N_S*N_C)*jnp.repeat(jnp.tile(jnp.array([0,1]+[0]*(N_C-2)),N_S),NAG)*jnp.array([jnp.tile(result.y[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())
+#     R0s[idx] = BETA*jnp.sum(infectious_contact_equal)/REC_UP[0]
+#     Rts[idx] = (1/pop_size)*(1/REC_UP[0])*jnp.sum(jnp.repeat(S_REL,NAG*N_C)*jnp.tile(S_AGE,N_S*N_C)*BETA*jnp.tile(infectious_contact_equal,N_S*N_C)*jnp.repeat(jnp.tile(jnp.array([1,0]+[0]*(N_C-2)),N_S),NAG)*jnp.array([jnp.tile(result.y[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())
+# print("R0:",jnp.median(R0s),"("+str(jnp.min(R0s))+"–"+str(jnp.max(R0s))+")")
+# print("Rt:",jnp.median(Rts),"("+str(jnp.min(Rts))+"–"+str(jnp.max(Rts))+")")
+# print("Ratio of import-caused cases to internal transmission:",jnp.median(contact_ratios),"("+str(jnp.min(contact_ratios))+"–"+str(jnp.max(contact_ratios))+")")
 
 fig = plt.figure(figsize=(13.3,7.5))
 ax1 = fig.add_subplot(3,1,1)

@@ -3,7 +3,7 @@
 
 import time
 import sys
-import jax.numpy as np
+import jax.numpy as jnp
 import scipy as sp
 import pandas as pd
 
@@ -26,9 +26,9 @@ if pathogen == 'RSV':
     params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
     'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
     'contact': contact}
-    p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+    p_time_to_obs = jnp.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=jnp.float64)
     incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
-    bounds = np.array([[0,1e-2], # WANE
+    bounds = jnp.array([[0,1e-2], # WANE
     [0,0.5], # SEASONALITY
     [0,1], # OFFSET
     [0,0.5], # BETA
@@ -39,7 +39,7 @@ if pathogen == 'RSV':
     [0,1]]) # AGE_OBS - young_old# nelders-mead optimization
     def likelihood(x):
         sim_params = params.copy()
-        sim_params["WANE"] = np.array([0.0,x[0],0.0])
+        sim_params["WANE"] = jnp.array([0.0,x[0],0.0])
         sim_params["SEASONALITY"] = x[1]
         sim_params["OFFSET"] = x[2]
         sim_params["BETA"] = x[3]
@@ -53,9 +53,9 @@ elif pathogen == 'InfluenzaA':
     params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
     'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
     'contact': contact}
-    p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+    p_time_to_obs = jnp.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=jnp.float64)
     incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
-    bounds = np.array([[0,1e-2], # WANE
+    bounds = jnp.array([[0,1e-2], # WANE
     [0,0.5], # SEASONALITY
     [0,1], # OFFSET
     [0,0.5], # BETA
@@ -69,7 +69,7 @@ elif pathogen == 'InfluenzaA':
     [0,1]]) # AGE_OBS - young_old# nelders-mead optimization
     def likelihood(x):
         sim_params = params.copy()
-        sim_params["WANE"] = np.array([0.0,x[0],0.0])
+        sim_params["WANE"] = jnp.array([0.0,x[0],0.0])
         sim_params["SEASONALITY"] = x[1]
         sim_params["OFFSET"] = x[2]
         sim_params["BETA"] = x[3]
@@ -85,9 +85,9 @@ elif pathogen == 'InfluenzaB':
     params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
     'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
     'contact': contact}
-    p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+    p_time_to_obs = jnp.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=jnp.float64)
     incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
-    bounds = np.array([[0,1e-2], # WANE
+    bounds = jnp.array([[0,1e-2], # WANE
     [0,0.5], # SEASONALITY
     [0,1], # OFFSET
     [0,0.5], # BETA
@@ -101,7 +101,7 @@ elif pathogen == 'InfluenzaB':
     [0,1]]) # AGE_OBS - young_old# nelders-mead optimization
     def likelihood(x):
         sim_params = params.copy()
-        sim_params["WANE"] = np.array([0.0,x[0],0.0])
+        sim_params["WANE"] = jnp.array([0.0,x[0],0.0])
         sim_params["SEASONALITY"] = x[1]
         sim_params["OFFSET"] = x[2]
         sim_params["BETA"] = x[3]
@@ -113,12 +113,12 @@ elif pathogen == 'InfluenzaB':
         return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
 
 ## Initial conditions
-STATE0 = np.zeros((2*N_S+2)*NAG)
+STATE0 = jnp.zeros((2*N_S+2)*NAG)
 STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 def callback(xk):
-    np.savetxt("Outputs/lhnm_"+pathogen+str(os.getenv('SLURM_PROCID'))+"_intermediate.csv",xk)
+    jnp.savetxt("Outputs/lhnm_"+pathogen+str(os.getenv('SLURM_PROCID'))+"_intermediate.csv",xk)
 
 def optimizer(start):
     opt = sp.optimize.minimize(likelihood,start,method='Nelder-Mead',callback=callback)
@@ -133,4 +133,4 @@ if __name__ == '__main__':
     lh_samples_scaled = sp.stats.qmc.scale(lh_samples, bounds[:,0], bounds[:,1])
     # with Pool(int(os.getenv('SLURM_CPUS_ON_NODE'))) as p:
     with Pool(4) as p:
-        np.savetxt("Outputs/lhnm_"+pathogen+str(n_samples)+".csv",np.array(p.map(optimizer,lh_samples_scaled)))
+        jnp.savetxt("Outputs/lhnm_"+pathogen+str(n_samples)+".csv",jnp.array(p.map(optimizer,lh_samples_scaled)))

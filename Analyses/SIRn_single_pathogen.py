@@ -1,7 +1,7 @@
 ## SIR model with n susceptibility classes, for a single pathogen
 ## BJS September 2024
 
-import jax.numpy as np
+import jax.numpy as jnp
 import scipy as sp
 import time
 import itertools as it
@@ -32,7 +32,7 @@ ACOV_SCALED = lambda t,T_VAX : ACOV(t,T_VAX)/T_FACTOR
 ## Contacts and force of infection
 IMPORT = 0.01
 # Contact matrix for all contact types
-CONTACT = np.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',')
+CONTACT = jnp.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',')
 CONTACT /= 12.99 # transform to contact proportions
 # Lockdown and other mobility changes
 T_LOCKDOWN = 37*12*T_FACTOR
@@ -41,16 +41,16 @@ LOCKDOWN_REDUCTION = 0.4
 shape_step = lambda t : cm.STEP(t,T_LOCKDOWN,LOCKDOWN_DURATION,LOCKDOWN_REDUCTION)
 shape_static = lambda t : 1
 def contact(t,shape,seasonality=SEASONALITY,offset=OFFSET,t_factor=T_FACTOR,c_rate=CONTACT):
-    return shape(t)*(1+seasonality*np.cos(2*np.pi*(t/(12*t_factor)-offset)))*c_rate
+    return shape(t)*(1+seasonality*jnp.cos(2*jnp.pi*(t/(12*t_factor)-offset)))*c_rate
 
 ## Initial conditions
-STATE0 = np.zeros((1+N_S*3)*(NAG))
+STATE0 = jnp.zeros((1+N_S*3)*(NAG))
 STATE0[NAG:2*NAG] = KP_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 ## Integrate the system
-# POINTS = np.concat((np.zeros(1),np.arange(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12,0.1),np.ones(1)*PERIOD))
-POINTS = np.arange(0,PERIOD+1,1)
+# POINTS = jnp.concat((jnp.zeros(1),jnp.arange(T_LOCKDOWN-5*12,T_LOCKDOWN+LOCKDOWN_DURATION+5*12,0.1),jnp.ones(1)*PERIOD))
+POINTS = jnp.arange(0,PERIOD+1,1)
 T_VAX = PERIOD
 
 # S_REL = S_REL**2
@@ -65,7 +65,7 @@ T_VAX = PERIOD
 
 # BETA = 0.5*BETA
 # REC = 0.5*REC
-S_REL = np.ones(N_S)
+S_REL = jnp.ones(N_S)
 params = {'NAG':NAG, 'N_S':N_S, 'AGING_RATE':AGING_RATE, 'BIRTH_RATE':BIRTH_RATE, 'WANE_UP':WANE_UP, 'WANE_SAME':WANE_SAME, 'REC':REC, 'S_REL':S_REL, 'S_AGE':S_AGE, 'I_REL':I_REL, 'P_OBS':P_OBS, 'birth_vax':birth_vax, 'all_vax':all_vax, 'S_VAX':S_VAX, 'ACOV_SCALED':ACOV_SCALED, 'BCOV':BCOV, 'T_VAX':T_VAX,
     'IMPORT':IMPORT, 'BETA':BETA, 'contact':lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)}
 result = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=(params,))
@@ -73,9 +73,9 @@ result = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=PO
 # # plot each compartment
 # fig, axes = plt.subplots(3,1,figsize=(6.5,6.5),sharex=True)
 # for i in range(N_S):
-#     axes[0].plot(result.t,np.sum(result.y[(3*i+1)*NAG:(3*i+2)*NAG,:],axis=0), label='S'+str(i+1))
-#     axes[1].plot(result.t,np.sum(result.y[(3*i+2)*NAG:(3*i+3)*NAG,:],axis=0), label='I'+str(i+1))
-#     axes[2].plot(result.t,np.sum(result.y[(3*i+3)*NAG:(3*i+4)*NAG,:],axis=0), label='R'+str(i+1))
+#     axes[0].plot(result.t,jnp.sum(result.y[(3*i+1)*NAG:(3*i+2)*NAG,:],axis=0), label='S'+str(i+1))
+#     axes[1].plot(result.t,jnp.sum(result.y[(3*i+2)*NAG:(3*i+3)*NAG,:],axis=0), label='I'+str(i+1))
+#     axes[2].plot(result.t,jnp.sum(result.y[(3*i+3)*NAG:(3*i+4)*NAG,:],axis=0), label='R'+str(i+1))
 # axes[0].set_xlim(25*12,43*12)
 # axes[1].set_ylim(0,5e4)
 # axes[2].set_ylim(0,7e5)
@@ -154,24 +154,24 @@ plt.tight_layout()
 plt.show()
 
 
-# w36_up = 0.36*np.array([1,1,0])
-# w36_same = 0.36*np.array([0,0,1])
-# g64_rec = 14.2*np.ones(3)
+# w36_up = 0.36*jnp.array([1,1,0])
+# w36_same = 0.36*jnp.array([0,0,1])
+# g64_rec = 14.2*jnp.ones(3)
 # g64_beta = 78.2
 # params_g64_w36 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w36_up, w36_same, g64_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
 #     IMPORT, g64_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
 # result_g64_w36 = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params_g64_w36)
-# w24_up = 0.24*np.array([1,1,0])
-# w24_same = 0.24*np.array([0,0,1])
+# w24_up = 0.24*jnp.array([1,1,0])
+# w24_same = 0.24*jnp.array([0,0,1])
 # params_g64_w24 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w24_up, w24_same, g64_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
 #     IMPORT, g64_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
 # result_g64_w24 = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params_g64_w24)
-# g48_rec = 10.6*np.ones(3)
+# g48_rec = 10.6*jnp.ones(3)
 # g48_beta = 58.7
 # params_g48_w36 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w36_up, w36_same, g48_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
 #     IMPORT, g48_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
 # result_g48_w36 = sp.integrate.solve_ivp(deltas,(0,PERIOD),STATE0,method='RK45',t_eval=POINTS,args=params_g48_w36)
-# g40_rec = 8.9*np.ones(3)
+# g40_rec = 8.9*jnp.ones(3)
 # g40_beta = 48.9
 # params_g40_w36 = ((NAG, N_S, AGING_RATE, BIRTH_RATE, w36_up, w36_same, g40_rec, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV_SCALED, BCOV, T_VAX,
 #     IMPORT, g40_beta,lambda t : contact(t, shape_step,SEASONALITY,OFFSET,T_FACTOR,CONTACT)),)
@@ -214,15 +214,15 @@ plt.show()
 
 # viridis = plt.cm.get_cmap('viridis', NAG)
 
-# # plt.plot(result_static.t,np.sum(obs_static,axis=1)/pop_size, label='Observed cases',color='blue')
-# # plt.plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
+# # plt.plot(result_static.t,jnp.sum(obs_static,axis=1)/pop_size, label='Observed cases',color='blue')
+# # plt.plot(result.t,jnp.sum(obs,axis=1)/pop_size, label='Observed cases')
 # plt.xlim(25*12,43*12)
 # # plt.ylim(0,7e-4)
-# mx = 1.1*np.max((np.sum(obs,axis=1)/pop_size)[int(2*POINTS/3):POINTS])
+# mx = 1.1*jnp.max((jnp.sum(obs,axis=1)/pop_size)[int(2*POINTS/3):POINTS])
 # # plt.ylim(mn,mx)
 # plt.ylabel('Observed incidence')
 # plt.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
-# plt.xticks(np.arange(25*12,44*12,12),[str(int(x)-13) for x in np.arange(0,19,1)])
+# plt.xticks(jnp.arange(25*12,44*12,12),[str(int(x)-13) for x in jnp.arange(0,19,1)])
 # plt.xlabel('Time (years)')
 # plt.title('Incidence of non-pediatric disease with 1-year lockdown')
 # plt.tight_layout()
@@ -230,10 +230,10 @@ plt.show()
 # plt.show()
 
 # fig, axes = plt.subplots(2,2,figsize=(6.5,6.5))
-# axes[0,0].plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
+# axes[0,0].plot(result.t,jnp.sum(obs,axis=1)/pop_size, label='Observed cases')
 # axes[0,0].set_title('Simulation (including burn-in)')
 # axes[0,0].set_ylabel('Observed incidence')
-# axes[0,1].plot(result.t,np.sum(obs,axis=1)/pop_size, label='Observed cases')
+# axes[0,1].plot(result.t,jnp.sum(obs,axis=1)/pop_size, label='Observed cases')
 # axes[0,1].set_xlim(2*PERIOD/3,PERIOD)
 # axes[0,1].set_ylim(0,1e-4)
 # # axes[0,1].set_ylim(0,4e-4)
@@ -245,7 +245,7 @@ plt.show()
 
 # # Infected persons in each age group
 # for i in range(NAG):
-#     axes[1,0].plot(result.t,obs[:,i]/np.sum(result.y[range(i,10*NAG,NAG),:],axis=0), label=AGE_GROUP_NAMES[i], color=viridis(i), alpha=0.5)
+#     axes[1,0].plot(result.t,obs[:,i]/jnp.sum(result.y[range(i,10*NAG,NAG),:],axis=0), label=AGE_GROUP_NAMES[i], color=viridis(i), alpha=0.5)
 # axes[1,0].set_xlim(2*PERIOD/3,PERIOD)
 # axes[1,0].set_ylim(0,5e-4)
 # # axes[1,0].set_ylim(0,1e-3)
@@ -254,7 +254,7 @@ plt.show()
 
 # # Population in each age group
 # for i in range(NAG):
-#     axes[1,1].plot(result.t,np.sum(result.y[range(i,10*NAG,NAG),:],axis=0), label=AGE_GROUP_NAMES[i], color=viridis(i))
+#     axes[1,1].plot(result.t,jnp.sum(result.y[range(i,10*NAG,NAG),:],axis=0), label=AGE_GROUP_NAMES[i], color=viridis(i))
 # axes[1,1].set_title('Age groups')
 # axes[1,1].set_ylabel('Age group population')
 
