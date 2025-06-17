@@ -23,8 +23,10 @@ def categorize_pathogens(pathogen):
     
     if "PARAINFLUENZA" in pathogen:
         return "Parainfluenza"
-    elif "INFLUENZA" in pathogen:
-        return "Influenza"
+    elif pathogen in ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A"]:
+        return "InfluenzaA"
+    elif pathogen in ["INFLUENZA B","INFLUENZA VIRUS B"]:
+        return "InfluenzaB"
     elif "RESPIRATORY SYNCYTIAL VIRUS" in pathogen:
         return "RSV"
     elif "METAPNEUMOVIRUS" in pathogen:
@@ -182,7 +184,7 @@ def perform_cmh_test(positivity_table,pathogen1,pathogen2,period,prevalence_corr
 
     return R, p_value
 
-def generate_tables(pathogens_of_interest,proportion_symptomatic=[],restrictive=False,period='year_month',load=False,threshold=0,bias=False):
+def generate_tables(df,pathogens_of_interest,proportion_symptomatic=[],restrictive=False,period='year_month',load=False,threshold=0,bias=False):
     results = []
     for i, pathogen1 in enumerate(pathogens_of_interest):
         for pathogen2 in pathogens_of_interest[i+1:]:
@@ -223,23 +225,44 @@ def generate_tables(pathogens_of_interest,proportion_symptomatic=[],restrictive=
             })
             # save the results
             results_df = pd.DataFrame(results)
-            results_df.to_csv('Data/Processed/viral_interference_CMH_tests' + ["", "_prevalence_correction"][proportion_symptomatic != []] + ["", "_restrictive"][restrictive] + ["", "_Mbias"][bias] + "_threshold" + str(threshold) + '.csv', index=False)
+            results_df.to_csv('Data/Processed/viral_interference_CMH_tests3' + ["", "_prevalence_correction"][proportion_symptomatic != []] + ["", "_restrictive"][restrictive] + ["", "_Mbias"][bias] + "_threshold" + str(threshold) + '.csv', index=False)
 
 # plot heatmap of odds ratios
 def plot_heatmap(ax, results, pathogens_of_interest, title='Viral Interference Heatmap', significance=None):
     # Create a pivot table for the heatmap
     pivot_table = results.pivot(index='pathogen1', columns='pathogen2', values='odds_ratio')
     p_values = results.pivot(index='pathogen1', columns='pathogen2', values='p_value')
-
+    
     pivot_table = pivot_table.reindex(pathogens_of_interest, axis=0).reindex(pathogens_of_interest, axis=1)
+    p_values = p_values.reindex(pathogens_of_interest, axis=0).reindex(pathogens_of_interest, axis=1)
+    # order columns and rows differently
+    order = ["Influenza", "HMPV", "RSV", "Parainfluenza", "SARS-CoV-2", "Rhinovirus", "Adenovirus"]
+    pivot_table = pivot_table.loc[order, order]
+    # reflect the lower triangle to the upper triangle, and vice versa, replacing NaNs with corresponding value in other traingle
+    for i in range(len(order)):
+        for j in range(len(order)):
+            if i > j:
+                if pd.isna(pivot_table.iloc[i, j]):
+                    pivot_table.iloc[i, j] = pivot_table.iloc[j, i]
+                else:
+                    pivot_table.iloc[j, i] = pivot_table.iloc[i, j]
+                if pd.isna(p_values.iloc[i, j]):
+                    p_values.iloc[i, j] = p_values.iloc[j, i]
+                else:
+                    p_values.iloc[j, i] = p_values.iloc[i, j]
+                pivot_table.iloc[i, j] = np.nan
+    print(p_values)
+    sns.set(font_scale=0.8)
     sns.heatmap(pivot_table, annot=True, fmt=".2f", cmap='viridis_r', ax=ax, cbar_kws={'label': 'Odds Ratio'}, vmin=0.1, vmax=1)
     cells = ax.get_children()
     if significance != None:
-        for i,p1 in enumerate(pathogens_of_interest):
-            for j,p2 in enumerate([pathogen for pathogen in pathogens_of_interest if pathogen != p1]):
+        for i,p1 in enumerate(order):
+            for j,p2 in enumerate([pathogen for pathogen in order if pathogen != p1]):
                 if pivot_table.loc[p1,p2] < 1 and p_values.loc[p1,p2] < significance:
-                    cell_color = cells[i * (len(pathogens_of_interest)-1) + j + 1].get_color()
-                    ax.text(j + int(j>=i) + 0.8, i + 0.3, '*', color=cell_color, fontsize=30, ha='center', va='center')
+                    print(f"Significant negative association between {p1} and {p2}: {pivot_table.loc[p1,p2]} (p-value: {p_values.loc[p1,p2]})")
+                    # cell_color = cells[i * (len(pathogens_of_interest)-1) + j + 1].get_color()
+                    cell_color = "black" if pivot_table.loc[p1,p2] < 0.4 else "white"
+                    ax.text(j + 1 + 0.8, i + 0.3, '*', color=cell_color, fontsize=11, ha='center', va='center')
     ax.set_title(title)
     ax.set_xlabel('')
     ax.set_ylabel('')
@@ -247,9 +270,13 @@ def plot_heatmap(ax, results, pathogens_of_interest, title='Viral Interference H
     pathogen_abbreviations = {
         "Adenovirus": "AdV",
         "Influenza": "Flu",
+        "InfluenzaA": "Flu A",
+        "InfluenzaB": "Flu B",
         "Parainfluenza": "PIV",
         "RSV": "RSV",
-        "HMPV": "hMPV"}
+        "HMPV": "hMPV",
+        "Rhinovirus": "RV",
+        "SARS-CoV-2": "SARS2",}
     ax.set_xticklabels([pathogen_abbreviations[p.get_text()] for p in ax.get_xticklabels()], rotation=45, ha='right')
     ax.set_yticklabels([pathogen_abbreviations[p.get_text()] for p in ax.get_yticklabels()])
 
@@ -264,7 +291,7 @@ def M_bias(positivity_table, pathogenA, pathogenB, hospA=0.03, p_hospA=0.85, hos
     pB = hospB/p_hospB + pS
     return pS/max(pA, pB), [pA, pB, pS] # return the bias factor and the probabilities of appearing in study with each pathogen and neither pathogen
 
-pathogens_of_interest = ["RSV", "HMPV", "Adenovirus", "Influenza", "Parainfluenza"]
+pathogens_of_interest = ["InfluenzaA","InfluenzaB","SARS-CoV-2", "Rhinovirus", "RSV", "HMPV", "Adenovirus", "Influenza", "Parainfluenza"]
 proportion_symptomatic = {"All": 0.2894586894586895,
 "Influenza": 0.5356125356125356,
 "RSV": 0.341880341880342,
@@ -274,20 +301,28 @@ proportion_symptomatic = {"All": 0.2894586894586895,
 "Adenovirus": 0.19601139601139594,
 "Coronavirus": 0.2780626780626781} # Galanti et al. 2019 Epidemiology & Infection
 proportion_hospitalized = {"Influenza": 0.6,
+"InfluenzaA": 0.6,
+"InfluenzaB": 0.6,
 "RSV": 0.86,
 "Parainfluenza": 0.85,
 "HMPV": 0.85,
-"Adenovirus": 0.85} # Proportion recieving tests in data who are hospitalized
+"Adenovirus": 0.85,
+"Rhinovirus": 0.85,
+"SARS-CoV-2": 0.37} # Proportion recieving tests in data who are hospitalized
 
 if __name__ == "__main__":
-    # from plotting import pathogen_names
+    from plotting import pathogen_names
     # for pathogen in pathogens_of_interest:
     #     print(pathogen, pathogen_names[pathogen])
+    # pathogen_names_of_interest = [p for pathogen in pathogens_of_interest for p in pathogen_names[pathogen]]
 
-    # test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', encoding='utf-8')
+    test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', encoding='utf-8')
     # test_data = test_data.loc[test_data["lab_type"]=="PCR"]
-    # print(test_data["pathogen"].value_counts())
-    # print(len(test_data["StudyID"].unique()), "patients in the testing dataset")
+    # print(test_data.shape)
+    # print(test_data["result_val"].value_counts())
+    # print(test_data["StudyID"].nunique(), "patients with PCR test")
+    # print(test_data.loc[ (test_data["result_val"]=="Positive")].shape[0], "positive PCR test")
+    # print(test_data.loc[ (test_data["result_val"]=="Positive"), "StudyID"].nunique(), "patients with positive PCR test")
     # clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat', encoding='utf-8')
     # print(len(clinical_data["StudyID"].unique()), "patients in the clinical dataset")
     # clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
@@ -332,33 +367,34 @@ if __name__ == "__main__":
     #         print(f"Probability of appearing in study given negativity for both, assuming high prevalence: {N_NA_NB/(N_S*(1-prev1)*(1-prev2))}")
     #         print("\n")
  
-    # # start_time = time.time()
-    # # df = process_data(test_data)
-    # # print(f"Data processed in {time.time() - start_time} seconds")
-    # # # save the processed data
-    # # df.to_csv('Data/Processed/testing.csv', index=False)
+    start_time = time.time()
+    df = process_data(test_data)
+    print(f"Data processed in {time.time() - start_time} seconds")
+    # save the processed data
+    df.to_csv('Data/Processed/testing_fluAB.csv', index=False)
     # # print(df["pathogen_group"].value_counts())
     # # load the processed data
-    # df = pd.read_csv('Data/Processed/testing.csv')
-    # generate_tables(pathogens_of_interest, restrictive=True, period='year_month', load=True, threshold=0, bias=True)
+    # df = pd.read_csv('Data/Processed/testing_fluAB.csv')
+    generate_tables(df,pathogens_of_interest, restrictive=True, period='year_month', load=False, threshold=0, bias=False)
 
-    results = pd.read_csv('Data/Processed/viral_interference_CMH_tests.csv')
-    results = results[(results['match_by_date'] == False) & (results['period'] == 'year_month')].copy()
-    results_corrected = pd.read_csv('Data/Processed/viral_interference_CMH_tests_restrictive_Mbias_threshold0.csv')
-    # results_corrected_reverse_order = pd.read_csv('Data/Processed/viral_interference_CMH_tests_prevalence_correction_reverse_order.csv')
-    # results_corrected_combined = pd.concat([results_corrected, results_corrected_reverse_order], ignore_index=True)
-    fig, axes = plt.subplots(1,2,figsize=(6.5, 3.5))
-    # Create the heatmaps without color bars
-    plot_heatmap(axes[0], results, pathogens_of_interest, title='Naïve', significance=None)
-    plot_heatmap(axes[1], results_corrected, pathogens_of_interest, title='With correction factor', significance=None)
-    plt.tight_layout()
-    # remove color bar
-    axes[0].collections[0].colorbar.remove()
-    axes[1].collections[0].colorbar.remove()
+    # results = pd.read_csv('Data/Processed/viral_interference_CMH_tests.csv')
+    # results = results[(results['match_by_date'] == True) & (results['period'] == 'year_month')].copy()
+    # results_corrected = pd.read_csv('Data/Processed/viral_interference_CMH_tests_restrictive_Mbias_threshold0.csv')
+    # # results_corrected_reverse_order = pd.read_csv('Data/Processed/viral_interference_CMH_tests_prevalence_correction_reverse_order.csv')
+    # # results_corrected_combined = pd.concat([results_corrected, results_corrected_reverse_order], ignore_index=True)
+    # fig, axes = plt.subplots(1,2,figsize=(6.5, 3.5))
+    # # Create the heatmaps without color bars
+    # plot_heatmap(axes[0], results, pathogens_of_interest, title='Naïve', significance=None)
+    # plot_heatmap(axes[1], results_corrected, pathogens_of_interest, title='With correction factor', significance=0.05/21)
 
-    # Add a shared color bar
-    cbar = fig.colorbar(axes[0].collections[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
-    cbar.set_label('Odds Ratio')
-    # plt.suptitle('Chochran-Mantel-Haenszel odds ratios for viral interference')
+    # # remove color bar
+    # axes[0].collections[0].colorbar.remove()
+    # axes[1].collections[0].colorbar.remove()
+    # axes[1].set_yticks([])
+    # plt.tight_layout()
+    # # Add a shared color bar
+    # cbar = fig.colorbar(axes[0].collections[0], ax=axes, orientation='vertical', fraction=0.1, pad=0.04)
+    # cbar.set_label('Odds Ratio')
+    # # plt.suptitle('Chochran-Mantel-Haenszel odds ratios for viral interference')
 
-    plt.savefig('Figures/viral_interference_heatmap_wMbias.png', dpi=300)
+    # plt.savefig('Figures/viral_interference_heatmap_wMbias3_significance.png', dpi=300)

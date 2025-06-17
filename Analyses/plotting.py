@@ -416,8 +416,9 @@ pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL V
 "HMPV" : ["HUMAN METAPNEUMOVIRUS VIRUS",],
 "Adenovirus": ["ADENOVIRUS",],
 "Parainfluenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
-"Parainfluenza3": ["PARAINFLUENZA VIRUS 3"]}
-def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=None,incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None, save_data=False):
+"Parainfluenza3": ["PARAINFLUENZA VIRUS 3"],
+"SARS-CoV-2": ["SARS-COV-2 (COVID-19)"]}
+def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=None,incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None, save_data=False, relative=False):
     print(pathogen)
     respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv')
     if incidence:
@@ -515,6 +516,8 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
 
     if incidence:
         cases *= 10000
+    if relative:
+        cases /= cases.max()
     if title is None:
         if incidence:
             title = f"{pathogen} incidence"

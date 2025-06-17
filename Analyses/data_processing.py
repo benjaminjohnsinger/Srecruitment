@@ -219,16 +219,12 @@ import time
 
 ############### Processing KPSC data into time series of test-confirmed cases ###############
 
-time_start = time.time()
-test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat')
-print("Time to load test data: ",time.time()-time_start)
+# test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat')
 
-# print column names
-print(test_data.columns)
+# # print column names
+# print(test_data.columns)
 
-
-# with SAS7BDAT('Data/Raw/KPSC/clinical_20241202.sas7bdat') as f:
-#     clinical_data = f.to_data_frame()
+# clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat')
 
 # # # save random sample of clinical data
 # # # clinical_data.sample(10000).to_csv('Data/Processed/KPSC_clinical_sample.csv',index=False)
@@ -296,6 +292,7 @@ print(test_data.columns)
 # positive_tests.to_csv('Data/Processed/KPSC_positive_matched_all_clinical.csv',index=False)
 # # load
 # positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_all_clinical.csv')
+
 # hospitalizations = clinical_data[(clinical_data["setting"] == 'Hospital admission')]
 
 # # save hostpitalizations to csv
@@ -332,6 +329,27 @@ print(test_data.columns)
 
 # # # save to csv
 # positive_tests.to_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv',index=False)
+positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
+# remove positive tests within 14 days of each other with the same StudyID and pathogen
+positive_tests = positive_tests.sort_values(by=["StudyID","pathogen","Test date"])
+positive_tests["Test date"] = pd.to_datetime(positive_tests["Test date"])
+positive_tests["Hospitalization date"] = pd.to_datetime(positive_tests["Hospitalization date"])
+# find groups of tests within 14 days of each other with the same StudyID and pathogen
+positive_tests["diff"] = positive_tests.groupby(["StudyID","pathogen"])["Test date"].diff().dt.days
+# change printing options to show extra rows
+pd.set_option('display.max_rows', 500)
+print(positive_tests.loc[positive_tests["StudyID"]==44833,["StudyID","pathogen","Test date","diff"]].head(100))
+# for groups of tests where diff is less than 14 days, keep only the first test
+positive_tests = positive_tests[(positive_tests["diff"].isna()) | (positive_tests["diff"] > 14)]
+
+
+print(positive_tests.shape)
+# # # filter to only include RSV, Influenza A, Influenza B, Metapneumovirus, Adenovirus, Parainfluenza 3
+from plotting import pathogen_names
+pathogen_names_of_interest = [p for pathogen in ["RSV","InfluenzaA","InfluenzaB","Metapneumovirus","Adenovirus","Parainfluenza3"] for p in pathogen_names[pathogen]]
+tests_of_interest = positive_tests[positive_tests["pathogen"].isin(pathogen_names_of_interest)]
+print(tests_of_interest.shape)
+print(tests_of_interest["StudyID"].nunique())
 
 ## Separating out individual pathogen data from positive matched hospitalizations
 # AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-17y','18-39y','40-64y','>=65y']

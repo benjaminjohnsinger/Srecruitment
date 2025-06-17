@@ -52,19 +52,19 @@ np.set_printoptions(threshold=np.inf)
 # plt.tight_layout()
 # plt.savefig('Figures/contact_matrix.png', dpi=300)
 
-# # adjust plot text size
-# plt.rcParams.update({'font.size':20})
-# # text type is palatino
-# plt.rcParams['font.family'] = 'serif'
-# plt.rcParams['font.serif'] = ['Palatino']
+# adjust plot text size
+plt.rcParams.update({'font.size':8})
+# text type is palatino
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Arial']
 
-# fig, ax = plt.subplots(3,2,figsize=(14.5,18))
-# kpsc_positive_test_plot(ax[0,0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=True,aggregation="Month")
-# kpsc_positive_test_plot(ax[1,0],pathogen="InfluenzaA",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
+fig, ax = plt.subplots(figsize=(6.5/2,3.5))
+kpsc_positive_test_plot(ax,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=True,aggregation="Month", color="#648FFF", relative=True)
+kpsc_positive_test_plot(ax,pathogen="Influenza",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", color="#DC267F", relative=True)
 # kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
-# kpsc_positive_test_plot(ax[0,1],pathogen="Metapneumovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
+kpsc_positive_test_plot(ax,pathogen="Metapneumovirus",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", color="#FFB000", relative=True)
 # kpsc_positive_test_plot(ax[1,1],pathogen="InfluenzaB",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
-# kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
+kpsc_positive_test_plot(ax,pathogen="Parainfluenza",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", color="#785EF0", relative=True)
 # for i in range(2):
 #     for j in range(2):
 #         ax[i,j].set_xlabel("")
@@ -81,9 +81,17 @@ np.set_printoptions(threshold=np.inf)
 # ax[2,1].set_title("Parainfluenza 3")
 
 # ax[0,0].legend(ncol=2,title="Age group")
+# custom legend
+legend_elements = ["RSV", "Flu", "hMPV", "PIV"]
+legend_colors = ["#648FFF", "#DC267F", "#FFB000", "#785EF0"]
+ax.legend(legend_elements, loc='upper right', frameon=False, fontsize=8, title="Pathogen", title_fontsize=9, handletextpad=0.5, handlelength=1.5, markerscale=1.2, borderpad=0.3)
+ax.set_title("Relative incidience of hospitalisation")
+ax.set_ylabel("")
+ax.set_yticks([])
+ax.set_xlabel("")
 
-# plt.tight_layout()
-# plt.savefig('Figures/KPSC_incidence_poster.svg',transparent=True)
+plt.tight_layout()
+plt.savefig('Figures/KPSC_relative_incidence_CDA_wPIV.png',dpi=300)
 
 
 start_date = '2015-05-01'
