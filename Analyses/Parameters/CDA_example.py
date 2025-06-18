@@ -33,7 +33,7 @@ OBS_AGE = np.array([1,0.75,0.5,0.05,0.05,0.15,1])
 SEASONALITY = 0.2
 OFFSET = 0.2
 # Infectiousness
-BETA = 0.275
+BETA = 0.238
 # Vaccination paramters
 S_VAX, BCOV = 2, 0
 @jit
