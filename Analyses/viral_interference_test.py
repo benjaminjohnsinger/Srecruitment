@@ -290,9 +290,33 @@ if __name__ == "__main__":
 
     # test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', encoding='utf-8')
     # test_data = test_data.loc[test_data["lab_type"]=="PCR"]
-    # print(test_data["pathogen"].value_counts())
+    test_counts = pd.read_csv('Data/Processed/KPSC_test_counts.csv', index_col=0)
+    # bar chart
+    test_counts.plot(kind='bar', figsize=(10, 5), color="silver")
+    # log y
+    plt.yscale('log')
+    # 45 degree x labels
+    plt.xticks(rotation=45, ha='right')
+    # labelled dotted lines a y = 184200, 129355, and 54845
+    plt.plot([3, 14], [184200, 184200], color='#648FFF', linestyle='--', label='184200')
+    plt.plot([15, 17], [129355, 129355], color='#DC267F', linestyle='--', label='129355')
+    plt.plot([19, 23], [54845, 54845], color='#FFB000', linestyle='--', label='54845')
+    # add text to lines
+    plt.text(3, 184200, '184200', color='#648FFF', ha='left', va='bottom')
+    plt.text(15, 129355, '129355', color='#DC267F', ha='left', va='bottom')
+    plt.text(19, 54845, '54845', color='#FFB000', ha='left', va='bottom')
+    # replace end of x ticks with "..." after 20 characters
+    plt.gca().set_xticklabels([x.get_text()[:22] + '...' if len(x.get_text()) > 22 else x.get_text() for x in plt.gca().get_xticklabels()])
+    plt.tight_layout()
+    plt.ylabel('Number of tests')
+    plt.savefig('Figures/KPSC_test_counts.png', dpi=300)
+    # # Number of tets of PARAINFLUENZA VIRUS 1, INFLUENZA VIRUS A, ENTEROVIRUS/RHINOVIRUS, HUMAN METAPNEUMOVIRUS VIRUS, and ADENOVIRUS
+    # panel_pathogens = ["PARAINFLUENZA VIRUS 1","INFLUENZA VIRUS A","ENTEROVIRUS/RHINOVIRUS","HUMAN METAPNEUMOVIRUS VIRUS","ADENOVIRUS"]
+    # print(test_data.loc[test_data["pathogen"].isin(panel_pathogens)].len(), "tests of panel pathogens")
+    # print(test_data.loc[test_data["pathogen"].isin(panel_pathogens), "StudyID"].nunique(), "patients with panel pathogens")
+
     # print(len(test_data["StudyID"].unique()), "patients in the testing dataset")
-    # clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat', encoding='utf-8')
+    # clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_22241202.sas7bdat', encoding='utf-8')
     # print(len(clinical_data["StudyID"].unique()), "patients in the clinical dataset")
     # clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
 
@@ -346,23 +370,23 @@ if __name__ == "__main__":
     # df = pd.read_csv('Data/Processed/testing.csv')
     # generate_tables(pathogens_of_interest, restrictive=True, period='year_month', load=True, threshold=0, bias=True)
 
-    results = pd.read_csv('Data/Processed/viral_interference_CMH_tests.csv')
-    results = results[(results['match_by_date'] == True) & (results['period'] == 'year_month')].copy()
-    results_corrected = pd.read_csv('Data/Processed/viral_interference_CMH_tests_restrictive_Mbias_threshold0.csv')
-    # results_corrected_reverse_order = pd.read_csv('Data/Processed/viral_interference_CMH_tests_prevalence_correction_reverse_order.csv')
-    # results_corrected_combined = pd.concat([results_corrected, results_corrected_reverse_order], ignore_index=True)
-    fig, axes = plt.subplots(1,2,figsize=(6.5, 3.5))
-    # Create the heatmaps without color bars
-    plot_heatmap(axes[0], results, pathogens_of_interest, title='Naïve', significance=None)
-    plot_heatmap(axes[1], results_corrected, pathogens_of_interest, title='With correction factor', significance=None)
-    plt.tight_layout()
-    # remove color bar
-    axes[0].collections[0].colorbar.remove()
-    axes[1].collections[0].colorbar.remove()
+    # results = pd.read_csv('Data/Processed/viral_interference_CMH_tests.csv')
+    # results = results[(results['match_by_date'] == True) & (results['period'] == 'year_month')].copy()
+    # results_corrected = pd.read_csv('Data/Processed/viral_interference_CMH_tests_restrictive_Mbias_threshold0.csv')
+    # # results_corrected_reverse_order = pd.read_csv('Data/Processed/viral_interference_CMH_tests_prevalence_correction_reverse_order.csv')
+    # # results_corrected_combined = pd.concat([results_corrected, results_corrected_reverse_order], ignore_index=True)
+    # fig, axes = plt.subplots(1,2,figsize=(6.5, 3.5))
+    # # Create the heatmaps without color bars
+    # plot_heatmap(axes[0], results, pathogens_of_interest, title='Naïve', significance=None)
+    # plot_heatmap(axes[1], results_corrected, pathogens_of_interest, title='With correction factor', significance=None)
+    # plt.tight_layout()
+    # # remove color bar
+    # axes[0].collections[0].colorbar.remove()
+    # axes[1].collections[0].colorbar.remove()
 
-    # Add a shared color bar
-    cbar = fig.colorbar(axes[0].collections[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
-    cbar.set_label('Odds Ratio')
-    # plt.suptitle('Chochran-Mantel-Haenszel odds ratios for viral interference')
+    # # Add a shared color bar
+    # cbar = fig.colorbar(axes[0].collections[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
+    # cbar.set_label('Odds Ratio')
+    # # plt.suptitle('Chochran-Mantel-Haenszel odds ratios for viral interference')
 
-    plt.savefig('Figures/viral_interference_heatmap_wMbias2.png', dpi=300)
+    # plt.savefig('Figures/viral_interference_heatmap_wMbias2.png', dpi=300)

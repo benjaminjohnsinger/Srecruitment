@@ -324,6 +324,7 @@ import numpyro.distributions as dist
 # solution = odeint(temp_deltas, STATE0, jnp.array(POINTS, dtype=jnp.float32), scalar_sample)
 # print("result took ",time.time()-start," seconds")
 # print(solution[-1])
+
 def temp_deltas(state, t, params=params):
     NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params['NAG'], params['N_S'], params['AGING_RATE'], params['BIRTH_RATE'], params['WANE'], params['REC_UP'], params['REC_SAME'], params['S_REL'], params['S_AGE'], params['I_REL'], params['P_OBS'], params['birth_vax'], params['S_VAX'], params['ACOV'], params['BCOV'], params['arrivals'], params['regional_positivity'], params['IMPORT_RATE'], params['BETA'], params['SEASONALITY'], params['OFFSET'], params['contact']
     return sis_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact)
@@ -341,6 +342,7 @@ print(time.time() - start)
 age_pops = jnp.array([jnp.sum(solution[len(p_time_to_obs):,jnp.arange(i,(N_S*N_C+1)*NAG,NAG)],axis=1) for i in range(NAG)]).T
 plt.plot(age_pops)
 plt.show()
+
 # save as csv
 # age_pops_df = pd.DataFrame(age_pops, index=PERIOD[len(p_time_to_obs):], columns=AGE_GROUP_NAMES)
 # age_pops_df.to_csv('Data/Processed/SISn_population_over_time_250610.csv')
