@@ -42,7 +42,7 @@ END = pd.to_datetime(end_date)
 PERIOD = pd.date_range(start=START, end=END, freq='D')
 POINTS = np.array(date_to_t(PERIOD))
 
-params, p_time_to_obs, incidence = pathogen_parameters(pathogen, lockdown, CONTACT)
+params, p_time_to_obs, incidence = pathogen_parameters(pathogen, lockdown, CONTACT, cleaned=True)
 N_S, NAG = params["N_S"], params["NAG"]
 
 # trim incidence so that Date is between START and END
@@ -55,6 +55,11 @@ STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
+
+if pathogen == "InfluenzA":
+    obsmax = 0.03
+else:
+    obsmax = 0.01
 
 if option1 == "nb":
     bounds_dict["OVERDISPERSION"] = [-5,10]
@@ -73,15 +78,15 @@ else:
     bounds_dict["D_REL1"] = [0.1,1]
     bounds_dict["D_REL2"] = [0.1,1]
 if option2 == "flexage":
-    bounds_dict["AGE_OBS_1"] = [0,0.01]
-    bounds_dict["AGE_OBS_2"] = [0,0.01]
-    bounds_dict["AGE_OBS_3"] = [0,0.01]
-    bounds_dict["AGE_OBS_4"] = [0,0.01]
-    bounds_dict["AGE_OBS_5"] = [0,0.01]
-    bounds_dict["AGE_OBS_6"] = [0,0.01]
-    bounds_dict["AGE_OBS_7"] = [0,0.01]
+    bounds_dict["AGE_OBS_1"] = [0,obsmax]
+    bounds_dict["AGE_OBS_2"] = [0,obsmax]
+    bounds_dict["AGE_OBS_3"] = [0,obsmax]
+    bounds_dict["AGE_OBS_4"] = [0,obsmax]
+    bounds_dict["AGE_OBS_5"] = [0,obsmax]
+    bounds_dict["AGE_OBS_6"] = [0,obsmax]
+    bounds_dict["AGE_OBS_7"] = [0,obsmax]
 else:
-    bounds_dict["P_OBS"] = [0,0.01]
+    bounds_dict["P_OBS"] = [0,obsmax]
     bounds_dict["AGE_OBS_YOUNG"] = [0,1]
     bounds_dict["AGE_OBS_OLD"] = [0,1]
     bounds_dict["AGE_OBS_YOUNG_OLD"] = [0,1]

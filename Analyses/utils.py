@@ -172,7 +172,7 @@ def params_to_scalars(param_dict,scalar_names):
             scalar_dict[name] = param_dict["P_OBS"][int(name[5:])]
     return scalar_dict
 
-def pathogen_parameters(pathogen, lockdown=None, CONTACT=None):
+def pathogen_parameters(pathogen, lockdown=None, CONTACT=None, cleaned=False):
     from Parameters.census_population import AGING_RATE
     from demography import birth_rate
     from vaccination import birth_vax, all_vax, flu_rate
@@ -210,7 +210,10 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None):
         'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
         'contact': contact}
         p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-        incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
+        if cleaned:
+            incidence = pd.read_csv("Data/Processed/KPSC_cleaned_RSV_incidence_age_daily.csv",index_col=0)
+        else:
+            incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
     elif pathogen == 'InfluenzaA':
         from Parameters.InfluenzaA import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
         # Parameters for the ODE
@@ -218,7 +221,10 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None):
         'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
         'contact': contact}
         p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-        incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
+        if cleaned:
+            incidence = pd.read_csv("Data/Processed/KPSC_cleaned_InfluenzaA_incidence_age_daily.csv",index_col=0)
+        else:
+            incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
     elif pathogen == 'InfluenzaB':
         from Parameters.InfluenzaB import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
         # Parameters for the ODE
@@ -226,7 +232,10 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None):
         'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
         'contact': contact}
         p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-        incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
+        if cleaned:
+            incidence = pd.read_csv("Data/Processed/KPSC_cleaned_InfluenzaB_incidence_age_daily.csv",index_col=0)
+        else:
+            incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
     elif pathogen == 'Parainfluenza3':
         from Parameters.Parainfluenza3 import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, ACOV, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
         # Parameters for the ODE
@@ -234,7 +243,10 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None):
         'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
         'contact': contact}
         p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-        incidence = pd.read_csv("Data/Processed/KPSC_Parainfluenza3_incidence_age_daily.csv",index_col=0)
+        if cleaned:
+            incidence = pd.read_csv("Data/Processed/KPSC_cleaned_Parainfluenza3_incidence_age_daily.csv",index_col=0)
+        else:
+            incidence = pd.read_csv("Data/Processed/KPSC_Parainfluenza3_incidence_age_daily.csv",index_col=0)
     elif pathogen == 'Adenovirus':
         from Parameters.Adenovirus import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, ACOV, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
         # Parameters for the ODE
@@ -242,7 +254,10 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None):
         'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
         'contact': contact}
         p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-        incidence = pd.read_csv("Data/Processed/KPSC_Adenovirus_incidence_age_daily.csv",index_col=0)
+        if cleaned:
+            incidence = pd.read_csv("Data/Processed/KPSC_cleaned_Adenovirus_incidence_age_daily.csv",index_col=0)
+        else:
+            incidence = pd.read_csv("Data/Processed/KPSC_Adenovirus_incidence_age_daily.csv",index_col=0)
     elif pathogen == 'Metapneumovirus':
         from Parameters.Metapneumovirus import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, ACOV, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
         # Parameters for the ODE
@@ -250,7 +265,10 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None):
         'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
         'contact': contact}
         p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-        incidence = pd.read_csv("Data/Processed/KPSC_Metapneumovirus_incidence_age_daily.csv",index_col=0)
+        if cleaned:
+            incidence = pd.read_csv("Data/Processed/KPSC_cleaned_Metapneumovirus_incidence_age_daily.csv",index_col=0)
+        else:
+            incidence = pd.read_csv("Data/Processed/KPSC_Metapneumovirus_incidence_age_daily.csv",index_col=0)
     return params, p_time_to_obs, incidence
 
 
