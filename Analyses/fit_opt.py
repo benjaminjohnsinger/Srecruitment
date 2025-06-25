@@ -21,7 +21,7 @@ from mobility_and_import import *
 from fit_MCMC import SIS_likelihood
 
 
-pathogen, seed, lockdown, obsmax, option2, import_cap, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], float(sys.argv[4]), sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
+pathogen, seed, lockdown, option1, option2, import_cap, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
 
 # set seed
 np.random.seed(seed)
@@ -55,6 +55,15 @@ STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
 STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
+
+# if option 1 is a number, use it to set obsmax
+if option1.replace('.','',1).isdigit():
+    obsmax = float(option1)
+else:
+    if pathogen == "InfluenzaA":
+        obsmax = 0.03
+    else:
+        obsmax = 0.01
 
 if option1 == "nb":
     bounds_dict["OVERDISPERSION"] = [-5,10]
