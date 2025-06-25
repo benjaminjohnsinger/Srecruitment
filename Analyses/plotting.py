@@ -435,7 +435,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         age_by_year.loc[2023] = age_by_year.loc[2022]
     
     if hospitalizations:
-        positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
+        positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations_cleaned_28.csv')
     else:
         positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_all_clinical.csv')
     names = pathogen_names[pathogen]

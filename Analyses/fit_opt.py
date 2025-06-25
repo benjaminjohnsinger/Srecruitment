@@ -21,7 +21,7 @@ from mobility_and_import import *
 from fit_MCMC import SIS_likelihood
 
 
-pathogen, seed, lockdown, option1, option2, import_cap, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
+pathogen, seed, lockdown, obsmax, option2, import_cap, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], float(sys.argv[4]), sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
 
 # set seed
 np.random.seed(seed)
@@ -56,15 +56,8 @@ STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
 
 bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
 
-if pathogen == "InfluenzA":
-    obsmax = 0.03
-else:
-    obsmax = 0.01
-
 if option1 == "nb":
     bounds_dict["OVERDISPERSION"] = [-5,10]
-if option1 != "ni" and option1 != "setimport":
-    bounds_dict["IMPORT_RATE"] = [0,import_cap]
 if ("Influenza" in pathogen) and (option2 != "nr"):
     bounds_dict["EXTRA_IMMUNITY"] = [0,1]
     bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
@@ -118,13 +111,7 @@ def likelihood(x):
     sim_params["OFFSET"] = x[2]
     sim_params["BETA"] = x[3]
     n = 4
-    if option1 == 'ni':
-        sim_params["IMPORT_RATE"] = 0
-    elif option1 == 'setimport':
-        sim_params["IMPORT_RATE"] = import_cap
-    else:
-        sim_params["IMPORT_RATE"] = x[n]
-        n += 1
+    sim_params["IMPORT_RATE"] = import_cap
     if ("Influenza" in pathogen) and (option2 != 'nr'):
         srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
         sim_params["S_REL"] = srel

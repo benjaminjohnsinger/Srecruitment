@@ -278,7 +278,7 @@ def observations(result,params,OBS_AGE,incidence=False,cap=False,N_C=2,time_conv
     """
     Generate observed cases or incidence from ODE results
     """
-    NAG, N_S, BETA, contact, SEASONALITY, OFFSET, S_REL, I_REL, P_OBS = params["NAG"], params["N_S"], params["BETA"], params["contact"], params["SEASONALITY"], params["OFFSET"], params["S_REL"], params["I_REL"], params["P_OBS"]
+    NAG, N_S, BETA, contact, SEASONALITY, OFFSET, S_REL, I_REL, P_OBS, IMPORT_RATE, regional_positivity, arrivals  = params["NAG"], params["N_S"], params["BETA"], params["contact"], params["SEASONALITY"], params["OFFSET"], params["S_REL"], params["I_REL"], params["P_OBS"], params["IMPORT_RATE"], params["regional_positivity"], params["arrivals"]
     if type(result) == dict:
         ry = result["y"]
         rt = result["t"]
@@ -287,8 +287,12 @@ def observations(result,params,OBS_AGE,incidence=False,cap=False,N_C=2,time_conv
         rt = result.t
     obs = np.zeros((len(rt),NAG))
     pop_size = np.sum(ry,axis=0)
+    age_pops = np.sum(ry.reshape(((2*N_S+2),NAG,len(rt))),axis=0)
     for i_t,t in enumerate(rt):
-        foi = BETA*np.dot(contact(t,SEASONALITY,OFFSET),np.sum((np.array([ry[(N_C*j+2)*NAG:(N_C*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
+        contact_t = contact(t,SEASONALITY,OFFSET)
+        infectious_contact = np.dot(contact_t,np.sum((np.array([ry[(N_C*j+2)*NAG:(N_C*j+3)*NAG,i_t] for j in range(N_S)])*I_REL),axis=0))/pop_size[i_t]
+        import_contact = IMPORT_RATE*regional_positivity(t)*arrivals(t)*np.dot(contact_t,age_pops[:,i_t])/pop_size[i_t]
+        foi = BETA*(infectious_contact+import_contact)
         for i in range(N_S):
             if cap:
                 class_foi = np.minimum(1,S_REL[i]*foi)
