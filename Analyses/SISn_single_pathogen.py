@@ -52,46 +52,49 @@ np.set_printoptions(threshold=np.inf)
 # plt.tight_layout()
 # plt.savefig('Figures/contact_matrix.png', dpi=300)
 
-# # adjust plot text size
-# plt.rcParams.update({'font.size':8})
-# # text type is palatino
-# plt.rcParams['font.family'] = 'sans-serif'
-# plt.rcParams['font.sans-serif'] = ['Arial']
+# adjust plot text size
+plt.rcParams.update({'font.size':8})
+# text type is palatino
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Arial']
 
-# fig, ax = plt.subplots(figsize=(6.5/2,3.5))
-# kpsc_positive_test_plot(ax,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=True,aggregation="Month", color="#648FFF", relative=True)
-# kpsc_positive_test_plot(ax,pathogen="Influenza",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", color="#DC267F", relative=True)
-# # kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
-# kpsc_positive_test_plot(ax,pathogen="Metapneumovirus",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", color="#FFB000", relative=True)
-# # kpsc_positive_test_plot(ax[1,1],pathogen="InfluenzaB",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
-# kpsc_positive_test_plot(ax,pathogen="Parainfluenza",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", color="#785EF0", relative=True)
-# # for i in range(2):
-# #     for j in range(2):
-# #         ax[i,j].set_xlabel("")
-# # for i in range(3):
-# #     ax[i,1].set_ylabel("")
-# #     for j in range(2):
-# #         ax[i,j].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
+fig, ax = plt.subplots(figsize=(6.5/2,3.5))
+# kpsc_positive_test_plot(ax,pathogen="InfluenzaA",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", color="#648FFF", relative=False)
+# kpsc_positive_test_plot(ax,pathogen="InfluenzaB",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", color="#DC267F", relative=False)
+kpsc_positive_test_plot(ax,pathogen="Respirovirus",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=True,aggregation="Month", color="#648FFF", relative=False)
+kpsc_positive_test_plot(ax,pathogen="Rublavirus",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=True,aggregation="Month", color="#DC267F", relative=False)
 
-# # ax[0,0].set_title("RSV")
-# # ax[1,0].set_title("Influenza A")
-# # ax[2,0].set_title("Adenovirus")
-# # ax[0,1].set_title("Metapneumovirus")
-# # ax[1,1].set_title("Influenza B")
-# # ax[2,1].set_title("Parainfluenza 3")
+# kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
+# kpsc_positive_test_plot(ax,pathogen="Metapneumovirus",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", color="#785EF0", relative=False)
+# kpsc_positive_test_plot(ax[1,1],pathogen="InfluenzaB",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
+# kpsc_positive_test_plot(ax,pathogen="Parainfluenza",AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", color="#FF832B", relative=False)
+# for i in range(2):
+#     for j in range(2):
+#         ax[i,j].set_xlabel("")
+# for i in range(3):
+#     ax[i,1].set_ylabel("")
+#     for j in range(2):
+#         ax[i,j].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
 
-# # ax[0,0].legend(ncol=2,title="Age group")
-# # custom legend
-# legend_elements = ["RSV", "Flu", "hMPV", "PIV"]
-# legend_colors = ["#648FFF", "#DC267F", "#FFB000", "#785EF0"]
-# ax.legend(legend_elements, loc='upper right', frameon=False, fontsize=8, title="Pathogen", title_fontsize=9, handletextpad=0.5, handlelength=1.5, markerscale=1.2, borderpad=0.3)
-# ax.set_title("Relative incidience of hospitalisation")
-# ax.set_ylabel("")
-# ax.set_yticks([])
-# ax.set_xlabel("")
+# ax[0,0].set_title("RSV")
+# ax[1,0].set_title("Influenza A")
+# ax[2,0].set_title("Adenovirus")
+# ax[0,1].set_title("Metapneumovirus")
+# ax[1,1].set_title("Influenza B")
+# ax[2,1].set_title("Parainfluenza 3")
 
-# plt.tight_layout()
-# plt.savefig('Figures/KPSC_relative_incidence_CDA_wPIV.png',dpi=300)
+# ax[0,0].legend(ncol=2,title="Age group")
+# custom legend
+legend_elements = ["PIV 1,3", "PIV 2,4"]
+legend_colors = ["#648FFF", "#DC267F"]
+ax.legend(legend_elements, loc='upper right', frameon=False, fontsize=8, title="Pathogen", title_fontsize=9, handletextpad=0.5, handlelength=1.5, markerscale=1.2, borderpad=0.3)
+ax.set_title("Incidience of hospitalisation")
+ax.set_ylabel("")
+ax.set_yticks([])
+ax.set_xlabel("")
+
+plt.tight_layout()
+plt.savefig('Figures/KPSC_cleaned_RespirovirusRublavirus.png',dpi=300)
 
 
 start_date = '2000-06-04'
