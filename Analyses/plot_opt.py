@@ -53,6 +53,7 @@ else:
 x = opt.x
 # print likelihood
 print("Log-Likelihood:",-1*opt.fun)
+print(x)
 
 params, p_time_to_obs, incidence = pathogen_parameters(pathogen, lockdown, CONTACT)
 
@@ -70,7 +71,7 @@ params["BETA"] = x[3]
 n = 4
 if option1 == 'ni':
     params["IMPORT_RATE"] = 0
-elif option1 == 'setimport':
+elif option1 == 'setimport' or option1.replace('.','',1).isdigit():
     params["IMPORT_RATE"] = 0.01
 else:
     params["IMPORT_RATE"] = x[n]
