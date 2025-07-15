@@ -11,4 +11,6 @@
 ## Command(s) to run:
 
 module load python/3.11.6-gcc-11.4.0
-ipython Analyses/cm_opt.py 250501 15 1 0.7
+ipython Analyses/cm_opt.py 250715 20 1 0.7
+ipython Analyses/cm_opt.py 2507152 20 1 0.7
+ipython Analyses/cm_opt.py 2507153 20 1 0.7

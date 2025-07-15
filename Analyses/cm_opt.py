@@ -37,54 +37,71 @@ POINTS = np.array(date_to_t(PERIOD))
 
 from Parameters.RSV import *
 # Parameters from differential evolution
-RSV_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0.        , 0.00136468, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1.        , 0.10032712, 0.04941595]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': np.array([0.04535184, 0.02086185, 0.01405907]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01, 'BETA': 0.5001441612672278, 'SEASONALITY': 0.0875344346283, 'OFFSET': 0.13221726766772357,
+RSV_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0, 0.00412833, 0]),
+'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1, 0.25137851, 0.04869096]), 'S_AGE': S_AGE, 'I_REL': I_REL,
+'P_OBS': np.array([1, 0.46, 0.31]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01,
+'BETA': 0.3098011988591176, 'SEASONALITY': 0.08886274108206305, 'OFFSET': 0.18238114357668778,
 'contact': contact}
-RSV_OBS_AGE = np.array([0.24594159,0.1857486,0.12555562,0.02660094,0.025,0.09684663,1])
+RSV_OBS_AGE = np.array([1.41156737e-03,1.42463892e-03,2.78237498e-03,1.34302008e-04,8.83682889e-05,3.16598659e-04,2.38996273e-03])
 RSV_p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 RSV_incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
 from Parameters.InfluenzaA import *
 # Parameters from differential evolution
-InfluenzaA_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0.        , 0.0047965, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1.        , 0.85063441, 0.48050463]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': np.array([0.0961377 , 0.08948005, 0.06323804]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
-'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01, 'BETA': 0.10275083227366294, 'SEASONALITY': 0.1734352740318053, 'OFFSET': 0.11985684117246775,
+InfluenzaA_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0, 0.00659556, 0]),
+'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1, 0.97095996, 0.57030858]), 'S_AGE': S_AGE, 'I_REL': I_REL,
+'P_OBS': np.array([1, 0.97095996, 0.57030858]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
+'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01,
+'BETA': 0.10235488717956664, 'SEASONALITY': 0.10445395838429006, 'OFFSET': 0.14719007971299192,
 'contact': contact}
-InfluenzaA_OBS_AGE = np.array([0.40500959,0.25868484,0.11236009,0.02751321,0.025,0.09997146,1])
+InfluenzaA_OBS_AGE = np.array([0.00069735,0.00111811,0.00078817,0.00014056,0.00021106,0.00052153,0.00497795])
 InfluenzaA_p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 InfluenzaA_incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
+from Parameters.InfluenzaB import *
+# Parameters from differential evolution
+InfluenzaB_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0, 0.00864397, 0]),
+'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1, 0.92976988, 0.66999541]), 'S_AGE': S_AGE, 'I_REL': I_REL,
+'P_OBS': np.array([1, 0.86061014, 0.69854585]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
+'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01,
+'BETA': 0.09525015457616015, 'SEASONALITY': 0.1684220494009686, 'OFFSET': 0.18437652662834292,
+'contact': contact}
+InfluenzaB_OBS_AGE = np.array([0.0011928,0.00241971,0.00098738,0.00020903,0.00021118,0.00055036,0.00451088])
+InfluenzaB_p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+InfluenzaB_incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
+from Parameters.Metapneumovirus import *
+# Parameters from differential evolution
+Metapneumovirus_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0, 0.00941287, 0]),
+'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1, 0.28313607, 0.07930067]), 'S_AGE': S_AGE, 'I_REL': I_REL,
+'P_OBS': np.array([1, 0.80565999, 0.54868475]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01,
+'BETA': 0.3048358628689303, 'SEASONALITY': 0.06422389269804452, 'OFFSET': 0.23489341732013758,
+'contact': contact}
+Metapneumovirus_OBS_AGE = np.array([8.30090073e-04,1.69293756e-03,1.88729824e-03,1.52797497e-04,9.49137803e-05,5.20598038e-04,4.61001222e-03])
+Metapneumovirus_p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
+Metapneumovirus_incidence = pd.read_csv("Data/Processed/KPSC_Metapneumovirus_incidence_age_daily.csv",index_col=0)
 from Parameters.Adenovirus import *
 # Parameters from differential evolution
-Adenovirus_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0.        , 0.00528484, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1.        , 0.1021544 , 0.10144828]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': np.array([0.01656661, 0.00179079, 0.00091177]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01, 'BETA': 0.7430548452606568, 'SEASONALITY': 0.020803749446702102, 'OFFSET': 0.2548373821056173,
+Adenovirus_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0, 0.00839394, 0]),
+'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1, 0.32487475, 0.16268084]), 'S_AGE': S_AGE, 'I_REL': I_REL,
+'P_OBS': np.array([1, 0.29454725, 0.21554204]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01,
+'BETA': 0.17515151709090215, 'SEASONALITY': 0.043289308995968556, 'OFFSET': 0.3567702562314214,
 'contact': contact}
-Adenovirus_OBS_AGE = np.array([0.02507071,0.06970037,0.11433003,0.025,0.025,0.16546965,1])
+Adenovirus_OBS_AGE = np.array([0.00061644,0.00325062,0.00441007,0.00015952,0.00020786,0.00083746,0.00320991])
 Adenovirus_p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 Adenovirus_incidence = pd.read_csv("Data/Processed/KPSC_Adenovirus_incidence_age_daily.csv",index_col=0)
 from Parameters.Parainfluenza3 import *
 # Parameters from differential evolution
-Parainfluenza3_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0.        , 0.00385729, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1.        , 0.17012103, 0.03917217]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': np.array([0.01535462, 0.00186418, 0.00141742]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01, 'BETA': 0.5484744900640051, 'SEASONALITY': 0.04569695421592862, 'OFFSET': 0.4600220832530794,
+Parainfluenza3_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0, 0.00707944, 0]),
+'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1, 0.61294058, 0.09778999]), 'S_AGE': S_AGE, 'I_REL': I_REL,
+'P_OBS': np.array([1, 0.7489466 , 0.63736202]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01,
+'BETA': 0.136723789107368, 'SEASONALITY': 0.05120171277842056, 'OFFSET': 0.3905029750372729,
 'contact': contact}
-Parainfluenza3_OBS_AGE = np.array([0.025,0.025,0.10121682,0.025,0.025,0.13514337,1])
+Parainfluenza3_OBS_AGE = np.array([4.48328458e-04,2.89073191e-03,2.24725437e-03,7.67201177e-05,9.06454200e-05,3.14410058e-04,4.72455456e-03])
 Parainfluenza3_p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
 Parainfluenza3_incidence = pd.read_csv("Data/Processed/KPSC_Parainfluenza3_incidence_age_daily.csv",index_col=0)
 
-# fit with wrong constraints, but looks ok when plotted
-from Parameters.Metapneumovirus import *
-# Parameters from differential evolution
-Metapneumovirus_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0.        , 0.00591676, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1.        , 0.90218669, 0.64520669]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': np.array([0.03  , 0.015 , 0.0075]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01, 'BETA': 0.10162683437577735, 'SEASONALITY': 0.07748324448336691, 'OFFSET': 0.24423167213822972,
-'contact': contact}
-Metapneumovirus_OBS_AGE = np.array([0.00950089,0.09476558,0.06743696,0.00351061,0.00278353,0.01220659,0.08555915])
-Metapneumovirus_p_time_to_obs = np.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-Metapneumovirus_incidence = pd.read_csv("Data/Processed/KPSC_Metapneumovirus_incidence_age_daily.csv",index_col=0)
-from Parameters.InfluenzaB import *
-# Parameters from differential evolution
-InfluenzaB_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': np.array([0.        , 0.00921108, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': np.array([1.        , 0.93981811, 0.54689671]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': np.array([0.03, 0.03, 0.03]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': flu_rate, 'BCOV': BCOV,
-'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01, 'BETA': 0.09859329005854467, 'SEASONALITY': 0.14362853724915037, 'OFFSET': 0.1752366022322981,
-'contact': contact}
-InfluenzaB_OBS_AGE = np.array([0.01513805,0.04846613,0.02036943,0.00401086,0.00387421,0.01058703,0.09288545])
-InfluenzaB_p_time_to_obs = np.genfromtxt("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',',dtype=np.float64)
-InfluenzaB_incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
 
 ## Initial conditions
 STATE0 = np.zeros((2*N_S+2)*NAG)
@@ -124,6 +141,7 @@ def likelihood(x):
     RSV_params["contact"] = contact
     InfluenzaA_params["contact"] = contact
     InfluenzaB_params["contact"] = contact
+    Metapneumovirus_params["contact"] = contact
     Adenovirus_params["contact"] = contact
     Parainfluenza3_params["contact"] = contact
     try:
