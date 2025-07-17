@@ -1,10 +1,10 @@
 combinations=(
-"RSV 2507092 FlexStepwise 0.005 flexage 0.01 20 1 0.7"
-"InfluenzaA 2507092 FlexStepwise 0.005 flexage 0.01 20 1 0.7"
-"InfluenzaB 250709 FlexStepwise 0.005 flexage 0.01 20 1 0.7"
-"Metapneumovirus 2507092 FlexStepwise 0.005 flexage 0.01 20 1 0.7"
-"Adenovirus 2506252 FlexStepwise 0.005 flexage 0.01 20 1 0.7"
-"Parainfluenza3 2507092 FlexStepwise 0.005 flexage 0.01 20 1 0.7"
+"RSV 2507092 2507153 0.005 flexage 0.01 20 1 0.7"
+"InfluenzaA 2507092 2507153 0.005 flexage 0.01 20 1 0.7"
+"InfluenzaB 250709 2507153 0.005 flexage 0.01 20 1 0.7"
+"Metapneumovirus 2507092 2507153 0.005 flexage 0.01 20 1 0.7"
+"Adenovirus 2506252 2507153 0.005 flexage 0.01 20 1 0.7"
+"Parainfluenza3 2507092 2507153 0.005 flexage 0.01 20 1 0.7"
 )
 
 for combination in "${combinations[@]}"; do
