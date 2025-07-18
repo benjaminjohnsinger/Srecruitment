@@ -109,25 +109,25 @@ def arrivals(t):
 # plt.plot(arrivals_by_month)
 # plt.show()
 
-# plt.rcParams.update({'font.size':20})
-# # text type is palatino
-# plt.rcParams['font.family'] = 'serif'
-# plt.rcParams['font.serif'] = ['Palatino']
+plt.rcParams.update({'font.size':20})
+# text type is palatino
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Palatino']
 
-# fig, ax = plt.subplots(2,1,figsize=(7,5),sharex=True)
-# MONTHLY_ARRIVALS.plot(ax=ax[0],legend=False,color="k")
-# ax[0].set_ylabel('')
-# ax[0].set_xlabel('')
-# ax[0].set_title('Monthly arrivals at LAX')
-# ax[0].set_xlim([date_to_t("2015-10-01"),date_to_t("2024-01-01")])
-# ax[0].set_xticks([date_to_t("2016-01-01"),date_to_t("2018-01-01"),date_to_t("2020-01-01"),date_to_t("2022-01-01"),date_to_t("2024-01-01")])
-# ax[0].set_xticklabels(["2016","2018","2020","2022","2024"])
-# import contact_model as cm
-# Ts = np.array([date_to_t(date) for date in ['1970-01-01', '2020-03-19', '2020-08-28', '2021-08-28', '2022-04-16']])
-# Fs = np.array([1,0.74649061,0.97616163,0.84107913,0.97878123])
-# x = np.linspace(date_to_t('2015-10-01'),date_to_t('2024-01-01'),1000)
-# y = [cm.piecewise(t,Ts,Fs) for t in x]
-# ax[1].plot(x,y,color="k")
-# plt.tight_layout()
-# ax[1].set_title('Fit contact model')
-# plt.savefig('Figures/arrivals_LAX_poster.svg',transparent=True)
+fig, ax = plt.subplots(2,1,figsize=(7,5),sharex=True)
+MONTHLY_ARRIVALS.plot(ax=ax[0],legend=False,color="k")
+ax[0].set_ylabel('')
+ax[0].set_xlabel('')
+ax[0].set_title('Monthly arrivals at LAX')
+ax[0].set_xlim([date_to_t("2015-10-01"),date_to_t("2024-01-01")])
+ax[0].set_xticks([date_to_t("2016-01-01"),date_to_t("2018-01-01"),date_to_t("2020-01-01"),date_to_t("2022-01-01"),date_to_t("2024-01-01")])
+ax[0].set_xticklabels(["2016","2018","2020","2022","2024"])
+import contact_model as cm
+Ts = np.array([date_to_t(date) for date in ['1970-01-01', '2020-03-19', '2020-08-28', '2021-08-28', '2022-04-16']])
+Fs = np.array([1,0.55343291,0.96414633,0.83788784,0.99285949])
+x = np.linspace(date_to_t('2015-10-01'),date_to_t('2024-01-01'),1000)
+y = [cm.piecewise(t,Ts,Fs) for t in x]
+ax[1].plot(x,y,color="k")
+plt.tight_layout()
+ax[1].set_title('Fit contact model')
+plt.savefig('Figures/arrivals_LAX_poster.svg',transparent=True)
