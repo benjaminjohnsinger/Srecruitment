@@ -214,6 +214,7 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None, cleaned=False):
             incidence = pd.read_csv("Data/Processed/KPSC_cleaned_RSV_incidence_age_daily.csv",index_col=0)
         else:
             incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
+        beta_params = {"under_one_mean" : 0.6, "under_one_variance" : 0.01, "children_mean" : 0.5, "children_variance" : 1/12, "all_mean" : 0.1, "all_variance" : 0.01} # Glezen 1986, Henderson 1979
     elif pathogen == 'InfluenzaA':
         from Parameters.InfluenzaA import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
         # Parameters for the ODE
@@ -225,6 +226,7 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None, cleaned=False):
             incidence = pd.read_csv("Data/Processed/KPSC_cleaned_InfluenzaA_incidence_age_daily.csv",index_col=0)
         else:
             incidence = pd.read_csv("Data/Processed/KPSC_Influenza_A_incidence_age_daily.csv",index_col=0)
+        beta_params = {"under_one_mean" : 0.5, "under_one_variance" : 1/12, "children_mean" : 0.5, "children_variance" : 1/12, "all_mean" : 0.083, "all_variance" : ((0.113 - 0.03)/2)**2} # Tokars 2018
     elif pathogen == 'InfluenzaB':
         from Parameters.InfluenzaB import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
         # Parameters for the ODE
@@ -236,6 +238,7 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None, cleaned=False):
             incidence = pd.read_csv("Data/Processed/KPSC_cleaned_InfluenzaB_incidence_age_daily.csv",index_col=0)
         else:
             incidence = pd.read_csv("Data/Processed/KPSC_Influenza_B_incidence_age_daily.csv",index_col=0)
+        beta_params = {"under_one_mean" : 0.5, "under_one_variance" : 1/12, "children_mean" : 0.5, "children_variance" : 1/12, "all_mean" : 0.083, "all_variance" : 0.005} # Tokars 2018
     elif pathogen == 'Parainfluenza3':
         from Parameters.Parainfluenza3 import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, ACOV, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
         # Parameters for the ODE
@@ -247,6 +250,7 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None, cleaned=False):
             incidence = pd.read_csv("Data/Processed/KPSC_cleaned_Parainfluenza3_incidence_age_daily.csv",index_col=0)
         else:
             incidence = pd.read_csv("Data/Processed/KPSC_Parainfluenza3_incidence_age_daily.csv",index_col=0)
+        beta_params = {"under_one_mean" : 0.4, "under_one_variance" : 0.02, "children_mean" : 0.5, "children_variance" : 1/12, "all_mean" : 0.1, "all_variance" : 0.01}
     elif pathogen == 'Adenovirus':
         from Parameters.Adenovirus import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, ACOV, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
         # Parameters for the ODE
@@ -258,6 +262,7 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None, cleaned=False):
             incidence = pd.read_csv("Data/Processed/KPSC_cleaned_Adenovirus_incidence_age_daily.csv",index_col=0)
         else:
             incidence = pd.read_csv("Data/Processed/KPSC_Adenovirus_incidence_age_daily.csv",index_col=0)
+        beta_params = {"under_one_mean" : 0.4, "under_one_variance" : 0.02, "children_mean" : 0.5, "children_variance" : 1/12, "all_mean" : 0.1, "all_variance" : 0.01}
     elif pathogen == 'Metapneumovirus':
         from Parameters.Metapneumovirus import NAG, N_S, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, S_VAX, ACOV, BCOV, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET
         # Parameters for the ODE
@@ -269,7 +274,8 @@ def pathogen_parameters(pathogen, lockdown=None, CONTACT=None, cleaned=False):
             incidence = pd.read_csv("Data/Processed/KPSC_cleaned_Metapneumovirus_incidence_age_daily.csv",index_col=0)
         else:
             incidence = pd.read_csv("Data/Processed/KPSC_Metapneumovirus_incidence_age_daily.csv",index_col=0)
-    return params, p_time_to_obs, incidence
+        beta_params = {"under_one_mean" : 0.5, "under_one_variance" : 1/12, "children_mean" : 0.195, "children_variance" : 0.002, "all_mean" : 0.075, "all_variance" : 0.001} # Shakya 2025
+    return params, p_time_to_obs, incidence, beta_params
 
 
 ####### Generating interesting quantities from ODE results #######

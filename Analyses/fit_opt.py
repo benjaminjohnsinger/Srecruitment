@@ -21,7 +21,7 @@ from mobility_and_import import *
 from fit_MCMC import SIS_likelihood
 
 
-pathogen, seed, lockdown, option1, option2, import_cap, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
+pathogen, seed, lockdown, option1, option2, import_cap, desize, max_mutation, recombination, tol = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9]), float(sys.argv[10])
 
 # set seed
 np.random.seed(seed)
@@ -42,7 +42,7 @@ END = pd.to_datetime(end_date)
 PERIOD = pd.date_range(start=START, end=END, freq='D')
 POINTS = np.array(date_to_t(PERIOD))
 
-params, p_time_to_obs, incidence = pathogen_parameters(pathogen, lockdown, CONTACT, cleaned=True)
+params, p_time_to_obs, incidence, beta_params = pathogen_parameters(pathogen, lockdown, CONTACT, cleaned=True)
 N_S, NAG = params["N_S"], params["NAG"]
 
 # trim incidence so that Date is between START and END
@@ -59,6 +59,8 @@ bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": 
 # if option 1 is a number, use it to set obsmax
 if option1.replace('.','',1).isdigit():
     obsmax = float(option1)
+elif option1 == "season_infections":
+    obsmax = 0.1
 else:
     if pathogen == "InfluenzaA":
         obsmax = 0.03
@@ -169,17 +171,47 @@ def likelihood(x):
         obs_age = age_detection(NAG,x[n],x[n+1],x[n+2],x[n+3],min_obs=0.025,n_infant_groups=1)
     else:
         obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
-    try:
-        lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True,overdispersion=overdispersion)
-    except:
-        print("Error")
-        return 1e10
+    # try:
+    result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(pd.to_datetime('1970-01-01')),POINTS[-1]),STATE0,args=sim_params.values(),t_eval=POINTS,method='RK45')
+    lh = -SIS_likelihood(incidence, sim_params, POINTS, STATE0, obs_age, p_time_to_obs, age=True, incidence=True, overdispersion=overdispersion, result=result)
+    # except:
+    #     print("Error")
+    #     return 1e10
+    if option1 == "season_infections":
+        seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01']])
+        season_infection_array = np.zeros((len(seasons)-1, NAG))
+        under_one_incidence = np.zeros(len(seasons)-1)
+        children_incidence = np.zeros(len(seasons)-1)
+        all_incidence = np.zeros(len(seasons)-1)
+        for i in range(len(seasons)-1):
+            season_points = (POINTS >= seasons[i]) & (POINTS < seasons[i+1])
+            age_pops = np.array([np.sum(result.y[range(i_age,(2*N_S+1)*NAG,NAG),np.argmax(POINTS >= seasons[i])],axis=0) for i_age in range(NAG)])
+            season_infection_array[i] += np.sum(result.y[2*NAG:3*NAG,season_points],axis=1) * sim_params["REC_UP"][0]
+            season_infection_array[i] += np.sum(result.y[4*NAG:5*NAG,season_points],axis=1) * sim_params["REC_UP"][1]
+            season_infection_array[i] += np.sum(result.y[6*NAG:7*NAG,season_points],axis=1) * sim_params["REC_SAME"][2]
+            under_one_incidence[i] = np.sum(season_infection_array[:, 0:2]) / np.sum(age_pops[0:2])
+            children_incidence[i] = np.sum(season_infection_array[:, 2]) / np.sum(age_pops[2])
+            all_incidence[i] = np.sum(season_infection_array) / np.sum(age_pops)
+        if any(under_one_incidence > 1) or any(children_incidence > 1) or any(all_incidence > 1):
+            print("Incidence over 100%")
+            return 1e10
+        else:
+            under_one_a = beta_params["under_one_mean"] * (beta_params["under_one_mean"] * (1 - beta_params["under_one_mean"]) / beta_params["under_one_variance"] - 1)
+            under_one_b = (1 - beta_params["under_one_mean"]) * (beta_params["under_one_mean"] * (1 - beta_params["under_one_mean"]) / beta_params["under_one_variance"] - 1)
+            under_one_lh = -sp.stats.beta.logpdf(under_one_incidence, under_one_a, under_one_b).sum()
+            children_a = beta_params["children_mean"] * (beta_params["children_mean"] * (1 - beta_params["children_mean"]) / beta_params["children_variance"] - 1)
+            children_b = (1 - beta_params["children_mean"]) * (beta_params["children_mean"] * (1 - beta_params["children_mean"]) / beta_params["children_variance"] - 1)
+            children_lh = -sp.stats.beta.logpdf(children_incidence, children_a, children_b).sum()
+            all_a = beta_params["all_mean"] * (beta_params["all_mean"] * (1 - beta_params["all_mean"]) / beta_params["all_variance"] - 1)
+            all_b = (1 - beta_params["all_mean"]) * (beta_params["all_mean"] * (1 - beta_params["all_mean"]) / beta_params["all_variance"] - 1)
+            all_lh = -sp.stats.beta.logpdf(all_incidence, all_a, all_b).sum()
+            lh += (len(POINTS) / (len(seasons) - 1)) * (under_one_lh + children_lh + all_lh)
     print("neg log likelihood: ",lh)
     return lh
 
 start = time.time()
 if __name__ == '__main__':
-    opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",
+    opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",tol=tol,
     workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
     with open("Data/Processed/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:

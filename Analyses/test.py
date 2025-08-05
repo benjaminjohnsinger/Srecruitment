@@ -14,6 +14,45 @@ from utils import *
 # from scipy.optimize import curve_fit
 # import time
 # # import corner
+from scipy import stats
+
+# demographic_data = pd.read_sas('Data/Raw/KPSC/demographics.sas7bdat', encoding='utf-8')
+
+# rsv_cases = pd.read_csv("Data/Processed/KPSC_cleaned_RSV_cases_age_daily.csv",index_col=0)
+# START = pd.to_datetime('2015-10-01') 
+# END = pd.to_datetime('2023-10-01')
+# PERIOD = pd.date_range(start=START, end=END, freq='D')
+# POINTS = np.array(date_to_t(PERIOD))
+# seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01']])
+# for i in range(len(seasons)-1):
+#     YEAR = 15+i
+#     print(YEAR, "/", YEAR+1, "season")
+#     population_under_one = demographic_data.loc[(demographic_data['YEAR'] == 2000+YEAR), 'n'].sum()
+#     season_points = (POINTS >= seasons[i]) & (POINTS < seasons[i+1])
+#     rsv_cases_under_ones = rsv_cases.iloc[season_points]
+#     print("Incidence of RSV hospitalizations:", rsv_cases_under_ones.sum().sum() / population_under_one)
+
+
+x = np.linspace(0,1,1000)
+# # plot beta distribution
+# mean = 0.195
+# variance = ((0.067 - 0.084)/2)**2
+mean = 0.1
+variance = 0.01
+# mean = 0.5
+# variance = ((0.5 - 0.69)/2)**2
+a = mean * (mean * (1 - mean) / variance - 1)
+b = (1 - mean) * (mean * (1 - mean) / variance - 1)
+
+# get 10000 samples from beta distribution
+samples = np.random.beta(a, b, 10000)
+print("Mean:", np.mean(samples))
+print("Median:", np.median(samples))
+print("IQR:", np.percentile(samples, [25, 75]))
+
+y = stats.beta.pdf(x, a, b)
+plt.plot(x,y)
+plt.show()
 
 
 # pathogens = ["RSV","InfluenzaA","InfluenzaB","Metapneumovirus","Adenovirus","Parainfluenza3"]

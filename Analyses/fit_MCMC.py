@@ -17,6 +17,8 @@ def SIS_likelihood(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age=Tru
     else:
         if type(result) == dict:
             ry = result["y"]
+        else:
+            ry = result.y
 
     # convert into observed cases
     trajectory = observations(result,params,OBS_AGE,incidence=False,time_conversion=1)
