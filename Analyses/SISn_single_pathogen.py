@@ -58,8 +58,9 @@ plt.rcParams.update({'font.size':20})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-# fig, ax = plt.subplots(3,2,figsize=(14.5,18))
-# kpsc_positive_test_plot(ax[0,0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=True,aggregation="Month", relative=False)
+# fig, ax = plt.subplots(figsize=(13.3,7.5))
+# kpsc_positive_test_plot(ax,pathogen="InfluenzaA",AGE_GROUPS=None, color="k", AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Week", relative=False)
+# plt.savefig('Figures/KPSC_cleaned_InfluenzaA_weekly_noage.png', dpi=300)
 # kpsc_positive_test_plot(ax[0,1],pathogen="Metapneumovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", relative=False)
 # kpsc_positive_test_plot(ax[1,0],pathogen="InfluenzaA",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", relative=False)
 # kpsc_positive_test_plot(ax[1,1],pathogen="InfluenzaB",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", relative=False)
@@ -75,17 +76,17 @@ plt.rcParams['font.serif'] = ['Palatino']
 #     for j in range(2):
 #         ax[i,j].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
 
-pathogens = ["RSV", "InfluenzaA", "Adenovirus", "Metapneumovirus", "InfluenzaB", "Parainfluenza3"]
-for pathogen in pathogens:
-    fig, ax = plt.subplots(figsize=(1.75,1.75))
-    kpsc_positive_test_plot(ax, pathogen=pathogen, AGE_GROUPS=None, AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation="Month", relative=False, color="silver")
-    ax.set_xlabel("")
-    ax.set_ylabel("")
-    ax.set_xticklabels([])
-    ax.set_yticklabels([])
-    ax.set_title("")
-    # plt.tight_layout()
-    plt.savefig(f'Figures/KPSC_cleaned_{pathogen}_no_age.svg', transparent=True)
+# pathogens = ["RSV", "InfluenzaA", "Adenovirus", "Metapneumovirus", "InfluenzaB", "Parainfluenza3"]
+# for pathogen in pathogens:
+#     fig, ax = plt.subplots(figsize=(1.75,1.75))
+#     kpsc_positive_test_plot(ax, pathogen=pathogen, AGE_GROUPS=None, AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation="Month", relative=False, color="silver")
+#     ax.set_xlabel("")
+#     ax.set_ylabel("")
+#     ax.set_xticklabels([])
+#     ax.set_yticklabels([])
+#     ax.set_title("")
+#     # plt.tight_layout()
+#     plt.savefig(f'Figures/KPSC_cleaned_{pathogen}_no_age.svg', transparent=True)
 
 # ax[0,0].set_title("RSV")
 # ax[1,0].set_title("Influenza A")
@@ -295,142 +296,142 @@ params["contact"] =  contact
 # OBS_AGE = age_detection(NAG,x[6],x[7],x[8])
 
 
-# # # # # # # # # # # #### One-shot line plot #####
-# set pyplot font to arial
-plt.rcParams.update({'font.size':11})
-plt.rcParams['font.family'] = 'sans-serif'
-plt.rcParams['font.sans-serif'] = ['Arial']
+# # # # # # # # # # # # #### One-shot line plot #####
+# # set pyplot font to arial
+# plt.rcParams.update({'font.size':9})
+# plt.rcParams['font.family'] = 'sans-serif'
+# plt.rcParams['font.sans-serif'] = ['Arial']
 
-fig, ax = plt.subplots(2,2,figsize=(6.5,4.5),sharex=True,sharey=True)
-# # # # params['contact'] = lambda t,seasonality,offset: contact(t,seasonality,offset)*(1-flu_eff_coverage(t,S_REL))
-# # # # params['BETA'] = 0
-result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-# get total infectious compartment over time
-I = np.sum(np.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,:] for j in range(N_S)]),axis=0)
-age_pops = np.array([np.sum(result.y[range(i_age,(2*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)])
-@jit
-def proportion_infected(t,SP,ap,AR,rt=result.t):
-    """Calculate the proportion of the population that is infected at time t."""
-    if t < rt[0] or t > rt[-1]:
-        return np.zeros(NAG)
-    idx = np.searchsorted(rt, t)
-    return I[:,idx]/age_pops[:,idx]
-@jit
-def ACOV(t,SP,ap,AR,rt=result.t):
-    """Calculate the proportion of the population that is infected at time t."""
-    if t < rt[0] or t > rt[-1]:
-        return np.zeros(NAG)
-    idx = np.searchsorted(rt, t)
-    return 0.1*I[:,idx]/age_pops[:,idx]
-@jit
-def contact2(t,seasonality,offset):
-    """Contact function where infected persons don't make contacts"""
-    eff_CONTACT = CONTACT.copy()
-    for i in range(NAG):
-        eff_CONTACT[i,:] = CONTACT[i,:]*(1-0.8*proportion_infected(t,S_REL,S_VAX,ACOV)[i])
-    return (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*eff_CONTACT
-@jit
-def contact3(t,seasonality,offset):
-    """Contact function where infected persons don't make contacts"""
-    eff_CONTACT = CONTACT.copy()
-    for i in range(NAG):
-        eff_CONTACT[i,:] = CONTACT[i,:]*(1+0.2*proportion_infected(t,S_REL,S_VAX,ACOV)[i])
-    return (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*eff_CONTACT
+# fig, ax = plt.subplots(2,2,figsize=(3.5,2.5),sharex=True,sharey=True)
+# # # # # params['contact'] = lambda t,seasonality,offset: contact(t,seasonality,offset)*(1-flu_eff_coverage(t,S_REL))
+# # # # # params['BETA'] = 0
+# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+# # get total infectious compartment over time
+# I = np.sum(np.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,:] for j in range(N_S)]),axis=0)
+# age_pops = np.array([np.sum(result.y[range(i_age,(2*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)])
+# @jit
+# def proportion_infected(t,SP,ap,AR,rt=result.t):
+#     """Calculate the proportion of the population that is infected at time t."""
+#     if t < rt[0] or t > rt[-1]:
+#         return np.zeros(NAG)
+#     idx = np.searchsorted(rt, t)
+#     return I[:,idx]/age_pops[:,idx]
+# @jit
+# def ACOV(t,SP,ap,AR,rt=result.t):
+#     """Calculate the proportion of the population that is infected at time t."""
+#     if t < rt[0] or t > rt[-1]:
+#         return np.zeros(NAG)
+#     idx = np.searchsorted(rt, t)
+#     return 0.1*I[:,idx]/age_pops[:,idx]
+# @jit
+# def contact2(t,seasonality,offset):
+#     """Contact function where infected persons don't make contacts"""
+#     eff_CONTACT = CONTACT.copy()
+#     for i in range(NAG):
+#         eff_CONTACT[i,:] = CONTACT[i,:]*(1-0.8*proportion_infected(t,S_REL,S_VAX,ACOV)[i])
+#     return (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*eff_CONTACT
+# @jit
+# def contact3(t,seasonality,offset):
+#     """Contact function where infected persons don't make contacts"""
+#     eff_CONTACT = CONTACT.copy()
+#     for i in range(NAG):
+#         eff_CONTACT[i,:] = CONTACT[i,:]*(1+0.2*proportion_infected(t,S_REL,S_VAX,ACOV)[i])
+#     return (1+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*eff_CONTACT
 
-params2 = params.copy()
-params2["OFFSET"] = 0.26
-result2 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2.values(),t_eval=POINTS,method='RK45')
-params3 = params.copy()
-params3["OFFSET"] = 0.32
-result3 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3.values(),t_eval=POINTS,method='RK45')
+# params2 = params.copy()
+# params2["OFFSET"] = 0.26
+# result2 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2.values(),t_eval=POINTS,method='RK45')
+# params3 = params.copy()
+# params3["OFFSET"] = 0.32
+# result3 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3.values(),t_eval=POINTS,method='RK45')
 
-params2_crossimmunity = params2.copy()
-params2_crossimmunity["ACOV"] = ACOV
-params2_crossimmunity["all_vax"] = all_vax
-result2_crossimmunity = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_crossimmunity.values(),t_eval=POINTS,method='RK45')
+# params2_crossimmunity = params2.copy()
+# params2_crossimmunity["ACOV"] = ACOV
+# params2_crossimmunity["all_vax"] = all_vax
+# result2_crossimmunity = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_crossimmunity.values(),t_eval=POINTS,method='RK45')
 
-params2_interference = params2.copy()
-params2_interference["contact"] = contact2
-result2_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_interference.values(),t_eval=POINTS,method='RK45')
+# params2_interference = params2.copy()
+# params2_interference["contact"] = contact2
+# result2_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_interference.values(),t_eval=POINTS,method='RK45')
 
-params3_interference = params3.copy()
-params3_interference["contact"] = contact3
-result3_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_interference.values(),t_eval=POINTS,method='RK45')
+# params3_interference = params3.copy()
+# params3_interference["contact"] = contact3
+# result3_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_interference.values(),t_eval=POINTS,method='RK45')
 
-params3_behaviour = params3.copy()
-params3_behaviour["contact"] = contact2
-result3_behaviour = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_behaviour.values(),t_eval=POINTS,method='RK45')
+# params3_behaviour = params3.copy()
+# params3_behaviour["contact"] = contact2
+# result3_behaviour = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_behaviour.values(),t_eval=POINTS,method='RK45')
 
-# # # # vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
-# # # # hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
-# # # # hsv_colors[3] = colormaps.hsv((3/7)+0.04)
-# # # # pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
-# # # # for i in range(NAG): 
-# # # #     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# # # #     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# # # # # ax[0].plot(result.t,[np.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/np.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
-# # # # # ax[1].plot(result.t,np.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/np.sum(pop_size_by_age,axis=1),color="#648FFF")
-# # # # plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
-obs = observations(result,params,OBS_AGE,incidence=True,time_conversion=30.44)
-obs2 = observations(result2,params2,OBS_AGE,incidence=True,time_conversion=30.44)
-obs2_crossimmunity = observations(result2_crossimmunity,params2_crossimmunity,OBS_AGE,incidence=True,time_conversion=30.44)
-obs2_interference = observations(result2_interference,params2_interference,OBS_AGE,incidence=True,time_conversion=30.44)
-obs3_interference = observations(result3_interference,params3_interference,OBS_AGE,incidence=True,time_conversion=30.44)
-obs3 = observations(result3,params3,OBS_AGE,incidence=True,time_conversion=30.44)
-obs3_behaviour = observations(result3_behaviour,params3_behaviour,OBS_AGE,incidence=True,time_conversion=30.44)
+# # # # # vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
+# # # # # hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
+# # # # # hsv_colors[3] = colormaps.hsv((3/7)+0.04)
+# # # # # pop_size_by_age = np.array([np.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+# # # # # for i in range(NAG): 
+# # # # #     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+# # # # #     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+# # # # # # ax[0].plot(result.t,[np.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/np.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
+# # # # # # ax[1].plot(result.t,np.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/np.sum(pop_size_by_age,axis=1),color="#648FFF")
+# # # # # plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
+# obs = observations(result,params,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs2 = observations(result2,params2,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs2_crossimmunity = observations(result2_crossimmunity,params2_crossimmunity,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs2_interference = observations(result2_interference,params2_interference,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs3_interference = observations(result3_interference,params3_interference,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs3 = observations(result3,params3,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs3_behaviour = observations(result3_behaviour,params3_behaviour,OBS_AGE,incidence=True,time_conversion=30.44)
 
-# add faint dotted grey vertical lines each month
-for i in np.linspace(date_to_t(START)+90, date_to_t(END), 17):
-    ax[0,0].axvline(x=i, color='lightgrey', linestyle=':', linewidth=0.5)
-    ax[0,1].axvline(x=i, color='lightgrey', linestyle=':', linewidth=0.5)
-    ax[1,0].axvline(x=i, color='lightgrey', linestyle=':', linewidth=0.5)
-    ax[1,1].axvline(x=i, color='lightgrey', linestyle=':', linewidth=0.5)
+# # add faint dotted grey vertical lines each month
+# for i in np.linspace(date_to_t(START)+90, date_to_t(END), 17):
+#     ax[0,0].axvline(x=i, color='lightgrey', linestyle=':', linewidth=0.5)
+#     ax[0,1].axvline(x=i, color='lightgrey', linestyle=':', linewidth=0.5)
+#     ax[1,0].axvline(x=i, color='lightgrey', linestyle=':', linewidth=0.5)
+#     ax[1,1].axvline(x=i, color='lightgrey', linestyle=':', linewidth=0.5)
 
-# panel 0 0 - no interaction
-mx = lockdown_incidence_plot(ax[0,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90)
-mx2 = lockdown_incidence_plot(ax[0,0],STATE0,params2,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2,obs=obs2,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#DC267F')
-mx3 = lockdown_incidence_plot(ax[0,0],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#FFB000')
-mx00 = np.max((mx, mx2, mx3))
-# lockdown_incidence_format(ax[0,0],date_to_t('2024-03-19'),365,mx00,year_window=2)
-# panel 0 1 - cross-immunity
-mx = lockdown_incidence_plot(ax[0,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90)
-mx2 = lockdown_incidence_plot(ax[0,1],STATE0,params2_crossimmunity,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_crossimmunity,obs=obs2_crossimmunity,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#DC267F')
-mx3 = lockdown_incidence_plot(ax[0,1],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#FFB000')
-mx01 = np.max((mx, mx2, mx3))
-# lockdown_incidence_format(ax[0,1],date_to_t('2024-03-19'),365,mx01,year_window=2)
-# panel 1 0 - interference
-mx = lockdown_incidence_plot(ax[1,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90)
-mx2 = lockdown_incidence_plot(ax[1,0],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#DC267F')
-mx3 = lockdown_incidence_plot(ax[1,0],STATE0,params3_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_interference,obs=obs3_interference,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#FFB000')
-mx10 = np.max((mx, mx2, mx3))
-# lockdown_incidence_format(ax[1,0],date_to_t('2024-03-19'),365,mx10,year_window=2)
-# panel 1 1 - behaviour change
-mx = lockdown_incidence_plot(ax[1,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90)
-mx2 = lockdown_incidence_plot(ax[1,1],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#DC267F')
-mx3 = lockdown_incidence_plot(ax[1,1],STATE0,params3_behaviour,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_behaviour,obs=obs3_behaviour,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#FFB000')
-# lockdown_incidence_format(ax[1,1],date_to_t('2024-03-19'),365,mx10,year_window=2)
-# # ax.plot(POINTS,[10*cm.piecewise(pt,Ts,Fs) for pt in POINTS],label='Mobility',color='k')
-# # ax.plot(POINTS,[100*regional_positivity(pt) for pt in POINTS],label='Positivity',color='k',linestyle='--',alpha=0.5)
-# # # # for i in range(NAG):
-# # # #     ax.plot(POINTS,[np.sum(contact(t,params["SEASONALITY"],params["OFFSET"]),axis=1)[i] for t in POINTS],c=hsv_colors[i],linestyle='--',dashes=(1,0.5+i/NAG),label=AGE_GROUP_NAMES[i])
+# # panel 0 0 - no interaction
+# mx = lockdown_incidence_plot(ax[0,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90)
+# mx2 = lockdown_incidence_plot(ax[0,0],STATE0,params2,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2,obs=obs2,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#DC267F')
+# mx3 = lockdown_incidence_plot(ax[0,0],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#FFB000')
+# mx00 = np.max((mx, mx2, mx3))
+# # lockdown_incidence_format(ax[0,0],date_to_t('2024-03-19'),365,mx00,year_window=2)
+# # panel 0 1 - cross-immunity
+# mx = lockdown_incidence_plot(ax[0,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90)
+# mx2 = lockdown_incidence_plot(ax[0,1],STATE0,params2_crossimmunity,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_crossimmunity,obs=obs2_crossimmunity,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#DC267F')
+# mx3 = lockdown_incidence_plot(ax[0,1],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#FFB000')
+# mx01 = np.max((mx, mx2, mx3))
+# # lockdown_incidence_format(ax[0,1],date_to_t('2024-03-19'),365,mx01,year_window=2)
+# # panel 1 0 - interference
+# mx = lockdown_incidence_plot(ax[1,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90)
+# mx2 = lockdown_incidence_plot(ax[1,0],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#DC267F')
+# mx3 = lockdown_incidence_plot(ax[1,0],STATE0,params3_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_interference,obs=obs3_interference,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#FFB000')
+# mx10 = np.max((mx, mx2, mx3))
+# # lockdown_incidence_format(ax[1,0],date_to_t('2024-03-19'),365,mx10,year_window=2)
+# # panel 1 1 - behaviour change
+# mx = lockdown_incidence_plot(ax[1,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90)
+# mx2 = lockdown_incidence_plot(ax[1,1],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#DC267F')
+# mx3 = lockdown_incidence_plot(ax[1,1],STATE0,params3_behaviour,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_behaviour,obs=obs3_behaviour,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,start_t=date_to_t(START)+90,end_t=date_to_t(END)+90,color='#FFB000')
+# # lockdown_incidence_format(ax[1,1],date_to_t('2024-03-19'),365,mx10,year_window=2)
+# # # ax.plot(POINTS,[10*cm.piecewise(pt,Ts,Fs) for pt in POINTS],label='Mobility',color='k')
+# # # ax.plot(POINTS,[100*regional_positivity(pt) for pt in POINTS],label='Positivity',color='k',linestyle='--',alpha=0.5)
+# # # # # for i in range(NAG):
+# # # # #     ax.plot(POINTS,[np.sum(contact(t,params["SEASONALITY"],params["OFFSET"]),axis=1)[i] for t in POINTS],c=hsv_colors[i],linestyle='--',dashes=(1,0.5+i/NAG),label=AGE_GROUP_NAMES[i])
 
-ax[0,0].set_yticks([])
-ax[0,0].set_xticks([])
-# ax[0,0].set_yticklabels([])
-# ax[0,0].set_xticklabels([])
+# ax[0,0].set_yticks([])
+# ax[0,0].set_xticks([])
+# # ax[0,0].set_yticklabels([])
+# # ax[0,0].set_xticklabels([])
 
-# write a capital A in the top left corner of the first panel
-ax[0,0].text(0.01, 0.98, 'i', transform=ax[0,0].transAxes, fontsize=11, fontweight='bold', va='top', ha='left')
-ax[0,1].text(0.01, 0.98, 'ii', transform=ax[0,1].transAxes, fontsize=11, fontweight='bold', va='top', ha='left')
-ax[1,0].text(0.01, 0.98, 'iii', transform=ax[1,0].transAxes, fontsize=11, fontweight='bold', va='top', ha='left')
-ax[1,1].text(0.01, 0.98, 'iv', transform=ax[1,1].transAxes, fontsize=11, fontweight='bold', va='top', ha='left')
-ax[0,0].set_title("No interaction", fontsize=11)
-ax[0,1].set_title("Cross-immunity", fontsize=11)
-ax[1,0].set_title("Interference/synergy", fontsize=11)
-ax[1,1].set_title("Behaviour change", fontsize=11)
+# # write a capital A in the top left corner of the first panel
+# ax[0,0].text(0.01, 0.98, 'i', transform=ax[0,0].transAxes, fontsize=10, fontweight='bold', va='top', ha='left')
+# ax[0,1].text(0.01, 0.98, 'ii', transform=ax[0,1].transAxes, fontsize=10, fontweight='bold', va='top', ha='left')
+# ax[1,0].text(0.01, 0.98, 'iii', transform=ax[1,0].transAxes, fontsize=10, fontweight='bold', va='top', ha='left')
+# ax[1,1].text(0.01, 0.98, 'iv', transform=ax[1,1].transAxes, fontsize=10, fontweight='bold', va='top', ha='left')
+# ax[0,0].set_title("No interaction", fontsize=10)
+# ax[0,1].set_title("Cross-immunity", fontsize=10)
+# ax[1,0].set_title("Interference/synergy", fontsize=10)
+# ax[1,1].set_title("Behaviour change", fontsize=10)
 
-plt.tight_layout()
-plt.savefig('Figures/interaction_demonstration2.svg')
+# plt.tight_layout()
+# plt.savefig('Figures/interaction_demonstration_small.png', dpi=300)
 
 # # params["WANE"] = np.array([0,1.195e-01,0])/365
 # # params["P_OBS"] = 3.396e-02*np.array([1,0.46,0.31])

@@ -12,7 +12,7 @@ import time
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Palatino']
 
-plt.rcParams.update({'font.size':11})
+plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
 
@@ -239,7 +239,7 @@ def plot_heatmap(ax, results, pathogens_of_interest, title='Viral Interference H
     pivot_table = pivot_table.reindex(pathogens_of_interest, axis=0).reindex(pathogens_of_interest, axis=1)
     p_values = p_values.reindex(pathogens_of_interest, axis=0).reindex(pathogens_of_interest, axis=1)
     # order columns and rows differently
-    order = ["InfluenzaA", "InfluenzaB", "HMPV", "RSVA", "RSVB", "Respirovirus", "Rublavirus", "SARS-CoV-2", "Enterovirus", "Adenovirus"]
+    order = ["InfluenzaA", "InfluenzaB", "HMPV", "RSV", "Parainfluenza", "SARS-CoV-2", "Enterovirus", "Adenovirus"]
     pivot_table = pivot_table.loc[order, order]
     # reflect the lower triangle to the upper triangle, and vice versa, replacing NaNs with corresponding value in other traingle
     for i in range(len(order)):
@@ -255,8 +255,8 @@ def plot_heatmap(ax, results, pathogens_of_interest, title='Viral Interference H
                     p_values.iloc[j, i] = p_values.iloc[i, j]
                 pivot_table.iloc[i, j] = np.nan
     print(p_values)
-    sns.set(font_scale=0.8)
-    sns.heatmap(pivot_table, annot=True, fmt=".2f", cmap='viridis_r', ax=ax, cbar_kws={'label': 'Odds Ratio'}, vmin=0.1, vmax=1)
+    # sns.set(font_scale=0.8)
+    sns.heatmap(pivot_table, annot=True, fmt=".2f", cmap='viridis_r', ax=ax, cbar_kws={'label': 'Odds Ratio'}, vmin=0.1, vmax=1, annot_kws={"size": 8})
     cells = ax.get_children()
     if significance != None:
         for i,p1 in enumerate(order):
@@ -412,7 +412,7 @@ if __name__ == "__main__":
 
     # plt.savefig('Figures/viral_interference_heatmap_wMbias5_fluABEV.png', dpi=300)
 
-    pathogens_of_interest = ["InfluenzaA","InfluenzaB","SARS-CoV-2", "Enterovirus", "RSVA", "RSVB", "HMPV", "Adenovirus", "Respirovirus", "Rublavirus"]
+    pathogens_of_interest = ["InfluenzaA","InfluenzaB","SARS-CoV-2", "Enterovirus", "RSV", "HMPV", "Adenovirus", "Parainfluenza"]
     # # start_time = time.time()
     # # df = process_data(test_data)
     # # print(f"Data processed in {time.time() - start_time} seconds")
@@ -423,25 +423,27 @@ if __name__ == "__main__":
     # df = pd.read_csv('Data/Processed/testing_full.csv')
     # generate_tables(df,pathogens_of_interest, restrictive=True, period='year_month', load=False, threshold=1, bias=False)
     # generate_tables(df,pathogens_of_interest, restrictive=True, period='year_month', load=True, threshold=1, bias=True)
-
-    results = pd.read_csv('Data/Processed/viral_interference_CMH_tests_restrictive_threshold1.csv')
+    plt.rcParams.update({'font.size':8})
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Arial']
+    results = pd.read_csv('Data/Processed/viral_interference_CMH_tests_restrictive_threshold0.csv')
     results = results[(results['match_by_date'] == True) & (results['period'] == 'year_month')].copy()
-    results_corrected = pd.read_csv('Data/Processed/viral_interference_CMH_tests_restrictive_Mbias5_threshold1.csv')
+    results_corrected = pd.read_csv('Data/Processed/viral_interference_CMH_tests_restrictive_Mbias5_threshold0.csv')
     # results_corrected_reverse_order = pd.read_csv('Data/Processed/viral_interference_CMH_tests_prevalence_correction_reverse_order.csv')
     # results_corrected_combined = pd.concat([results_corrected, results_corrected_reverse_order], ignore_index=True)
-    fig, axes = plt.subplots(1,2,figsize=(13.3, 7.5))
+    fig, axes = plt.subplots(1,1,figsize=(3.3, 2.39))
     # Create the heatmaps without color bars
-    plot_heatmap(axes[0], results, pathogens_of_interest, title='Naive', significance=None)
-    plot_heatmap(axes[1], results_corrected, pathogens_of_interest, title='With correction factor')
+    # plot_heatmap(axes[0], results, pathogens_of_interest, title='Naive', significance=None)
+    plot_heatmap(axes, results_corrected, pathogens_of_interest, title = '')
 
     # remove color bar
-    axes[0].collections[0].colorbar.remove()
-    axes[1].collections[0].colorbar.remove()
-    axes[1].set_yticks([])
+    # axes[0].collections[0].colorbar.remove()
+    # axes.collections[0].colorbar.remove()
+    # axes.set_yticks([])
     plt.tight_layout()
     # Add a shared color bar
-    cbar = fig.colorbar(axes[0].collections[0], ax=axes, orientation='vertical', fraction=0.1, pad=0.04)
-    cbar.set_label('Odds Ratio')
+    # cbar = fig.colorbar(axes.collections[0], ax=axes, orientation='vertical', fraction=0.1, pad=0.04)
+    # cbar.set_label('Odds Ratio')
     # plt.suptitle('Chochran-Mantel-Haenszel odds ratios for viral interference')
 
-    plt.savefig('Figures/viral_interference_heatmap_wMbias_full.png', dpi=300)
+    plt.savefig('Figures/viral_interference_heatmap_wMbias_full_small.png', dpi=300)
