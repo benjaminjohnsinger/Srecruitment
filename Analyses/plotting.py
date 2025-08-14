@@ -520,6 +520,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
 
     if incidence:
         cases *= 10000
+        print(cases)
     if relative:
         cases /= cases.max()
     if title is None:

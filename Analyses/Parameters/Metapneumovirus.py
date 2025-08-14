@@ -14,8 +14,8 @@ N_S = 3
 # Waning rates for susceptibles into lower susceptibilty class - for index plus one, i.e. [0,1,0] means only last class wanes
 WANE = np.array([0.0,1/365,0.0])
 # Recovery rates for each susceptibility class
-REC_UP = np.array([1/3,1/3,0.0])
-REC_SAME = np.array([0.0,0.0,1/3])
+REC_UP = np.array([1/4.9,1/4.1,0.0]) # Recovery to higher susceptibility class, same as RSV - Okiro 2010
+REC_SAME = np.array([0.0,0.0,1/4.1]) # Recovery to same susceptibility class, same as RSV - Okiro 2010
 # Relative susceptability and infectiousness, for each susceptibility class
 S_REL = np.array([1,0.25,0.025])
 I_REL = np.array([[1],[1],[1]])

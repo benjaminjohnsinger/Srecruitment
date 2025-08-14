@@ -37,12 +37,14 @@ x = np.linspace(0,1,1000)
 # # plot beta distribution
 # mean = 0.195
 # variance = ((0.067 - 0.084)/2)**2
-mean = 0.1
-variance = 0.01
-# mean = 0.5
-# variance = ((0.5 - 0.69)/2)**2
-a = mean * (mean * (1 - mean) / variance - 1)
-b = (1 - mean) * (mean * (1 - mean) / variance - 1)
+# mean = 0.1
+# variance = 0.01
+# # mean = 0.5
+# # variance = ((0.5 - 0.69)/2)**2
+# a = mean * (mean * (1 - mean) / variance - 1)
+# b = (1 - mean) * (mean * (1 - mean) / variance - 1)
+a = 2
+b = 98
 
 # get 10000 samples from beta distribution
 samples = np.random.beta(a, b, 10000)
