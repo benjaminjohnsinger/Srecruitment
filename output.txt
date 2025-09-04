@@ -1,0 +1,18 @@
+[0;31m---------------------------------------------------------------------------[0m
+[0;31mNameError[0m                                 Traceback (most recent call last)
+File [0;32m~/Documents/Srecruitment/Analyses/local_opt.py:18[0m
+[1;32m     16[0m [38;5;28;01mfrom[39;00m[38;5;250m [39m[38;5;21;01mdemography[39;00m[38;5;250m [39m[38;5;28;01mimport[39;00m [38;5;241m*[39m
+[1;32m     17[0m [38;5;28;01mfrom[39;00m[38;5;250m [39m[38;5;21;01mmobility_and_import[39;00m[38;5;250m [39m[38;5;28;01mimport[39;00m [38;5;241m*[39m
+[0;32m---> 18[0m [38;5;28;01mfrom[39;00m[38;5;250m [39m[38;5;21;01mfit_MCMC[39;00m[38;5;250m [39m[38;5;28;01mimport[39;00m SIS_likelihood
+[1;32m     20[0m pathogen [38;5;241m=[39m [38;5;124m'[39m[38;5;124mInfluenzaA[39m[38;5;124m'[39m
+[1;32m     21[0m initial_params [38;5;241m=[39m [[38;5;241m0.1[39m]
+
+File [0;32m~/Documents/Srecruitment/Analyses/fit_MCMC.py:11[0m
+[1;32m      8[0m [38;5;28;01mimport[39;00m[38;5;250m [39m[38;5;21;01mtypes[39;00m
+[1;32m     10[0m [38;5;66;03m## POINTS must start (at least) len(p_time_to_obs) days before the first observation to avoid issues from np.roll behaviour[39;00m
+[0;32m---> 11[0m [38;5;28;01mdef[39;00m[38;5;250m [39m[38;5;21mSIS_likelihood[39m(data, params, POINTS, STATE0, OBS_AGE, p_time_to_obs, age[38;5;241m=[39m[38;5;28;01mTrue[39;00m, incidence[38;5;241m=[39m[38;5;28;01mTrue[39;00m, start_t[38;5;241m=[39mdate_to_t([43mpd[49m[38;5;241m.[39mto_datetime([38;5;124m'[39m[38;5;124m1970-01-01[39m[38;5;124m'[39m))):
+[1;32m     12[0m     [38;5;66;03m# run simulation[39;00m
+[1;32m     13[0m     result [38;5;241m=[39m sp[38;5;241m.[39mintegrate[38;5;241m.[39msolve_ivp(sis_deltas,(start_t,POINTS[[38;5;241m-[39m[38;5;241m1[39m]),STATE0,args[38;5;241m=[39mparams[38;5;241m.[39mvalues(),t_eval[38;5;241m=[39mPOINTS,method[38;5;241m=[39m[38;5;124m'[39m[38;5;124mRK45[39m[38;5;124m'[39m)
+[1;32m     14[0m     [38;5;66;03m# convert into observed cases[39;00m
+
+[0;31mNameError[0m: name 'pd' is not defined

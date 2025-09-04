@@ -1,5 +1,5 @@
 import pandas as pd
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import pyreadstat
 from scipy.stats import chi2_contingency
 import matplotlib.pyplot as plt

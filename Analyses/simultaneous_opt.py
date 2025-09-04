@@ -1,7 +1,7 @@
 ## Simultaneous optimization of pathogens with shared lockdown model
 ## BJS March 2025
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd

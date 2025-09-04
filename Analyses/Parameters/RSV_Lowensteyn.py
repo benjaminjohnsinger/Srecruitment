@@ -1,7 +1,7 @@
 ## RSV parameters
 ## Parameters from Lowensteyn et al. 2023
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import pandas as pd
 from numba import jit
 import contact_model as cm

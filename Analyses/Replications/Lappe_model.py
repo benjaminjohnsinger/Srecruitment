@@ -1,4 +1,4 @@
-import jax.numpy as jnp
+# import jax.numpy as jnp
 from scipy.integrate import odeint
 
 def mu(t):

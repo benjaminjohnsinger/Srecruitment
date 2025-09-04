@@ -1,6 +1,6 @@
 ## BJS April 2025
 ## MCMC with parallel tempering and adaptive sampling
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import pandas as pd
 from scipy import stats
 from multiprocessing import Process, Queue, cpu_count

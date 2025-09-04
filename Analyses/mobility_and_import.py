@@ -1,7 +1,8 @@
 ## Code to construct a mobility time series for California from Google Mobility Data
 ## with optional separation between work, residential, and other locations
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from numba import jit
@@ -84,10 +85,57 @@ MONTHLY_ARRIVALS = FLIGHTS.loc[FLIGHTS['Arrival_Departure'] == 'Arrival'].groupb
 MONTHLY_ARRIVALS.index = pd.to_datetime(MONTHLY_ARRIVALS.index, format='%m/%d/%Y %H:%M:%S %p')
 MONTHLY_ARRIVALS = MONTHLY_ARRIVALS.sort_index()
 MONTHLY_ARRIVALS.index = (MONTHLY_ARRIVALS.index - pd.to_datetime('1970-01-01')).days
-PASSENGER_COUNT = jnp.asarray(MONTHLY_ARRIVALS['Passenger_Count'])
+PASSENGER_COUNT = np.asarray(MONTHLY_ARRIVALS['Passenger_Count'])
 
-IDX = jnp.array(MONTHLY_ARRIVALS.index)
-MONTHLY_ARRIVALS_NP = jnp.array(PASSENGER_COUNT)/jnp.max(PASSENGER_COUNT)
+IDX = np.array(MONTHLY_ARRIVALS.index)
+MONTHLY_ARRIVALS_NP = np.array(PASSENGER_COUNT)/np.max(PASSENGER_COUNT)
+
+# POINTS = jnp.arange(IDX[0], IDX[-1]+1, 1)
+
+# # calculate cumulative arrivals
+# cum_arrivals = jnp.cumsum(MONTHLY_ARRIVALS_NP)
+# # calculate daily arrivals by interpolating the cumulative arrivals
+# z_cum = jnp.interp(POINTS, IDX, cum_arrivals)
+# # transform from cumulative to daily arrivals
+# z = jnp.diff(z_cum, prepend=0)
+
+# print(IDX[1:]-IDX[:-1])
+# rep_idx = jnp.repeat(IDX[1:]-IDX[:-1],IDX[1:]-IDX[:-1])
+# # append 30 to end
+# IDX = jnp.append(IDX, IDX[-1]+30)
+# z = jnp.interp(POINTS, IDX[:-1], MONTHLY_ARRIVALS_NP/(IDX[1:]-IDX[:-1]))
+# plt.plot(POINTS, z, color='r', label='Daily arrivals')
+# plt.plot(IDX[:-1], MONTHLY_ARRIVALS_NP/(IDX[1:]-IDX[:-1]), color='b', alpha=0.5, label='Monthly arrivals')
+# plt.show()
+# gap = IDX[1] - IDX[0]
+# zmooth = jnp.convolve(z, jnp.ones(gap)/gap, mode='valid')
+# plt.plot(POINTS[gap//2:-(gap//2)], zmooth, color='r', label='Daily arrivals')
+# plt.plot(IDX, MONTHLY_ARRIVALS_NP/gap, color='b', alpha=0.5, label='Monthly arrivals')
+# plt.show()
+
+# # show that the sum of z over each month is equal to the monthly arrivals
+# x = jnp.zeros(len(IDX)-1)
+# x2 = jnp.zeros(len(IDX)-1)
+# for i in range(len(IDX)-1):
+#     x = x.at[i].set(jnp.sum(z[(POINTS >= IDX[i]) & (POINTS < IDX[i+1])]))
+#     x2 = x2.at[i].set(jnp.sum(zmooth[(POINTS[gap//2:-(gap//2)] >= IDX[i]) & (POINTS[gap//2:-(gap//2)] < IDX[i+1])]))
+# plt.scatter(MONTHLY_ARRIVALS_NP[:-1], x2, color='b', alpha=0.5, label='Monthly arrivals')
+# plt.scatter(MONTHLY_ARRIVALS_NP[:-1], x, color='r', alpha=0.5, label='Monthly arrivals')
+# plt.plot(MONTHLY_ARRIVALS_NP[:-1],MONTHLY_ARRIVALS_NP[:-1], color='k', linestyle='--', label='Ideal')
+# plt.show()
+
+
+
+# z = jnp.interp(POINTS, IDX, MONTHLY_ARRIVALS_NP)/30.44
+# # # smooth z
+# gap = IDX[1] - IDX[0]
+# # gap = 7
+# zmooth = jnp.convolve(z, jnp.ones(gap)/gap, mode='valid')
+# print(jnp.sum(z))
+# print(jnp.sum(zmooth))
+# plt.plot(POINTS, z, color='r')
+# plt.plot(POINTS[gap//2:-(gap//2)], zmooth, color='k')
+# plt.show()
 
 # @jit
 def arrivals(t, MONTHLY_ARRIVALS_NP=MONTHLY_ARRIVALS_NP, IDX=IDX):
@@ -97,19 +145,19 @@ def arrivals(t, MONTHLY_ARRIVALS_NP=MONTHLY_ARRIVALS_NP, IDX=IDX):
     # Calculate all possible values
     day_in_season_2006 = (t - 13149) % 365
     time_2006 = 13149 + day_in_season_2006
-    arrivals_2006 = MONTHLY_ARRIVALS_NP[jnp.argmax(IDX >= time_2006)] / 30.44
+    arrivals_2006 = MONTHLY_ARRIVALS_NP[np.argmax(IDX >= time_2006)] / 30.44
     
     day_in_season_2022 = (t - 19266) % 365
     time_2022 = 19266 + day_in_season_2022
-    arrivals_2022 = MONTHLY_ARRIVALS_NP[jnp.argmax(IDX >= time_2022)] / 30.44
+    arrivals_2022 = MONTHLY_ARRIVALS_NP[np.argmax(IDX >= time_2022)] / 30.44
     
-    arrivals_normal = MONTHLY_ARRIVALS_NP[jnp.argmax(IDX >= t)] / 30.44
+    arrivals_normal = MONTHLY_ARRIVALS_NP[np.argmax(IDX >= t)] / 30.44
     
-    # Use nested jnp.where to select the appropriate value
-    return jnp.where(
+    # Use nested np.where to select the appropriate value
+    return np.where(
         t < 13149,
         arrivals_2006,
-        jnp.where(
+        np.where(
             t > 19266,
             arrivals_2022,
             arrivals_normal

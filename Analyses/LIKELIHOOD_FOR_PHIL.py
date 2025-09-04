@@ -3,7 +3,7 @@
 ## This code defines a variable called "bounds" which is a list of lists, each containing the lower and upper bounds for a set of parameters.
 ## It also defines a function called "likelihood" which calculates the negative log likelihood of a set of parameters in those bounds.
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import scipy as sp
 import pandas as pd
 import time

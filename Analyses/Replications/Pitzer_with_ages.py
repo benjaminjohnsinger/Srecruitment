@@ -2,7 +2,7 @@
 ## Full reproduction of the model from Pitzer et al. 2009, including age groups
 ## BJS August 2024
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import scipy as sp
 import matplotlib.pyplot as plt
 

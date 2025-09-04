@@ -1,7 +1,7 @@
 ## BJS Jan 2025
 ## Fitting models to data using out-of-the-box optimisation tools
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import scipy as sp
 import pandas as pd
 import time

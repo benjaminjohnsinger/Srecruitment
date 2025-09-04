@@ -3,7 +3,7 @@
 
 import time
 import sys
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import scipy as sp
 import pandas as pd
 

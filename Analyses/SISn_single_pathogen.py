@@ -1,9 +1,9 @@
 ## SIS model with n susceptibility classes, for a single pathogen
 ## BJS September 2024
 
-# from autograd import jax.numpy as jnp
+# from autograd # import jax.numpy as jnp
 # from autograd import grad, jacobian
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import numdifftools as nd
 import scipy as sp
 import pandas as pd
@@ -20,7 +20,7 @@ import datetime
 from numba import jit
 from sklearn import decomposition
 
-from vaccination import birth_vax, birth_vax, all_vax, flu_rate, flu_eff_coverage
+from vaccination import birth_vax, birth_vax, flu_rate, flu_eff_coverage
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
@@ -34,8 +34,10 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
+# print(flu_rate(date_to_t(START),1-(np.arange(3)/3),np.ones(7),np.ones(7)))
+
 # print all numpy array elements
-jnp.set_printoptions(threshold=jnp.inf)
+np.set_printoptions(threshold=np.inf)
 
 # # plot contact matrix (CONTACT) with age group labels
 # from Parameters.times_and_contacts import *
@@ -58,7 +60,7 @@ jnp.set_printoptions(threshold=jnp.inf)
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Palatino']
 
-# fig, ax = plt.subplots(3,2,figsize=(14.5,18))
+# fig, ax = plt.subplots(3,2,figsize=(6.5,8.5))
 # kpsc_positive_test_plot(ax[0,0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=True,aggregation="Month")
 # kpsc_positive_test_plot(ax[1,0],pathogen="InfluenzaA",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
 # kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month")
@@ -83,7 +85,7 @@ jnp.set_printoptions(threshold=jnp.inf)
 # ax[0,0].legend(ncol=2,title="Age group")
 
 # plt.tight_layout()
-# plt.savefig('Figures/KPSC_incidence_poster.svg',transparent=True)
+# plt.savefig('Figures/test.png',dpi=300)
 
 
 start_date = '2015-07-04'
@@ -92,27 +94,65 @@ EPOCH = pd.to_datetime('1970-01-01')
 START = pd.to_datetime(start_date) 
 END = pd.to_datetime(end_date)
 PERIOD = pd.date_range(start=START, end=END, freq='D')
-POINTS = jnp.array(date_to_t(PERIOD))
+POINTS = np.array(date_to_t(PERIOD))
 # Ts = jnp.array([date_to_t('1970-01-01'), date_to_t('2020-03-19'), date_to_t('2020-12-05'), date_to_t('2020-12-10'), date_to_t('2021-08-12')])
 # Fs = jnp.array([1,0.4001427,0.89507013,0.70283776,0.93153405])
 # @jit
 # def contact(t,seasonality,offset):
 #     return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
-from Parameters.CDA_example import *
+from Parameters.RSV import *
 # Parameters from differential evolution
 # RSV_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': jnp.array([0.        , 0.00136468, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': jnp.array([1.        , 0.10032712, 0.04941595]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': jnp.array([0.04535184, 0.02086185, 0.01405907]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
 # 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01, 'BETA': 0.5001441612672278, 'SEASONALITY': 0.0875344346283, 'OFFSET': 0.13221726766772357,
 # 'contact': contact}
-params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+# params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+# 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+# 'contact': contact}
+NAG = 7
+N_S = 3
+DAYS = 19632
+BETA = 0.2
+WANE = np.array([0.0,0.00395647,0])
+S_REL = np.array([1.0,0.11615855, 0.02183006])
+P_OBS = np.array([1,0.46,0.31])
+OBS_AGE = np.array([1.51790104e-03, 2.86322367e-03, 4.93356844e-03, 1.87785669e-04, 
+    4.49717437e-05, 3.69412228e-04, 3.33166543e-03])
+REC_UP = np.array([1/4.9,1/4.1,0.0])
+REC_SAME = np.array([0.0,0.0,1/4.1])
+fig, ax = plt.subplots(1,4,figsize=(12,3))
+ARRIVALS = np.genfromtxt('Data/Processed/arrivals_daily.csv', delimiter=',')
+POSITIVITY = np.genfromtxt('Data/Processed/RSV_positivity_daily.csv', delimiter=',')
+arrivals = lambda t: ARRIVALS[int(t)]/(30.44*np.max(ARRIVALS)) if t < len(ARRIVALS) else 0.0
+regional_positivity = lambda t: POSITIVITY[int(t)] if t < len(POSITIVITY) else 0.0
+dayrange = np.arange(date_to_t("2016-10-01"),date_to_t("2017-10-01"))
+ax[0].plot([arrivals(day) for day in dayrange], label='Arrivals')
+ax[0].set_title('Arrivals')
+ax[1].plot([regional_positivity(day) for day in dayrange], label='Regional positivity')
+ax[1].set_title('Regional positivity')
+IMPORT_RATE = 0.01
+CONTACT = np.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
+contact = lambda t, seasonality, offset: (1.0+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+BIRTH_RATE = np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=',')
+birth_rate = lambda t: BIRTH_RATE[int(t)]
+ax[2].plot([contact(day, 0.0896529807571384, 0.18329654609521207).sum() for day in dayrange], label='Contact')
+ax[2].set_title('Contact')
+ax[3].plot([birth_rate(day) for day in dayrange], label='Birth rate')
+ax[3].set_title('Birth rate')
+plt.tight_layout()
+plt.savefig('Figures/old_model_rates_test.png', dpi=300)
+params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': np.ones(7), 'I_REL': np.ones((3,1)), 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'S_VAX': 2, 'ACOV': ACOV, 'BCOV': BCOV,
+'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': 0.0896529807571384, 'OFFSET': 0.18329654609521207,
 'contact': contact}
 # OBS_AGE = jnp.array([0.24594159,0.1857486,0.12555562,0.02660094,0.025,0.09684663,1])
-p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=','))
+# p_time_to_obs = np.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=','))
+p_time_to_obs = np.zeros(90)
+p_time_to_obs[-1] = 1.0
 ## Initial conditions
-STATE0 = jnp.zeros((2*N_S+2)*NAG)
-STATE0 = STATE0.at[NAG:2*NAG].set(CENSUS_AGE_POP-1) # Everyone is susceptible except
-STATE0 = STATE0.at[2*NAG:3*NAG].set(1) # one individual in each age group that is infected.
-
+STATE0 = np.zeros((2*N_S+2)*NAG)
+# STATE0 = STATE0.at[NAG:2*NAG].set(CENSUS_AGE_POP-1) # Everyone is susceptible except
+STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
+# STATE0 = STATE0.at[2*NAG:3*NAG].set(1) # one individual in each age group that is infected.
+STATE0[2*NAG:3*NAG] = 1
 # params = RSV_params.copy()
 # start_date = '2015-10-01'
 # end_date = '2021-10-01'
@@ -283,16 +323,16 @@ plt.rcParams['font.sans-serif'] = ['Arial']
 # term = ODETerm(sis_deltas)
 # solver = Dopri5()
 # saveat = SaveAt(ts=POINTS)
-# stepsize_controller = PIDController(rtol=1e-5,atol=1e-5)
-# solution = diffeqsolve(term, solver, t0=date_to_t(EPOCH), t1=POINTS[-1], dt0=0.1, y0=STATE0, args=(NAG,N_S,AGING_RATE,birth_rate,WANE,REC_UP,REC_SAME,S_REL,S_AGE,I_REL,P_OBS,birth_vax,S_VAX,ACOV,BCOV,arrivals,regional_positivity,IMPORT_RATE,BETA,SEASONALITY,OFFSET,contact)
-# ,saveat=saveat,stepsize_controller=stepsize_controller)
+# stepsize_controller = PIDController(rtol=1,atol=1)
+# solution = diffeqsolve(term, solver, t0=date_to_t(EPOCH), t1=POINTS[-1], dt0=0.1, y0=STATE0, args=(NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact)
+# ,saveat=saveat,stepsize_controller=stepsize_controller, max_steps=None)
 # print(solution)
 
-import jax
-from jax.experimental.ode import odeint
-from jax.random import PRNGKey
-import numpyro
-import numpyro.distributions as dist
+# import jax
+# from jax.experimental.ode import odeint
+# from jax.random import PRNGKey
+# import numpyro
+# import numpyro.distributions as dist
 # def temp_deltas(state, t, scalar_variables, params=params):
 #     NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, SEASONALITY, contact = params['NAG'], params['N_S'], params['AGING_RATE'], params['BIRTH_RATE'], params['WANE'], params['REC_UP'], params['REC_SAME'], params['S_REL'], params['S_AGE'], params['I_REL'], params['P_OBS'], params['birth_vax'], params['S_VAX'], params['ACOV'], params['BCOV'], params['arrivals'], params['regional_positivity'], params['IMPORT_RATE'], params['SEASONALITY'], params['contact']
 #     BETA, OFFSET = (
@@ -325,23 +365,23 @@ import numpyro.distributions as dist
 # print("result took ",time.time()-start," seconds")
 # print(solution[-1])
 
-def temp_deltas(state, t, params=params):
-    NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params['NAG'], params['N_S'], params['AGING_RATE'], params['BIRTH_RATE'], params['WANE'], params['REC_UP'], params['REC_SAME'], params['S_REL'], params['S_AGE'], params['I_REL'], params['P_OBS'], params['birth_vax'], params['S_VAX'], params['ACOV'], params['BCOV'], params['arrivals'], params['regional_positivity'], params['IMPORT_RATE'], params['BETA'], params['SEASONALITY'], params['OFFSET'], params['contact']
-    return sis_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact)
-sstart = time.time()
-jitted_observations = jax.jit(observations, static_argnames=('NAG', 'N_S', 'BETA', 'contact', 'SEASONALITY', 'OFFSET', 'incidence', 'time_conversion'))
-print("jitting took ",time.time()-sstart," seconds")
-start = time.time()
-solution = odeint(temp_deltas, STATE0, jnp.array(POINTS,dtype=jnp.float32))
-print(time.time() - start)
-print([jnp.sum(solution[jnp.arange(i,(N_S*N_C+1)*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)])
-print(time.time() - start)
-obs = observations(solution.T, POINTS, params["NAG"], params["N_S"], params["BETA"], params["contact"], params["SEASONALITY"], params["OFFSET"], params["S_REL"], params["I_REL"], params["P_OBS"], OBS_AGE,incidence=True,time_conversion=30.44)
-print(time.time() - start)
-# find population size over time
-age_pops = jnp.array([jnp.sum(solution[len(p_time_to_obs):,jnp.arange(i,(N_S*N_C+1)*NAG,NAG)],axis=1) for i in range(NAG)]).T
-plt.plot(age_pops)
-plt.show()
+# def temp_deltas(state, t, params=params):
+#     NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params['NAG'], params['N_S'], params['AGING_RATE'], params['BIRTH_RATE'], params['WANE'], params['REC_UP'], params['REC_SAME'], params['S_REL'], params['S_AGE'], params['I_REL'], params['P_OBS'], params['birth_vax'], params['S_VAX'], params['ACOV'], params['BCOV'], params['arrivals'], params['regional_positivity'], params['IMPORT_RATE'], params['BETA'], params['SEASONALITY'], params['OFFSET'], params['contact']
+#     return sis_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact)
+# sstart = time.time()
+# jitted_observations = jax.jit(observations, static_argnames=('NAG', 'N_S', 'BETA', 'contact', 'SEASONALITY', 'OFFSET', 'incidence', 'time_conversion'))
+# print("jitting took ",time.time()-sstart," seconds")
+# start = time.time()
+# solution = odeint(temp_deltas, STATE0, jnp.array(POINTS,dtype=jnp.float32))
+# print(time.time() - start)
+# print([jnp.sum(solution[jnp.arange(i,(N_S*N_C+1)*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)])
+# print(time.time() - start)
+# obs = observations(solution.T, POINTS, params["NAG"], params["N_S"], params["BETA"], params["contact"], params["SEASONALITY"], params["OFFSET"], params["S_REL"], params["I_REL"], params["P_OBS"], OBS_AGE,incidence=True,time_conversion=30.44)
+# print(time.time() - start)
+# # find population size over time
+# age_pops = jnp.array([jnp.sum(solution[len(p_time_to_obs):,jnp.arange(i,(N_S*N_C+1)*NAG,NAG)],axis=1) for i in range(NAG)]).T
+# plt.plot(age_pops)
+# plt.show()
 
 # save as csv
 # age_pops_df = pd.DataFrame(age_pops, index=PERIOD[len(p_time_to_obs):], columns=AGE_GROUP_NAMES)
@@ -358,8 +398,11 @@ plt.show()
 # sis_deltas = jax.jit(sis_deltas, static_argnames=('NAG', 'N_S', 'birth_rate', 'birth_vax', 'S_VAX', 'ACOV', 'BCOV', 'arrivals', 'regional_positivity', 'IMPORT_RATE', 'BETA', 'SEASONALITY', 'OFFSET', 'contact'))
 
 # start = time.time()
-# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
 # print("result took ",time.time()-start," seconds")
+
+# plt.plot(result.t,np.sum(result.y,axis=0))
+# plt.show()
 # # get total infectious compartment over time
 # I = jnp.sum(jnp.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,:] for j in range(N_S)]),axis=0)
 # age_pops = jnp.array([jnp.sum(result.y[jnp.arange(i_age,(2*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)])
@@ -429,7 +472,11 @@ plt.show()
 # # # # # # ax[0].plot(result.t,[jnp.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/jnp.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
 # # # # # # ax[1].plot(result.t,jnp.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/jnp.sum(pop_size_by_age,axis=1),color="#648FFF")
 # # # # # plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
-# obs = observations(result,params,OBS_AGE,incidence=True,time_conversion=30.44)
+obs = observations(result.y,POINTS,params,OBS_AGE,incidence=False,time_conversion=30.44)
+# print(obs)
+fig, ax = plt.subplots()
+mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+plt.savefig('Figures/old_model_example.png',dpi=300)
 # obs2 = observations(result2,params2,OBS_AGE,incidence=True,time_conversion=30.44)
 # obs2_crossimmunity = observations(result2_crossimmunity,params2_crossimmunity,OBS_AGE,incidence=True,time_conversion=30.44)
 # obs2_interference = observations(result2_interference,params2_interference,OBS_AGE,incidence=True,time_conversion=30.44)

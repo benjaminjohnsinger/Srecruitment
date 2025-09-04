@@ -1,7 +1,7 @@
 ## BJS Jan 2025
 ## Processing distributions of incubation and admittance times for RSV and influenza
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 
 incubation_median_RSV = 4.4
 incubation_dispersion_RSV = 1.24

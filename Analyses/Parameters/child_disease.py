@@ -1,7 +1,7 @@
 ## Child disease parameters
 ## Epidemiological parameters for a rota-like disease
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 
 # ## Rota-like parameters
 ## Parameters that vary by susceptibility class

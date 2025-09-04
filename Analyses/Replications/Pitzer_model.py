@@ -2,7 +2,7 @@
 ## Replication of the model from Pitzer et al. 2009
 ## BJS August 2024
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import scipy as sp
 

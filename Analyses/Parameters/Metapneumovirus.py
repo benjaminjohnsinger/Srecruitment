@@ -1,7 +1,7 @@
 ## RSV parameters
 ## Parameters from literature cited by Pitzer et al. 2015, and guesses to match KPSC data
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import pandas as pd
 from numba import jit
 # from Analyses.utils import age_detection

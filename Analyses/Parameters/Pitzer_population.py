@@ -1,6 +1,6 @@
 ## Population to match Pitzer paper
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 
 ## Population size and age distribution
 POP_SIZE = 3.9e7 # population of california

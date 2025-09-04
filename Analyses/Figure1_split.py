@@ -1,4 +1,4 @@
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import pickle
 from matplotlib.gridspec import GridSpec

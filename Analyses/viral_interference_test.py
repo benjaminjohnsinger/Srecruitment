@@ -1,5 +1,5 @@
 import pandas as pd
-import jax.numpy as jnp
+# import jax.numpy as jnp
 from scipy import stats
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -290,35 +290,37 @@ if __name__ == "__main__":
 
     # test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', encoding='utf-8')
     # test_data = test_data.loc[test_data["lab_type"]=="PCR"]
-    test_counts = pd.read_csv('Data/Processed/KPSC_test_counts.csv', index_col=0)
-    # bar chart
-    test_counts.plot(kind='bar', figsize=(10, 5), color="silver")
-    # log y
-    plt.yscale('log')
-    # 45 degree x labels
-    plt.xticks(rotation=45, ha='right')
-    # labelled dotted lines a y = 184200, 129355, and 54845
-    plt.plot([3, 14], [184200, 184200], color='#648FFF', linestyle='--', label='184200')
-    plt.plot([15, 17], [129355, 129355], color='#DC267F', linestyle='--', label='129355')
-    plt.plot([19, 23], [54845, 54845], color='#FFB000', linestyle='--', label='54845')
-    # add text to lines
-    plt.text(3, 184200, '184200', color='#648FFF', ha='left', va='bottom')
-    plt.text(15, 129355, '129355', color='#DC267F', ha='left', va='bottom')
-    plt.text(19, 54845, '54845', color='#FFB000', ha='left', va='bottom')
-    # replace end of x ticks with "..." after 20 characters
-    plt.gca().set_xticklabels([x.get_text()[:22] + '...' if len(x.get_text()) > 22 else x.get_text() for x in plt.gca().get_xticklabels()])
-    plt.tight_layout()
-    plt.ylabel('Number of tests')
-    plt.savefig('Figures/KPSC_test_counts.png', dpi=300)
+    # test_counts = pd.read_csv('Data/Processed/KPSC_test_counts.csv', index_col=0)
+    # # bar chart
+    # test_counts.plot(kind='bar', figsize=(10, 5), color="silver")
+    # # log y
+    # plt.yscale('log')
+    # # 45 degree x labels
+    # plt.xticks(rotation=45, ha='right')
+    # # labelled dotted lines a y = 184200, 129355, and 54845
+    # plt.plot([3, 14], [184200, 184200], color='#648FFF', linestyle='--', label='184200')
+    # plt.plot([15, 17], [129355, 129355], color='#DC267F', linestyle='--', label='129355')
+    # plt.plot([19, 23], [54845, 54845], color='#FFB000', linestyle='--', label='54845')
+    # # add text to lines
+    # plt.text(3, 184200, '184200', color='#648FFF', ha='left', va='bottom')
+    # plt.text(15, 129355, '129355', color='#DC267F', ha='left', va='bottom')
+    # plt.text(19, 54845, '54845', color='#FFB000', ha='left', va='bottom')
+    # # replace end of x ticks with "..." after 20 characters
+    # plt.gca().set_xticklabels([x.get_text()[:22] + '...' if len(x.get_text()) > 22 else x.get_text() for x in plt.gca().get_xticklabels()])
+    # plt.tight_layout()
+    # plt.ylabel('Number of tests')
+    # plt.savefig('Figures/KPSC_test_counts.png', dpi=300)
     # # Number of tets of PARAINFLUENZA VIRUS 1, INFLUENZA VIRUS A, ENTEROVIRUS/RHINOVIRUS, HUMAN METAPNEUMOVIRUS VIRUS, and ADENOVIRUS
     # panel_pathogens = ["PARAINFLUENZA VIRUS 1","INFLUENZA VIRUS A","ENTEROVIRUS/RHINOVIRUS","HUMAN METAPNEUMOVIRUS VIRUS","ADENOVIRUS"]
     # print(test_data.loc[test_data["pathogen"].isin(panel_pathogens)].len(), "tests of panel pathogens")
     # print(test_data.loc[test_data["pathogen"].isin(panel_pathogens), "StudyID"].nunique(), "patients with panel pathogens")
 
     # print(len(test_data["StudyID"].unique()), "patients in the testing dataset")
-    # clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_22241202.sas7bdat', encoding='utf-8')
+    clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat', encoding='utf-8')
     # print(len(clinical_data["StudyID"].unique()), "patients in the clinical dataset")
-    # clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
+    clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
+    print(clinical_data["Date"].min(), clinical_data["Date"].max())
+    print(("00002734" in clinical_data["StudyID"].astype(str).values))
 
     # for pathogen in pathogens_of_interest:
     #     print(pathogen_names[pathogen])

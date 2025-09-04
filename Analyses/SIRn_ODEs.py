@@ -1,7 +1,7 @@
 ## Ordinary differential equations defining SIR models with n susceptibility classes
 ## BJS September 2024
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 from numba import jit
 N_C = 3 # three types of compartment: susceptible, infected, recovered
 

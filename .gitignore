@@ -1,8 +1,12 @@
 Analyses/Replications/rasis5Vm.m
 Analyses/Replications/rotagemodel5m_Sci09.m
 Figures
+.DS_Store
 Pitzer2009_SI.pdf
 Data_Request_JAL_BJS_240910.docx
+InsightNetAnnualMeeting2025_poster.svg
+SISMID2025_poster.svg
 __pycache__
 .venv
 Data
+Data_to_share.zip

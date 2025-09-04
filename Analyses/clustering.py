@@ -1,7 +1,7 @@
 ## Clustering simulation results
 ## BJS Oct 2024
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 from tslearn.clustering import TimeSeriesKMeans
 import matplotlib.pyplot as plt
 from plotting import age_of_first_infection

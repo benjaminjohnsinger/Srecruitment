@@ -1,4 +1,4 @@
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import scipy as sp
 import pandas as pd 
 import matplotlib.pyplot as plt
