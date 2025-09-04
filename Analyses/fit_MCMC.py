@@ -1,9 +1,11 @@
+import numpyro
+import numpyro.distributions as dist
+from numpyro.infer import MCMC, NUTS
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import scipy as sp
-import numpyro.distributions as dist
 import matplotlib.pyplot as plt
 from matplotlib import cm as colormaps
 import time
@@ -173,9 +175,6 @@ def prior_distribution(filename, bounds, n=1000, dist_type="multilog", varlim=No
 
     return prior_dist, fit_means
 
-import numpyro
-import numpyro.distributions as dist
-from numpyro.infer import MCMC, NUTS
 def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-9, vax_preprocessor=None, samples=1000, varlim=None):
     params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seed)
     age_pops = jnp.asarray(pd.read_csv("Data/Processed/age_pops_daily.csv").values)
@@ -221,9 +220,9 @@ def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-
         x_sampled = jnp.exp(sample) + bounds[:,0]
         sim_params = x_to_params(x_sampled, pathogen, lockdown, option1, option2, vax_preprocessor=vax_preprocessor, fixed_params=params, import_multiplier=import_multiplier)
         expected_obs = trajectory(STATE0, sim_params)[-len(obs_cases):]
-        # floor to avoid issues with Poisson likelihood
-        maxed_obs = jnp.maximum(1e-10, expected_obs)
-        numpyro.sample("obs_cases", dist.Poisson(maxed_obs), obs=obs_cases)
+        # very sharp softplus to avoid issues with Poisson likelihood while keeping close to original
+        softplus_obs = jax.nn.softplus(expected_obs*1000)/1000
+        numpyro.sample("obs_cases", dist.Poisson(softplus_obs), obs=obs_cases)
     nuts_kernel = NUTS(model,
                         init_strategy=numpyro.infer.init_to_value(values={"params": prior_means}),
                         max_tree_depth=6)
@@ -246,9 +245,43 @@ if __name__ == "__main__":
         # ax.axvline(x=true_value, color='green', linestyle='--', label='Original')
         ax.legend()
         return ax
+    
+    def plot_trajectories(posterior_samples, params, restricted_bounds, incidence, p_time_to_obs, downsample=False, ax=None):
+        if downsample:
+            posterior_samples = {k: v[np.random.choice(v.shape[0], size=downsample, replace=False)] for k, v in posterior_samples.items()}
+        age_pops = jnp.asarray(pd.read_csv("Data/Processed/age_pops_daily.csv").values)
+        cases = jnp.round(incidence*age_pops[-len(incidence):])
+        p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
+        def obs_convolution(x):
+            return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
+        @jax.jit
+        def trajectory(state0, params, term=ODETerm(deltas), solver=Dopri5(), step_controller=PIDController(rtol=1e-5, atol=1e-5), startdate='2015-10-01', enddate='2023-10-01'):
+            saveat = SaveAt(ts=jnp.arange(date_to_t(startdate)-90, date_to_t(enddate)))
+            solution = diffeqsolve(
+                            term, solver,
+                            t0=0, t1=date_to_t(enddate)-1, dt0=None, stepsize_controller=step_controller,
+                            saveat=saveat, y0=state0.flatten(), args=params, 
+                            max_steps=100000,  
+                            )
+            # trajectory is np.diff over time of last NAG elements of solution
+            cumulative_observations = solution.ys[:,-NAG:]
+            observations = jnp.diff(cumulative_observations, axis=0)
+            expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(observations)
+            softplus_obs = jax.nn.softplus(expected_obs*1000)/1000
+            return softplus_obs
+        STATE0_shaped = jnp.zeros((2*N_S+1,NAG))
+        STATE0_shaped = STATE0_shaped.at[0,:].set(CENSUS_AGE_POP-1)
+        STATE0_shaped = STATE0_shaped.at[1,:].set(1)
+        STATE0 = jnp.concatenate((jnp.array([0]), STATE0_shaped.flatten()))
+        transformed_samples = jnp.exp(posterior_samples['params']) + restricted_bounds[:,0]
+        sim_params = jax.vmap(lambda x: x_to_params(x, pathogen, "FlexStepwise", "pathogen", "flexage", vax_preprocessor=FluRatePreprocessor(jnp.arange(0, date_to_t('2023-10-01')), age_pops, AGING_RATE), fixed_params=params, import_multiplier=1e-9))(transformed_samples)
+        trajectories = jax.vmap(lambda p: trajectory(STATE0, p)) (sim_params)
+        rolling_average_cases = jnp.convolve(cases.sum(axis=1), jnp.ones(14)/14, mode='same')
+        ax.plot(rolling_average_cases, color='black', label='Observed Cases')
+        ax.plot(trajectories.sum(axis=2).T[-len(cases):], color='red', alpha=0.3)
 
     import pickle
-
+    print(jax.local_device_count())
     start = time.time()
     for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Parainfluenza3", "Adenovirus"]:
         print(pathogen, time.time()-start)
@@ -256,7 +289,7 @@ if __name__ == "__main__":
         mcmc.print_summary()
         # save samples
         posterior_samples = mcmc.get_samples()
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples.pickle", "wb") as f:
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp1000.pickle", "wb") as f:
             pickle.dump(posterior_samples, f)
         # plot histograms of each parameter
         sns.set_style("whitegrid")
@@ -273,64 +306,16 @@ if __name__ == "__main__":
                 if idx < len(param_names):
                     plot_histogram(transformed_samples[:,idx], param_names[idx], ax=ax[i,j])
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+".png", dpi=300)
-
-
-    # import pickle
-
-    # ## cloud of trajectories
-    # pathogen = "RSV"
-    # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples.pickle", "rb") as f:
-    #     posterior_samples = pickle.load(f)
-    # # random sample of 100 from the posterior
-    # posterior_samples = {k: v[np.random.choice(v.shape[0], size=100, replace=False)] for k, v in posterior_samples.items()}
-    # params, bounds_dict, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", "0.005", "flexage", 2507092)
-    # age_pops = jnp.asarray(pd.read_csv("Data/Processed/age_pops_daily.csv").values)
-    # cases = jnp.round(incidence*age_pops[-len(incidence):])
-    # p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
-    # def obs_convolution(x):
-    #     return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
-    # @jax.jit
-    # def trajectory(state0, params, term=ODETerm(deltas), solver=Dopri5(), step_controller=PIDController(rtol=1e-5, atol=1e-5), startdate='2015-10-01', enddate='2023-10-01'):
-    #     saveat = SaveAt(ts=jnp.arange(date_to_t(startdate)-90, date_to_t(enddate)))
-    #     solution = diffeqsolve(
-    #                     term, solver,
-    #                     t0=0, t1=date_to_t(enddate)-1, dt0=None, stepsize_controller=step_controller,
-    #                     saveat=saveat, y0=state0.flatten(), args=params, 
-    #                     max_steps=100000,  
-    #                     )
-    #     # trajectory is np.diff over time of last NAG elements of solution
-    #     cumulative_observations = solution.ys[:,-NAG:]
-    #     observations = jnp.diff(cumulative_observations, axis=0)
-    #     expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(observations)
-    #     return expected_obs
-    # STATE0_shaped = jnp.zeros((2*N_S+1,NAG))
-    # STATE0_shaped = STATE0_shaped.at[0,:].set(CENSUS_AGE_POP-1)
-    # STATE0_shaped = STATE0_shaped.at[1,:].set(1)
-    # STATE0 = jnp.concatenate((jnp.array([0]), STATE0_shaped.flatten()))
-    # bounds = jnp.array(list(bounds_dict.values()))
-    # n_ds = 6 + ("Influenza" in pathogen) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
-    # bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
-    # transformed_samples = jnp.exp(posterior_samples['params']) + bounds[:,0]
-    # param_names = list(bounds_dict.keys())
-    # param_names = param_names[:n_ds] + param_names[n_ds+7:]
-    # sim_params = jax.vmap(lambda x: x_to_params(x, pathogen, "FlexStepwise", "0.005", "flexage", vax_preprocessor=FluRatePreprocessor(jnp.arange(0, date_to_t('2023-10-01')), age_pops, AGING_RATE), fixed_params=params, import_multiplier=1e-9))(transformed_samples)
-    # trajectories = jax.vmap(lambda p: trajectory(STATE0, p)) (sim_params)
-    # # how many inf or nan values/
-    # print(f"Number of inf or nan trajectories: {jnp.sum(jnp.isnan(trajectories) | jnp.isinf(trajectories))}")
-    
-    # plt.figure(figsize=(13.3,7.5))
-    # plt.plot(trajectories.sum(axis=2).T[-len(cases):], color='lightblue', alpha=0.3)
-    # # plt.plot(np.max(trajectories)*params[8][-trajectories.shape[1]:], color="black")
-    # plt.plot(cases.sum(axis=1), color='black', label='Observed Cases')
-    # # plt.xlabel('Days since 1970-01-01')
-    # plt.ylabel('Number of Cases')
-    # plt.title(f'Posterior Predictive Trajectories for {pathogen}')
-    # plt.legend()
-    # plt.tight_layout()
-    # plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+".png", dpi=300)
-    
-
+        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp1000.png", dpi=300)
+        plt.close()
+        fig, ax = plt.subplots(figsize=(13.3,7.5))
+        plot_trajectories(posterior_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=ax)
+        plt.xlabel('Days since 1970-01-01')
+        plt.ylabel('Number of Cases')
+        plt.title(f'Posterior Predictive Trajectories for {pathogen}')
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp1000.png", dpi=300)
 
     ## 2d contour plot comparisons
     # fig, ax = plt.subplots(figsize=(6.5,6.5))
