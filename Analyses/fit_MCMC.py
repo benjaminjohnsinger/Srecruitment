@@ -221,7 +221,7 @@ def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-
         sim_params = x_to_params(x_sampled, pathogen, lockdown, option1, option2, vax_preprocessor=vax_preprocessor, fixed_params=params, import_multiplier=import_multiplier)
         expected_obs = trajectory(STATE0, sim_params)[-len(obs_cases):]
         # very sharp softplus to avoid issues with Poisson likelihood while keeping close to original
-        softplus_obs = jax.nn.softplus(expected_obs*1000)/1000
+        softplus_obs = jax.nn.softplus(expected_obs*100)/100
         numpyro.sample("obs_cases", dist.Poisson(softplus_obs), obs=obs_cases)
     nuts_kernel = NUTS(model,
                         init_strategy=numpyro.infer.init_to_value(values={"params": prior_means}),
@@ -289,7 +289,7 @@ if __name__ == "__main__":
         mcmc.print_summary()
         # save samples
         posterior_samples = mcmc.get_samples()
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp1000.pickle", "wb") as f:
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100.pickle", "wb") as f:
             pickle.dump(posterior_samples, f)
         # plot histograms of each parameter
         sns.set_style("whitegrid")
@@ -306,7 +306,7 @@ if __name__ == "__main__":
                 if idx < len(param_names):
                     plot_histogram(transformed_samples[:,idx], param_names[idx], ax=ax[i,j])
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp1000.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp100.png", dpi=300)
         plt.close()
         fig, ax = plt.subplots(figsize=(13.3,7.5))
         plot_trajectories(posterior_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=ax)
@@ -315,7 +315,7 @@ if __name__ == "__main__":
         plt.title(f'Posterior Predictive Trajectories for {pathogen}')
         plt.legend()
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp1000.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp100.png", dpi=300)
 
     ## 2d contour plot comparisons
     # fig, ax = plt.subplots(figsize=(6.5,6.5))
