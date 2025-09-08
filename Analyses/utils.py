@@ -241,7 +241,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     PERIOD = pd.date_range(start=START, end=END, freq='D')
     POINTS = jnp.array(date_to_t(PERIOD))
 
-    WANE = jnp.array([0.0,x[0],0.0])
+    WANE = jnp.array([0.0,0.0,x[0]])
     SEASONALITY = x[1]
     OFFSET = x[2]
     BETA = x[3]

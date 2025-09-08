@@ -283,13 +283,13 @@ if __name__ == "__main__":
     import pickle
     print(jax.local_device_count())
     start = time.time()
-    for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Parainfluenza3", "Adenovirus"]:
+    for pathogen in ["InfluenzaA", "InfluenzaB", "RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
         print(pathogen, time.time()-start)
         mcmc = fit_MCMC(pathogen, "FlexStepwise", "0.005", "flexage", 2507092, import_multiplier=1e-9, samples=1000, varlim="pathogen")
         mcmc.print_summary()
         # save samples
         posterior_samples = mcmc.get_samples()
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100.pickle", "wb") as f:
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_test.pickle", "wb") as f:
             pickle.dump(posterior_samples, f)
         # plot histograms of each parameter
         sns.set_style("whitegrid")
@@ -306,7 +306,7 @@ if __name__ == "__main__":
                 if idx < len(param_names):
                     plot_histogram(transformed_samples[:,idx], param_names[idx], ax=ax[i,j])
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp100.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp100_test.png", dpi=300)
         plt.close()
         fig, ax = plt.subplots(figsize=(13.3,7.5))
         plot_trajectories(posterior_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=ax)
@@ -315,7 +315,7 @@ if __name__ == "__main__":
         plt.title(f'Posterior Predictive Trajectories for {pathogen}')
         plt.legend()
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp100.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp100_test.png", dpi=300)
 
     ## 2d contour plot comparisons
     # fig, ax = plt.subplots(figsize=(6.5,6.5))

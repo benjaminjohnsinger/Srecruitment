@@ -15,10 +15,12 @@ from utils import *
 # import time
 # # import corner
 
-x = np.linspace(-1,10,1000)
-y = np.log(1 + np.exp(10 * x)) / 10
-plt.plot(x,np.maximum(0,x), c='k', ls='--')
-plt.plot(x,y)
+fig, ax = plt.subplots(2,1)
+vax_opt = np.loadtxt('Data/Processed/KPSC_vaccination_rate_ages_monthly_optimized.csv',delimiter=',')
+vax_original = np.loadtxt('Data/Processed/vax_rate_example.csv',delimiter=',')
+print(vax_opt)
+ax[0].plot(vax_opt,label='Optimized')
+ax[1].plot(vax_original,label='Original')
 plt.show()
 
 # covaraiance = np.array([[4.79203036e-07,6.11817303e-08,1.19563281e-06,-5.83700484e-07

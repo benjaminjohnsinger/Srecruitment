@@ -83,20 +83,20 @@ if __name__ == "__main__":
     POSITIVITY = np.genfromtxt('Data/Processed/RSV_positivity_daily.csv', delimiter=',')
 
 
-    # example parameters for testing
+    # # example parameters for testing
     NAG = 7
     N_S = 3
     DAYS = 19632
     # BIRTH_RATE = np.ones(DAYS)*np.mean(BIRTH_RATE) # np.mean(BIRTH_RATE)
     # ARRIVALS = np.ones(DAYS)*np.mean(ARRIVALS) # np.mean(ARRIVALS)
     # POSITIVITY = np.ones(DAYS)*np.mean(POSITIVITY) # np.mean(POSITIVITY)
-    BETA = 0.43911709767941026
+    BETA = 3.09801199e-01
     # BETA = 0.4427481
-    WANE = np.array([0.0, 0.0, 0.00328313])
+    WANE = np.array([0.0, 0.0, 4.12833152e-03])
     # WANE = np.array([0.0, 0.0, 0.002982292])
-    S_REL = np.array([1.0, 0.17562081, 0.02200943])
+    S_REL = np.array([1.0, 2.51378508e-01, 2.51378508e-01 * 1.93695805e-01])
     P_OBS = np.array([1, 0.46, 0.31])
-    OBS_AGE = np.array([0.00118803,0.00136213,0.00342824,0.00018155,0.00010638,0.00036652,0.00394561])
+    OBS_AGE = np.array([1.41156737e-03,1.42463892e-03,2.78237498e-03,1.34302008e-04,8.83682889e-05,3.16598659e-04,2.38996273e-03])
     REC_UP = np.array([1/4.9,1/4.1,0.0])
     REC_SAME = np.array([0.0,0.0,1/4.1])
     IMPORT_STRENGTH = 0.01*ARRIVALS/np.max(ARRIVALS)*POSITIVITY/30.44
@@ -105,8 +105,8 @@ if __name__ == "__main__":
     # plt.plot(IMPORT_STRENGTH, label='Import Strength')
     # plt.show()
 
-    SEASONALITY = 0.10139569171113522
-    OFFSET = 0.15655402567710153
+    SEASONALITY = 8.88627411e-02
+    OFFSET = 1.82381144e-01
     # SEASONALITY = 0.10698847
     # OFFSET = 0.1400197 
     TT = np.array([date_to_t('1970-01-01'), date_to_t('2020-03-19'), date_to_t('2021-03-18'), date_to_t('2021-09-14'), date_to_t('2022-02-23')])
@@ -119,24 +119,24 @@ if __name__ == "__main__":
 
     MATERNAL_IMMUNITY = 0
 
-    # dayrange = np.arange(date_to_t("2016-10-01"),date_to_t("2017-10-01"))
-    # fig, ax = plt.subplots(1,4, figsize=(12, 3))
-    # ax[0].plot(ARRIVALS[dayrange]/(30.44*np.max(ARRIVALS)), label='Arrivals')
-    # ax[0].set_title('Arrivals')
-    # ax[1].plot(POSITIVITY[dayrange], label='Positivity')
-    # ax[1].set_title('Positivity')
-    # ax[2].plot((RELATIVE_CONTACT*np.sum(CONTACT_MATRIX))[dayrange], label='Import Strength')
-    # ax[2].set_title('Relative Contact')
-    # ax[3].plot(BIRTH_RATE[dayrange], label='Import Strength')
-    # ax[3].set_title('Birth Rate')
-    # plt.tight_layout()
-    # plt.savefig('Figures/new_model_rates_test.png',dpi=300)
+    # # dayrange = np.arange(date_to_t("2016-10-01"),date_to_t("2017-10-01"))
+    # # fig, ax = plt.subplots(1,4, figsize=(12, 3))
+    # # ax[0].plot(ARRIVALS[dayrange]/(30.44*np.max(ARRIVALS)), label='Arrivals')
+    # # ax[0].set_title('Arrivals')
+    # # ax[1].plot(POSITIVITY[dayrange], label='Positivity')
+    # # ax[1].set_title('Positivity')
+    # # ax[2].plot((RELATIVE_CONTACT*np.sum(CONTACT_MATRIX))[dayrange], label='Import Strength')
+    # # ax[2].set_title('Relative Contact')
+    # # ax[3].plot(BIRTH_RATE[dayrange], label='Import Strength')
+    # # ax[3].set_title('Birth Rate')
+    # # plt.tight_layout()
+    # # plt.savefig('Figures/new_model_rates_test.png',dpi=300)
 
-    # initial state - everyone susceptible except one in each age group
+    # # initial state - everyone susceptible except one in each age group
     STATE0 = jnp.zeros((2*N_S+1,NAG))
     STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
     STATE0 = STATE0.at[1,:].set(1)
-    # flatten initial state and add maternal immunity compartment
+    # # flatten initial state and add maternal immunity compartment
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     params = (AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
@@ -156,7 +156,19 @@ if __name__ == "__main__":
     # print("JAX Time:", time.time() - start_time)
     # values = result_jax.y
     # times = result_jax.t
+    from utils import parameters_from_DE
+    import pickle
+    pathogen = "RSV"
+    option1 = "0.005"
+    option2 = "flexage"
+    seed = 2507092
 
+    paramst, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", option1, option2, str(seed))
+    # with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
+    #     opt = pickle.load(f)
+    # print(opt.x)
+
+    
     from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 
     term = ODETerm(deltas)
@@ -216,4 +228,4 @@ if __name__ == "__main__":
     ax.set_xticks(xticks, xticklabels)
 
 
-    plt.savefig('Figures/diffrax_obs_RSV250709_dynamic_import.pdf')
+    plt.savefig('Figures/RSV_DEparamtest.pdf')
