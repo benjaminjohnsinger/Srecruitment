@@ -220,7 +220,7 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9):
     return REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence
 
 # @partial(jax.jit, static_argnames=['pathogen','lockdown','option1','option2'])
-def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, fixed_params = None, import_multiplier=1e-9):
+def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, fixed_params = None, import_multiplier=1e-9, end_date='2023-10-01'):
     if fixed_params is None:
         from Parameters.census_population import AGING_RATE
         REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
@@ -231,15 +231,10 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         REC_UP, REC_SAME, IMPORT_STRENGTH = fixed_params[-3:]
     
     N_S, NAG = 3, 7
-    start_date = '2015-07-04'
-    end_date = '2023-10-01'
     EPOCH = pd.to_datetime('1970-01-01')
-    START = pd.to_datetime(start_date) 
     END = pd.to_datetime(end_date)
     FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
     FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
-    PERIOD = pd.date_range(start=START, end=END, freq='D')
-    POINTS = jnp.array(date_to_t(PERIOD))
 
     WANE = jnp.array([0.0,0.0,x[0]])
     SEASONALITY = x[1]
@@ -267,17 +262,37 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     if option1 == "mimm":
         MATERNAL_IMMUNITY = x[n]
         n += 1
-    if lockdown == 'FlexStepwise' and not 'pathogen' in option1:
-        TT = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
-        # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
-        F1 = x[n+3] # value between 0 and 1 (first lockdown)
-        F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
-        F3 = F2*x[n+5] # value less than F2 (second lockdown)
-        F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
-        FF = jnp.array([1,F1,F2,F3,F4])
-        PIECEWISE_CONTACT = jnp.array([cm.piecewise(t, TT, FF, steepness=0.2) for t in FULL_POINTS])
-        RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
-        n += 7
+    if 'pathogen' not in option1:
+        if lockdown == 'FlexStepwise':
+            TT = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
+            # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
+            F1 = x[n+3] # value between 0 and 1 (first lockdown)
+            F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
+            F3 = F2*x[n+5] # value less than F2 (second lockdown)
+            F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
+            FF = jnp.array([1,F1,F2,F3,F4])
+            PIECEWISE_CONTACT = jnp.array([cm.piecewise(t, TT, FF, steepness=0.2) for t in FULL_POINTS])
+            RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+            n += 7
+        elif lockdown == 'Mobility':
+            contact_factor = 1 + x[n]*cm.MOBILITY_CHANGE_JAX
+            MOBILITY_CONTACT = jnp.ones(len(FULL_POINTS))
+            MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_START:cm.MOBILITY_END+1].set(contact_factor)
+            MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_END+1:].set(x[n+1])
+            RELATIVE_CONTACT = MOBILITY_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+            n += 2
+        elif lockdown == 'Mobility2':
+            contact_factor = 1 + x[n]*cm.MOBILITY_CHANGE_JAX + x[n+1]*cm.MOBILITY_CHANGE_JAX**2
+            MOBILITY_CONTACT = jnp.ones(len(FULL_POINTS))
+            MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_START:cm.MOBILITY_END+1].set(contact_factor)
+            MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_END+1:].set(x[n+2])
+            RELATIVE_CONTACT = MOBILITY_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+            n += 4
+        elif lockdown == "Taube":
+            contact_factor = 2.63692872 + 1.96488539*cm.MOBILITY_CHANGE_JAX + -0.03890451*cm.MOBILITY_CHANGE_JAX**2
+            MOBILITY_CONTACT = jnp.ones(len(FULL_POINTS))
+            MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_START:cm.MOBILITY_END+1].set(contact_factor)
+            RELATIVE_CONTACT = MOBILITY_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[8]
     if option2 == 'flexage' and not 'dynamic' in option1:
@@ -344,14 +359,19 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, import_multip
         bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = [0.1,1]
     else:
         bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1,1]
-    if option1 != "dynamic":
+    if "dynamic" not in option1:
         if option2 == "flexage":
             bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0,0.005]
         else:
             bounds_dict["P_OBS"] = [0,0.01]
             bounds_dict["AGE_OBS_YOUNG"] = bounds_dict["AGE_OBS_OLD"] = bounds_dict["AGE_OBS_YOUNG_OLD"] = [0,1]
-    if (lockdown == "FlexStepwise") & (option1 != "dynamic"):
-        bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
+    if "pathogen" not in option1:
+        if lockdown == "FlexStepwise":
+            bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
+        elif lockdown == "Mobility":
+            bounds_dict["F1"] = [0,2]
+        elif lockdown == "Mobility2":
+            bounds_dict["F1"] = bounds_dict["F2"] = [0,2]
 
     # reorder bounds_dict to match order in x
     bounds_dict = {key: bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7"]\

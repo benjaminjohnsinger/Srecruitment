@@ -4,6 +4,13 @@ import pandas as pd
 import jax
 import jax.numpy as jnp
 
+def date_to_t(date, start_date=pd.to_datetime("1970-01-01")):
+    """
+    Convert date to time index
+    """
+    date_time = pd.to_datetime(date)
+    return (date_time - start_date).days
+
 # @jit
 def STATIC(t):
     return 1
@@ -43,51 +50,85 @@ def piecewise(t, ts, fs, steepness=0.2):
         result = result * (1 - transition) + fs[i] * transition
     return result
 
-if __name__ == "__main__":
-    # plot piecewise cm
-    import matplotlib.pyplot as plt
-    def date_to_t(date, start_date=pd.to_datetime("1970-01-01")):
-        """
-        Convert date to time index
-        """
-        date_time = pd.to_datetime(date)
-        return (date_time - start_date).days
-    fig, ax = plt.subplots(figsize=(10, 5))
-    t_values = jnp.linspace(17500, date_to_t("2024-10-01"), 1000)
-    ts = jnp.array([date_to_t("1970-01-01"),
-        date_to_t('2020-03-19'), # Newsom announces stay-at-home order
-        date_to_t('2021-04-27'), # CDC amends mask guidance to allow vaccinated individuals to go maskless
-        date_to_t('2021-12-15'), # CDC reinstates mask guidance
-        date_to_t('2022-03-01')]) # End of mask mandate in California
-    fs = jnp.array([1,0.99,1,0.995,1])
-    ax.plot(t_values, piecewise(t_values, ts, fs, steepness=0.2), label='Piecewise Contact Model', color='blue')
-    ax.plot(t_values, piecewise(t_values, ts, fs, steepness=0.1), label='Piecewise Contact Model', color='green')
-    ax.plot(t_values, piecewise(t_values, ts, fs, steepness=0.01), label='Piecewise Contact Model', color='red')
-    plt.show()
 
-# MOBILITY2020 = pd.read_csv('Data/Raw/Google_mobility_reports/2020_US_Region_Mobility_Report.csv', delimiter=',')
-# MOBILITY2021 = pd.read_csv('Data/Raw/Google_mobility_reports/2021_US_Region_Mobility_Report.csv', delimiter=',')
-# MOBILITY2022 = pd.read_csv('Data/Raw/Google_mobility_reports/2022_US_Region_Mobility_Report.csv', delimiter=',')
-# MOBILITY = pd.concat([MOBILITY2020, MOBILITY2021, MOBILITY2022])
-# MOBILITY_CA = MOBILITY.loc[MOBILITY['iso_3166_2_code'] == 'US-CA']
-# MOBILITY_CA = MOBILITY_CA.sort_values(by='date')
-# MOBILITY_CA.index = (pd.to_datetime(MOBILITY_CA['date'])-pd.to_datetime('1970-01-01')).dt.days
-# MOBILITY_WORK = 1+MOBILITY_CA['workplaces_percent_change_from_baseline']/100
-# MOBILITY_WORK_MA = MOBILITY_WORK.rolling(window=28).mean()
-# MOBILITY_WORK_MA = MOBILITY_WORK_MA.bfill()
-# RELATIVE_CONTACT_WORK = 1.3169 - 4.7718*MOBILITY_WORK_MA + 5.7062*MOBILITY_WORK_MA**2
-# IDX = jnp.array(MOBILITY_CA.index)
-# RELATIVE_CONTACT_WORK_NP = jnp.array(RELATIVE_CONTACT_WORK)
-# # print(RELATIVE_CONTACT_WORK_NP)
-# # @jit
-# def google_prestige_work(t, RELATIVE_CONTACT_WORK_NP=RELATIVE_CONTACT_WORK_NP, IDX=IDX):
-#     # if t<18355: # if before first dip below baseline
-#     #     return 1
-#     # elif t<18952: # if before first recovery to 95% of baseline
-#     # if t < max(IDX):
-#     return jnp.minimum(1,RELATIVE_CONTACT_WORK_NP[jnp.argmin(IDX<=t)])
-#     # else:
-#     #     return RELATIVE_CONTACT_WORK_NP[-1]
-#     # else:
-#     #     return 1
-# # print([RELATIVE_CONTACT_WORK_NP[jnp.argmin(IDX<=t)] for t in [18383,18506,18809,19024,19631]])
+MOBILITY2020 = pd.read_csv('Data/Raw/Google_mobility_reports/2020_US_Region_Mobility_Report.csv', delimiter=',')
+MOBILITY2021 = pd.read_csv('Data/Raw/Google_mobility_reports/2021_US_Region_Mobility_Report.csv', delimiter=',')
+MOBILITY2022 = pd.read_csv('Data/Raw/Google_mobility_reports/2022_US_Region_Mobility_Report.csv', delimiter=',')
+MOBILITY = pd.concat([MOBILITY2020, MOBILITY2021, MOBILITY2022])
+MOBILITY_CA = MOBILITY.loc[MOBILITY['iso_3166_2_code'] == 'US-CA']
+MOBILITY_CA = MOBILITY_CA.sort_values(by='date')
+MOBILITY_CA.index = (pd.to_datetime(MOBILITY_CA['date'])-pd.to_datetime('1970-01-01')).dt.days
+MOBILITY_CHANGE_NONRESIDENTIAL = MOBILITY_CA[['retail_and_recreation_percent_change_from_baseline','grocery_and_pharmacy_percent_change_from_baseline','parks_percent_change_from_baseline','transit_stations_percent_change_from_baseline','workplaces_percent_change_from_baseline']].mean(axis=1)/100
+
+MOBILITY_START = MOBILITY_CHANGE_NONRESIDENTIAL.index[0] + date_to_t('1970-01-01')
+MOBILITY_END = MOBILITY_CHANGE_NONRESIDENTIAL.index[-1] + date_to_t('1970-01-01')
+MOBILITY_CHANGE_JAX = jnp.array(MOBILITY_CHANGE_NONRESIDENTIAL)
+
+if __name__ == "__main__":
+    # print(date_to_t('2020-01-01'))
+    # print(MOBILITY_START, MOBILITY_END)
+    # import matplotlib.pyplot as plt
+    # contact_factor = 1 + 1*MOBILITY_CHANGE_JAX
+    # FULL_POINTS = jnp.arange(19632)
+    # MOBILITY_CONTACT = jnp.ones(len(FULL_POINTS))
+    # MOBILITY_CONTACT = MOBILITY_CONTACT.at[MOBILITY_START:MOBILITY_END+1].set(contact_factor)
+    # plt.plot(FULL_POINTS, MOBILITY_CONTACT)
+    # plt.show()
+
+    SC_COUNTIES = ['Kern County', 'Ventura County', 'Los Angeles County', 'Orange County', 'Riverside County', 'San Bernardino County', 'San Diego County'] # https://southerncalifornia.permanente.org/
+
+    # TAUBE_CONTACTS = pd.read_csv('Data/Raw/baseline_contact_by_county_week.csv', delimiter=',', encoding='latin1')
+    # # TAUBE_CONTACTS = TAUBE_CONTACTS.loc[TAUBE_CONTACTS['name'].isin(SC_COUNTIES)]
+    # # TAUBE_CONTACTS = TAUBE_CONTACTS.loc[TAUBE_CONTACTS['state'] == 'CA']
+    # TAUBE_CONTACTS['week'] = pd.to_datetime(TAUBE_CONTACTS['week'])
+    # TAUBE_CONTACTS = TAUBE_CONTACTS.sort_values(by='week')
+    # # get rid of NAs
+    # TAUBE_CONTACTS = TAUBE_CONTACTS.dropna(subset=['contact_fit', 'samp_size'])
+    # # for each week, average "contact_fit" weighted by "samp_size"
+    # TAUBE_CONTACTS = TAUBE_CONTACTS.groupby('week').apply(lambda x: np.average(x['contact_fit'], weights=x['samp_size'])).reset_index()
+    # TAUBE_CONTACTS.index = (TAUBE_CONTACTS['week']-pd.to_datetime('1970-01-01')).dt.days
+    # # fill days between weeks
+    # # TAUBE_CONTACTS = TAUBE_CONTACTS.reindex(pd.date_range(start=TAUBE_CONTACTS.index[0], end=TAUBE_CONTACTS.index[-1], freq='D'))
+    # # TAUBE_CONTACTS = TAUBE_CONTACTS.interpolate(method='linear')
+    # TAUBE_CONTACTS_JAX = jnp.array(TAUBE_CONTACTS.iloc[:,1])
+    # # # plot piecewise cm
+
+    # import matplotlib.pyplot as plt
+    # # plt.plot(TAUBE_CONTACTS.iloc[:,0], TAUBE_CONTACTS.iloc[:,1]/13.85 - 1, label='Contact Survey Data', color='black')
+    # # # one week rolling average of mobility change
+    # # MOBILITY_CHANGE_NONRESIDENTIAL = MOBILITY_CHANGE_NONRESIDENTIAL.rolling(window=7, center=True).mean()
+    # plt.plot(MOBILITY_CHANGE_NONRESIDENTIAL.index, MOBILITY_CHANGE_NONRESIDENTIAL.values, label='Google Mobility Data', color='orange')
+    # # # plt.legend()
+    # plt.show()
+
+    # # fit quadratic model of mobility to contact data
+    # coeffs = np.polyfit(MOBILITY_CHANGE_NONRESIDENTIAL.loc[TAUBE_CONTACTS.index].values, TAUBE_CONTACTS.iloc[:,1]/13.85 - 1, 2)
+    # print("Fitted quadratic coefficients:", coeffs)
+    # # plot fitted model
+    # coeffs[2] += 1
+    # plt.plot(MOBILITY_CHANGE_NONRESIDENTIAL.index, coeffs[0]*MOBILITY_CHANGE_NONRESIDENTIAL.values**2 + coeffs[1]*MOBILITY_CHANGE_NONRESIDENTIAL.values + coeffs[2], label='Fitted Quadratic Model', color='blue')
+    # plt.legend()
+    # plt.xlabel('Date')
+    # plt.ylabel('Relative Contact Rate Change')
+    # plt.title('Contact Rate Change vs Google Mobility Data')
+    # plt.show()
+
+
+    # def date_to_t(date, start_date=pd.to_datetime("1970-01-01")):
+    #     """
+    #     Convert date to time index
+    #     """
+    #     date_time = pd.to_datetime(date)
+    #     return (date_time - start_date).days
+    # fig, ax = plt.subplots(figsize=(10, 5))
+    # t_values = jnp.linspace(17500, date_to_t("2024-10-01"), 1000)
+    # ts = jnp.array([date_to_t("1970-01-01"),
+    #     date_to_t('2020-03-19'), # Newsom announces stay-at-home order
+    #     date_to_t('2021-04-27'), # CDC amends mask guidance to allow vaccinated individuals to go maskless
+    #     date_to_t('2021-12-15'), # CDC reinstates mask guidance
+    #     date_to_t('2022-03-01')]) # End of mask mandate in California
+    # fs = jnp.array([1,0.99,1,0.995,1])
+    # ax.plot(t_values, piecewise(t_values, ts, fs, steepness=0.2), label='Piecewise Contact Model', color='blue')
+    # ax.plot(t_values, piecewise(t_values, ts, fs, steepness=0.1), label='Piecewise Contact Model', color='green')
+    # ax.plot(t_values, piecewise(t_values, ts, fs, steepness=0.01), label='Piecewise Contact Model', color='red')
+    # plt.show()

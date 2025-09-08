@@ -29,9 +29,9 @@ def flu_eff_coverage_vectorized(t_arr, max_eff, eff_cap=True):
     """
     # Vectorized lookup for raw efficacy using searchsorted
     # Find the index of the season for each time point in t_arr
-    eff_indices = jnp.searchsorted(EFF_IDX, t_arr, side='right')
+    # eff_indices = jnp.searchsorted(EFF_IDX, t_arr, side='right')
     # # Gemini's original version has a -1 to get the correct index
-    # eff_indices = jnp.searchsorted(EFF_IDX, t_arr, side='right') - 1
+    eff_indices = jnp.searchsorted(EFF_IDX, t_arr, side='right') - 1
     raw_eff = EFF[jnp.maximum(0, eff_indices)] # Use maximum to handle t before first season
 
     adj_eff = raw_eff / max_eff
