@@ -17,7 +17,7 @@ import corner
 import pickle
 import colorsys
 import datetime
-from numba import jit
+
 from sklearn import decomposition
 
 from vaccination import birth_vax, birth_vax, flu_rate, flu_eff_coverage

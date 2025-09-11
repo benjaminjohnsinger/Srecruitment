@@ -2,7 +2,7 @@
 ## Parameters from Pitzer et al. 2015 in PLOS Pathogens
 
 # import jax.numpy as jnp
-from numba import jit
+
 
 NAG = 25
 

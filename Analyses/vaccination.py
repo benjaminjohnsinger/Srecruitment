@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 import scipy as sp
-from numba import jit
+
 import time
 
 from matplotlib import pyplot as plt

@@ -3,7 +3,7 @@
 
 # import jax.numpy as jnp
 import pandas as pd
-from numba import jit
+
 # from Analyses.utils import age_detection
 
 NAG = 7

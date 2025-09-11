@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import corner
 import pickle
-from numba import jit
+
 from sklearn import decomposition
 
 from vaccination import birth_vax, birth_vax, all_vax, flu_rate

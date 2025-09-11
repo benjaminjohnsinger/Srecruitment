@@ -2,7 +2,7 @@
 ## BJS September 2024
 
 # import jax.numpy as jnp
-from numba import jit
+
 N_C = 3 # three types of compartment: susceptible, infected, recovered
 
 # @jit

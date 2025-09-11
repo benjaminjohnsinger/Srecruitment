@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 # import jax.numpy as jnp
 import numpy as np
-from numba import jit
+
 from utils import date_to_t, t_to_date
 
 ## BIRTHS

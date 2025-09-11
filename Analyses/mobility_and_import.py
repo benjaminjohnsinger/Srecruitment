@@ -5,7 +5,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from numba import jit
+
 from utils import date_to_t, t_to_date
 
 # # # MOBILITY

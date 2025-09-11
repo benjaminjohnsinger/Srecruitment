@@ -1,7 +1,7 @@
 ## Ordidxnary differential equations defining SIR models with n susceptibility classes
 ## BJS September 2024
 
-from numba import jit
+
 # # import jax.numpy as jnp
 import numpy as np
 # import contact_model as cm

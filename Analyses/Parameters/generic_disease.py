@@ -2,7 +2,7 @@
 ## Blank canvas epi parameters with SIS model in mind
 
 # import jax.numpy as jnp
-from numba import jit
+
 from utils import age_detection
 
 NAG = 7
