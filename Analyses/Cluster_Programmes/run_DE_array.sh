@@ -3,8 +3,8 @@
 #SBATCH --account=fc_coronamodel
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
-#SBATCH --time=72:00:00
-#SBATCH --array=0-35
+#SBATCH --time=1:00:00
+#SBATCH --array=0-1
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 #SBATCH --mail-type=BEGIN,END,FAIL

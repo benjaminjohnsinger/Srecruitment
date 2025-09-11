@@ -88,6 +88,7 @@ bounds_dict = {key: bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","
 bounds = jnp.array(list(bounds_dict.values()))
 
 def likelihood(x):
+    print('try')
     sim_params = x_to_params(x, pathogen, lockdown, option1, option2)
     try:
         lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True,overdispersion=False)
@@ -106,7 +107,8 @@ if __name__ == '__main__':
     printstr = "neg_log_likelihood," + ",".join([key for key in bounds_dict.keys()])
     print(printstr)
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",
-    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    workers = 4)
+    # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
     with open("Data/Processed/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)
