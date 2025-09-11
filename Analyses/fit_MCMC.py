@@ -267,7 +267,7 @@ if __name__ == "__main__":
             cumulative_observations = solution.ys[:,-NAG:]
             observations = jnp.diff(cumulative_observations, axis=0)
             expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(observations)
-            softplus_obs = jax.nn.softplus(expected_obs*1000)/1000
+            softplus_obs = jax.nn.softplus(expected_obs*100)/100
             return softplus_obs
         STATE0_shaped = jnp.zeros((2*N_S+1,NAG))
         STATE0_shaped = STATE0_shaped.at[0,:].set(CENSUS_AGE_POP-1)
@@ -289,7 +289,7 @@ if __name__ == "__main__":
         mcmc.print_summary()
         # save samples
         posterior_samples = mcmc.get_samples()
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_test.pickle", "wb") as f:
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100.pickle", "wb") as f:
             pickle.dump(posterior_samples, f)
         # plot histograms of each parameter
         sns.set_style("whitegrid")
@@ -306,7 +306,7 @@ if __name__ == "__main__":
                 if idx < len(param_names):
                     plot_histogram(transformed_samples[:,idx], param_names[idx], ax=ax[i,j])
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp100_test.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp100.png", dpi=300)
         plt.close()
         fig, ax = plt.subplots(figsize=(13.3,7.5))
         plot_trajectories(posterior_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=ax)
@@ -315,7 +315,7 @@ if __name__ == "__main__":
         plt.title(f'Posterior Predictive Trajectories for {pathogen}')
         plt.legend()
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp100_test.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp100.png", dpi=300)
 
     ## 2d contour plot comparisons
     # fig, ax = plt.subplots(figsize=(6.5,6.5))
