@@ -21,7 +21,6 @@ N_S = 3
 from utils import date_to_t, parameters_from_DE, x_to_params
 from Gemini_vaccination import FluRatePreprocessor
 import time
-import types
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
 def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, solution=None):
