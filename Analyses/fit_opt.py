@@ -102,7 +102,7 @@ def likelihood(x):
 
 start = time.time()
 if __name__ == '__main__':
-    # multiprocessing.set_start_method('spawn', force=True)
+    multiprocessing.set_start_method('spawn', force=True)
     printstr = "neg_log_likelihood," + ",".join([key for key in bounds_dict.keys()])
     print(printstr)
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",
