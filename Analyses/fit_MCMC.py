@@ -9,6 +9,7 @@ import scipy as sp
 import matplotlib.pyplot as plt
 from matplotlib import cm as colormaps
 import time
+from functools import partial
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
@@ -22,40 +23,52 @@ from utils import date_to_t, parameters_from_DE, x_to_params
 from Gemini_vaccination import FluRatePreprocessor
 import time
 
+def _run_simulation(params, y0, t1, saveat_ts):
+    term = ODETerm(deltas)
+    solver = Dopri5()
+    saveat = SaveAt(ts=saveat_ts)
+    step_controller = PIDController(rtol=1e-5, atol=1e-5)
+    solution = diffeqsolve(
+                        term, solver,
+                        t0=0, t1=t1, dt0=None, stepsize_controller=step_controller,
+                        saveat=saveat, y0=y0.flatten(), args=params, 
+                        max_steps=None,  
+                        )
+    return solution.ys.T
+
+@partial(jax.jit)
+def run_simulation(params, y0, t1, saveat_ts):
+    return _run_simulation(params, y0, t1, saveat_ts)
+
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
 def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, solution=None):
     # run simulation
     if solution is None:
-        term = ODETerm(deltas)
-        solver = Dopri5()
-        saveat = SaveAt(ts=POINTS)
-        step_controller = PIDController(rtol=1e-5, atol=1e-5)
-        solution = diffeqsolve(
-                            term, solver,
-                            t0=0, t1=int(POINTS[-1]), dt0=None, stepsize_controller=step_controller,
-                            saveat=saveat, y0=STATE0.flatten(), args=params, 
-                            max_steps=None,  
-                            )
-        values = solution.ys.T
+        t1 = int(POINTS[-1])
+        values = run_simulation(params, STATE0, t1, POINTS)
     else:
         values = solution.ys.T
 
     # convert into observed cases
-    trajectory = np.diff(values[-NAG:,:],axis=1).T
+    trajectory = jnp.diff(values[-NAG:,:],axis=1).T
 
     # format data into cases, rescaled appropriately by population age distribution
     if incidence:
         if age:
-            cases = np.round(data*np.array([np.sum(values[range(i,N_S*N_C*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)]).T)
+            cases = jnp.round(data*jnp.array([jnp.sum(values[range(i,N_S*N_C*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)]).T)
         else:
-            cases = data*np.sum(values,axis=0)
+            cases = data*jnp.sum(values,axis=0)
     else:
         cases = data.copy()
 
+    p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
+    def obs_convolution(x):
+        return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
+
     # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
-    expected_obs = np.sum([np.roll(trajectory,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
+    expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
     # cut off the first few days of the trajectory since they are not used in the likelihood (and the roll function is wrapping around)
-    expected_obs = np.maximum(0,expected_obs[-len(cases):])
+    expected_obs = jnp.maximum(0,expected_obs[-len(cases):])
     
     # calculate the log likelihood
     if overdispersion:

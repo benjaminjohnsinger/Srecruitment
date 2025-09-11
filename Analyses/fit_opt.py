@@ -88,7 +88,7 @@ bounds_dict = {key: bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","
 bounds = jnp.array(list(bounds_dict.values()))
 
 def likelihood(x):
-    print('try')
+    print(",".join([str(value) for value in x]))
     sim_params = x_to_params(x, pathogen, lockdown, option1, option2)
     try:
         lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True,overdispersion=False)
@@ -97,16 +97,15 @@ def likelihood(x):
         print(f"!!! ERROR in worker {worker_pid} with params {x}")
         print(f"Error details: {e}")
         return 1e10
-    printstr = str(lh) + "," + ",".join([str(value) for value in x])
-    print(printstr)
+    # printstr = str(lh) + "," + ",".join([str(value) for value in x])
+    # print(printstr)
     return lh
 
-start = time.time()
 if __name__ == '__main__':
     multiprocessing.set_start_method('spawn', force=True)
     printstr = "neg_log_likelihood," + ",".join([key for key in bounds_dict.keys()])
     print(printstr)
-    opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",
+    opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",maxiter=1,seed=seed,
     workers = 4)
     # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
