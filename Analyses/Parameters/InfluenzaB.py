@@ -2,7 +2,7 @@
 ## Literature paramdeters on flu, and guesses to match KPSC data
 
 # import jax.numpy as jnp
-from numba import jit
+
 import pandas as pd
 # from Analyses.utils import age_detection
 

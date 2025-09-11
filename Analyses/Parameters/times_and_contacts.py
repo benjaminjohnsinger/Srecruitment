@@ -1,7 +1,7 @@
 import pandas as pd
 # # import jax.numpy as jnp
 import numpy as np
-from numba import jit
+
 import contact_model as cm
 from utils import date_to_t
 
