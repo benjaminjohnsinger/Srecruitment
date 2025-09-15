@@ -29,9 +29,8 @@ def flu_eff_coverage_vectorized(t_arr, max_eff, eff_cap=True):
     """
     # Vectorized lookup for raw efficacy using searchsorted
     # Find the index of the season for each time point in t_arr
-    # eff_indices = jnp.searchsorted(EFF_IDX, t_arr, side='right')
-    # # Gemini's original version has a -1 to get the correct index
-    eff_indices = jnp.searchsorted(EFF_IDX, t_arr, side='right') - 1
+    # INCLUDE -1 HERE BEFORE RUNNING NEW DE
+    eff_indices = jnp.searchsorted(EFF_IDX, t_arr, side='right')
     raw_eff = EFF[jnp.maximum(0, eff_indices)] # Use maximum to handle t before first season
 
     adj_eff = raw_eff / max_eff
@@ -131,8 +130,8 @@ if __name__ == "__main__":
     FULL_POINTS = jnp.arange(0, 19266) # Example time points
     age_pops = jnp.ones((19266, NAG)) # Example age populations
     AGING_RATE = jnp.ones(NAG) / (365 * 10) # Example aging rate
-    P_OBS = jnp.array([1,0.5,0.2])
-    S_REL = jnp.array([1,0.5,0.2])
+    # P_OBS = jnp.array([1,0.5,0.2])
+    # S_REL = jnp.array([1,0.5,0.2])
 
     # Example usage of the optimized functions
     # 1. Initialize the preprocessor ONCE outside your main loop
@@ -140,21 +139,22 @@ if __name__ == "__main__":
     preprocessor = FluRatePreprocessor(FULL_POINTS, age_pops, AGING_RATE)
     print("Pre-calculation complete.")
 
-    protection_param = S_REL * P_OBS 
-    VAX_RATE = calculate_vax_rate_vectorized(protection_param, preprocessor)
+    # protection_param = S_REL * P_OBS 
+    # VAX_RATE = calculate_vax_rate_vectorized(protection_param, preprocessor)
 
     S_REL = jnp.array([1, 0.51, 0.21])
     P_OBS = jnp.array([1, 0.51, 0.21])
+    protection_param = S_REL * P_OBS
+    eff_cov = flu_eff_coverage_vectorized(FULL_POINTS, (protection_param[-2]-protection_param[-1])/protection_param[-2])
+    np.savetxt('Data/Processed/eff_cov_example_optimized.csv', eff_cov, delimiter=',')
+    
     # 2. Inside your loop, call the fast, vectorized function
     # This is the line you would use repeatedly with different S_REL * P_OBS values
     print("\nCalculating VAX_RATE with the optimized function...")
     time_start = time.time()
-    protection_param = S_REL * P_OBS
-    for i in range(10):
-        protection_param = protection_param*np.random.uniform(0.9,1.1,size=protection_param.shape)
-        VAX_RATE = calculate_vax_rate_vectorized(protection_param, preprocessor)
+    VAX_RATE = calculate_vax_rate_vectorized(protection_param, preprocessor)
     print("Calculation complete, took", (time.time() - time_start)/1000, "seconds.")
     print("Shape of VAX_RATE:", VAX_RATE.shape)
 
     # # save VAX_RATE
-    # np.savetxt('Data/Processed/KPSC_vaccination_rate_ages_monthly_optimized.csv', VAX_RATE, delimiter=',')
+    np.savetxt('Data/Processed/KPSC_vaccination_rate_ages_monthly_optimized_unshift.csv', VAX_RATE, delimiter=',')

@@ -138,13 +138,13 @@ if __name__ == "__main__":
     FULL_POINTS = np.arange(0, 19266) # Example time points
     age_pops = np.ones((19266, NAG)) # Example age populations
     AGING_RATE = np.ones(NAG) / (365 * 10) # Example aging rate
-    P_OBS = np.array([1,0.5,0.2])
-    S_REL = np.array([1,0.5,0.2])
 
-    VAX_RATE = jnp.array([flu_rate(t, S_REL*P_OBS, age_pops[t], AGING_RATE) for t in FULL_POINTS])
-    
     P_OBS = np.array([1,0.51,0.21])
     S_REL = np.array([1,0.51,0.21])
+    protection = S_REL * P_OBS
+
+    eff_cov = jnp.array([flu_eff_coverage(t,(protection[-2]-protection[-1])/protection[-2]) for t in FULL_POINTS])
+    np.savetxt('Data/Processed/eff_cov_example.csv',eff_cov,delimiter=',')
 
     start_time = time.time()
     VAX_RATE = jnp.array([flu_rate(t, S_REL*P_OBS, age_pops[t], AGING_RATE) for t in FULL_POINTS])
