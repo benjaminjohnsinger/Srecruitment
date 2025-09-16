@@ -126,7 +126,7 @@ def fit_transform(target_means, target_cov, bounds):
     # optimize
     print(f"Solving transformed priors for {n_params} parameters...")
     # solution = sp.optimize.root(objective_func, x0=initial_guess, method='hybr')
-    solution = sp.optimize.least_squares(objective_func, x0=initial_guess, method='trf', xtol=1e-14, ftol=1e-14, gtol=1e-14, max_nfev=200)
+    solution = jsp.optimize.least_squares(objective_func, x0=initial_guess, method='trf', xtol=1e-14, ftol=1e-14, gtol=1e-14, max_nfev=200)
 
     if not solution.success:
         raise RuntimeError("Optimization failed: " + solution.message)
@@ -257,6 +257,29 @@ if __name__ == "__main__":
         ax.legend()
         return ax
     
+    def plot_likelihoods(posterior_samples_params, params, incidence, p_time_to_obs, downsample=False):
+        if downsample:
+            posterior_samples_params = posterior_samples_params[np.random.choice(posterior_samples_params.shape[0], size=downsample, replace=False)]
+        n = posterior_samples_params.shape[1]//2 + posterior_samples_params.shape[1]%2
+        fig, ax = plt.subplots(n, 2, figsize=(12, 3*n))
+        age_pops = jnp.asarray(pd.read_csv("Data/Processed/age_pops_daily.csv").values)
+        STATE0_shaped = jnp.zeros((2*N_S+1,NAG))
+        STATE0_shaped = STATE0_shaped.at[0,:].set(CENSUS_AGE_POP-1)
+        STATE0_shaped = STATE0_shaped.at[1,:].set(1)
+        STATE0 = jnp.concatenate((jnp.array([0]), STATE0_shaped.flatten()))
+        sim_params = jax.vmap(lambda x: x_to_params(x, pathogen, "FlexStepwise", "pathogen", "flexage", vax_preprocessor=FluRatePreprocessor(jnp.arange(0, date_to_t('2023-10-01')), age_pops, AGING_RATE), fixed_params=params, import_multiplier=1e-9))(posterior_samples_params)
+        likelihoods = jax.vmap(lambda p: SIS_likelihood(incidence, p, jnp.arange(date_to_t('2015-07-03'), date_to_t('2023-10-01')), STATE0, p_time_to_obs, age=True, incidence=True))(sim_params)
+        likelihoods = jnp.array(likelihoods)
+        for i in range(n):
+            for j in range(2):
+                idx = i*2 + j
+                if idx < posterior_samples_params.shape[1]:
+                    plt.plot(posterior_samples_params[:,idx], likelihoods, 'o', alpha=0.1)
+                    ax[i,j].set_xlabel(param_names[idx])
+                    ax[i,j].set_ylabel('Log Likelihood')
+        plt.tight_layout()
+        plt.savefig("Figures/NumPyro_test_likelihoods_"+pathogen+"_sp1000.png", dpi=300)
+
     def plot_trajectories(posterior_samples_params, params, restricted_bounds, incidence, p_time_to_obs, downsample=False, ax=None, age=False):
         if downsample:
             posterior_samples_params = posterior_samples_params[np.random.choice(posterior_samples_params.shape[0], size=downsample, replace=False)]
@@ -288,8 +311,7 @@ if __name__ == "__main__":
         sim_params = jax.vmap(lambda x: x_to_params(x, pathogen, "FlexStepwise", "pathogen", "flexage", vax_preprocessor=FluRatePreprocessor(jnp.arange(0, date_to_t('2023-10-01')), age_pops, AGING_RATE), fixed_params=params, import_multiplier=1e-9))(transformed_samples)
         trajectories = jax.vmap(lambda p: trajectory(STATE0, p)) (sim_params)
         # calculate SIS_likelihood for each trajectory
-        likelihoods = jax.vmap(lambda p: SIS_likelihood(incidence, p, jnp.arange(date_to_t('2015-07-03'), date_to_t('2023-10-01')), STATE0, p_time_to_obs, age=True, incidence=True))(sim_params)
-        print(jnp.median(likelihoods), jnp.max(likelihoods), jnp.min(likelihoods))
+        
         if age:
             for i in range(7):
                 age_rolling_average_cases = jnp.convolve(cases[:,i], jnp.ones(7)/7, mode='same')
@@ -306,16 +328,17 @@ if __name__ == "__main__":
     start = time.time()
     for pathogen in ["RSV","Metapneumovirus", "Parainfluenza3"]:
         print(pathogen, time.time()-start)
-        mcmc = fit_MCMC(pathogen, "FlexStepwise", "0.005", "flexage", 2507092, import_multiplier=1e-9, samples=1000, varlim="pathogen")
-        mcmc.print_summary()
-        # save samples
-        posterior_samples = mcmc.get_samples()
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100.pickle", "wb") as f:
-            pickle.dump(posterior_samples, f)
-        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100.pickle", "rb") as f:
-        #     posterior_samples = pickle.load(f)
+        # mcmc = fit_MCMC(pathogen, "FlexStepwise", "0.005", "flexage", 2507092, import_multiplier=1e-9, samples=1000, varlim="pathogen")
+        # mcmc.print_summary()
+        # # save samples
+        # posterior_samples = mcmc.get_samples()
+        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100.pickle", "wb") as f:
+        #     pickle.dump(posterior_samples, f)
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_test.pickle", "rb") as f:
+            posterior_samples = pickle.load(f)
         param_samples = posterior_samples['params']
         params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", "0.005", "flexage", 2507092)
+        plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
         # prior_dist, prior_means = prior_distribution(f"Data/Processed/DE_outputs/DE_{pathogen}FlexStepwise0.005flexage250709_sorted.csv",
         #     bounds, n=1000, dist_type="multilog", varlim = "pathogen", pathogen=pathogen)
         # param_samples = prior_dist.sample(jax.random.PRNGKey(0), sample_shape=(1000,))
@@ -333,7 +356,7 @@ if __name__ == "__main__":
                 if idx < len(param_names):
                     plot_histogram(transformed_samples[:,idx], param_names[idx], ax=ax[i,j])
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp100.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp1000.png", dpi=300)
         plt.close()
         fig, ax = plt.subplots(3,3,figsize=(13.3,7.5))
         age_names = ["<3m", "3–11m", "1–4y", "5–17y", "18–39y", "40–64y", "<=65y"]
@@ -349,7 +372,7 @@ if __name__ == "__main__":
         # plt.title(f'Posterior Predictive Trajectories for {pathogen}')
         # plt.legend()
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp100_ages.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp1000_ages.png", dpi=300)
 
     ## 2d contour plot comparisons
     # fig, ax = plt.subplots(figsize=(6.5,6.5))
