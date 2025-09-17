@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-# import scipy as sp
+import scipy as sp
 import jax.scipy as jsp
 import matplotlib.pyplot as plt
 from matplotlib import cm as colormaps
@@ -236,7 +236,8 @@ def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-
         numpyro.sample("obs_cases", dist.Poisson(softplus_obs), obs=obs_cases)
     nuts_kernel = NUTS(model,
                         init_strategy=numpyro.infer.init_to_value(values={"params": prior_means}),
-                        max_tree_depth=6)
+                        max_tree_depth=6,
+                        dense_mass=True)
     mcmc = MCMC(nuts_kernel, num_warmup=jnp.minimum(samples,1000), num_samples=samples)
     mcmc.run(jax.random.PRNGKey(seed), obs_cases=cases)
     return mcmc
@@ -280,7 +281,7 @@ if __name__ == "__main__":
         plt.tight_layout()
         plt.savefig("Figures/NumPyro_test_likelihoods_"+pathogen+"_sp1000.png", dpi=300)
 
-    def plot_trajectories(posterior_samples_params, params, restricted_bounds, incidence, p_time_to_obs, downsample=False, ax=None, age=False):
+    def plot_trajectories(posterior_samples_params, params, restricted_bounds, incidence, p_time_to_obs, downsample=False, ax=None, age=False, monthly=False, noisy=False):
         if downsample:
             posterior_samples_params = posterior_samples_params[np.random.choice(posterior_samples_params.shape[0], size=downsample, replace=False)]
         age_pops = jnp.asarray(pd.read_csv("Data/Processed/age_pops_daily.csv").values)
@@ -310,35 +311,52 @@ if __name__ == "__main__":
         transformed_samples = jnp.exp(posterior_samples_params) + restricted_bounds[:,0]
         sim_params = jax.vmap(lambda x: x_to_params(x, pathogen, "FlexStepwise", "pathogen", "flexage", vax_preprocessor=FluRatePreprocessor(jnp.arange(0, date_to_t('2023-10-01')), age_pops, AGING_RATE), fixed_params=params, import_multiplier=1e-9))(transformed_samples)
         trajectories = jax.vmap(lambda p: trajectory(STATE0, p)) (sim_params)
-        # calculate SIS_likelihood for each trajectory
-        
+        if noisy:
+            trajectories = sp.stats.poisson.rvs(trajectories)
+            lst = ":"
+        else:
+            lst = "-"
+        if monthly:
+            transformed_cases = np.zeros((cases.shape[0]//30 + 1, cases.shape[1]))
+            for i in range(cases.shape[0]//30):
+                transformed_cases[i] = np.sum(cases[i*30:(i+1)*30], axis=0)
+            case_times = np.arange(15, cases.shape[0]+15, 30)
         if age:
             for i in range(7):
-                age_rolling_average_cases = jnp.convolve(cases[:,i], jnp.ones(7)/7, mode='same')
+                if not monthly:
+                    if noisy:
+                        transformed_cases_age = cases[:,i]
+                    else:
+                        transformed_cases_age = np.convolve(cases[:,i], np.ones(7)/7, mode='same')
+                    case_times = np.arange(cases.shape[0])
+                else:
+                    transformed_cases_age = transformed_cases[:,i]
                 age_trajectories = trajectories[:,:,i]
-                ax[i].plot(age_rolling_average_cases, color='black', label='Observed Cases (7-day MA)')
-                ax[i].plot(age_trajectories.T[-len(cases):], color='red', alpha=0.1)
+                ax[i].plot((30**monthly)*age_trajectories.T[-len(cases):], color='#DC267F', alpha=0.1*(0.3**noisy))
+                ax[i].plot(case_times,transformed_cases_age, color='black', label='Observed Cases', linestyle=lst)
         else:
-            rolling_average_cases = jnp.convolve(cases.sum(axis=1), jnp.ones(7)/7, mode='same')
-            ax.plot(rolling_average_cases, color='black', label='Observed Cases (7-day MA)')
-            ax.plot(trajectories.sum(axis=2).T[-len(cases):], color='red', alpha=0.1)
+            if not monthly:
+                transformed_cases = np.convolve(cases.sum(axis=1), np.ones(7)/7, mode='same')
+                case_times = np.arange(cases.shape[0])
+            ax.plot(case_times, transformed_cases, color='black', label='Observed Cases (7-day MA)')
+            ax.plot((30**monthly)*trajectories.sum(axis=2).T[-len(cases):], color='red', alpha=0.1)
 
     import pickle
     print(jax.local_device_count())
     start = time.time()
-    for pathogen in ["RSV","Metapneumovirus", "Parainfluenza3"]:
+    for pathogen in ["Metapneumovirus", "Parainfluenza3", "Adenovirus", "RSV"]:
         print(pathogen, time.time()-start)
-        # mcmc = fit_MCMC(pathogen, "FlexStepwise", "0.005", "flexage", 2507092, import_multiplier=1e-9, samples=1000, varlim="pathogen")
-        # mcmc.print_summary()
-        # # save samples
-        # posterior_samples = mcmc.get_samples()
-        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100.pickle", "wb") as f:
-        #     pickle.dump(posterior_samples, f)
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_test.pickle", "rb") as f:
-            posterior_samples = pickle.load(f)
+        mcmc = fit_MCMC(pathogen, "FlexStepwise", "0.005", "flexage", 2507092, import_multiplier=1e-9, samples=1000, varlim="pathogen")
+        mcmc.print_summary()
+        # save samples
+        posterior_samples = mcmc.get_samples()
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_mass.pickle", "wb") as f:
+            pickle.dump(posterior_samples, f)
+        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100.pickle", "rb") as f:
+        #     posterior_samples = pickle.load(f)
         param_samples = posterior_samples['params']
         params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", "0.005", "flexage", 2507092)
-        plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
+        # plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
         # prior_dist, prior_means = prior_distribution(f"Data/Processed/DE_outputs/DE_{pathogen}FlexStepwise0.005flexage250709_sorted.csv",
         #     bounds, n=1000, dist_type="multilog", varlim = "pathogen", pathogen=pathogen)
         # param_samples = prior_dist.sample(jax.random.PRNGKey(0), sample_shape=(1000,))
@@ -356,23 +374,24 @@ if __name__ == "__main__":
                 if idx < len(param_names):
                     plot_histogram(transformed_samples[:,idx], param_names[idx], ax=ax[i,j])
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp1000.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp100_mass.png", dpi=300)
         plt.close()
         fig, ax = plt.subplots(3,3,figsize=(13.3,7.5))
         age_names = ["<3m", "3–11m", "1–4y", "5–17y", "18–39y", "40–64y", "<=65y"]
         axes = ax.flatten()
-        plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=axes, age=True)
+        plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=30, ax=axes, age=True)
         # title axes
         for i in range(7):
             axes[i].set_title(f'{age_names[i]}')
-            axes[i].legend()
+            # custom legend, simulations and observed cases
+
         # plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=False, ax=ax)
         # plt.xlabel('Days since 1970-01-01')
         # plt.ylabel('Number of Cases')
         # plt.title(f'Posterior Predictive Trajectories for {pathogen}')
         # plt.legend()
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp1000_ages.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp100_ages_mass.png", dpi=300)
 
     ## 2d contour plot comparisons
     # fig, ax = plt.subplots(figsize=(6.5,6.5))
