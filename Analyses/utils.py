@@ -287,7 +287,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
             MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_START:cm.MOBILITY_END+1].set(contact_factor)
             MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_END+1:].set(x[n+2])
             RELATIVE_CONTACT = MOBILITY_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
-            n += 4
+            n += 3
         elif lockdown == "Taube":
             contact_factor = 2.63692872 + 1.96488539*cm.MOBILITY_CHANGE_JAX + -0.03890451*cm.MOBILITY_CHANGE_JAX**2
             MOBILITY_CONTACT = jnp.ones(len(FULL_POINTS))

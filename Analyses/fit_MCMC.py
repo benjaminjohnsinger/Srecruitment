@@ -346,7 +346,7 @@ if __name__ == "__main__":
     start = time.time()
     for pathogen in ["InfluenzaA", "InfluenzaB", "RSV", "Adenovirus"]:
         print(pathogen, time.time()-start)
-        mcmc = fit_MCMC(pathogen, "FlexStepwise", "0.005", "flexage", 2507092, import_multiplier=1e-9, samples=1000, varlim="pathogen")
+        mcmc = fit_MCMC(pathogen, "FlexStepwise", "0.005", "flexage", 2507092, import_multiplier=1e-9, samples=2000, varlim="pathogen")
         mcmc.print_summary()
         # save samples
         posterior_samples = mcmc.get_samples()
@@ -379,7 +379,7 @@ if __name__ == "__main__":
         fig, ax = plt.subplots(3,3,figsize=(13.3,7.5))
         age_names = ["<3m", "3–11m", "1–4y", "5–17y", "18–39y", "40–64y", "<=65y"]
         axes = ax.flatten()
-        plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=30, ax=axes, age=True, monthly=True, noisy=False)
+        plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=axes, age=True, monthly=True, noisy=False)
         # title axes
         for i in range(7):
             axes[i].set_title(f'{age_names[i]}')
