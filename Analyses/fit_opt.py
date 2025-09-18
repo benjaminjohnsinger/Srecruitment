@@ -96,16 +96,17 @@ def likelihood(x):
         print(f"!!! ERROR in worker {worker_pid} with params {x}")
         print(f"Error details: {e}")
         return 1e10
-    printstr = str(lh) + "," + ",".join([str(value) for value in x])
+    printstr = str(lh) + "," + pathogen + "," + lockdown + "," + str(seed) + "," + ",".join([str(value) for value in x])
     print(printstr)
     return lh
 
 if __name__ == '__main__':
-    multiprocessing.set_start_method('spawn', force=True)
-    printstr = "neg_log_likelihood," + ",".join([key for key in bounds_dict.keys()])
-    print(printstr)
+    # multiprocessing.set_start_method('spawn', force=True)
+    # printstr = "neg_log_likelihood,pathogen,seed," + ",".join([key for key in bounds_dict.keys()])
+    # print(printstr)
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",seed=seed,
-    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    workers = 7)
+    # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
     with open("Data/Processed/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)
