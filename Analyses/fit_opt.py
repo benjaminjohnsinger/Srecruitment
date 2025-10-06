@@ -101,12 +101,12 @@ def likelihood(x):
     return lh
 
 if __name__ == '__main__':
-    # multiprocessing.set_start_method('spawn', force=True)
+    multiprocessing.set_start_method('spawn', force=True)
     # printstr = "neg_log_likelihood,pathogen,seed," + ",".join([key for key in bounds_dict.keys()])
     # print(printstr)
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",seed=seed,
-    workers = 19)
-    # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+        # workers = 4)
 
     with open("Data/Processed/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)

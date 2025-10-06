@@ -335,7 +335,9 @@ if __name__ == "__main__":
                 ax[i].plot((30**monthly)*age_trajectories.T[-len(cases):], color='#DC267F', alpha=0.1*(0.3**noisy))
                 ax[i].plot(case_times,transformed_cases_age, color='black', label='Observed Cases', linestyle=lst)
         else:
-            if not monthly:
+            if monthly:
+                transformed_cases = transformed_cases.sum(axis=1)
+            else:
                 transformed_cases = np.convolve(cases.sum(axis=1), np.ones(7)/7, mode='same')
                 case_times = np.arange(cases.shape[0])
             ax.plot(case_times, transformed_cases, color='black', label='Observed Cases (7-day MA)')
@@ -344,16 +346,16 @@ if __name__ == "__main__":
     import pickle
     print(jax.local_device_count())
     start = time.time()
-    for pathogen in ["InfluenzaA", "InfluenzaB", "RSV", "Adenovirus"]:
+    for pathogen in ["Metapneumovirus", "Parainfluenza3"]:
         print(pathogen, time.time()-start)
-        mcmc = fit_MCMC(pathogen, "FlexStepwise", "0.005", "flexage", 2507092, import_multiplier=1e-9, samples=2000, varlim="pathogen")
-        mcmc.print_summary()
-        # save samples
-        posterior_samples = mcmc.get_samples()
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_mass.pickle", "wb") as f:
-            pickle.dump(posterior_samples, f)
-        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100.pickle", "rb") as f:
-        #     posterior_samples = pickle.load(f)
+        # mcmc = fit_MCMC(pathogen, "FlexStepwise", "0.005", "flexage", 2507092, import_multiplier=1e-9, samples=2000, varlim="pathogen")
+        # mcmc.print_summary()
+        # # save samples
+        # posterior_samples = mcmc.get_samples()
+        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_mass.pickle", "wb") as f:
+        #     pickle.dump(posterior_samples, f)
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_mass.pickle", "rb") as f:
+            posterior_samples = pickle.load(f)
         param_samples = posterior_samples['params']
         params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", "0.005", "flexage", 2507092)
         # plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
@@ -363,26 +365,26 @@ if __name__ == "__main__":
         # plot histograms of each parameter
         sns.set_style("whitegrid")
         n = param_samples.shape[1]//2 + param_samples.shape[1]%2
-        fig, ax = plt.subplots(n, 2, figsize=(12, 3*n))
         n_ds = 6 + ("Influenza" in pathogen) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
         bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
-        transformed_samples = jnp.exp(param_samples) + bounds[:,0]
-        param_names = param_names[:n_ds] + param_names[n_ds+7:]
-        for i in range(n):
-            for j in range(2):
-                idx = i*2 + j
-                if idx < len(param_names):
-                    plot_histogram(transformed_samples[:,idx], param_names[idx], ax=ax[i,j])
-        plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp100_mass.png", dpi=300)
-        plt.close()
-        fig, ax = plt.subplots(3,3,figsize=(13.3,7.5))
-        age_names = ["<3m", "3–11m", "1–4y", "5–17y", "18–39y", "40–64y", "<=65y"]
-        axes = ax.flatten()
-        plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=axes, age=True, monthly=True, noisy=False)
-        # title axes
-        for i in range(7):
-            axes[i].set_title(f'{age_names[i]}')
+        # fig, ax = plt.subplots(n, 2, figsize=(12, 3*n))
+        # transformed_samples = jnp.exp(param_samples) + bounds[:,0]
+        # param_names = param_names[:n_ds] + param_names[n_ds+7:]
+        # for i in range(n):
+        #     for j in range(2):
+        #         idx = i*2 + j
+        #         if idx < len(param_names):
+        #             plot_histogram(transformed_samples[:,idx], param_names[idx], ax=ax[i,j])
+        # plt.tight_layout()
+        # plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp100_mass.png", dpi=300)
+        # plt.close()
+        fig, axes = plt.subplots(figsize=(13.3,7.5))
+        # axes = axes.flatten()
+        plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=axes, age=False, monthly=True, noisy=False)
+        ## title axes
+        # age_names = ["<3m", "3–11m", "1–4y", "5–17y", "18–39y", "40–64y", "<=65y"]
+        # for i in range(7):
+        #     axes[i].set_title(f'{age_names[i]}')
             # custom legend, simulations and observed cases
 
         # plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=False, ax=ax)
@@ -391,7 +393,7 @@ if __name__ == "__main__":
         # plt.title(f'Posterior Predictive Trajectories for {pathogen}')
         # plt.legend()
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp100_ages_mass.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp100_mass_monthly.png", dpi=300)
 
     ## 2d contour plot comparisons
     # fig, ax = plt.subplots(figsize=(6.5,6.5))

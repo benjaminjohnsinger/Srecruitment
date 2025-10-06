@@ -15,18 +15,6 @@ module load python/3.11.6-gcc-11.4.0
 source ~/match-env/bin/activate
 
 combinations=(
-"RSV 250908 Taube NA flexage 1e-9 20 1 0.7"
-"Metapneumovirus 250908 Taube NA flexage 1e-9 20 1 0.7"
-"Adenovirus 250908 Taube NA flexage 1e-9 20 1 0.7"
-"Parainfluenza3 250908 Taube NA flexage 1e-9 20 1 0.7"
-"InfluenzaA 250908 Taube NA flexage 1e-9 20 1 0.7"
-"InfluenzaB 250908 Taube NA flexage 1e-9 20 1 0.7"
-"RSV 2509082 Taube NA flexage 1e-9 20 1 0.7"
-"Metapneumovirus 2509082 Taube NA flexage 1e-9 20 1 0.7"
-"Adenovirus 2509082 Taube NA flexage 1e-9 20 1 0.7"
-"Parainfluenza3 2509082 Taube NA flexage 1e-9 20 1 0.7"
-"InfluenzaA 2509082 Taube NA flexage 1e-9 20 1 0.7"
-"InfluenzaB 2509082 Taube NA flexage 1e-9 20 1 0.7"
 "RSV 250908 Mobility NA flexage 1e-9 20 1 0.7"
 "Metapneumovirus 250908 Mobility NA flexage 1e-9 20 1 0.7"
 "Adenovirus 250908 Mobility NA flexage 1e-9 20 1 0.7"
