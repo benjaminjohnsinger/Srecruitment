@@ -1,7 +1,7 @@
 ## BJS March 2025
 ## Plotting results of fitting
 
-# import jax.numpy as jnp
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
@@ -24,38 +24,49 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
+# pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
 
-# set seed
-np.random.seed(seed)
+# # set seed
+# np.random.seed(seed)
 
-if re.match(r'\d{4}-\d{2}-\d{2}',option1):
-    start_date = option1
-if re.match(r'\d{4}-\d{2}-\d{2}',option2):
-    end_date = option2
-    option2 = "maternal" #this is super hacky sorry
+# if re.match(r'\d{4}-\d{2}-\d{2}',option1):
+#     start_date = option1
+# if re.match(r'\d{4}-\d{2}-\d{2}',option2):
+#     end_date = option2
+#     option2 = "maternal" #this is super hacky sorry
 
-print(pathogen, seed)
-if re.match(r'\d{6}',lockdown):
-    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
-        opt = pickle.load(f)
-else:
-    try:
-        with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
-            opt = pickle.load(f)
-    except FileNotFoundError:
-        print('No file found')
-        sys.exit()
-if opt.success:
-    print("Optimization converged")
-else:
-    print("Optimization did not converge")
-    print(opt.message)
-    print(opt.x)
-    sys.exit()
-x = opt.x
-# print likelihood
-print("Log-Likelihood:",-1*opt.fun)
+# print(pathogen, seed)
+# if re.match(r'\d{6}',lockdown):
+#     with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
+#         opt = pickle.load(f)
+# else:
+#     try:
+#         with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+#             opt = pickle.load(f)
+#     except FileNotFoundError:
+#         print('No file found')
+#         sys.exit()
+# if opt.success:
+#     print("Optimization converged")
+# else:
+#     print("Optimization did not converge")
+#     print(opt.message)
+#     print(opt.x)
+#     sys.exit()
+# x = opt.x
+# # print likelihood
+# print("Log-Likelihood:",-1*opt.fun)
+
+pathogen = "Metapneumovirus"
+seed = 123456
+lockdown = "FlexStepwise"
+option1 = "NA"
+option2 = "flexage"
+import_multiplier = 1.0
+x = [0.001,0.1,0.1,0.5
+,0.3,0.4,0.5,0.5
+,0.9,0.5,0.4,0.8,0.7,0.8,0.1
+,2e-03,1e-03,3e-03,2e-04,1e-04,3e-04,4e-03]
 
 REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
 N_S, NAG = 3, 7
@@ -77,79 +88,11 @@ POINTS = np.array(date_to_t(PERIOD))
 STATE0 = jnp.zeros((2*N_S+1,NAG))
 STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
 STATE0 = STATE0.at[1,:].set(1)
+# # flatten initial state and add maternal immunity compartment
+STATE0 = STATE0.flatten()
+STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-WANE = np.array([0.0,x[0],0.0])
-SEASONALITY = x[1]
-OFFSET = x[2]
-BETA = x[3]
-n = 4
-if ("Influenza" in pathogen) and (option2 != 'nr'):
-    srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
-    S_REL = srel
-    n += 3
-elif pathogen == 'RSV':
-    S_REL = np.array([1,x[n],x[n]*x[n+1]])
-    pobsrel = np.array([1,0.46,0.31]) # Henderson 1979
-    n += 2
-else:
-    S_REL = np.array([1,x[n],x[n]*x[n+1]])
-    pobsrel = np.array([1,x[n+2],x[n+2]*x[n+3]])
-    n += 4
-if option2 != 'flexage':
-    P_OBS = x[n]*pobsrel
-    n += 1
-else:
-    P_OBS = pobsrel
-if lockdown == 'FlexStepwise':
-    TT = np.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
-    # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
-    F1 = x[n+3] # value between 0 and 1 (first lockdown)
-    F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
-    F3 = F2*x[n+5] # value less than F2 (second lockdown)
-    F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
-    FF = np.array([1,F1,F2,F3,F4])
-    PIECEWISE_CONTACT = np.array([cm.piecewise(t, TT, FF, steepness=0.2) for t in FULL_POINTS])
-    RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*np.cos(2*np.pi*((FULL_POINTS-274)/365-OFFSET)))
-    n += 7
-if option1 == 'nb':
-    overdispersion = np.exp(x[n])
-    n += 1
-if option2 == 'flexage':
-    # # barycentric parameterization of the age observation probabilities
-    # obs_age = np.zeros((7))
-    # remaining = 1.0
-    # for i in range(1,7):
-    #     allocation = x[n+i-1]*remaining
-    #     obs_age[i] = allocation
-    #     remaining -= allocation
-    # obs_age[0] = remaining
-    # obs_age = obs_age/np.max(obs_age)
-    OBS_AGE = np.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
-elif option2 == 'maternal':
-    OBS_AGE = age_detection(NAG,x[n],x[n+1],x[n+2],x[n+3],min_obs=0.025,n_infant_groups=1)
-else:
-    OBS_AGE = age_detection(NAG,x[n],x[n+1],x[n+2])
-if ("Influenza" in pathogen):
-    time0 = time.time()
-    VAX_RATE = np.array([flu_rate(t, S_REL*P_OBS, age_pops[t], AGING_RATE) for t in FULL_POINTS])
-    print("vax rate time = ", time.time()-time0)
-else:
-    VAX_RATE = np.zeros((len(FULL_POINTS),NAG))
-
-params = (AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
-            BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE,
-            REC_UP, REC_SAME, IMPORT_STRENGTH)
-
-print("BETA",BETA)
-print("WANE",WANE[1]*365,"years")
-print("SEASONALITY",SEASONALITY)
-print("OFFSET",OFFSET)
-print("SREL",S_REL)
-print("P_OBS",P_OBS)
-print("OBS_AGE",OBS_AGE)
-if lockdown == 'FlexStepwise' or re.match(r'\d{6}',lockdown):
-    print("Ts",[t_to_date(t) for t in Ts])
-    print("Fs",Fs)
+params = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True)
 
 from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 
@@ -168,6 +111,19 @@ solution = diffeqsolve(
 print("ODE integration time:",time.time()-time0)
 values = solution.ys.T
 times = solution.ts
+
+# apply poisson noise to values
+new_cases = jnp.diff(values[-NAG:],axis=1).T
+noisy_cases = np.random.poisson(lam=jnp.maximum(new_cases,0))
+noisy_incidence = noisy_cases/age_pops[np.argmax(FULL_POINTS>=date_to_t('2015-07-04')):np.argmax(FULL_POINTS>=date_to_t('2023-10-01'))]
+noisy_cases = noisy_cases.astype(int)[-len(incidence):,:]
+noisy_incidence = noisy_incidence[-len(incidence):,:]
+cropped_period = PERIOD[-len(noisy_incidence):]
+# # save to "Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", with date (from times) as first column
+# np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_incidence)), delimiter=",", fmt="%s")
+# save to "Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", with date (from times) as first column, and header "Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y"
+np.savetxt("Data/Processed/KPSC_cleaned_test_cases_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_cases)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
+np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_incidence)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
 
 print(SIS_likelihood(incidence, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, solution=solution))
 

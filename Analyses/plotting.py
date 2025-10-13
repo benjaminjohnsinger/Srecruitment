@@ -28,8 +28,8 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 def lockdown_incidence_plot(ax,state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2023-09-30'),factor=1,p_time_to_obs=[1]):
     NAG, N_S = 7, 3
     AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
-    BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE,\
-    REC_UP, REC_SAME, IMPORT_STRENGTH = params
+    BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
+    REC_UP, REC_SAME, IMPORT_STRENGTH  = params
     if solution is None:
         term = ODETerm(deltas)
         solver = Dopri5()

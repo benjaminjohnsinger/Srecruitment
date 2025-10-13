@@ -217,10 +217,16 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9):
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Metapneumovirus_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_cleaned_Metapneumovirus_incidence_age_daily.csv",index_col=0))
+    elif pathogen == "test":
+        REC_UP = jnp.array([1/3.0,1/3.0,0.0])
+        REC_SAME = jnp.array([0.0,0.0,1/3.0])
+        IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Metapneumovirus_positivity_daily.csv', delimiter=','))
+        p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
+        incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv",index_col=0))
     return REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence
 
 # @partial(jax.jit, static_argnames=['pathogen','lockdown','option1','option2'])
-def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, fixed_params = None, import_multiplier=1e-9, end_date='2023-10-01'):
+def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, fixed_params = None, import_multiplier=1e-9, end_date='2023-10-01', print_params=False):
     if fixed_params is None:
         from Parameters.census_population import AGING_RATE
         REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
@@ -275,17 +281,21 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
             RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 7
         elif lockdown == 'Mobility':
-            contact_factor = 1 + x[n]*cm.MOBILITY_CHANGE_JAX
+            FF = [x[n],]
+            TT = x[n+1]
+            contact_factor = 1 + FF[0]*cm.MOBILITY_CHANGE_JAX
             MOBILITY_CONTACT = jnp.ones(len(FULL_POINTS))
             MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_START:cm.MOBILITY_END+1].set(contact_factor)
-            MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_END+1:].set(x[n+1])
+            MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_END+1:].set(TT)
             RELATIVE_CONTACT = MOBILITY_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 2
         elif lockdown == 'Mobility2':
-            contact_factor = 1 + x[n]*cm.MOBILITY_CHANGE_JAX + x[n+1]*cm.MOBILITY_CHANGE_JAX**2
+            FF = [x[n],x[n+1]]
+            TT = x[n+2]
+            contact_factor = 1 + FF[0]*cm.MOBILITY_CHANGE_JAX + FF[1]*cm.MOBILITY_CHANGE_JAX**2
             MOBILITY_CONTACT = jnp.ones(len(FULL_POINTS))
             MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_START:cm.MOBILITY_END+1].set(contact_factor)
-            MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_END+1:].set(x[n+2])
+            MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_END+1:].set(TT)
             RELATIVE_CONTACT = MOBILITY_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 3
         elif lockdown == "Taube":
@@ -312,6 +322,11 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     params = (AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
                 BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
                 REC_UP, REC_SAME, IMPORT_STRENGTH)
+    
+    if print_params:
+        param_names = ["BETA","WANE","SEASONALITY","OFFSET","S_REL","P_OBS","OBS_AGE","FF","TT"]
+        for i in range(len(param_names)):
+            print(param_names[i]+": "+eval(param_names[i]).__str__())
     
     return params
 
@@ -453,7 +468,7 @@ def susceptibility(solution,params,N_C=2):
     """
     NAG, N_S = 7, 3
     AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
-    BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE,\
+    BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
     REC_UP, REC_SAME, IMPORT_STRENGTH = params
     sus = np.zeros((len(solution.ts),NAG))
     for i_t,t in enumerate(solution.ts):
