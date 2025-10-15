@@ -24,50 +24,48 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
-# pathogen = "test"
-# seed = 251013
-# lockdown = "FlexStepwise"
-# option1 = "NA"
-# option2 = "flexage"
-# import_multiplier = 1.0
+# pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
+pathogen = "test"
+seed = 251015
+lockdown = "FlexStepwise"
+option1 = "NA"
+option2 = "flexage"
+import_multiplier = 1.0
 # set seed
 np.random.seed(seed)
 
-if re.match(r'\d{4}-\d{2}-\d{2}',option1):
-    start_date = option1
-if re.match(r'\d{4}-\d{2}-\d{2}',option2):
-    end_date = option2
-    option2 = "flexage" #this is super hacky sorry
+# if re.match(r'\d{4}-\d{2}-\d{2}',option1):
+#     start_date = option1
+# if re.match(r'\d{4}-\d{2}-\d{2}',option2):
+#     end_date = option2
+#     option2 = "flexage" #this is super hacky sorry
 
-print(pathogen, seed)
-if re.match(r'\d{6}',lockdown):
-    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
-        opt = pickle.load(f)
-else:
-    try:
-        with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
-            opt = pickle.load(f)
-    except FileNotFoundError:
-        print('No file found')
-        sys.exit()
-if opt.success:
-    print("Optimization converged")
-else:
-    print("Optimization did not converge")
-    print(opt.message)
-    print(opt.x)
-    sys.exit()
-x = opt.x
-# print likelihood
-print("Log-Likelihood:",-1*opt.fun)
+# print(pathogen, seed)
+# if re.match(r'\d{6}',lockdown):
+#     with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
+#         opt = pickle.load(f)
+# else:
+#     try:
+#         with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+#             opt = pickle.load(f)
+#     except FileNotFoundError:
+#         print('No file found')
+#         sys.exit()
+# if opt.success:
+#     print("Optimization converged")
+# else:
+#     print("Optimization did not converge")
+#     print(opt.message)
+#     print(opt.x)
+#     sys.exit()
+# x = opt.x
+# # print likelihood
+# print("Log-Likelihood:",-1*opt.fun)
 
-print(x)
-
-# x = [0.001,0.1,0.1,0.5
-# ,0.1,0.5,0.6,0.5
-# ,0.9,0.5,0.4,0.8,0.7,0.8,0.1
-# ,2e-03,1e-03,3e-03,2e-04,1e-04,3e-04,4e-03]
+x = [0.001,0.1,0.1,0.5
+,0.1,0.5,0.6,0.5
+,0.9,0.5,0.4,0.8,0.7,0.8,0.1
+,2e-03,1e-03,3e-03,2e-04,1e-04,3e-04,4e-03]
 
 REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
 N_S, NAG = 3, 7
@@ -113,18 +111,33 @@ print("ODE integration time:",time.time()-time0)
 values = solution.ys.T
 times = solution.ts
 
+age_pops = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),1:],axis=0) for i_age in range(NAG)]).T
+
 # apply poisson noise to values
-# new_cases = jnp.diff(values[-NAG:],axis=1).T
-# noisy_cases = np.random.poisson(lam=jnp.maximum(new_cases,0))
-# noisy_incidence = noisy_cases/age_pops[np.argmax(FULL_POINTS>=date_to_t('2015-07-04')):np.argmax(FULL_POINTS>=date_to_t('2023-10-01'))]
-# noisy_cases = noisy_cases.astype(int)[-len(incidence):,:]
-# noisy_incidence = noisy_incidence[-len(incidence):,:]
-# cropped_period = PERIOD[-len(noisy_incidence):]
-# # # save to "Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", with date (from times) as first column
-# # np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_incidence)), delimiter=",", fmt="%s")
-# # save to "Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", with date (from times) as first column, and header "Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y"
-# np.savetxt("Data/Processed/KPSC_cleaned_test_cases_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_cases)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
-# np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_incidence)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
+new_cases = jnp.diff(values[-NAG:],axis=1).T
+noisy_cases = np.random.poisson(lam=jnp.maximum(new_cases,0))
+noisy_incidence = noisy_cases/age_pops[np.argmax(POINTS>=date_to_t('2015-07-04')):np.argmax(POINTS>=date_to_t('2023-10-01'))]
+noisy_cases = noisy_cases.astype(int)[-len(incidence):,:]
+noisy_incidence = noisy_incidence[-len(incidence):,:]
+cropped_period = PERIOD[-len(noisy_incidence):]
+# # save to "Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", with date (from times) as first column
+# np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_incidence)), delimiter=",", fmt="%s")
+# save to "Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", with date (from times) as first column, and header "Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y"
+np.savetxt("Data/Processed/KPSC_cleaned_test_cases_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_cases)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
+np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_incidence)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
+
+# monthly aggreagated version
+monthly_noisy_cases = np.zeros((len(pd.date_range(start=cropped_period[0], end=cropped_period[-1], freq='M')),NAG))
+monthly_age_pops = np.zeros((len(pd.date_range(start=cropped_period[0], end=cropped_period[-1], freq='M')),NAG))
+for i, month_start in enumerate(pd.date_range(start=cropped_period[0], end=cropped_period[-1], freq='M')):
+    month_end = month_start + pd.offsets.MonthEnd(1)
+    mask = (cropped_period >= month_start) & (cropped_period <= month_end)
+    monthly_noisy_cases[i,:] = np.sum(noisy_cases[mask,:], axis=0)
+    monthly_age_pops[i,:] = np.mean(age_pops[np.argmax(POINTS>=date_to_t(month_start)):np.argmax(POINTS>=date_to_t(month_end))+1,:], axis=0)
+monthly_noisy_incidence = monthly_noisy_cases/monthly_age_pops
+# save to "Data/Processed/KPSC_cleaned_test_incidence_age_monthly.csv", with date (from times) as first column, and header "Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y"
+np.savetxt("Data/Processed/KPSC_cleaned_test_cases_age_monthly.csv", np.column_stack((pd.date_range(start=cropped_period[0], end=cropped_period[-1], freq='M').astype(str), monthly_noisy_cases)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
+np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_monthly.csv", np.column_stack((pd.date_range(start=cropped_period[0], end=cropped_period[-1], freq='M').astype(str), monthly_noisy_incidence)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
 
 print(SIS_likelihood(incidence, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, solution=solution))
 
@@ -175,7 +188,8 @@ ax2 = fig.add_subplot(3,1,2, sharex=ax1
 )
 ax3 = fig.add_subplot(3,1,3, sharex=ax1)
 ax = [ax1,ax2,ax3]
-kpsc_positive_test_plot(ax[0],pathogen=pathogen,AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month", load_data=True)
+aggregation = "Month"
+kpsc_positive_test_plot(ax[0],pathogen=pathogen,AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation=aggregation, load_data=True)
 ax[0].set_xlabel("")
 pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
 ax[0].set_title("Observed incidence of "+pnamedict[pathogen])
@@ -188,7 +202,7 @@ ax[0].legend(frameon=False)
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Palatino']
 # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
-mx = lockdown_incidence_plot(ax[1],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),365,solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=30.44*10000,p_time_to_obs=p_time_to_obs)
+mx = lockdown_incidence_plot(ax[1],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),365,solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
 lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
 ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")

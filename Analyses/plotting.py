@@ -435,7 +435,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
     print(pathogen)
     if load_data:
         if pathogen == "test":
-            cases = pd.read_csv(f'Data/Processed/KPSC_cleaned_test_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_daily.csv',index_col=0,parse_dates=True)
+            cases = pd.read_csv(f'Data/Processed/KPSC_cleaned_test_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_{["daily","weekly","monthly"][[None,"Week","Month"].index(aggregation)]}.csv',index_col=0,parse_dates=True)
         else:
             cases = pd.read_csv(f'Data/Processed/KPSC_cleaned_{pathogen}_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_{["daily","weekly","monthly"][[None,"Week","Month"].index(aggregation)]}.csv',index_col=0,parse_dates=True)
     else:
