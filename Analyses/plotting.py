@@ -54,7 +54,7 @@ def lockdown_incidence_plot(ax,state0,params,period,points,T_LOCKDOWN,LOCKDOWN_D
     expected_obs = np.sum([np.roll(trajectory,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
     
     if by_age:
-        pop_size_by_age = np.array([np.sum(values[range(i_age,N_C*N_S*NAG,NAG),1:],axis=0) for i_age in range(NAG)]).T
+        pop_size_by_age = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),1:],axis=0) for i_age in range(NAG)]).T
         obs = factor*expected_obs
         for i_age in range(NAG):
             ax.plot(dates[(start_index+1):end_index],obs[start_index:end_index,i_age]/pop_size_by_age[start_index:end_index,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)
@@ -431,101 +431,107 @@ pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL V
 "Parainfluenza3": ["PARAINFLUENZA VIRUS 3"],
 "Rhinovirus": ["ENTEROVIRUS/RHINOVIRUS"],}
 import numpy as np
-def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=None,incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None, save_data=False):
+def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=None,incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None, save_data=False, load_data=False):
     print(pathogen)
-    respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv')
-    if incidence:
-        # load age population data
-        age_by_year = pd.read_csv("Data/Processed/KPSC_population_by_age.csv")
-        # # add first two columns - remove this once year added
-        # age_by_year["Infants"] = age_by_year["Infants"] + age_by_year["Newborns"]
-        # age_by_year.drop(columns=["Newborns"],inplace=True)
-        if AGE_GROUPS is not None:
-            age_by_year.columns = AGE_GROUP_NAMES
-        age_by_year["Year"] = np.arange(2015,2023)
-        age_by_year = age_by_year.set_index("Year")
-        # repeat last row for 2023
-        age_by_year.loc[2023] = age_by_year.loc[2022]
-    
-    if hospitalizations:
-        positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
-    else:
-        positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_all_clinical.csv')
-    names = pathogen_names[pathogen]
-    cases = positive_tests[positive_tests['pathogen'].isin(names) & positive_tests['CODE'].isin(respiratory_codes)]
-    cases = cases.drop_duplicates(subset=cases.columns.difference(['CODE','dxgroup']))
-    if hospitalizations:
-        cases["Date"] = pd.to_datetime(cases["Hospitalization date"])
-    else:
-        cases["Date"] = pd.to_datetime(cases["Clinical date"])
-    if aggregation is not None:
-        cases["Year"] = cases["Date"].dt.year
-        if aggregation == "Month":
-            cases["Month"] = cases["Date"].dt.month
-        elif aggregation == "Week":
-            cases["Week"] = cases["Date"].dt.isocalendar().week
-    if AGE_GROUPS is not None:
-        for i in range(len(AGE_GROUPS)):
-            cases.loc[cases["age_in_mo"].isin(AGE_GROUPS[i]),"age_group"] = AGE_GROUP_NAMES[i]
-        if aggregation is None:
-            cases = cases.groupby(["Date","age_group"]).size().reset_index(name='Count')
+    if load_data:
+        if pathogen == "test":
+            cases = pd.read_csv(f'Data/Processed/KPSC_cleaned_test_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_daily.csv',index_col=0,parse_dates=True)
         else:
-            cases = cases.groupby(["Year",aggregation,"age_group"]).size().reset_index(name='Count')
+            cases = pd.read_csv(f'Data/Processed/KPSC_cleaned_{pathogen}_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_{["daily","weekly","monthly"][[None,"Week","Month"].index(aggregation)]}.csv',index_col=0,parse_dates=True)
     else:
-        if aggregation is None:
-            cases = cases.groupby(["Date"]).size().reset_index(name='Count')
-        else:
-            cases = cases.groupby(["Year",aggregation]).size().reset_index(name='Count')
-
-    if aggregation is None:
-        frequency = "D"
-    elif aggregation == "Month":
-        frequency = "MS"
-    elif aggregation == "Week":
-        frequency = "W-MON"
-
-    for date in pd.date_range(start='2015-10-01',end='2023-10-01',freq=frequency):
-        year = date.year
-        if aggregation=="Month":
-            agg = date.month
-        elif aggregation=="Week":
-            agg = date.isocalendar().week
-        if AGE_GROUPS is not None:
-            for age_group in AGE_GROUP_NAMES:
-                if aggregation is None:
-                    if not ((cases["Date"]==date) & (cases["age_group"]==age_group)).any():
-                        cases = pd.concat([cases,pd.DataFrame({"Date":[date],"age_group":[age_group],"Count":[0]})])
-                else:
-                    if not (((cases["Year"]==year) & (cases[aggregation]==agg)) & (cases["age_group"]==age_group)).any():
-                        cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"age_group":[age_group],"Count":[0]})])
-        if aggregation is None:
-            if not (cases["Date"]==date).any():
-                cases = pd.concat([cases,pd.DataFrame({"Date":[date],"Count":[0]})])
-        else:
-            if not ((cases["Year"]==year) & (cases[aggregation]==agg)).any():
-                cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"Count":[0]})])
-    if aggregation is not None:
-        if aggregation == "Month":
-            cases["Date"] = pd.to_datetime(cases["Year"].astype(str) + '-' + cases["Month"].astype(str) + '-01')
-        elif aggregation == "Week":
-            cases["Date"] = cases["Year"].astype(str) + '-' + cases["Week"].astype(str)
-            cases["Date"] = pd.to_datetime(cases["Date"].add('-1').astype(str),format='%Y-%W-%w')
-    cases = cases.sort_values(by="Date")
-    cases = cases.set_index("Date")
-
-    if aggregation is not None:
-        cases = cases.drop(columns=["Year",aggregation])
-    if AGE_GROUPS is not None:
-        cases = cases.pivot(columns="age_group",values="Count")
-        cases = cases[AGE_GROUP_NAMES]
+        respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv')
         if incidence:
-            cases = cases.div(age_by_year.loc[cases.index.year].values)
-    elif incidence:
-        cases["Count"] = cases["Count"]/np.sum(age_by_year.loc[cases.index.year].values,axis=1)
+            # load age population data
+            age_by_year = pd.read_csv("Data/Processed/KPSC_population_by_age.csv")
+            # # add first two columns - remove this once year added
+            # age_by_year["Infants"] = age_by_year["Infants"] + age_by_year["Newborns"]
+            # age_by_year.drop(columns=["Newborns"],inplace=True)
+            if AGE_GROUPS is not None:
+                age_by_year.columns = AGE_GROUP_NAMES
+            age_by_year["Year"] = np.arange(2015,2023)
+            age_by_year = age_by_year.set_index("Year")
+            # repeat last row for 2023
+            age_by_year.loc[2023] = age_by_year.loc[2022]
+        
+        if hospitalizations:
+            positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations_cleaned.csv')
+        else:
+            positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_all_clinical_cleaned.csv')
+        names = pathogen_names[pathogen]
+        cases = positive_tests[positive_tests['pathogen'].isin(names) & positive_tests['CODE'].isin(respiratory_codes)]
+        cases = cases.drop_duplicates(subset=cases.columns.difference(['CODE','dxgroup']))
+        if hospitalizations:
+            cases["Date"] = pd.to_datetime(cases["Hospitalization date"])
+        else:
+            cases["Date"] = pd.to_datetime(cases["Clinical date"])
+        if aggregation is not None:
+            cases["Year"] = cases["Date"].dt.year
+            if aggregation == "Month":
+                cases["Month"] = cases["Date"].dt.month
+            elif aggregation == "Week":
+                cases["Week"] = cases["Date"].dt.isocalendar().week
+        if AGE_GROUPS is not None:
+            for i in range(len(AGE_GROUPS)):
+                cases.loc[cases["age_in_mo"].isin(AGE_GROUPS[i]),"age_group"] = AGE_GROUP_NAMES[i]
+            if aggregation is None:
+                cases = cases.groupby(["Date","age_group"]).size().reset_index(name='Count')
+            else:
+                cases = cases.groupby(["Year",aggregation,"age_group"]).size().reset_index(name='Count')
+        else:
+            if aggregation is None:
+                cases = cases.groupby(["Date"]).size().reset_index(name='Count')
+            else:
+                cases = cases.groupby(["Year",aggregation]).size().reset_index(name='Count')
 
-    if save_data:
-        filename = f'Data/Processed/KPSC_{pathogen}_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_{["daily","weekly","monthly"][["D","W-MON","MS"].index(frequency)]}.csv'
-        cases.to_csv(filename)
+        if aggregation is None:
+            frequency = "D"
+        elif aggregation == "Month":
+            frequency = "MS"
+        elif aggregation == "Week":
+            frequency = "W-MON"
+
+        for date in pd.date_range(start='2015-10-01',end='2023-10-01',freq=frequency):
+            year = date.year
+            if aggregation=="Month":
+                agg = date.month
+            elif aggregation=="Week":
+                agg = date.isocalendar().week
+            if AGE_GROUPS is not None:
+                for age_group in AGE_GROUP_NAMES:
+                    if aggregation is None:
+                        if not ((cases["Date"]==date) & (cases["age_group"]==age_group)).any():
+                            cases = pd.concat([cases,pd.DataFrame({"Date":[date],"age_group":[age_group],"Count":[0]})])
+                    else:
+                        if not (((cases["Year"]==year) & (cases[aggregation]==agg)) & (cases["age_group"]==age_group)).any():
+                            cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"age_group":[age_group],"Count":[0]})])
+            if aggregation is None:
+                if not (cases["Date"]==date).any():
+                    cases = pd.concat([cases,pd.DataFrame({"Date":[date],"Count":[0]})])
+            else:
+                if not ((cases["Year"]==year) & (cases[aggregation]==agg)).any():
+                    cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"Count":[0]})])
+        if aggregation is not None:
+            if aggregation == "Month":
+                cases["Date"] = pd.to_datetime(cases["Year"].astype(str) + '-' + cases["Month"].astype(str) + '-01')
+            elif aggregation == "Week":
+                cases["Date"] = cases["Year"].astype(str) + '-' + cases["Week"].astype(str)
+                cases["Date"] = pd.to_datetime(cases["Date"].add('-1').astype(str),format='%Y-%W-%w')
+        cases = cases.sort_values(by="Date")
+        cases = cases.set_index("Date")
+
+        if aggregation is not None:
+            cases = cases.drop(columns=["Year",aggregation])
+        if AGE_GROUPS is not None:
+            cases = cases.pivot(columns="age_group",values="Count")
+            cases = cases[AGE_GROUP_NAMES]
+            if incidence:
+                cases = cases.div(age_by_year.loc[cases.index.year].values)
+        elif incidence:
+            cases["Count"] = cases["Count"]/np.sum(age_by_year.loc[cases.index.year].values,axis=1)
+
+        if save_data:
+            filename = f'Data/Processed/KPSC_cleaned_{pathogen}_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_{["daily","weekly","monthly"][["D","W-MON","MS"].index(frequency)]}.csv'
+            cases.to_csv(filename)
 
     if incidence:
         cases *= 10000

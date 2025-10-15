@@ -222,13 +222,51 @@ import time
 time_start = time.time()
 test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat')
 print("Time to load test data: ",time.time()-time_start)
-
-# print column names
-print(test_data.columns)
-
+# transform "pathogen" column to string
+test_data["pathogen"] = test_data["pathogen"].astype(str)
+test_data["result_val"] = test_data["result_val"].astype(str)
+# filter to only RSV tests, i.e. "RESPIRATORY SYNCYTIAL VIRUS" is in the pathogen value, e.g. "RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A"
+tests_RSV = test_data[test_data["age_in_mo"] < 12*18]
+tests_RSV = test_data[test_data["pathogen"].str.contains("RESPIRATORY SYNCYTIAL VIRUS",na=False)]
+tests_RSV["Date"] = pd.to_datetime(tests_RSV["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(tests_RSV["lab_days"],unit='D')
+# plot number of RSV tests over time
+tests_RSV_datesums = pd.pivot_table(tests_RSV, index='Date', columns='result_val', values='StudyID', aggfunc='count').fillna(0)
+fig, ax = plt.subplots(figsize=(6.5,6.5))
+print(tests_RSV_datesums)
+tests_RSV_datesums.sum(axis=1).plot(ax=ax, color='black',label='Total')
+# also plot positive tests
+tests_RSV_datesums['Positive'].plot(ax=ax, color='red',label='Positive')
+ax.set_title("Number of child RSV tests over time")
+ax.legend()
+ax.set_ylabel("Number of tests")
+ax.set_xlabel("Date")
+plt.savefig('Figures/KPSC_child_RSV_tests_over_time.png',dpi=300)
 
 # with SAS7BDAT('Data/Raw/KPSC/clinical_20241202.sas7bdat') as f:
 #     clinical_data = f.to_data_frame()
+time_start = time.time()
+clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat')
+print("Time to load clinical data: ",time.time()-time_start)
+print(clinical_data.columns)
+clinical_data["CODE"] = clinical_data["CODE"].astype(str)
+
+respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv',dtype=str)
+respiratory_clinical_data = clinical_data[clinical_data["CODE"].isin(respiratory_codes)]
+respiratory_clinical_data = respiratory_clinical_data[respiratory_clinical_data["age_in_mo"] < 12*18]
+print(len(respiratory_clinical_data), " respiratory clinical cases")
+respiratory_clinical_data["Date"] = pd.to_datetime(respiratory_clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(respiratory_clinical_data["dx_days"],unit='D')
+respiratory_datesums = pd.pivot_table(respiratory_clinical_data, index="Date", values="StudyID", aggfunc='count').fillna(0)
+print(respiratory_datesums)
+proportion_rsv_tests = pd.merge(respiratory_datesums, tests_RSV_datesums, left_index=True, right_index=True, how='left').fillna(0)
+proportion_rsv_tests["Proportion RSV tests"] = proportion_rsv_tests[["Invalid","Negative","Positive"]].sum(axis=1)/proportion_rsv_tests["StudyID"]
+fig, ax = plt.subplots(figsize=(6.5,6.5))
+proportion_rsv_tests["Proportion RSV tests"].plot(ax=ax, color='blue')
+ax.set_title("Proportion of child respiratory clinical cases with RSV tests")
+ax.set_ylabel("Proportion of clinical cases with RSV tests")
+ax.set_xlabel("Date")
+plt.savefig('Figures/KPSC_proportion_child_respiratory_clinical_with_RSV_tests_over_time.png',dpi=300)
+
+
 
 # # # save random sample of clinical data
 # # # clinical_data.sample(10000).to_csv('Data/Processed/KPSC_clinical_sample.csv',index=False)

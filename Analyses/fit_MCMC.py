@@ -53,7 +53,7 @@ def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incide
     # format data into cases, rescaled appropriately by population age distribution
     if incidence:
         if age:
-            cases = jnp.round(data*jnp.array([jnp.sum(values[range(i,N_S*N_C*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)]).T)
+            cases = jnp.round(data*jnp.array([jnp.sum(values[range(1+i,N_S*N_C*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)]).T)
         else:
             cases = data*jnp.sum(values,axis=0)
     else:

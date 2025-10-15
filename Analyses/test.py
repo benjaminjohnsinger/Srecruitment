@@ -19,28 +19,35 @@ from matplotlib import cm as colormaps
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 
+x = [0.001,0.1,0.1,0.5
+,0.2,0.3,0.5,0.3
+,0.9,0.5,0.4,0.8,0.7,0.8,0.1
+,1e-03,1e-03,3e-03,26e-04,1e-04,3e-04,4e-03]
 
-fig, ax = plt.subplots(3,2)
-vax_opt = np.loadtxt('Data/Processed/KPSC_vaccination_rate_ages_monthly_optimized_unshift.csv',delimiter=',')
-vax_original = np.loadtxt('Data/Processed/vax_rate_example.csv',delimiter=',')
-eff_cov_opt = np.loadtxt('Data/Processed/eff_cov_example_optimized.csv',delimiter=',')
-eff_cov_original = np.loadtxt('Data/Processed/eff_cov_example.csv',delimiter=',')
-for i in range(7):
-    ax[0,0].plot(vax_opt[:,i],label='Optimized',color=hsv_colors[i])
-    ax[0,0].set_title('Vaccination Rate from jax optimized code')
-    ax[1,0].plot(vax_original[:,i],label='Original',color=hsv_colors[i])
-    ax[1,0].set_title('Vaccination Rate from original code')
-    ax[2,0].plot(vax_opt[:,i]/vax_original[:,i],label='Difference',color=hsv_colors[i])
-    ax[2,0].set_title('Ratio of optimized to original')
-    # ax[2,0].set_ylim(0,2)
-    ax[0,1].plot(eff_cov_opt[:,i],label='Optimized',color=hsv_colors[i])
-    ax[0,1].set_title('Effective vaccine Coverage from jax optimized code')
-    ax[1,1].plot(eff_cov_original[:,i],label='Original',color=hsv_colors[i])
-    ax[1,1].set_title('Effective vaccine Coverage from original code')
-    ax[2,1].plot(eff_cov_opt[:,i]/eff_cov_original[:,i],label='Difference',color=hsv_colors[i])
-    ax[2,1].set_title('Ratio of optimized to original')
-plt.tight_layout()
-plt.savefig('Figures/vax_rate_comparison.png',dpi=300)
+params = x_to_params(x,"test","FlexStepwise","NA","flexage")
+
+
+# fig, ax = plt.subplots(3,2)
+# vax_opt = np.loadtxt('Data/Processed/KPSC_vaccination_rate_ages_monthly_optimized_unshift.csv',delimiter=',')
+# vax_original = np.loadtxt('Data/Processed/vax_rate_example.csv',delimiter=',')
+# eff_cov_opt = np.loadtxt('Data/Processed/eff_cov_example_optimized.csv',delimiter=',')
+# eff_cov_original = np.loadtxt('Data/Processed/eff_cov_example.csv',delimiter=',')
+# for i in range(7):
+#     ax[0,0].plot(vax_opt[:,i],label='Optimized',color=hsv_colors[i])
+#     ax[0,0].set_title('Vaccination Rate from jax optimized code')
+#     ax[1,0].plot(vax_original[:,i],label='Original',color=hsv_colors[i])
+#     ax[1,0].set_title('Vaccination Rate from original code')
+#     ax[2,0].plot(vax_opt[:,i]/vax_original[:,i],label='Difference',color=hsv_colors[i])
+#     ax[2,0].set_title('Ratio of optimized to original')
+#     # ax[2,0].set_ylim(0,2)
+#     ax[0,1].plot(eff_cov_opt[:,i],label='Optimized',color=hsv_colors[i])
+#     ax[0,1].set_title('Effective vaccine Coverage from jax optimized code')
+#     ax[1,1].plot(eff_cov_original[:,i],label='Original',color=hsv_colors[i])
+#     ax[1,1].set_title('Effective vaccine Coverage from original code')
+#     ax[2,1].plot(eff_cov_opt[:,i]/eff_cov_original[:,i],label='Difference',color=hsv_colors[i])
+#     ax[2,1].set_title('Ratio of optimized to original')
+# plt.tight_layout()
+# plt.savefig('Figures/vax_rate_comparison.png',dpi=300)
 
 # covaraiance = np.array([[4.79203036e-07,6.11817303e-08,1.19563281e-06,-5.83700484e-07
 # ,-1.70161560e-06,2.85094663e-07,5.17774219e-06,1.43810590e-06

@@ -235,7 +235,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     else:
         AGING_RATE, BIRTH_RATE, CONTACT_MATRIX = fixed_params[:3]
         REC_UP, REC_SAME, IMPORT_STRENGTH = fixed_params[-3:]
-    
+
     N_S, NAG = 3, 7
     EPOCH = pd.to_datetime('1970-01-01')
     END = pd.to_datetime(end_date)
@@ -318,7 +318,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         VAX_RATE = calculate_vax_rate_vectorized(S_REL*P_OBS, vax_preprocessor)
     else:
         VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
-    
+
     params = (AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
                 BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
                 REC_UP, REC_SAME, IMPORT_STRENGTH)
