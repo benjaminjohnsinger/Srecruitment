@@ -359,12 +359,12 @@ if __name__ == "__main__":
         mcmc.print_summary()
         # save samples
         posterior_samples = mcmc.get_samples()
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage"+seed+"_pathogen_samples_sp100_mass.pickle", "wb") as f:
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwiseNAflexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "wb") as f:
             pickle.dump(posterior_samples, f)
         # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_mass.pickle", "rb") as f:
         #     posterior_samples = pickle.load(f)
         param_samples = posterior_samples['params']
-        params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", "0.005", "flexage", 2507092)
+        params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", "NA", "flexage", seed)
         # plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
         # prior_dist, prior_means = prior_distribution(f"Data/Processed/DE_outputs/DE_{pathogen}FlexStepwise0.005flexage250709_sorted.csv",
         #     bounds, n=1000, dist_type="multilog", varlim = "pathogen", pathogen=pathogen)
@@ -400,7 +400,7 @@ if __name__ == "__main__":
         # plt.title(f'Posterior Predictive Trajectories for {pathogen}')
         # plt.legend()
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+"_sp100_mass_monthly.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+str(seed)+"_sp100_mass_monthly.png", dpi=300)
 
     # ## 2d contour plot comparisons
     # fig, ax = plt.subplots(figsize=(6.5,6.5))
