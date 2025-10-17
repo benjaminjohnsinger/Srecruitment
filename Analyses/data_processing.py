@@ -220,20 +220,22 @@ import time
 ############### Processing KPSC data into time series of test-confirmed cases ###############
 
 time_start = time.time()
-test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat')
+test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', format='sas7bdat', encoding='utf-8')
 print("Time to load test data: ",time.time()-time_start)
 test_data["pathogen"] = test_data["pathogen"].astype(str)
 test_data["result_val"] = test_data["result_val"].astype(str)
 
 time_start = time.time()
-clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat')
+clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat', format='sas7bdat', encoding='utf-8')
 print("Time to load clinical data: ",time.time()-time_start)
 clinical_data["CODE"] = clinical_data["CODE"].astype(str)
 
 # #### Plot number of RSV tests and proportion of respiratory clinical cases with RSV tests over time
 # #age filter
-# # tests_RSV = test_data[test_data["age_in_mo"] < 12*18]
-# # respiratory_clinical_data = respiratory_clinical_data[respiratory_clinical_data["age_in_mo"] < 12*18]
+tests_data = test_data[test_data["age_in_mo"] < 12*18]
+clinical_data = clinical_data[clinical_data["age_in_mo"] < 12*18]
+tests_data = test_data[test_data["age_in_mo"] >= 12*5]
+clinical_data = clinical_data[clinical_data["age_in_mo"] >= 12*5]
 # # other filters
 # tests_RSV = test_data[test_data["pathogen"].str.contains("RESPIRATORY SYNCYTIAL VIRUS",na=False)]
 # tests_RSV["Date"] = pd.to_datetime(tests_RSV["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(tests_RSV["lab_days"],unit='D')
@@ -267,7 +269,7 @@ clinical_data["CODE"] = clinical_data["CODE"].astype(str)
 # # # # load
 # # # clinical_data = pd.read_csv('Data/Processed/KPSC_clinical_sample.csv')
 # # # # date is 1st of October of each year (in YEAR column), plus dx_days
-# clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
+clinical_data["Date"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(clinical_data["dx_days"],unit='D')
 
 # clinical_data["Year"] = pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01')
 # # # sort by age in months, then translate into age groups
@@ -326,9 +328,9 @@ clinical_data["CODE"] = clinical_data["CODE"].astype(str)
 
 matching_tests = test_data[test_data["StudyID"].isin(clinical_data["StudyID"])]
 matching_tests["Date"] = pd.to_datetime(matching_tests["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(matching_tests["lab_days"],unit='D')
-matching_tests = clinical_data.merge(matching_tests[["StudyID","Date","pathogen","lab_type","lab_days","result_val"]],on="StudyID",how="left")
-matching_tests = matching_tests.rename(columns={"Date_x":"Clinical date","Date_y":"Test date"})
-matching_tests = matching_tests[jnp.abs((pd.to_datetime(matching_tests["Clinical date"]) - pd.to_datetime(matching_tests["Test date"])).dt.days) <= 14]
+# matching_tests = clinical_data.merge(matching_tests[["StudyID","Date","pathogen","lab_type","lab_days","result_val"]],on="StudyID",how="left")
+# matching_tests = matching_tests.rename(columns={"Date_x":"Clinical date","Date_y":"Test date"})
+# matching_tests = matching_tests[jnp.abs((pd.to_datetime(matching_tests["Clinical date"]) - pd.to_datetime(matching_tests["Test date"])).dt.days) <= 14]
 
 # clear unused test data from memory
 del test_data
@@ -349,8 +351,8 @@ del clinical_data
 respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv',dtype=str)
 gastroenteritis_codes = pd.read_csv('Data/Processed/gastroenteritis_codes.csv',dtype=str)
 # # # get only hospitalizations with respiratory or gastroenteritis codes
-respiratory_hospitalizations = hospitalizations[hospitalizations["CODE"].isin(respiratory_codes)]
-gastroenteritis_hospitalizations = hospitalizations[hospitalizations["CODE"].isin(gastroenteritis_codes)]
+respiratory_hospitalizations = hospitalizations[hospitalizations["dxgroup"] == "ARI"]
+gastroenteritis_hospitalizations = hospitalizations[hospitalizations["dxgroup"] != "ARI"]
 # # # save
 # respiratory_hospitalizations.to_csv('Data/Processed/KPSC_clinical_respiratory_hospitalizations.csv',index=False)
 # gastroenteritis_hospitalizations.to_csv('Data/Processed/KPSC_clinical_gastroenteritis_hospitalizations.csv',index=False)
@@ -373,36 +375,110 @@ gastroenteritis_hospitalizations = hospitalizations[hospitalizations["CODE"].isi
 # # # # keep only rows where Hospitalization date is within 14 days of Test date
 # positive_tests = positive_tests[jnp.abs((pd.to_datetime(positive_tests["Hospitalization date"]) - pd.to_datetime(positive_tests["Test date"])).dt.days) <= 14]
 
-matching_tests = hospitalizations.merge(matching_tests[["StudyID","Date","pathogen","lab_type","lab_days"]],on="StudyID",how="left")
+matching_tests = respiratory_hospitalizations.merge(matching_tests[["StudyID","Date","pathogen","lab_type","lab_days","result_val"]],on="StudyID",how="left")
 # # # rename columns
 matching_tests = matching_tests.rename(columns={"Date_x":"Hospitalization date","Date_y":"Test date"})
+from plotting import pathogen_names
+# reverse pathogen names dictionary
+pathogen_names = [{v:k for v in values} for k,values in pathogen_names.items()]
+# combine all pathogen names into a single dictionary
+pathogen_names = {k:v for d in pathogen_names for k,v in d.items()}
+# replace subtyped or detailed pathogen names with main pathogen name
+matching_tests["pathogen"] = matching_tests["pathogen"].replace(pathogen_names)
+print(matching_tests["pathogen"].value_counts())
+
+# respiratory failure as a proxy for most severe cases
+severe_tests = matching_tests[matching_tests["CODE"].str.contains("J96",na=False)]
+print(severe_tests.head())
+severe_tests = severe_tests[np.abs((pd.to_datetime(severe_tests["Hospitalization date"]) - pd.to_datetime(severe_tests["Test date"])).dt.days) <= 14]
+severe_tests = severe_tests.sort_values(by=["StudyID","pathogen","result_val","Test date"], ascending=[True,True,False,True])
+severe_tests["diff"] = severe_tests.groupby(["StudyID","pathogen"])["Test date"].diff().dt.days
+severe_tests = severe_tests[(severe_tests["diff"].isna()) | (severe_tests["diff"] > 14)]
+
 # # # keep only rows where Hospitalization date is within 14 days of Test date
-matching_tests = matching_tests[jnp.abs((pd.to_datetime(matching_tests["Hospitalization date"]) - pd.to_datetime(matching_tests["Test date"])).dt.days) <= 14]
+matching_tests = matching_tests[np.abs((pd.to_datetime(matching_tests["Hospitalization date"]) - pd.to_datetime(matching_tests["Test date"])).dt.days) <= 14]
+# sorting by StudyID, pathogen, result_val (with Positive first), and Test date. Sorting result_val with Positive first means we keep the Positive test if there is one
+matching_tests = matching_tests.sort_values(by=["StudyID","pathogen","result_val","Test date"], ascending=[True,True,False,True])
+# find groups of tests within 14 days of each other with the same StudyID and pathogen
+matching_tests["diff"] = matching_tests.groupby(["StudyID","pathogen"])["Test date"].diff().dt.days
+# for groups of tests where diff is less than 14 days, keep only the first test
+matching_tests = matching_tests[(matching_tests["diff"].isna()) | (matching_tests["diff"] > 14)]
 
 # plot total number of matching tests over time
-matching_tests_RSV = matching_tests[matching_tests["pathogen"].str.contains("RESPIRATORY SYNCYTIAL VIRUS",na=False)]
-matching_RSV_datesums = pd.pivot_table(matching_tests, index='Hospitalization date', columns='result_val', values='StudyID', aggfunc='count').fillna(0)
-fig, ax = plt.subplots(2,1,figsize=(6.5,6.5))
+matching_tests_RSV = matching_tests[matching_tests["pathogen"] == "RSV"]
+severe_tests_RSV = severe_tests[severe_tests["pathogen"] == "RSV"]
+print(severe_tests_RSV["CODE"].value_counts())
+
+matching_RSV_datesums = pd.pivot_table(matching_tests_RSV, index='Hospitalization date', columns='result_val', values='StudyID', aggfunc='count').fillna(0)
+severe_RSV_datesums = pd.pivot_table(severe_tests_RSV, index='Hospitalization date', columns='result_val', values='StudyID', aggfunc='count').fillna(0)
+print(severe_RSV_datesums.head())
+#aggregate by month
+matching_RSV_datesums.index = pd.to_datetime(matching_RSV_datesums.index)
+matching_RSV_datesums = matching_RSV_datesums.resample('M').sum()
+severe_RSV_datesums.index = pd.to_datetime(severe_RSV_datesums.index)
+severe_RSV_datesums = severe_RSV_datesums.resample('M').sum()
+
+fig, ax = plt.subplots(4,1,figsize=(6.5,8.5), sharex=True)
 matching_RSV_datesums.sum(axis=1).plot(ax=ax[0], color='black',label='Total')
 # also plot positive tests
 matching_RSV_datesums['Positive'].plot(ax=ax[0], color='red',label='Positive')
-ax[0].set_title("Number of tests among hospitalized clinical cases over time")
+ax[0].set_title("Number of tests among hospitalized cases over time")
 ax[0].legend()
 ax[0].set_ylabel("Number of tests")
 ax[0].set_xlabel("Date")
 
 # plot number of matching tests per hospitalization over time
-total_hospitalizations = hospitalizations.groupby('Hospitalization date').size()
+total_hospitalizations = respiratory_hospitalizations.groupby('Date').size()
+total_hospitalizations.index = pd.to_datetime(total_hospitalizations.index)
+total_hospitalizations = total_hospitalizations.resample('M').sum()
 proportion_matching_tests = matching_RSV_datesums.sum(axis=1)/total_hospitalizations
 proportion_matching_tests.plot(ax=ax[1], color='blue')
-ax[1].set_title("Proportion of hospitalized clinical cases with RSV tests")
-ax[1].set_ylabel("Proportion of hospitalized clinical cases with RSV tests")
+ax[1].set_title("Proportion of respiratory hospitalized cases tested for RSV")
+ax[1].set_ylabel("Proportion tested")
 ax[1].set_xlabel("Date")
-plt.savefig('Figures/KPSC_hospitalized_RSV_tests_over_time.png',dpi=300)
+
+# proportion of RSV-tested hospitalizations with respiratory failure
+proportion_severe_RSV = severe_RSV_datesums.sum(axis=1)/matching_RSV_datesums.sum(axis=1)
+proportion_severe_RSV.plot(ax=ax[2], color='blue')
+ax[2].set_title("Proportion of RSV-tested hospitalized cases with respiratory failure")
+ax[2].set_ylabel("Proportion with respiratory failure")
+ax[2].set_xlabel("Date")
+
+# proportion of RSV-positive hospitalizations with respiratory failure
+proportion_severe_RSV = severe_RSV_datesums["Positive"]/matching_RSV_datesums["Positive"]
+proportion_severe_RSV.plot(ax=ax[3], color='blue')
+ax[3].set_title("Proportion of RSV-positive hospitalized cases with respiratory failure")
+ax[3].set_ylabel("Proportion with respiratory failure")
+ax[3].set_xlabel("Date")
+
+fig.suptitle("School-aged children (5–17y))")
+
+plt.savefig('Figures/KPSC_hospitalized_SAC_RSV_tests_multi.png',dpi=300)
 
 
 # # # save to csv
 # positive_tests.to_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv',index=False)
+# positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
+# # remove positive tests within 14 days of each other with the same StudyID and pathogen
+# positive_tests = positive_tests.sort_values(by=["StudyID","pathogen","Test date"])
+# positive_tests["Test date"] = pd.to_datetime(positive_tests["Test date"])
+# positive_tests["Hospitalization date"] = pd.to_datetime(positive_tests["Hospitalization date"])
+# # find groups of tests within 14 days of each other with the same StudyID and pathogen
+# positive_tests["diff"] = positive_tests.groupby(["StudyID","pathogen"])["Test date"].diff().dt.days
+# # change printing options to show extra rows
+# pd.set_option('display.max_rows', 500)
+# print(positive_tests.loc[positive_tests["StudyID"]==44833,["StudyID","pathogen","Test date","diff"]].head(100))
+# # for groups of tests where diff is less than 14 days, keep only the first test
+# positive_tests = positive_tests[(positive_tests["diff"].isna()) | (positive_tests["diff"] > 14)]
+
+# positive_tests_not_cleaned = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
+# positive_tests_cleaned = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations_cleaned.csv')
+# print(positive_tests.shape, positive_tests_not_cleaned.shape, positive_tests_cleaned.shape)
+# print(positive_tests["StudyID"].nunique(), positive_tests_not_cleaned["StudyID"].nunique(), positive_tests_cleaned["StudyID"].nunique())
+# print(positive_tests["pathogen"].value_counts())
+# print(positive_tests_not_cleaned["pathogen"].value_counts())
+# print(positive_tests_cleaned["pathogen"].value_counts())
+# # shows that postiive_matched_hospitalizations_cleaned.csv has already been cleaned
 
 ## Separating out individual pathogen data from positive matched hospitalizations
 # AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-17y','18-39y','40-64y','>=65y']
