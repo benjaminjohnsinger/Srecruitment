@@ -335,6 +335,7 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, import_multip
         with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
             opt = pickle.load(f)
     else:
+        print("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
         try:
             with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
                 opt = pickle.load(f)

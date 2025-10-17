@@ -19,13 +19,59 @@ from matplotlib import cm as colormaps
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 
-x = [0.001,0.1,0.1,0.5
-,0.2,0.3,0.5,0.3
-,0.9,0.5,0.4,0.8,0.7,0.8,0.1
-,1e-03,1e-03,3e-03,26e-04,1e-04,3e-04,4e-03]
+# load contact matrix
+CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
+print(np.sum(CONTACT_MATRIX,axis=1), np.mean(np.sum(CONTACT_MATRIX,axis=1)), np.std(np.sum(CONTACT_MATRIX,axis=1)))
+print(np.sum(CONTACT_MATRIX,axis=0), np.mean(np.sum(CONTACT_MATRIX,axis=0)), np.std(np.sum(CONTACT_MATRIX,axis=0)))
 
-params = x_to_params(x,"test","FlexStepwise","NA","flexage")
 
+# true_x = jnp.array([0.001,0.1,0.1,0.5
+# ,0.1,0.5,0.6,0.5
+# ,0.9,0.5,0.4,0.8,0.7,0.8,0.1
+# ,2e-03,1e-03,3e-03,2e-04,1e-04,3e-04,4e-03])
+
+# xs_DE = jnp.array([
+# [1.76057553e-03,1.17780975e-01,4.07605321e-03,3.26722370e-01
+# ,1.06813239e-01,5.57069377e-01,6.91879892e-01,5.69055777e-01
+# ,5.26365486e-01,6.10660436e-01,4.14257131e-01,7.12898822e-01
+# ,8.55832577e-01,5.19839512e-01,5.56835345e-01,2.84376252e-03
+# ,1.82065515e-03,3.93473780e-03,1.85154383e-04,1.27618716e-04
+# ,3.51718381e-04,2.47349633e-03],
+# [6.83127799e-03,1.05864673e-01,9.97903176e-01,3.08251207e-01
+# ,1.61640121e-01,4.98191875e-01,4.12853539e-01,5.08699173e-01
+# ,4.99094547e-01,9.95583026e-01,7.14144574e-02,5.21733782e-01
+# ,6.34643767e-01,4.00957973e-01,8.61960620e-01,2.90649503e-03
+# ,1.54652770e-03,4.30782555e-03,2.21694773e-04,1.47007922e-04
+# ,3.09139342e-04,3.00758805e-03],
+# [4.55167163e-03,1.18600089e-01,1.22988249e-02,3.22665793e-01
+# ,1.39954406e-01,2.61713622e-01,3.69055668e-01,6.42740530e-01
+# ,5.56942961e-01,5.76848439e-01,6.18110596e-01,6.56133448e-01
+# ,9.13199875e-01,9.60489560e-01,4.96523258e-01,1.48297529e-03
+# ,1.44148353e-03,3.87272222e-03,1.83714395e-04,1.26432119e-04
+# ,3.42741749e-04,3.58607730e-03],
+# [4.42537348e-03,1.27010165e-01,1.33153722e-02,3.43548237e-01
+# ,1.27856342e-01,4.26468374e-01,2.14870471e-01,5.86467576e-01
+# ,8.40991142e-01,8.12799479e-01,9.98761920e-02,8.43456209e-01
+# ,6.28944815e-01,4.03907605e-01,6.48113414e-01,2.56957711e-03
+# ,1.94272692e-03,3.72828664e-03,1.63209256e-04,1.58180902e-04
+# ,2.93373514e-04,3.89342810e-03]])
+
+# # mean root sum of squares error
+# rsses = [jnp.sqrt(jnp.sum((x-true_x)**2)) for x in xs_DE]
+# print(rsses, np.mean(rsses), np.std(rsses))
+
+# # plot boxplots of each parameter
+# fig, ax = plt.subplots(1,1,figsize=(10,6))
+# ax.boxplot(xs_DE,positions=jnp.arange(len(true_x)),showfliers=False)
+# ax.scatter(jnp.arange(len(true_x)),true_x,color='red',label='True Value')
+# ax.set_yscale('log')
+# ax.set_xticks(jnp.arange(len(true_x)))
+# ax.set_xticklabels([f'x{i}' for i in range(1,len(true_x)+1)])
+# ax.set_ylabel('Parameter Value (log scale)')
+# ax.set_title('Parameter Estimates from Differential Evolution')
+# plt.legend()
+# plt.tight_layout()
+# plt.savefig('Figures/DE_tests_boxplot.png',dpi=300)
 
 # fig, ax = plt.subplots(3,2)
 # vax_opt = np.loadtxt('Data/Processed/KPSC_vaccination_rate_ages_monthly_optimized_unshift.csv',delimiter=',')
