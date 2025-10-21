@@ -352,25 +352,24 @@ if __name__ == "__main__":
     from matplotlib.patches import Patch
     print(jax.local_device_count())
     start = time.time()
-    pathogen="test"
-    for seed in [251015, 2510152, 2510153, 2510154]:
-        print(pathogen, time.time()-start)
-        mcmc = fit_MCMC(pathogen, "FlexStepwise", "NA", "flexage", seed, import_multiplier=1e-9, samples=2000, varlim="pathogen")
-        mcmc.print_summary()
-        # save samples
-        posterior_samples = mcmc.get_samples()
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwiseNAflexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "wb") as f:
-            pickle.dump(posterior_samples, f)
-        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_mass.pickle", "rb") as f:
-        #     posterior_samples = pickle.load(f)
+    seed = 2507092
+    for pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
+        # print(pathogen, time.time()-start)
+        # mcmc = fit_MCMC(pathogen, "FlexStepwise", "NA", "flexage", seed, import_multiplier=1e-9, samples=2000, varlim="pathogen")
+        # mcmc.print_summary()
+        # # save samples
+        # posterior_samples = mcmc.get_samples()
+        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwiseNAflexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "wb") as f:
+        #     pickle.dump(posterior_samples, f)
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_mass.pickle", "rb") as f:
+            posterior_samples = pickle.load(f)
         param_samples = posterior_samples['params']
-        params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", "NA", "flexage", seed)
+        params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", "0.005", "flexage", seed)
         # plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
         # prior_dist, prior_means = prior_distribution(f"Data/Processed/DE_outputs/DE_{pathogen}FlexStepwise0.005flexage250709_sorted.csv",
         #     bounds, n=1000, dist_type="multilog", varlim = "pathogen", pathogen=pathogen)
         # param_samples = prior_dist.sample(jax.random.PRNGKey(0), sample_shape=(1000,))
         # plot histograms of each parameter
-        sns.set_style("whitegrid")
         n = param_samples.shape[1]//2 + param_samples.shape[1]%2
         n_ds = 6 + ("Influenza" in pathogen) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
         bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
@@ -385,20 +384,20 @@ if __name__ == "__main__":
         # plt.tight_layout()
         # plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+"_sp100_mass.png", dpi=300)
         # plt.close()
-        fig, axes = plt.subplots(figsize=(13.3,7.5))
-        # axes = axes.flatten()
-        plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=axes, age=False, monthly=True, noisy=False)
+        fig, axes = plt.subplots(3,3,figsize=(13.3,7.5))
+        axes = axes.flatten()
+        plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=axes, age=True, monthly=True, noisy=False)
         ## title axes
-        # age_names = ["<3m", "3–11m", "1–4y", "5–17y", "18–39y", "40–64y", "<=65y"]
-        # for i in range(7):
-        #     axes[i].set_title(f'{age_names[i]}')
-            # custom legend, simulations and observed cases
+        age_names = ["<3m", "3–11m", "1–4y", "5–17y", "18–39y", "40–64y", "<=65y"]
+        for i in range(7):
+            axes[i].set_title(f'{age_names[i]}')
 
         # plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=False, ax=ax)
         # plt.xlabel('Days since 1970-01-01')
         # plt.ylabel('Number of Cases')
         # plt.title(f'Posterior Predictive Trajectories for {pathogen}')
         # plt.legend()
+        plt.suptitle(f'Posterior Predictive Trajectories for {pathogen} (Monthly Cases)', fontsize=16)
         plt.tight_layout()
         plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+str(seed)+"_sp100_mass_monthly.png", dpi=300)
 

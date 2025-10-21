@@ -21,10 +21,7 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 
 # load contact matrix
 CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
-print(np.sum(CONTACT_MATRIX,axis=1), np.mean(np.sum(CONTACT_MATRIX,axis=1)), np.std(np.sum(CONTACT_MATRIX,axis=1)))
-print(np.sum(CONTACT_MATRIX,axis=0), np.mean(np.sum(CONTACT_MATRIX,axis=0)), np.std(np.sum(CONTACT_MATRIX,axis=0)))
-
-
+print(np.sum(CONTACT_MATRIX,axis=0))
 # true_x = jnp.array([0.001,0.1,0.1,0.5
 # ,0.1,0.5,0.6,0.5
 # ,0.9,0.5,0.4,0.8,0.7,0.8,0.1

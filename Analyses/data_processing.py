@@ -378,11 +378,7 @@ gastroenteritis_hospitalizations = hospitalizations[hospitalizations["dxgroup"] 
 matching_tests = respiratory_hospitalizations.merge(matching_tests[["StudyID","Date","pathogen","lab_type","lab_days","result_val"]],on="StudyID",how="left")
 # # # rename columns
 matching_tests = matching_tests.rename(columns={"Date_x":"Hospitalization date","Date_y":"Test date"})
-from plotting import pathogen_names
-# reverse pathogen names dictionary
-pathogen_names = [{v:k for v in values} for k,values in pathogen_names.items()]
-# combine all pathogen names into a single dictionary
-pathogen_names = {k:v for d in pathogen_names for k,v in d.items()}
+from plotting import reverse_names as pathogen_names
 # replace subtyped or detailed pathogen names with main pathogen name
 matching_tests["pathogen"] = matching_tests["pathogen"].replace(pathogen_names)
 print(matching_tests["pathogen"].value_counts())
