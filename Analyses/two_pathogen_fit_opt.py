@@ -28,7 +28,7 @@ lockdown = "FlexStepwise"
 jnp.random.seed(seed)
 
 start_date = '2015-07-04'
-end_date = '2023-10-01'
+end_date = '2025-05-01'
 
 EPOCH = pd.to_datetime('1970-01-01')
 START = pd.to_datetime(start_date) 

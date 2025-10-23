@@ -41,7 +41,7 @@ pathogen, seed, lockdown, option1, option2, import_cap = "RSV", 250514, "FlexSte
 jnp.random.seed(seed)
 
 start_date = '2015-07-04'
-end_date = '2023-10-01'
+end_date = '2025-05-01'
 # check if option1 is in date format with regex - if so, this gives non-standard start and end dates
 if re.match(r'\d{4}-\d{2}-\d{2}',option1):
     start_date = option1

@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
     term = ODETerm(deltas)
     solver = Dopri5()
-    saveat = SaveAt(ts=jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2023-10-01')))
+    saveat = SaveAt(ts=jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2025-05-01')))
     step_controller = PIDController(rtol=1e-5, atol=1e-5)
     print("Starting Diffrax solve...")
     time0 = time.time()
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     from fit_MCMC import SIS_likelihood
     incidence = np.asarray(pd.read_csv("Data/Processed/KPSC_cleaned_RSV_incidence_age_daily.csv",index_col=0))
     p_time_to_obs = np.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-    POINTS = jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2023-10-01'))
+    POINTS = jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2025-05-01'))
     likelihood = SIS_likelihood(incidence, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False)
     print(likelihood)
 

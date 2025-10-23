@@ -63,7 +63,7 @@ params = (AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
             BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
             REC_UP, REC_SAME, IMPORT_STRENGTH)
 
-POINTS = jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2023-10-01'))
+POINTS = jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2025-05-01'))
 
 p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
 p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
@@ -81,7 +81,7 @@ from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 # define diffrax ODE term and solver
 term = ODETerm(deltas)
 solver = Dopri5()
-saveat = SaveAt(ts=jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2023-10-01')))
+saveat = SaveAt(ts=jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2025-05-01')))
 step_controller = PIDController(rtol=1e-5, atol=1e-5)
 
 import equinox
@@ -89,7 +89,7 @@ import equinox
 def trajectory(state0, params, term=term, solver=solver, saveat=saveat, step_controller=step_controller):
     solution = diffeqsolve(
                     term, solver,
-                    t0=0, t1=date_to_t('2023-10-01')-1, dt0=None, stepsize_controller=step_controller,
+                    t0=0, t1=date_to_t('2025-05-01')-1, dt0=None, stepsize_controller=step_controller,
                     saveat=saveat, y0=state0.flatten(), args=params, 
                     max_steps=100000,  
                     )

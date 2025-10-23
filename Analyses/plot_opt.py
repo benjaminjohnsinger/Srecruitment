@@ -76,7 +76,7 @@ BIRTH_RATE = np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=',')
 age_pops = np.genfromtxt('Data/Processed/age_pops_daily.csv', delimiter=',')
 
 start_date = '2015-07-04'
-end_date = '2023-10-01'
+end_date = '2025-05-01'
 EPOCH = pd.to_datetime('1970-01-01')
 START = pd.to_datetime(start_date) 
 END = pd.to_datetime(end_date)
@@ -99,7 +99,7 @@ from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 
 term = ODETerm(deltas)
 solver = Dopri5()
-saveat = SaveAt(ts=jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2023-10-01')))
+saveat = SaveAt(ts=jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2025-05-01')))
 step_controller = PIDController(rtol=1e-5, atol=1e-5)
 print("Starting Diffrax solve...")
 time0 = time.time()
@@ -118,7 +118,7 @@ age_pops = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),1:],axis=0) fo
 # # apply poisson noise to values
 # new_cases = jnp.diff(values[-NAG:],axis=1).T
 # noisy_cases = np.random.poisson(lam=jnp.maximum(new_cases,0))
-# noisy_incidence = noisy_cases/age_pops[np.argmax(POINTS>=date_to_t('2015-07-04')):np.argmax(POINTS>=date_to_t('2023-10-01'))]
+# noisy_incidence = noisy_cases/age_pops[np.argmax(POINTS>=date_to_t('2015-07-04')):np.argmax(POINTS>=date_to_t('2025-05-01'))]
 # noisy_cases = noisy_cases.astype(int)[-len(incidence):,:]
 # noisy_incidence = noisy_incidence[-len(incidence):,:]
 # cropped_period = PERIOD[-len(noisy_incidence):]
@@ -144,7 +144,7 @@ age_pops = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),1:],axis=0) fo
 print(SIS_likelihood(incidence, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, solution=solution))
 
 # # # for each season from the 2015/16 season onwards, sum the total number of infections
-# seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01']])
+# seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2025-05-01']])
 # season_infection_array = np.zeros((len(seasons)-1,3))
 # season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
 # for i in range(len(seasons)-1):

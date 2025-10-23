@@ -199,7 +199,7 @@ def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-
     def obs_convolution(x):
         return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
     @jax.jit
-    def trajectory(state0, params, term=ODETerm(deltas), solver=Dopri5(), step_controller=PIDController(rtol=1e-5, atol=1e-5), startdate='2015-10-01', enddate='2023-10-01'):
+    def trajectory(state0, params, term=ODETerm(deltas), solver=Dopri5(), step_controller=PIDController(rtol=1e-5, atol=1e-5), startdate='2015-10-01', enddate='2025-05-01'):
         saveat = SaveAt(ts=jnp.arange(date_to_t(startdate)-90, date_to_t(enddate)))
         solution = diffeqsolve(
                         term, solver,
@@ -229,7 +229,7 @@ def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-
             bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
     if "Influenza" in pathogen:
         if vax_preprocessor is None:
-            vax_preprocessor = FluRatePreprocessor(jnp.arange(0, date_to_t('2023-10-01')), age_pops, AGING_RATE)
+            vax_preprocessor = FluRatePreprocessor(jnp.arange(0, date_to_t('2025-05-01')), age_pops, AGING_RATE)
     def model(obs_cases=None):
         # sample parameters from prior
         sample = numpyro.sample("params", prior_dist)
@@ -273,8 +273,8 @@ if __name__ == "__main__":
         STATE0_shaped = STATE0_shaped.at[0,:].set(CENSUS_AGE_POP-1)
         STATE0_shaped = STATE0_shaped.at[1,:].set(1)
         STATE0 = jnp.concatenate((jnp.array([0]), STATE0_shaped.flatten()))
-        sim_params = jax.vmap(lambda x: x_to_params(x, pathogen, "FlexStepwise", "pathogen", "flexage", vax_preprocessor=FluRatePreprocessor(jnp.arange(0, date_to_t('2023-10-01')), age_pops, AGING_RATE), fixed_params=params, import_multiplier=1e-9))(posterior_samples_params)
-        likelihoods = jax.vmap(lambda p: SIS_likelihood(incidence, p, jnp.arange(date_to_t('2015-07-03'), date_to_t('2023-10-01')), STATE0, p_time_to_obs, age=True, incidence=True))(sim_params)
+        sim_params = jax.vmap(lambda x: x_to_params(x, pathogen, "FlexStepwise", "pathogen", "flexage", vax_preprocessor=FluRatePreprocessor(jnp.arange(0, date_to_t('2025-05-01')), age_pops, AGING_RATE), fixed_params=params, import_multiplier=1e-9))(posterior_samples_params)
+        likelihoods = jax.vmap(lambda p: SIS_likelihood(incidence, p, jnp.arange(date_to_t('2015-07-03'), date_to_t('2025-05-01')), STATE0, p_time_to_obs, age=True, incidence=True))(sim_params)
         likelihoods = jnp.array(likelihoods)
         for i in range(n):
             for j in range(2):
@@ -295,7 +295,7 @@ if __name__ == "__main__":
         def obs_convolution(x):
             return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
         @jax.jit
-        def trajectory(state0, params, term=ODETerm(deltas), solver=Dopri5(), step_controller=PIDController(rtol=1e-5, atol=1e-5), startdate='2015-10-01', enddate='2023-10-01'):
+        def trajectory(state0, params, term=ODETerm(deltas), solver=Dopri5(), step_controller=PIDController(rtol=1e-5, atol=1e-5), startdate='2015-10-01', enddate='2025-05-01'):
             saveat = SaveAt(ts=jnp.arange(date_to_t(startdate)-90, date_to_t(enddate)))
             solution = diffeqsolve(
                             term, solver,
@@ -314,7 +314,7 @@ if __name__ == "__main__":
         STATE0_shaped = STATE0_shaped.at[1,:].set(1)
         STATE0 = jnp.concatenate((jnp.array([0]), STATE0_shaped.flatten()))
         transformed_samples = jnp.exp(posterior_samples_params) + restricted_bounds[:,0]
-        sim_params = jax.vmap(lambda x: x_to_params(x, pathogen, "FlexStepwise", "pathogen", "flexage", vax_preprocessor=FluRatePreprocessor(jnp.arange(0, date_to_t('2023-10-01')), age_pops, AGING_RATE), fixed_params=params, import_multiplier=1e-9))(transformed_samples)
+        sim_params = jax.vmap(lambda x: x_to_params(x, pathogen, "FlexStepwise", "pathogen", "flexage", vax_preprocessor=FluRatePreprocessor(jnp.arange(0, date_to_t('2025-05-01')), age_pops, AGING_RATE), fixed_params=params, import_multiplier=1e-9))(transformed_samples)
         trajectories = jax.vmap(lambda p: trajectory(STATE0, p)) (sim_params)
         if noisy:
             trajectories = sp.stats.poisson.rvs(trajectories)

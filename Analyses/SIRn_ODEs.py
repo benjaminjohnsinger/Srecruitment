@@ -110,10 +110,10 @@ if __name__ == "__main__":
     import pandas as pd
     result = solve_ivp(
         single_pathogen_deltas,
-        (date_to_t('1970-01-01'), date_to_t('2023-10-01')),
+        (date_to_t('1970-01-01'), date_to_t('2025-05-01')),
         STATE0,
         args=params.values(),
-        t_eval=jnp.array(date_to_t(pd.date_range(pd.to_datetime('2015-10-01'), pd.to_datetime('2023-10-01'), freq='D'))),
+        t_eval=jnp.array(date_to_t(pd.date_range(pd.to_datetime('2015-10-01'), pd.to_datetime('2025-05-01'), freq='D'))),
         method='RK45'
     )
     print(result)

@@ -231,7 +231,7 @@ plt.savefig('Figures/KPSC_cleaned_slide_age_daily_lumped.png',dpi=300)
 # # ## Period of simulation
 # # EPOCH = pd.to_datetime('1970-01-01')
 # # START = pd.to_datetime('2015-08-01')
-# # END = pd.to_datetime('2023-10-01')
+# # END = pd.to_datetime('2025-05-01')
 # # PERIOD = pd.date_range(start=START, end=END, freq='D')
 
 # # ## Contacts and force of infection

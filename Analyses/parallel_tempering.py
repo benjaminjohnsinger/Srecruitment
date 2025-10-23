@@ -138,7 +138,7 @@ params, p_time_to_obs, incidence = pathogen_parameters(pathogen, lockdown)
 N_S, NAG = params["N_S"], params["NAG"]
 
 START = pd.to_datetime('2015-07-04') 
-END = pd.to_datetime('2023-10-01')
+END = pd.to_datetime('2025-05-01')
 PERIOD = pd.date_range(start=START, end=END, freq='D')
 POINTS = jnp.array(date_to_t(PERIOD))
 incidence.index = pd.to_datetime(incidence.index)
