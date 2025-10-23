@@ -444,7 +444,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv')
         if incidence:
             # load age population data
-            age_by_year = pd.read_csv("Data/Processed/KPSC_population_by_age.csv")
+            age_by_year = pd.read_csv("Data/Processed/KPSC_population_by_age_split.csv")
             # age_by_year = pd.DataFrame(np.tile(np.array([1,]),(8,1)))
             if AGE_GROUPS is not None:
                 age_by_year.columns = AGE_GROUP_NAMES
@@ -595,39 +595,39 @@ if __name__ == "__main__":
     from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
     fig,ax = plt.subplots(3,2,figsize=(13.3,7.5), sharex=True)
     kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA"
-    ,AGE_GROUPS=None
+    ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
-    color="k"
+    ,incidence=True,aggregation="Month",legend=True,
+    # color="k"
     )
     kpsc_positive_test_plot(ax[1,0],pathogen="RSV"
-    ,AGE_GROUPS=None
+    ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
-    color="k"
+    ,incidence=True,aggregation="Month",legend=False,
+    # color="k"
     )
     kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus"
-    ,AGE_GROUPS=None
+    ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
-    color="k"
+    ,incidence=True,aggregation="Month",legend=False,
+    # color="k"
     )
     kpsc_positive_test_plot(ax[0,1],pathogen="InfluenzaB"
-    ,AGE_GROUPS=None
+    ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
-    color="k"
+    ,incidence=True,aggregation="Month",legend=False,
+    # color="k"
     )
     kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus"
-    ,AGE_GROUPS=None
+    ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
-    color="k"
+    ,incidence=True,aggregation="Month",legend=False,
+    # color="k"
     )
     kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3"
-    ,AGE_GROUPS=None
+    ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
-    color="k"
+    ,incidence=True,aggregation="Month",legend=False,
+    # color="k"
     )
-    plt.savefig("Figures/KPSC_ARI_extended_noage.png",dpi=300)
+    plt.savefig("Figures/KPSC_ARI_extended.png",dpi=300)
