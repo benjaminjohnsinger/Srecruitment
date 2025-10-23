@@ -100,16 +100,49 @@ from Parameters.census_population import CENSUS_AGE_POP
 from vaccination import birth_vax
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 import scipy as sp
-def ACOV(t, x1, x2, x3):
-    return 0.0
-def BCOV(t):
-    return 0.0
-params = {'NAG': 7, 'N_S': 1, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_RATE, 'WANE': np.zeros(1), 'REC_UP': np.zeros(1), 'REC_SAME': np.zeros(1), 'S_REL': np.zeros(1), 'S_AGE': np.zeros(7), 'I_REL': np.zeros((1,1)), 'P_OBS': np.zeros(1), 'birth_vax': birth_vax, 'S_VAX': 0, 'ACOV': ACOV, 'BCOV': BCOV,
-'arrivals': lambda t: 0.0, 'regional_positivity': lambda t: 0.0, 'IMPORT_RATE': 0, 'BETA': 0, 'SEASONALITY': 0, 'OFFSET': 0,
-'contact': lambda t, x1, x2: np.eye(7)}
-STATE0 = np.zeros((2+2)*7)
-STATE0[7:14] = CENSUS_AGE_POP
-result = sp.integrate.solve_ivp(sis_deltas,(FULL_POINTS[0],FULL_POINTS[-1]),STATE0,args=params.values(),t_eval=FULL_POINTS,method='RK45')
-age_pops = np.sum(result.y.reshape(((2+2),7,len(result.t))),axis=0).T
+# def ACOV(t, x1, x2, x3):
+#     return 0.0
+# def BCOV(t):
+#     return 0.0
+# params = {'NAG': 7, 'N_S': 1, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': BIRTH_RATE, 'WANE': np.zeros(1), 'REC_UP': np.zeros(1), 'REC_SAME': np.zeros(1), 'S_REL': np.zeros(1), 'S_AGE': np.zeros(7), 'I_REL': np.zeros((1,1)), 'P_OBS': np.zeros(1), 'birth_vax': birth_vax, 'S_VAX': 0, 'ACOV': ACOV, 'BCOV': BCOV,
+# 'arrivals': lambda t: 0.0, 'regional_positivity': lambda t: 0.0, 'IMPORT_RATE': 0, 'BETA': 0, 'SEASONALITY': 0, 'OFFSET': 0,
+# 'contact': lambda t, x1, x2: np.eye(7)}
+# STATE0 = np.zeros((2+2)*7)
+# STATE0[7:14] = CENSUS_AGE_POP
+from fit_MCMC import run_simulation
+from utils import x_to_params
+import jax.numpy as jnp
+# params = x_to_params(0.001*np.ones(17),"test","Mobility","NA","flexage", import_multiplier=0)
+CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
+BETA = 0
+WANE = np.zeros(3)
+S_REL = np.ones(3)
+P_OBS = np.ones(3)
+OBS_AGE = np.ones(7)
+RELATIVE_CONTACT = np.ones(FULL_POINTS.shape[0])
+VAX_RATE = np.zeros((FULL_POINTS.shape[0],7))
+MATERNAL_IMMUNITY = 0
+REC_UP = np.zeros(3)
+REC_SAME = np.zeros(3)
+IMPORT_STRENGTH = np.zeros(FULL_POINTS.shape[0])
+params = (AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
+            BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
+            REC_UP, REC_SAME, IMPORT_STRENGTH)
+
+STATE0 = jnp.zeros((2*3+1,7))
+STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP)
+STATE0 = STATE0.flatten()
+STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+
+joints = jnp.array(FULL_POINTS)
+values = run_simulation(params, STATE0, joints[-1], joints)
+age_pops = np.array([jnp.sum(values[range(1+i,3*2*7,7),:],axis=0) for i in range(7)]).T
 
 np.savetxt("Data/Processed/age_pops_daily.csv", age_pops, delimiter=",")
+
+
+import matplotlib.pyplot as plt
+from plotting import hsv_colors
+for i in range(7):
+    plt.plot(FULL_POINTS[16500:], age_pops[16500:,i], color=hsv_colors[i], label=f'Age group {i}')
+plt.savefig("Figures/age_pops_daily.pdf")

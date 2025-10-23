@@ -212,8 +212,8 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9):
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_cleaned_Adenovirus_incidence_age_daily.csv",index_col=0))
     elif pathogen == 'Metapneumovirus':
-        REC_UP = jnp.array([1/3.0,1/3.0,0.0])
-        REC_SAME = jnp.array([0.0,0.0,1/3.0])
+        REC_UP = np.array([1/4.9,1/4.1,0.0]) # Recovery to higher susceptibility class - Okiro 2010
+        REC_SAME = np.array([0.0,0.0,1/4.1]) # Recovery to same susceptibility class - Okiro 2010
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Metapneumovirus_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_cleaned_Metapneumovirus_incidence_age_daily.csv",index_col=0))
@@ -242,12 +242,17 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
     FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
 
-    WANE = jnp.array([0.0,0.0,x[0]])
+    BETA = x[0]
     SEASONALITY = x[1]
     OFFSET = x[2]
-    BETA = x[3]
     MATERNAL_IMMUNITY = 0
     n = 4
+    if "wane" in option1:
+        WANE = jnp.array([0.0,x[n],x[n+1]])
+        n += 2
+    else:
+        WANE = jnp.array([0.0,0.0,x[n]])
+        n += 1
     if ("Influenza" in pathogen) and (option2 != 'nr'):
         srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
         S_REL = srel
@@ -265,7 +270,9 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         n += 1
     else:
         P_OBS = pobsrel
-    if option1 == "mimm":
+    if "maxmimm" in option1:
+        MATERNAL_IMMUNITY = 1
+    elif "mimm" in option1:
         MATERNAL_IMMUNITY = x[n]
         n += 1
     if 'pathogen' not in option1:
