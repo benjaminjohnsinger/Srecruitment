@@ -450,29 +450,24 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
                 age_by_year.columns = AGE_GROUP_NAMES
             age_by_year["Year"] = np.arange(2015,2023)
             age_by_year = age_by_year.set_index("Year")
-            # repeat last row for 2023
-            age_by_year.loc[2023] = age_by_year.loc[2022]
+            # repeat last row for 2023-2025
+            for year in range(2023,2026):
+                age_by_year.loc[year] = age_by_year.loc[2022]
         
         if hospitalizations:
-            positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations_cleaned.csv')
+            positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
         else:
             positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_all_clinical_cleaned.csv')
-        # print ARI codes not included in respiratory_codes
-        ari_codes = set(positive_tests[positive_tests['dxgroup']=="ARI"]["CODE"].unique())
-        resp_codes = set(respiratory_codes.columns)
-        # print sorted alphabetically
-        missing_codes = sorted(list(ari_codes - resp_codes))
-        print("Missing ARI codes in respiratory_codes:",missing_codes)
 
-        names = pathogen_names[pathogen]
         positive_tests["pathogen_class"] = positive_tests["pathogen"].map(reverse_names)
-        cases = positive_tests[(positive_tests['pathogen_class'] == pathogen) & (positive_tests['CODE'].isin(respiratory_codes.columns))]
+        cases = positive_tests[(positive_tests['pathogen_class'] == pathogen) & (positive_tests['dxgroup']=="ARI")]
         cases = cases.drop_duplicates(subset=cases.columns.difference(['CODE','dxgroup','pathogen']))
-        print(cases["CODE"].value_counts())
         if hospitalizations:
             cases["Date"] = pd.to_datetime(cases["Hospitalization date"])
         else:
             cases["Date"] = pd.to_datetime(cases["Clinical date"])
+        print(cases.columns)
+        print(cases["Date"].max())
         if aggregation is not None:
             cases["Year"] = cases["Date"].dt.year
             if aggregation == "Month":
@@ -491,7 +486,6 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
                 cases = cases.groupby(["Date"]).size().reset_index(name='Count')
             else:
                 cases = cases.groupby(["Year",aggregation]).size().reset_index(name='Count')
-
         if aggregation is None:
             frequency = "D"
         elif aggregation == "Month":
@@ -499,7 +493,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         elif aggregation == "Week":
             frequency = "W-MON"
 
-        for date in pd.date_range(start='2015-10-01',end='2023-10-01',freq=frequency):
+        for date in pd.date_range(start='2015-10-01',end='2025-05-01',freq=frequency):
             year = date.year
             if aggregation=="Month":
                 agg = date.month
@@ -564,9 +558,9 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
     else:
         ax.set_ylabel("Cases")
     if legend:
-        # set legend title to "Age groups"
-        ax.legend(title="Age groups")
-    ax.set_xlabel("Date")
+        # two column legend
+        ax.legend(ncol=2,title="Age groups")
+    # ax.set_xlabel("Date")
 
 ## plot cumulative cases in each age group in each season
 def season_sizes(cases):
@@ -598,47 +592,42 @@ def season_plot(ax,pathogen,incidence=False,relative=False):
         season_cumulative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
 
 if __name__ == "__main__":
-    fig,ax = plt.subplots(3,3,figsize=(13.3,7.5), sharex=True)
-    kpsc_positive_test_plot(ax[0,0],pathogen="RSV"
-    ,AGE_GROUPS=[range(0,3),]
-    ,AGE_GROUP_NAMES=["Newborns",]
-    ,incidence=False,aggregation="Month",
-    color=hsv_colors
+    from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
+    fig,ax = plt.subplots(3,2,figsize=(13.3,7.5), sharex=True)
+    kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA"
+    ,AGE_GROUPS=None
+    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=False,aggregation="Month",legend=False,
+    color="k"
     )
     kpsc_positive_test_plot(ax[1,0],pathogen="RSV"
-    ,AGE_GROUPS=[range(3,12),]
-    ,AGE_GROUP_NAMES=["Infants",]
-    ,incidence=False,aggregation="Month",legend=True,
-    color=hsv_colors
+    ,AGE_GROUPS=None
+    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=False,aggregation="Month",legend=False,
+    color="k"
     )
-    kpsc_positive_test_plot(ax[2,0],pathogen="RSV"
-    ,AGE_GROUPS=[range(12,60),]
-    ,AGE_GROUP_NAMES=["Young children",]
-    ,incidence=False,aggregation="Month",legend=True,
-    color=hsv_colors
+    kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus"
+    ,AGE_GROUPS=None
+    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=False,aggregation="Month",legend=False,
+    color="k"
     )
-    kpsc_positive_test_plot(ax[0,1],pathogen="RSV"
-    ,AGE_GROUPS=[range(5*12,8*12),]
-    ,AGE_GROUP_NAMES=["Older children",]
-    ,incidence=False,aggregation="Month",legend=True,
-    color=hsv_colors
+    kpsc_positive_test_plot(ax[0,1],pathogen="InfluenzaB"
+    ,AGE_GROUPS=None
+    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=False,aggregation="Month",legend=False,
+    color="k"
     )
-    kpsc_positive_test_plot(ax[1,1],pathogen="RSV"
-    ,AGE_GROUPS=[range(8*12,40*12),]
-    ,AGE_GROUP_NAMES=["Young adults",]
-    ,incidence=False,aggregation="Month",legend=True,
-    color=hsv_colors
+    kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus"
+    ,AGE_GROUPS=None
+    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=False,aggregation="Month",legend=False,
+    color="k"
     )
-    kpsc_positive_test_plot(ax[2,1],pathogen="RSV"
-    ,AGE_GROUPS=[range(40*12,65*12),]
-    ,AGE_GROUP_NAMES=["Middle-aged adults",]
-    ,incidence=False,aggregation="Month",legend=True,
-    color=hsv_colors
+    kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3"
+    ,AGE_GROUPS=None
+    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=False,aggregation="Month",legend=False,
+    color="k"
     )
-    kpsc_positive_test_plot(ax[0,2],pathogen="RSV"
-    ,AGE_GROUPS=[range(65*12,120*12),]
-    ,AGE_GROUP_NAMES=["Elderly",]
-    ,incidence=False,aggregation="Month",legend=True,
-    color=hsv_colors
-    )
-    plt.savefig("Figures/KPSC_RSV_preARI.png",dpi=300)
+    plt.savefig("Figures/KPSC_ARI_extended_noage.png",dpi=300)
