@@ -201,7 +201,7 @@ import time
 # for row,pathogen in enumerate(["RSV","Influenza_A","Influenza_B","Metapneumovirus","Adenovirus","Parainfluenza 3"]):
 #     for col,typ in enumerate([[False,False],[False,True],[True,True]]):
 #         season_plot(axes[row,col],pathogen,typ[0],typ[1])
-# axes[5,1].set_xticks(range(8),[year for year in range(2015,2023)])
+# axes[5,1].set_xticks(range(8),[year for year in range(2015,2025)])
 # for i in range(6):
 #     for j in range(1,3):
 #         axes[i,j].set_yticks([],[])
@@ -505,7 +505,7 @@ positive_tests.to_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv
 # # shows that KPSC_positive_matched_hospitalizations_cleaned.csv has already been cleaned
 
 ## Separating out individual pathogen data from positive matched hospitalizations
-# AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-17y','18-39y','40-64y','>=65y']
+# AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-7y','8-39y','40-64y','>=65y']
 # aggregation = None
 # fig, ax = plt.subplots()
 # for incidence in [False, True]:

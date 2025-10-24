@@ -89,7 +89,7 @@ plt.savefig('Figures/KPSC_cleaned_slide_age_daily_lumped.png',dpi=300)
 
 
 # start_date = '2015-07-04'
-# end_date = '2023-09-30'
+# end_date = '2025-04-30'
 # EPOCH = pd.to_datetime('1970-01-01')
 # START = pd.to_datetime(start_date) 
 # END = pd.to_datetime(end_date)
@@ -606,7 +606,7 @@ plt.savefig('Figures/KPSC_cleaned_slide_age_daily_lumped.png',dpi=300)
 # axes2 = axes[1].twinx()
 # # print([cm.google_prestige_work(point) for point in POINTS])
 # axes2.plot(POINTS,[cm.piecewise(point,Ts,Fs) for point in POINTS],color='black',linestyle='--',label='Google workplace mobility')
-# axes[1].legend(axes[1].lines,['<1y','1-4y','5-17y','18-39y','40-64y','>=65y'],loc='upper left',title='Age group')
+# axes[1].legend(axes[1].lines,['<1y','1-4y','5-7y','8-39y','40-64y','>=65y'],loc='upper left',title='Age group')
 # # axes[1].vlines(18952,0,mx,linestyle=':',color='black')
 # axes[1].set_xlim(POINTS[0],POINTS[-1])
 # @jit
@@ -620,7 +620,7 @@ plt.savefig('Figures/KPSC_cleaned_slide_age_daily_lumped.png',dpi=300)
 # axes[2].set_ylabel('Simulated incidence per 10k')
 # axes3 = axes[2].twinx()
 # axes3.plot(POINTS,[cm.google_prestige_work(point) for point in POINTS],color='black',linestyle='--',label='Google workplace mobility')
-# # axes[2].legend(axes[2].lines,['<1y','1-4y','5-17y','18-39y','40-64y','>=65y'],loc='upper left',title='Age group')   
+# # axes[2].legend(axes[2].lines,['<1y','1-4y','5-7y','8-39y','40-64y','>=65y'],loc='upper left',title='Age group')   
 # axes[2].set_xlim(POINTS[0],POINTS[-1])
 # plt.tight_layout()
 # # plt.savefig('Figures/8param_fit_test.png',dpi=300)

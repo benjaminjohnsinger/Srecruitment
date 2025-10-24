@@ -89,13 +89,13 @@ bounds = jnp.array(list(bounds_dict.values()))
 
 def likelihood(x):
     sim_params = x_to_params(x, pathogen, lockdown, option1, option2)
-    try:
-        lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True,overdispersion=False)
-    except Exception as e: # Catch the specific exception
-        worker_pid = os.getpid()
-        print(f"!!! ERROR in worker {worker_pid} with params {x}")
-        print(f"Error details: {e}")
-        return 1e10
+    # try:
+    lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True,overdispersion=False)
+    # except Exception as e: # Catch the specific exception
+    #     worker_pid = os.getpid()
+    #     print(f"!!! ERROR in worker {worker_pid} with params {x}")
+    #     print(f"Error details: {e}")
+    #     return 1e10
     printstr = str(lh) + "," + pathogen + "," + lockdown + "," + str(seed) + "," + ",".join([str(value) for value in x])
     print(printstr, flush=True)
     return lh
@@ -105,7 +105,8 @@ if __name__ == '__main__':
     # printstr = "neg_log_likelihood,pathogen,seed," + ",".join([key for key in bounds_dict.keys()])
     # print(printstr)
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",seed=seed,
-    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    workers=4)
+    # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
     with open("Data/Processed/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)

@@ -25,7 +25,7 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 # '#ff0000', '#ffb700', '#6cff00', '#00ffc0', '#00bbff', '#1900ff', '#f300ff'
 
 ##### Simple line plots #####
-def lockdown_incidence_plot(ax,state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2023-09-30'),factor=1,p_time_to_obs=[1]):
+def lockdown_incidence_plot(ax,state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'),factor=1,p_time_to_obs=[1]):
     NAG, N_S = 7, 3
     AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
     BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
@@ -597,37 +597,37 @@ if __name__ == "__main__":
     kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=True,
+    ,incidence=True,aggregation=None,legend=True,
     save_data=True,load_data=False
     )
     kpsc_positive_test_plot(ax[1,0],pathogen="RSV"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=False,
+    ,incidence=True,aggregation=None,legend=False,
     save_data=True,load_data=False
     )
     kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=False,
+    ,incidence=True,aggregation=None,legend=False,
     save_data=True,load_data=False
     )
     kpsc_positive_test_plot(ax[0,1],pathogen="InfluenzaB"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=False,
+    ,incidence=True,aggregation=None,legend=False,
     save_data=True,load_data=False
     )
     kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=False,
+    ,incidence=True,aggregation=None,legend=False,
     save_data=True,load_data=False
     )
     kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=False,
+    ,incidence=True,aggregation=None,legend=False,
     save_data=True,load_data=False
     )
-    plt.savefig("Figures/KPSC_ARI_extended.png",dpi=300)
+    plt.savefig("Figures/KPSC_ARI_extended_daily.png",dpi=300)

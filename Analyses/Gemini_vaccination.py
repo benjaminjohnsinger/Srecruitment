@@ -9,7 +9,7 @@ import time
 
 # This setup is the same as your original code
 VAX_FLU = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv', index_col=0)
-VAX_FLU = VAX_FLU[['<3m', '3-11m', '1-4y', '5-17y', '18-39y', '40-64y', '>=65y']]
+VAX_FLU = VAX_FLU[['<3m', '3-11m', '1-4y', '5-7y', '8-39y', '40-64y', '>=65y']]
 VAX_FLU.index = pd.to_datetime(VAX_FLU.index, format='%Y-%m')
 VAX_FLU.index = (VAX_FLU.index - pd.to_datetime('1970-01-01')).days
 KPSC_RATIO = 0.455 / 0.5793469238813651
@@ -17,8 +17,8 @@ VAX_FLU_ADJUSTED = VAX_FLU * KPSC_RATIO
 VAX_FLU_IDX = jnp.array(VAX_FLU_ADJUSTED.index)
 VAX_FLU_NP = jnp.array(VAX_FLU_ADJUSTED)
 
-EFF = (1/100) * jnp.array([37, 61, 51, 44, 39, 53, 7, 52, 19, 33, 25, 34, 37, 32, 23, 41, 37])
-EFF_IDX = jnp.array([(pd.to_datetime('2008-10-01') + pd.DateOffset(years=i) - pd.to_datetime('1970-01-01')).days for i in range(17)])
+EFF = (1/100) * jnp.array([37, 61, 51, 44, 39, 53, 7, 52, 19, 33, 25, 34, 37, 32, 23, 35, 37, 37]) # VE in 18-49yo (or age group containing this range) from studies that went into Data/Raw/vaccine-effectiveness-chart-2024.xlsx, with missing data filled in with mean (37)
+EFF_IDX = jnp.array([(pd.to_datetime('2008-10-01') + pd.DateOffset(years=i) - pd.to_datetime('1970-01-01')).days for i in range(18)])
 
 # --- Step 1: Vectorized helper function for vaccine coverage ---
 
@@ -39,7 +39,7 @@ def flu_eff_coverage_vectorized(t_arr, max_eff, eff_cap=True):
 
     # Define time boundaries
     time_2015_start = 16709  # Days from 1970-01-01 to 2015-10-01
-    time_2022_end = 19266    # Days from 1970-01-01 to 2022-10-01
+    time_2024_end = 19997    # Days from 1970-01-01 to 2025-10-01
 
     # --- Logic for times before the main data range ---
     day_in_season_pre = (t_arr - time_2015_start) % 365
@@ -48,9 +48,9 @@ def flu_eff_coverage_vectorized(t_arr, max_eff, eff_cap=True):
     coverage_pre = adj_eff[:, None] * VAX_FLU_NP[vax_indices_pre]
 
     # --- Logic for times after the main data range ---
-    day_in_season_post = (t_arr - time_2022_end) % 365
-    time_in_2022_season = time_2022_end + day_in_season_post
-    vax_indices_post = jnp.searchsorted(VAX_FLU_IDX, time_in_2022_season)
+    day_in_season_post = (t_arr - time_2024_end) % 365
+    time_in_2024_season = time_2024_end + day_in_season_post
+    vax_indices_post = jnp.searchsorted(VAX_FLU_IDX, time_in_2024_season)
     coverage_post = adj_eff[:, None] * VAX_FLU_NP[vax_indices_post]
 
     # --- Logic for times within the main data range ---
@@ -59,7 +59,7 @@ def flu_eff_coverage_vectorized(t_arr, max_eff, eff_cap=True):
 
     # Combine results using jnp.where for conditional logic
     coverage = jnp.where(t_arr[:, None] < time_2015_start, coverage_pre, coverage_mid)
-    coverage = jnp.where(t_arr[:, None] > time_2022_end, coverage_post, coverage)
+    coverage = jnp.where(t_arr[:, None] > time_2024_end, coverage_post, coverage)
 
     return coverage
 

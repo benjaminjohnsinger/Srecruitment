@@ -124,9 +124,9 @@ age_pops = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),1:],axis=0) fo
 # cropped_period = PERIOD[-len(noisy_incidence):]
 # # # save to "Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", with date (from times) as first column
 # # np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_incidence)), delimiter=",", fmt="%s")
-# # save to "Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", with date (from times) as first column, and header "Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y"
-# np.savetxt("Data/Processed/KPSC_cleaned_test_cases_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_cases)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
-# np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_incidence)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
+# # save to "Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", with date (from times) as first column, and header "Date,<3m,3-11m,1-4y,5-7y,8-39y,40-64y,>=65y"
+# np.savetxt("Data/Processed/KPSC_cleaned_test_cases_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_cases)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-7y,8-39y,40-64y,>=65y", comments='')
+# np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_daily.csv", np.column_stack((cropped_period.astype(str), noisy_incidence)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-7y,8-39y,40-64y,>=65y", comments='')
 
 # # monthly aggreagated version
 # monthly_noisy_cases = np.zeros((len(pd.date_range(start=cropped_period[0], end=cropped_period[-1], freq='M')),NAG))
@@ -137,9 +137,9 @@ age_pops = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),1:],axis=0) fo
 #     monthly_noisy_cases[i,:] = np.sum(noisy_cases[mask,:], axis=0)
 #     monthly_age_pops[i,:] = np.mean(age_pops[np.argmax(POINTS>=date_to_t(month_start)):np.argmax(POINTS>=date_to_t(month_end))+1,:], axis=0)
 # monthly_noisy_incidence = monthly_noisy_cases/monthly_age_pops
-# # save to "Data/Processed/KPSC_cleaned_test_incidence_age_monthly.csv", with date (from times) as first column, and header "Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y"
-# np.savetxt("Data/Processed/KPSC_cleaned_test_cases_age_monthly.csv", np.column_stack((pd.date_range(start=cropped_period[0], end=cropped_period[-1], freq='M').astype(str), monthly_noisy_cases)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
-# np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_monthly.csv", np.column_stack((pd.date_range(start=cropped_period[0], end=cropped_period[-1], freq='M').astype(str), monthly_noisy_incidence)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-17y,18-39y,40-64y,>=65y", comments='')
+# # save to "Data/Processed/KPSC_cleaned_test_incidence_age_monthly.csv", with date (from times) as first column, and header "Date,<3m,3-11m,1-4y,5-7y,8-39y,40-64y,>=65y"
+# np.savetxt("Data/Processed/KPSC_cleaned_test_cases_age_monthly.csv", np.column_stack((pd.date_range(start=cropped_period[0], end=cropped_period[-1], freq='M').astype(str), monthly_noisy_cases)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-7y,8-39y,40-64y,>=65y", comments='')
+# np.savetxt("Data/Processed/KPSC_cleaned_test_incidence_age_monthly.csv", np.column_stack((pd.date_range(start=cropped_period[0], end=cropped_period[-1], freq='M').astype(str), monthly_noisy_incidence)), delimiter=",", fmt="%s", header="Date,<3m,3-11m,1-4y,5-7y,8-39y,40-64y,>=65y", comments='')
 
 print(SIS_likelihood(incidence, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, solution=solution))
 

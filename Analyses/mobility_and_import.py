@@ -147,9 +147,9 @@ def arrivals(t, MONTHLY_ARRIVALS_NP=MONTHLY_ARRIVALS_NP, IDX=IDX):
     time_2006 = 13149 + day_in_season_2006
     arrivals_2006 = MONTHLY_ARRIVALS_NP[np.argmax(IDX >= time_2006)] / 30.44
     
-    day_in_season_2022 = (t - 19266) % 365
-    time_2022 = 19266 + day_in_season_2022
-    arrivals_2022 = MONTHLY_ARRIVALS_NP[np.argmax(IDX >= time_2022)] / 30.44
+    day_in_season_2024 = (t - 19997) % 365
+    time_2024 = 19997 + day_in_season_2024
+    arrivals_2024 = MONTHLY_ARRIVALS_NP[np.argmax(IDX >= time_2024)] / 30.44
     
     arrivals_normal = MONTHLY_ARRIVALS_NP[np.argmax(IDX >= t)] / 30.44
     
@@ -158,8 +158,8 @@ def arrivals(t, MONTHLY_ARRIVALS_NP=MONTHLY_ARRIVALS_NP, IDX=IDX):
         t < 13149,
         arrivals_2006,
         np.where(
-            t > 19266,
-            arrivals_2022,
+            t > 19997,
+            arrivals_2024,
             arrivals_normal
         )
     )
