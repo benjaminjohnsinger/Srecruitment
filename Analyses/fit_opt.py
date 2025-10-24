@@ -54,8 +54,10 @@ STATE0 = STATE0.at[1,:].set(1)
 STATE0 = STATE0.flatten()
 STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
+bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
 
+if "wane" in option1:
+    bounds_dict["WANE1"] = [0,1e-2]
 if option1 == "nb":
     bounds_dict["OVERDISPERSION"] = [-5,10]
 elif option1 == "maternal":
@@ -83,19 +85,19 @@ elif lockdown == "Mobility2":
     bounds_dict["CBASE"] = [0,1.5]
 
 # reorder bounds_dict to match order in x
-bounds_dict = {key: bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","DT1","DT2","DT3","F0","F1","F2","F3","F4","CBASE","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7"]\
+bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","DT1","DT2","DT3","F0","F1","F2","F3","F4","CBASE","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7"]\
     if key in bounds_dict.keys()}
 bounds = jnp.array(list(bounds_dict.values()))
 
 def likelihood(x):
     sim_params = x_to_params(x, pathogen, lockdown, option1, option2)
-    # try:
-    lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True,overdispersion=False)
-    # except Exception as e: # Catch the specific exception
-    #     worker_pid = os.getpid()
-    #     print(f"!!! ERROR in worker {worker_pid} with params {x}")
-    #     print(f"Error details: {e}")
-    #     return 1e10
+    try:
+        lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True,overdispersion=False)
+    except Exception as e: # Catch the specific exception
+        worker_pid = os.getpid()
+        print(f"!!! ERROR in worker {worker_pid} with params {x}")
+        print(f"Error details: {e}")
+        return 1e10
     printstr = str(lh) + "," + pathogen + "," + lockdown + "," + str(seed) + "," + ",".join([str(value) for value in x])
     print(printstr, flush=True)
     return lh
@@ -105,8 +107,7 @@ if __name__ == '__main__':
     # printstr = "neg_log_likelihood,pathogen,seed," + ",".join([key for key in bounds_dict.keys()])
     # print(printstr)
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",seed=seed,
-    workers=4)
-    # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
     with open("Data/Processed/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)

@@ -105,7 +105,7 @@ def scalars_to_params(scalar_values_dict, params, NAG=7, N_S=3, N_C=2):
     for name in scalar_values_dict.keys():
         if name in ["NAG","N_S","BIRTH_RATE","S_VAX","ACOV","BCOV","T_VAX","IMPORT_RATE","BETA","SEASONALITY","OFFSET"]:
             params[name] = scalar_values_dict[name]
-        elif name == "WANE":
+        elif name == "WANE2":
             params[name] = scalar_values_dict[name]*np.array([0]+[1]*(N_S-2)+[0])
         elif name == "REC_UP":
             params[name] = scalar_values_dict[name]*np.array([1]*(N_S-1)+[0])
@@ -161,9 +161,9 @@ def params_to_scalars(param_dict,scalar_names):
     for name in scalar_names:
         if name in ["NAG","N_S","BIRTH_RATE","S_VAX","ACOV","BCOV","T_VAX","IMPORT_RATE","BETA","SEASONALITY","OFFSET"]:
             scalar_dict[name] = param_dict[name]
-        elif name == "WANE":
+        elif name == "WANE2":
             scalar_dict[name] = param_dict[name][1]
-        elif name in ["WANE","REC_UP","REC_SAME","P_OBS"]:
+        elif name in ["WANE2","REC_UP","REC_SAME","P_OBS"]:
             scalar_dict[name] = param_dict[name][0]
         elif name in ["S_REL","I_REL","S_AGE","OBS_AGE"]:
             scalar_dict[name] = 1-param_dict[name][1]
@@ -326,7 +326,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     else:
         VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
 
-    params = (AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
+    params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
                 BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
                 REC_UP, REC_SAME, IMPORT_STRENGTH)
     
@@ -368,8 +368,10 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, import_multip
     PERIOD = pd.date_range(start=START, end=END, freq='D')
     POINTS = np.array(date_to_t(PERIOD))
 
-    bounds_dict = {"WANE": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
+    bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
 
+    if "wane" in option1:
+        bounds_dict["WANE1"] = [0,1e-2]
     if option1 == "nb":
         bounds_dict["OVERDISPERSION"] = [-5,10]
     elif option1 == "maternal":
@@ -397,7 +399,7 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, import_multip
             bounds_dict["F1"] = bounds_dict["F2"] = [0,2]
 
     # reorder bounds_dict to match order in x
-    bounds_dict = {key: bounds_dict[key] for key in ["WANE","SEASONALITY","OFFSET","BETA","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7"]\
+    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7"]\
         if key in bounds_dict.keys()}
     bounds = jnp.array(list(bounds_dict.values()))
     param_names = list(bounds_dict.keys())

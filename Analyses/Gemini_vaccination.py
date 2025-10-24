@@ -127,8 +127,8 @@ if __name__ == "__main__":
     # --- Placeholder variables for demonstration ---
     # Replace these with your actual data
     NAG = 7
-    FULL_POINTS = jnp.arange(0, 19266) # Example time points
-    age_pops = jnp.ones((19266, NAG)) # Example age populations
+    FULL_POINTS = jnp.arange(0, 19997) # Example time points
+    age_pops = jnp.ones((19997, NAG)) # Example age populations
     AGING_RATE = jnp.ones(NAG) / (365 * 10) # Example aging rate
     # P_OBS = jnp.array([1,0.5,0.2])
     # S_REL = jnp.array([1,0.5,0.2])
@@ -147,6 +147,9 @@ if __name__ == "__main__":
     protection_param = S_REL * P_OBS
     eff_cov = flu_eff_coverage_vectorized(FULL_POINTS, (protection_param[-2]-protection_param[-1])/protection_param[-2])
     np.savetxt('Data/Processed/eff_cov_example_optimized.csv', eff_cov, delimiter=',')
+    # import matplotlib.pyplot as plt
+    # plt.plot(eff_cov)
+    # plt.show()
     
     # 2. Inside your loop, call the fast, vectorized function
     # This is the line you would use repeatedly with different S_REL * P_OBS values

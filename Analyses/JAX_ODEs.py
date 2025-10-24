@@ -1,10 +1,13 @@
 ## BJS June 2025
 ## JAX and NumPyro compatible ODES
 
+import jax
 import jax.numpy as jnp
 
+interp_fn = jax.vmap(jnp.interp, in_axes=(None, None, 1), out_axes=0)
+
 def deltas(t, state, args):
-    (AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, # population parameters
+    (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, # population parameters
     BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY, # fit parameters
     REC_UP, REC_SAME, IMPORT_STRENGTH) = args # pathogen parameters
     NAG = 7
@@ -19,14 +22,17 @@ def deltas(t, state, args):
     infectious = shaped_state[1:2*N_S:2, :]
     susceptible = shaped_state[0:2*N_S:2, :]
     # # births
+    birth_rate = jnp.interp(t, FULL_POINTS, BIRTH_RATE)
     maternal_immunity = jnp.minimum(1, MATERNAL_IMMUNITY * susceptible[-1,4] / jnp.sum(shaped_state[:-1,4]))
-    delta_maternal = delta_maternal + maternal_immunity*BIRTH_RATE[t_idx]*pop_size
-    delta = delta.at[0,0].add((1-maternal_immunity)*BIRTH_RATE[t_idx]*pop_size)
+    delta_maternal = delta_maternal + maternal_immunity*birth_rate*pop_size
+    delta = delta.at[0,0].add((1-maternal_immunity)*birth_rate*pop_size)
     # infections - calculate force of infection
-    CONTACT_t = RELATIVE_CONTACT[t_idx]*CONTACT_MATRIX
+    relative_contact = jnp.interp(t, FULL_POINTS, RELATIVE_CONTACT)
+    import_strength = jnp.interp(t, FULL_POINTS, IMPORT_STRENGTH)
+    CONTACT_t = relative_contact*CONTACT_MATRIX
     infectious_by_age = jnp.sum(infectious, axis=0)
     infectious_contact = jnp.dot(CONTACT_t,infectious_by_age)/pop_size
-    import_contact = IMPORT_STRENGTH[t_idx]*jnp.dot(CONTACT_t,age_pops)/pop_size
+    import_contact = import_strength*jnp.dot(CONTACT_t,age_pops)/pop_size
     force_of_infection = BETA*(infectious_contact + import_contact)
     # multiply by susceptibles in each age group and susceptibility class
     new_infections = S_REL[:, None] * force_of_infection[None, :] * susceptible
@@ -53,7 +59,7 @@ def deltas(t, state, args):
     delta_maternal = delta_maternal - maternal_agers
     delta = delta.at[0, 1].add(maternal_agers)
     # vaccination
-    vrate = VAX_RATE[t_idx, :]
+    vrate = interp_fn(t, FULL_POINTS, VAX_RATE)
     # assume that S_VAX is the last susceptibility class
     vaxxers = vrate[None, :]*susceptible[:-1, :]
     delta = delta.at[0:2*(N_S-1):2, :].add(-vaxxers)

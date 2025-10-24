@@ -34,7 +34,7 @@ def run_simulation(params, y0, t1, saveat_ts):
                         term, solver,
                         t0=0, t1=t1, dt0=None, stepsize_controller=step_controller,
                         saveat=saveat, y0=y0.flatten(), args=params, 
-                        max_steps=None,  
+                        max_steps=None,
                         )
     return solution.ys.T
 
@@ -43,6 +43,7 @@ def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incide
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
+        start_time = time.time()
         values = run_simulation(params, STATE0, t1, POINTS)
     else:
         values = solution.ys.T
