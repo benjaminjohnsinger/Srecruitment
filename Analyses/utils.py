@@ -179,7 +179,7 @@ def params_to_scalars(param_dict,scalar_names):
             scalar_dict[name] = param_dict["P_OBS"][int(name[5:])]
     return scalar_dict
 
-def pathogen_parameters(pathogen, import_multiplier=1e-9):
+def pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=False):
     ARRIVALS = jnp.asarray(np.genfromtxt('Data/Processed/arrivals_daily.csv', delimiter=','))
     if pathogen == 'RSV':
         REC_UP = jnp.array([1/4.9,1/4.1,0.0])
@@ -217,19 +217,22 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9):
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Metapneumovirus_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Metapneumovirus_incidence_age_daily.csv",index_col=0))
-    elif pathogen == "test":
+    elif "test" in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Metapneumovirus_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-        incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_test_incidence_age_daily.csv",index_col=0))
+        if not skip_incidence:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_incidence_age_daily.csv",index_col=0))
+    if skip_incidence:
+        return REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs
     return REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence
 
 # @partial(jax.jit, static_argnames=['pathogen','lockdown','option1','option2'])
 def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False):
     if fixed_params is None:
         from Parameters.census_population import AGING_RATE
-        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
+        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs = pathogen_parameters(pathogen, import_multiplier=import_multiplier, skip_incidence=True)
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
         BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
     else:
@@ -408,17 +411,6 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, import_multip
     
     return params, param_names, bounds, incidence, p_time_to_obs
 
-if __name__ == "__main__":
-    pathogen = 'RSV'
-    lockdown = 'FlexStepwise'
-    option1 = '0.005'
-    option2 = 'flexage'
-    seed = 250709
-    params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seed)
-    params2 = x_to_params(0.5*np.ones(6), pathogen, lockdown, "dynamic", option2, fixed_params = params)
-    print(params2)
-
-
 ####### Generating interesting quantities from ODE results #######
 
 def observations(result, POINTS, params, OBS_AGE, incidence=False,cap=False,N_C=2,time_conversion=30.44):
@@ -485,3 +477,8 @@ def susceptibility(solution,params,N_C=2):
         for i in range(N_S):
             sus[i_t,:] += S_REL[i]*solution.ys.T[N_C*i*NAG:(N_C*i+1)*NAG,i_t]
     return(sus)
+
+if __name__ == "__main__":
+    # measure length of incidence vector for rsv
+    incidence = pd.read_csv("Data/Processed/KPSC_ARI_RSV_incidence_age_daily.csv",index_col=0)
+    print(incidence.shape)
