@@ -236,7 +236,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
         BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
     else:
-        AGING_RATE, BIRTH_RATE, CONTACT_MATRIX = fixed_params[:3]
+        FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX = fixed_params[:4]
         REC_UP, REC_SAME, IMPORT_STRENGTH = fixed_params[-3:]
 
     N_S, NAG = 3, 7
@@ -287,7 +287,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
             F3 = F2*x[n+5] # value less than F2 (second lockdown)
             F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
             FF = jnp.array([1,F1,F2,F3,F4])
-            PIECEWISE_CONTACT = jnp.array([cm.piecewise(t, TT, FF, steepness=0.2) for t in FULL_POINTS])
+            PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(FULL_POINTS)
             RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 7
         elif lockdown == 'Mobility':
@@ -314,7 +314,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
             MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_START:cm.MOBILITY_END+1].set(contact_factor)
             RELATIVE_CONTACT = MOBILITY_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
     elif 'pathogen' in option1:
-        RELATIVE_CONTACT = fixed_params[8]
+        RELATIVE_CONTACT = fixed_params[9]
     if option2 == 'flexage' and not 'dynamic' in option1:
         OBS_AGE = jnp.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
     elif 'dynamic' in option1:
@@ -328,6 +328,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         VAX_RATE = calculate_vax_rate_vectorized(S_REL*P_OBS, vax_preprocessor)
     else:
         VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
+
 
     params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
                 BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
@@ -407,7 +408,7 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, import_multip
     bounds = jnp.array(list(bounds_dict.values()))
     param_names = list(bounds_dict.keys())
 
-    params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = (AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, REC_UP, REC_SAME, IMPORT_STRENGTH), import_multiplier=import_multiplier)
+    params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, REC_UP, REC_SAME, IMPORT_STRENGTH), import_multiplier=import_multiplier)
     
     return params, param_names, bounds, incidence, p_time_to_obs
 
@@ -469,16 +470,16 @@ def susceptibility(solution,params,N_C=2):
     Generate susceptibility by age group from ODE solutions
     """
     NAG, N_S = 7, 3
-    AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
+    FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
     BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
     REC_UP, REC_SAME, IMPORT_STRENGTH = params
     sus = np.zeros((len(solution.ts),NAG))
     for i_t,t in enumerate(solution.ts):
         for i in range(N_S):
-            sus[i_t,:] += S_REL[i]*solution.ys.T[N_C*i*NAG:(N_C*i+1)*NAG,i_t]
+            sus[i_t,:] += S_REL[i]*solution.ys.T[1+N_C*i*NAG:1+(N_C*i+1)*NAG,i_t]
     return(sus)
 
 if __name__ == "__main__":
     # measure length of incidence vector for rsv
-    incidence = pd.read_csv("Data/Processed/KPSC_ARI_RSV_incidence_age_daily.csv",index_col=0)
-    print(incidence.shape)
+    params = x_to_params(np.array([0.03,0.1,0.5,0.001,0.0001,1e-9,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.01,0.5,0.5,0.5,0.5,0.01,0.5]),'RSV','FlexStepwise','NA','flexage')
+    print(len(params[0]))

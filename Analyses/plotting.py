@@ -27,7 +27,7 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 ##### Simple line plots #####
 def lockdown_incidence_plot(ax,state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'),factor=1,p_time_to_obs=[1]):
     NAG, N_S = 7, 3
-    AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
+    FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
     BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
     REC_UP, REC_SAME, IMPORT_STRENGTH  = params
     if solution is None:
@@ -94,19 +94,22 @@ def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,solut
                             max_steps=None,  
                             )
     times = solution.ts
+    values = solution.ys.T
     dates = [t_to_date(t) for t in times]
     ## Calculate susceptibility
     sus = susceptibility(solution,params)
     if by_age:
         if proportion:
-            pop_by_age = np.array([np.sum(result.y[range(i_age,N_C*N_S*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+            pop_by_age = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+            print(values[0])
+            pop_by_age[:,0] += values[0]
             sus = sus/pop_by_age
         for i in range(NAG):
             ax.plot(dates,sus[:,i], label=AGE_GROUP_NAMES[i], color=hsv_colors[i],linestyle=style)
     else:
         total_sus = np.sum(sus,axis=1)
         if relative:
-            pre_mx_sus = np.mean(total_sus[np.argmax(result.t>T_LOCKDOWN-5*365):np.argmax(result.t>T_LOCKDOWN)])
+            pre_mx_sus = np.mean(total_sus[np.argmax(times>T_LOCKDOWN-5*365):np.argmax(times>T_LOCKDOWN)])
             rel_sus = total_sus/pre_mx_sus
             ax.plot(dates,rel_sus, label=label,color=color,linestyle=style)
         else:
