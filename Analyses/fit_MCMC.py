@@ -68,7 +68,7 @@ def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incide
     # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
     expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
     # cut off the first few days of the trajectory since they are not used in the likelihood (and the roll function is wrapping around)
-    expected_obs = jnp.maximum(0,expected_obs[-len(cases):])
+    expected_obs = jax.nn.softplus(expected_obs[-len(cases):]*100)/100
     
     # calculate the log likelihood
     if overdispersion:

@@ -19,17 +19,20 @@ from matplotlib import cm as colormaps
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 
-clinical_data1 = pd.DataFrame({"age_in_mo":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],"flu_vac":[1,0,1,0,1,0,1,0,1,0,0,1,0,1,0],"Month":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]})
-clinical_data2 = pd.DataFrame({"age_in_mo":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],"flu_vac":[1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],"Month":[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]})
-clinical_data = pd.concat([clinical_data1,clinical_data2],ignore_index=True)
-AGE_GROUPS = [range(0,3), range(3,12),range(12,5*12),range(5*12,18*12),range(18*12,40*12),range(40*12,65*12),range(65*12,100*12)]
-AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-17y','18-39y','40-64y','>=65y']
-assign_age_group = lambda x: AGE_GROUP_NAMES[np.argmax([x in group for group in AGE_GROUPS])]
-clinical_data["AGE_GROUP"] = clinical_data["age_in_mo"].apply(assign_age_group)
-print(clinical_data)
-vaccination_proportion = clinical_data.groupby(["Month","AGE_GROUP"])["flu_vac"].mean().unstack()
-print(vaccination_proportion)
-
+p_time_to_obs_RSV = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
+p_time_to_obs_InfluenzaA = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
+p_time_to_obs_InfluenzaB = jnp.asarray(pd.read_csv("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
+print(p_time_to_obs_RSV)
+fig, ax = plt.subplots(1,1,figsize=(8,5))
+ax.plot(p_time_to_obs_RSV, label='RSV', color='blue')
+ax.plot(p_time_to_obs_InfluenzaA, label='Influenza A', color='red')
+ax.plot(p_time_to_obs_InfluenzaB, label='Influenza B', color='green')
+ax.set_xlabel('Days since infection')
+ax.set_ylabel('Probability of hospital admission')
+ax.set_title('Probability Distribution of Time to Hospital Admission')
+ax.legend()
+plt.tight_layout()
+plt.savefig('Figures/time_to_hospital_admission_distribution.png', dpi=300)
 
 # population_size_by_age_and_year = pd.read_csv("Data/Processed/KPSC_population_by_age.csv")
 # # split "Older children" group into 3/13 (in original column) then add 10/13 of that group to "Young adults" column
