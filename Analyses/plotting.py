@@ -444,14 +444,13 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         else:
             cases = pd.read_csv(f'Data/Processed/KPSC_ARI_{pathogen}_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_{["daily","weekly","monthly"][[None,"Week","Month"].index(aggregation)]}.csv',index_col=0,parse_dates=True)
     else:
-        respiratory_codes = pd.read_csv('Data/Processed/respiratory_codes.csv')
         if incidence:
             # load age population data
             age_by_year = pd.read_csv("Data/Processed/KPSC_population_by_age_split.csv")
             # age_by_year = pd.DataFrame(np.tile(np.array([1,]),(8,1)))
             if AGE_GROUPS is not None:
                 age_by_year.columns = AGE_GROUP_NAMES
-            age_by_year["Year"] = np.arange(2015,2023)
+            age_by_year.loc[:,"Year"] = np.arange(2015,2023)
             age_by_year = age_by_year.set_index("Year")
             # repeat last row for 2023-2025
             for year in range(2023,2026):
@@ -462,21 +461,21 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         else:
             positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_all_clinical_cleaned.csv')
 
-        positive_tests["pathogen_class"] = positive_tests["pathogen"].map(reverse_names)
+        positive_tests.loc[:,"pathogen_class"] = positive_tests["pathogen"].map(reverse_names)
         cases = positive_tests[(positive_tests['pathogen_class'] == pathogen) & (positive_tests['dxgroup']=="ARI")]
         cases = cases.drop_duplicates(subset=cases.columns.difference(['CODE','dxgroup','pathogen']))
         if hospitalizations:
-            cases["Date"] = pd.to_datetime(cases["Hospitalization date"])
+            cases.loc[:,"Date"] = pd.to_datetime(cases["Hospitalization date"])
         else:
-            cases["Date"] = pd.to_datetime(cases["Clinical date"])
+            cases.loc[:,"Date"] = pd.to_datetime(cases["Clinical date"])
         print(cases.columns)
         print(cases["Date"].max())
         if aggregation is not None:
-            cases["Year"] = cases["Date"].dt.year
+            cases.loc[:,"Year"] = cases["Date"].dt.year
             if aggregation == "Month":
-                cases["Month"] = cases["Date"].dt.month
+                cases.loc[:,"Month"] = cases["Date"].dt.month
             elif aggregation == "Week":
-                cases["Week"] = cases["Date"].dt.isocalendar().week
+                cases.loc[:,"Week"] = cases["Date"].dt.isocalendar().week
         if AGE_GROUPS is not None:
             for i in range(len(AGE_GROUPS)):
                 cases.loc[cases["age_in_mo"].isin(AGE_GROUPS[i]),"age_group"] = AGE_GROUP_NAMES[i]
@@ -518,10 +517,10 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
                     cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"Count":[0]})])
         if aggregation is not None:
             if aggregation == "Month":
-                cases["Date"] = pd.to_datetime(cases["Year"].astype(str) + '-' + cases["Month"].astype(str) + '-01')
+                cases.loc[:,"Date"] = pd.to_datetime(cases["Year"].astype(str) + '-' + cases["Month"].astype(str) + '-01')
             elif aggregation == "Week":
-                cases["Date"] = cases["Year"].astype(str) + '-' + cases["Week"].astype(str)
-                cases["Date"] = pd.to_datetime(cases["Date"].add('-1').astype(str),format='%Y-%W-%w')
+                cases.loc[:,"Date"] = cases["Year"].astype(str) + '-' + cases["Week"].astype(str)
+                cases.loc[:,"Date"] = pd.to_datetime(cases["Date"].add('-1').astype(str),format='%Y-%W-%w')
         cases = cases.sort_values(by="Date")
         cases = cases.set_index("Date")
 
@@ -533,7 +532,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
             if incidence:
                 cases = cases.div(age_by_year.loc[cases.index.year].values)
         elif incidence:
-            cases["Count"] = cases["Count"]/np.sum(age_by_year.loc[cases.index.year].values,axis=1)
+            cases.loc[:,"Count"] = cases["Count"]/np.sum(age_by_year.loc[cases.index.year].values,axis=1)
 
         if save_data:
             filename = f'Data/Processed/KPSC_ARI_{pathogen}_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_{["daily","weekly","monthly"][["D","W-MON","MS"].index(frequency)]}.csv'
