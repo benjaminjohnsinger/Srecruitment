@@ -18,7 +18,6 @@ from Parameters.times_and_contacts import *
 from utils import *
 from demography import *
 from mobility_and_import import *
-from clustering import *
 from sim_grid import *
 from plotting import *
 from fit_MCMC import *

@@ -22,6 +22,8 @@ EFF_IDX = jnp.array([(pd.to_datetime('2008-10-01') + pd.DateOffset(years=i) - pd
 
 # --- Step 1: Vectorized helper function for vaccine coverage ---
 
+interp_fn = jax.vmap(jnp.interp, in_axes=(None, None, 1), out_axes=0)
+
 @partial(jax.jit, static_argnames=['eff_cap'])
 def flu_eff_coverage_vectorized(t_arr, max_eff, eff_cap=True):
     """
@@ -111,6 +113,9 @@ def calculate_vax_rate_vectorized(protection, preprocessor, eff_cap=True):
     
     rate_denominator = 1 - v
 
+    # # smooth numerator to avoid discontinuities
+    # rate_numerator_smooth = jax.scipy.signal.convolve2d(rate_numerator, jnp.array([[0.0625,0.0625,0.125,0.25,0.25,0.125,0.0625,0.0625,],]).T, mode='same')
+
     # Use jnp.where to handle the v >= 1 condition safely without a loop
     # This prevents division by zero and sets the rate to 0 where coverage is >= 1
     safe_rate = jnp.where(
@@ -118,7 +123,6 @@ def calculate_vax_rate_vectorized(protection, preprocessor, eff_cap=True):
         0,
         rate_numerator / rate_denominator
     )
-    
     return jnp.maximum(0, safe_rate)
 
 # --- Usage Example ---
@@ -156,8 +160,11 @@ if __name__ == "__main__":
     print("\nCalculating VAX_RATE with the optimized function...")
     time_start = time.time()
     VAX_RATE = calculate_vax_rate_vectorized(protection_param, preprocessor)
-    print("Calculation complete, took", (time.time() - time_start)/1000, "seconds.")
+    print("Calculation complete, took", (time.time() - time_start), "seconds.")
     print("Shape of VAX_RATE:", VAX_RATE.shape)
+    import matplotlib.pyplot as plt
+    plt.plot(VAX_RATE)
+    plt.show()
 
     # # save VAX_RATE
     np.savetxt('Data/Processed/KPSC_vaccination_rate_ages_monthly_optimized_unshift.csv', VAX_RATE, delimiter=',')

@@ -2,7 +2,8 @@
 ## Code to explore how susceptibles recruitment affects outbreak dynamics
 ## BJS August 2024
 
-# import jax.numpy as jnp
+import jax.numpy as jnp
+import jax
 import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
@@ -19,20 +20,44 @@ from matplotlib import cm as colormaps
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 
-p_time_to_obs_RSV = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-p_time_to_obs_InfluenzaA = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-p_time_to_obs_InfluenzaB = jnp.asarray(pd.read_csv("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-print(p_time_to_obs_RSV)
-fig, ax = plt.subplots(1,1,figsize=(8,5))
-ax.plot(p_time_to_obs_RSV, label='RSV', color='blue')
-ax.plot(p_time_to_obs_InfluenzaA, label='Influenza A', color='red')
-ax.plot(p_time_to_obs_InfluenzaB, label='Influenza B', color='green')
-ax.set_xlabel('Days since infection')
-ax.set_ylabel('Probability of hospital admission')
-ax.set_title('Probability Distribution of Time to Hospital Admission')
-ax.legend()
-plt.tight_layout()
-plt.savefig('Figures/time_to_hospital_admission_distribution.png', dpi=300)
+from fit_MCMC import run_simulation
+import time
+
+N_S, NAG = 3, 7
+from Parameters.census_population import CENSUS_AGE_POP
+# time how long it takes to run 10 flu sims
+## Initial conditions
+STATE0 = jnp.zeros((2*N_S+1,NAG))
+STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
+STATE0 = STATE0.at[1,:].set(1)
+# # flatten initial state and add maternal immunity compartment
+STATE0 = STATE0.flatten()
+STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+from Parameters.times_and_contacts import PERIOD
+POINTS = np.array(date_to_t(PERIOD))
+params = x_to_params(jnp.array([0.05,0.1,0.1,0.001,0.1,0.5,0.6,0.5,0.9,0.5,0.4,0.8,0.7,0.8,0.1,2e-03,1e-03,3e-03,2e-04,1e-04,3e-04,4e-03]), "RSV", "FlexStepwise", "NA", "flexage")
+run_simulation(params, STATE0, POINTS[-1], POINTS)
+start_time = time.time()
+for i in range(10):
+    print(i)
+    run_simulation(params, STATE0, POINTS[-1], POINTS)
+end_time = time.time()
+print(f"Time taken to run 10 flu sims: {end_time - start_time} seconds")
+
+# p_time_to_obs_RSV = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
+# p_time_to_obs_InfluenzaA = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
+# p_time_to_obs_InfluenzaB = jnp.asarray(pd.read_csv("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
+# print(p_time_to_obs_RSV)
+# fig, ax = plt.subplots(1,1,figsize=(8,5))
+# ax.plot(p_time_to_obs_RSV, label='RSV', color='blue')
+# ax.plot(p_time_to_obs_InfluenzaA, label='Influenza A', color='red')
+# ax.plot(p_time_to_obs_InfluenzaB, label='Influenza B', color='green')
+# ax.set_xlabel('Days since infection')
+# ax.set_ylabel('Probability of hospital admission')
+# ax.set_title('Probability Distribution of Time to Hospital Admission')
+# ax.legend()
+# plt.tight_layout()
+# plt.savefig('Figures/time_to_hospital_admission_distribution.png', dpi=300)
 
 # population_size_by_age_and_year = pd.read_csv("Data/Processed/KPSC_population_by_age.csv")
 # # split "Older children" group into 3/13 (in original column) then add 10/13 of that group to "Young adults" column

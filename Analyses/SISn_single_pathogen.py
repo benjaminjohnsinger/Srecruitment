@@ -20,7 +20,6 @@ import datetime
 
 from sklearn import decomposition
 
-from vaccination import birth_vax, birth_vax, flu_rate, flu_eff_coverage
 import contact_model as cm
 from SISn_ODEs import single_pathogen_deltas as sis_deltas
 from Parameters.census_population import *
@@ -29,7 +28,6 @@ from Parameters.times_and_contacts import *
 from utils import *
 from demography import *
 from mobility_and_import import *
-from clustering import *
 from sim_grid import *
 from plotting import *
 from fit_MCMC import *
@@ -61,12 +59,12 @@ np.set_printoptions(threshold=np.inf)
 # plt.rcParams['font.serif'] = ['Palatino']
 
 fig, ax = plt.subplots(3,2,figsize=(13.3,7.5), sharex=True)
-kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=False, legend=False,aggregation=None,save_data=True)
-kpsc_positive_test_plot(ax[1,0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=False, legend=False,aggregation=None,save_data=True)
-kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=False, legend=False,aggregation=None,save_data=True)
-kpsc_positive_test_plot(ax[0,1],pathogen="InfluenzaB",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=False, legend=False,aggregation=None,save_data=True)
-kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=False, legend=False,aggregation=None,save_data=True)
-kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=False, legend=False,aggregation=None,save_data=True)
+kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
+kpsc_positive_test_plot(ax[1,0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
+kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
+kpsc_positive_test_plot(ax[0,1],pathogen="InfluenzaB",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
+kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
+kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
 # for i in range(2):
 #     for j in range(2):
 #         ax[i,j].set_xlabel("")
@@ -85,7 +83,7 @@ ax[2,1].set_title("PIV 3")
 ax[0,1].legend(ncol=2,title="Age group")
 
 plt.tight_layout()
-plt.savefig('Figures/KPSC_cleaned_slide_age_daily_lumped.png',dpi=300)
+plt.savefig('Figures/KPSC_ARI_slide_age_incidence_monthly.png',dpi=300)
 
 
 # start_date = '2015-07-04'

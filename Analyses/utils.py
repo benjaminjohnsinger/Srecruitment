@@ -326,6 +326,8 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
             age_pops = jnp.asarray(np.genfromtxt('Data/Processed/age_pops_daily.csv', delimiter=','))
             vax_preprocessor = FluRatePreprocessor(FULL_POINTS, age_pops, AGING_RATE)
         VAX_RATE = calculate_vax_rate_vectorized(S_REL*P_OBS, vax_preprocessor)
+        # smooth approximation using piecewise function
+        # VAX_RATE = jax.vmap(lambda t: cm.piecewise(t, FULL_POINTS, VAX_RATE, steepness=0.2))(FULL_POINTS)
     else:
         VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
 
