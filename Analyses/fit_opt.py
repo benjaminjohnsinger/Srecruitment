@@ -11,7 +11,7 @@ import sys
 import os
 import multiprocessing
 
-from JAX_ODEs import deltas as sis_deltas
+from Gemini_vaccination import FluRatePreprocessor
 from Parameters.census_population import *
 from Parameters.times_and_contacts import *
 
@@ -37,6 +37,8 @@ START = pd.to_datetime(start_date)
 END = pd.to_datetime(end_date)
 PERIOD = pd.date_range(start=START, end=END, freq='D')
 POINTS = np.array(date_to_t(PERIOD))
+FULL_PERIOD = pd.date_range(start=pd.to_datetime('1970-01-01'), end=END, freq='D')
+FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
 
 REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
 N_S, NAG = 3, 7
@@ -89,8 +91,14 @@ bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","
     if key in bounds_dict.keys()}
 bounds = jnp.array(list(bounds_dict.values()))
 
+if "Influenza" in pathogen:
+    age_pops = jnp.asarray(np.genfromtxt('Data/Processed/age_pops_daily.csv', delimiter=','))
+    vax_preprocessor = FluRatePreprocessor(FULL_POINTS, age_pops, AGING_RATE)
+else:
+    vax_preprocessor = None
+
 def likelihood(x):
-    sim_params = x_to_params(x, pathogen, lockdown, option1, option2)
+    sim_params = x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=vax_preprocessor)
     try:
         lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True,overdispersion=False)
     except Exception as e: # Catch the specific exception

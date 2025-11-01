@@ -36,7 +36,7 @@ def run_simulation(params, y0, t1, saveat_ts):
                         saveat=saveat, y0=y0.flatten(), args=params, 
                         max_steps=None,
                         )
-    return solution.ys.T
+    return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
 def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, solution=None):
@@ -44,6 +44,7 @@ def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incide
     if solution is None:
         t1 = int(POINTS[-1])
         values = run_simulation(params, STATE0, t1, POINTS)
+        values = values.ys.T
     else:
         values = solution.ys.T
 

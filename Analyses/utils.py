@@ -212,8 +212,8 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=False):
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Adenovirus_incidence_age_daily.csv",index_col=0))
     elif pathogen == 'Metapneumovirus':
-        REC_UP = np.array([1/4.9,1/4.1,0.0]) # Recovery to higher susceptibility class - Okiro 2010
-        REC_SAME = np.array([0.0,0.0,1/4.1]) # Recovery to same susceptibility class - Okiro 2010
+        REC_UP = np.array([1/4.9,1/4.1,0.0]) # based on RSV - Okiro 2010
+        REC_SAME = np.array([0.0,0.0,1/4.1]) # based on RSV - Okiro 2010
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Metapneumovirus_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Metapneumovirus_incidence_age_daily.csv",index_col=0))
@@ -326,8 +326,6 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
             age_pops = jnp.asarray(np.genfromtxt('Data/Processed/age_pops_daily.csv', delimiter=','))
             vax_preprocessor = FluRatePreprocessor(FULL_POINTS, age_pops, AGING_RATE)
         VAX_RATE = calculate_vax_rate_vectorized(S_REL*P_OBS, vax_preprocessor)
-        # smooth approximation using piecewise function
-        # VAX_RATE = jax.vmap(lambda t: cm.piecewise(t, FULL_POINTS, VAX_RATE, steepness=0.2))(FULL_POINTS)
     else:
         VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
 

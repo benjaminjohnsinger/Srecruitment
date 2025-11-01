@@ -33,12 +33,12 @@ def lockdown_incidence_plot(ax,state0,params,period,points,T_LOCKDOWN,LOCKDOWN_D
     if solution is None:
         term = ODETerm(deltas)
         solver = Dopri5()
-        saveat = SaveAt(ts=POINTS)
+        saveat = SaveAt(ts=points)
         step_controller = PIDController(rtol=1e-5, atol=1e-5)
         solution = diffeqsolve(
                             term, solver,
-                            t0=0, t1=int(POINTS[-1]), dt0=None, stepsize_controller=step_controller,
-                            saveat=saveat, y0=STATE0.flatten(), args=params, 
+                            t0=0, t1=int(points[-1]), dt0=None, stepsize_controller=step_controller,
+                            saveat=saveat, y0=state0.flatten(), args=params, 
                             max_steps=None,  
                             )
     if times is None:
