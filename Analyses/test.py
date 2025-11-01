@@ -23,34 +23,40 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 from fit_MCMC import run_simulation
 import time
 
-N_S, NAG = 3, 7
-from Parameters.census_population import CENSUS_AGE_POP
-from Parameters.census_population import AGE_GROUP_NAMES
-# time how long it takes to run 10 flu sims
-## Initial conditions
-STATE0 = jnp.zeros((2*N_S+1,NAG))
-STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
-STATE0 = STATE0.at[1,:].set(1)
-# # flatten initial state and add maternal immunity compartment
-STATE0 = STATE0.flatten()
-STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-from Parameters.times_and_contacts import PERIOD
-POINTS = np.array(date_to_t(PERIOD))
-params = x_to_params(jnp.array([0.08761366994242037,0.5630226801200686,0.07059271526314115,0.004182654461622023,0.49925504835496337,0.32124852929495257,0.6595126147878759,0.7452366339350426,0.7043837937366796,0.4236511501951234,0.7340296802182136,0.4564514394851521,0.413152171847781,0.9833702974262226,0.0021935084182965066,0.0007962706480398884,0.0015927128649279709,0.0010406238553368342,0.000632834711347473,0.0007653558748031127,0.0030613178577122554]), "InfluenzaA", "FlexStepwise", "NA", "flexage")
-p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-sim = run_simulation(params, STATE0, POINTS[-1], POINTS)
-# # plot
-# fig, ax = plt.subplots(1,1,figsize=(10,6))
-# mx = lockdown_incidence_plot(ax,STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),365,solution=sim,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=30.44*10000,p_time_to_obs=p_time_to_obs)
-# lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
-# plt.show()
-start_time = time.time()
-for i in range(10):
-    print(i)
-    params = x_to_params(jnp.array([0.08761366994242037,0.5630226801200686,0.07059271526314115,0.004182654461622023,0.49925504835496337,0.32124852929495257,0.6595126147878759,0.7452366339350426,0.7043837937366796,0.4236511501951234,0.7340296802182136,0.4564514394851521,0.413152171847781,0.9833702974262226,0.0021935084182965066,0.0007962706480398884,0.0015927128649279709,0.0010406238553368342,0.000632834711347473,0.0007653558748031127,0.0030613178577122554]), "InfluenzaA", "FlexStepwise", "NA", "flexage")
-    run_simulation(params, STATE0, POINTS[-1], POINTS)
-end_time = time.time()
-print(f"Time taken to run 10 flu sims: {end_time - start_time} seconds")
+with open("Data/Processed/DE_cm_opt_NAflexage251024.pickle","rb") as f:
+    opt = pickle.load(f)
+print(opt.x)
+with open("Data/Processed/DE_cm_opt_NAflexage2510242.pickle","rb") as f:
+    opt = pickle.load(f)
+print(opt.x)
+# N_S, NAG = 3, 7
+# from Parameters.census_population import CENSUS_AGE_POP
+# from Parameters.census_population import AGE_GROUP_NAMES
+# # time how long it takes to run 10 flu sims
+# ## Initial conditions
+# STATE0 = jnp.zeros((2*N_S+1,NAG))
+# STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
+# STATE0 = STATE0.at[1,:].set(1)
+# # # flatten initial state and add maternal immunity compartment
+# STATE0 = STATE0.flatten()
+# STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+# from Parameters.times_and_contacts import PERIOD
+# POINTS = np.array(date_to_t(PERIOD))
+# params = x_to_params(jnp.array([0.08761366994242037,0.5630226801200686,0.07059271526314115,0.004182654461622023,0.49925504835496337,0.32124852929495257,0.6595126147878759,0.7452366339350426,0.7043837937366796,0.4236511501951234,0.7340296802182136,0.4564514394851521,0.413152171847781,0.9833702974262226,0.0021935084182965066,0.0007962706480398884,0.0015927128649279709,0.0010406238553368342,0.000632834711347473,0.0007653558748031127,0.0030613178577122554]), "InfluenzaA", "FlexStepwise", "NA", "flexage")
+# p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
+# sim = run_simulation(params, STATE0, POINTS[-1], POINTS)
+# # # plot
+# # fig, ax = plt.subplots(1,1,figsize=(10,6))
+# # mx = lockdown_incidence_plot(ax,STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),365,solution=sim,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=30.44*10000,p_time_to_obs=p_time_to_obs)
+# # lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
+# # plt.show()
+# start_time = time.time()
+# for i in range(10):
+#     print(i)
+#     params = x_to_params(jnp.array([0.08761366994242037,0.5630226801200686,0.07059271526314115,0.004182654461622023,0.49925504835496337,0.32124852929495257,0.6595126147878759,0.7452366339350426,0.7043837937366796,0.4236511501951234,0.7340296802182136,0.4564514394851521,0.413152171847781,0.9833702974262226,0.0021935084182965066,0.0007962706480398884,0.0015927128649279709,0.0010406238553368342,0.000632834711347473,0.0007653558748031127,0.0030613178577122554]), "InfluenzaA", "FlexStepwise", "NA", "flexage")
+#     run_simulation(params, STATE0, POINTS[-1], POINTS)
+# end_time = time.time()
+# print(f"Time taken to run 10 flu sims: {end_time - start_time} seconds")
 
 # p_time_to_obs_RSV = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
 # p_time_to_obs_InfluenzaA = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)

@@ -313,6 +313,25 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
             MOBILITY_CONTACT = jnp.ones(len(FULL_POINTS))
             MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_START:cm.MOBILITY_END+1].set(contact_factor)
             RELATIVE_CONTACT = MOBILITY_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+    if re.match(r'\d{6}',lockdown):
+        # remove "pathogen" and "dynamic" from option1 for file name
+        if option1 == "pathogen":
+            tempopt = "NA"
+        else:
+            tempopt = re.sub(r'pathogen','',option1)
+            tempopt = re.sub(r'dynamic','',tempopt)
+        with open("Data/Processed/DE_cm_opt_"+tempopt+option2+str(lockdown)+".pickle","rb") as f:
+            opt = pickle.load(f)
+        x_lockdown = opt.x
+        TT = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x_lockdown[0]*365,date_to_t('2020-03-19')+(x_lockdown[0]+x_lockdown[1])*365,date_to_t('2020-03-19')+(x_lockdown[0]+x_lockdown[1]+x_lockdown[2])*365])
+        # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
+        F1 = x_lockdown[3] # value between 0 and 1 (first lockdown)
+        F2 = F1 + x_lockdown[4] - F1*x_lockdown[4] # value between x_lockdown[3] and 1 (inter-lockdown)
+        F3 = F2*x_lockdown[5] # value less than F2 (second lockdown)
+        F4 = F2 + x_lockdown[6] - F2*x_lockdown[6] # value between F2 and 1 (post-lockdown)
+        FF = jnp.array([1,F1,F2,F3,F4])
+        PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(FULL_POINTS)
+        RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
     if option2 == 'flexage' and not 'dynamic' in option1:
@@ -395,12 +414,12 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
             bounds_dict["P_OBS"] = [0,0.01]
             bounds_dict["AGE_OBS_YOUNG"] = bounds_dict["AGE_OBS_OLD"] = bounds_dict["AGE_OBS_YOUNG_OLD"] = [0,1]
     if "pathogen" not in option1:
-        if lockdown == "FlexStepwise":
-            bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
-        elif lockdown == "Mobility":
+        if lockdown == "Mobility":
             bounds_dict["F1"] = [0,2]
         elif lockdown == "Mobility2":
             bounds_dict["F1"] = bounds_dict["F2"] = [0,2]
+        else:
+            bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
 
     # reorder bounds_dict to match order in x
     bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","DT1","DT2","DT3","F1","F2","F3","F4","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7"]\

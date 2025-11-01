@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import scipy as sp
+import re
 import jax.scipy as jsp
 import matplotlib.pyplot as plt
 from matplotlib import cm as colormaps
@@ -217,10 +218,14 @@ def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-
     STATE0_shaped = STATE0_shaped.at[0,:].set(CENSUS_AGE_POP-1)
     STATE0_shaped = STATE0_shaped.at[1,:].set(1)
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0_shaped.flatten()))
-    prior_dist, prior_means = prior_distribution(f"Outputs/DE_outputs/{pathogen}{seed}{lockdown}{option1}{option2}1e-92010.7.csv", bounds,
+    if re.match(r'\d{6}', lockdown):
+        prior_lockdown = "FlexStepwise"
+    else:
+        prior_lockdown = lockdown
+    prior_dist, prior_means = prior_distribution(f"Outputs/DE_outputs/{pathogen}{seed}{prior_lockdown}{option1}{option2}1e-92010.7.csv", bounds,
         n=1000, dist_type="multilog", varlim = varlim, pathogen=pathogen)
     if varlim is not None:
-        option1 = varlim
+        option1 = option1 + varlim
         n_ds = 6 + ("Influenza" in pathogen) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
         if varlim == "dynamicpathogen":
             bounds = bounds[:n_ds]
@@ -354,83 +359,83 @@ if __name__ == "__main__":
     print(jax.local_device_count())
     start = time.time()
     seed = 251024
-    # for option1 in ["NA", "maxmimmwane"]:
-    #     for pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus", "0test0", "1test0", "2test0", "3test0", "4test0", "5test0"]:
-    #         print(pathogen, time.time()-start)
-    #         mcmc = fit_MCMC(pathogen, "FlexStepwise", option1, "flexage", seed, import_multiplier=1e-9, samples=1000, varlim="pathogen")
-    #         mcmc.print_summary()
-    #         # save samples
-    #         posterior_samples = mcmc.get_samples()
-    #         with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise"+option1+"flexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "wb") as f:
-    #             pickle.dump(posterior_samples, f)
-    #         # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_mass.pickle", "rb") as f:
-    #         #     posterior_samples = pickle.load(f)
-    #         param_samples = posterior_samples['params']
-    #         params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", option1, "flexage", seed)
-    #         # plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
-    #         # prior_dist, prior_means = prior_distribution(f"Data/Processed/DE_outputs/DE_{pathogen}FlexStepwise0.005flexage250709_sorted.csv",
-    #         #     bounds, n=1000, dist_type="multilog", varlim = "pathogen", pathogen=pathogen)
-    #         # param_samples = prior_dist.sample(jax.random.PRNGKey(0), sample_shape=(1000,))
-    #         # plot histograms of each parameter
-    #         n = param_samples.shape[1]//2 + param_samples.shape[1]%2
-    #         n_ds = 6 + ("Influenza" in pathogen) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
-    #         bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
-    #         fig, ax = plt.subplots(n, 2, figsize=(12, 3*n))
-    #         transformed_samples = jnp.exp(param_samples) + bounds[:,0]
-    #         param_names = param_names[:n_ds] + param_names[n_ds+7:]
-    #         for i in range(n):
-    #             for j in range(2):
-    #                 idx = i*2 + j
-    #                 if idx < len(param_names):
-    #                     plot_histogram(transformed_samples[:,idx], param_names[idx], ax=ax[i,j])
-    #         plt.tight_layout()
-    #         plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+option1+str(seed)+"_sp100_mass.png", dpi=300)
-    #         plt.close()
-    #         fig, axes = plt.subplots(3,3,figsize=(13.3,7.5))
-    #         axes = axes.flatten()
-    #         plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=axes, age=True, monthly=True, noisy=False)
-    #         ## title axes
-    #         age_names = ["<3m", "3–11m", "1–4y", "5–7y", "8–39y", "40–64y", "<=65y"]
-    #         for i in range(7):
-    #             axes[i].set_title(f'{age_names[i]}')
-
-    #         # plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=False, ax=ax)
-    #         # plt.xlabel('Days since 1970-01-01')
-    #         # plt.ylabel('Number of Cases')
-    #         # plt.title(f'Posterior Predictive Trajectories for {pathogen}')
-    #         # plt.legend()
-    #         plt.suptitle(f'Posterior Predictive Trajectories for {pathogen} (Monthly Cases)', fontsize=16)
-    #         plt.tight_layout()
-    #         plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+option1+str(seed)+"_sp100_mass_monthly.png", dpi=300)
-
-    ## 2d contour plot comparisons
-    fig, ax = plt.subplots(figsize=(6.5,6.5))
-    # # ax.set_xlim(0.05, 0.55)
-    # ax.set_xlim(0, 0.01)
-    # # ax.set_ylim(0, 0.011)
-    # ax.set_ylim(0.1, 1)
-    pathogen_colors = ["#648FFF","#DC267F","#FFB000","#785EF0"]
-    for pathogen_i in range(4):
-        pathogen = ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"][pathogen_i]
-        REC = [1/4.9,1/3,1/3,1/3][pathogen_i]
-        # 2d histograms of beta vs S_REL2
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwiseNAflexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "rb") as f:
-            posterior_samples = pickle.load(f)
-        params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", "NA", "flexage", seed)
+    option1 = "NA"
+    for pathogen in ["0test0", "1test0", "2test0", "3test0", "4test0", "5test0"]:
+        print(pathogen, time.time()-start)
+        mcmc = fit_MCMC(pathogen, str(seed), option1, "flexage", seed, import_multiplier=1e-9, samples=1000, varlim="pathogen")
+        mcmc.print_summary()
+        # save samples
+        posterior_samples = mcmc.get_samples()
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+str(seed)+option1+"flexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "wb") as f:
+            pickle.dump(posterior_samples, f)
+        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_mass.pickle", "rb") as f:
+        #     posterior_samples = pickle.load(f)
+        param_samples = posterior_samples['params']
+        params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", option1, "flexage", seed)
+        # plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
+        # prior_dist, prior_means = prior_distribution(f"Data/Processed/DE_outputs/DE_{pathogen}FlexStepwise0.005flexage250709_sorted.csv",
+        #     bounds, n=1000, dist_type="multilog", varlim = "pathogen", pathogen=pathogen)
+        # param_samples = prior_dist.sample(jax.random.PRNGKey(0), sample_shape=(1000,))
+        # plot histograms of each parameter
+        n = param_samples.shape[1]//2 + param_samples.shape[1]%2
         n_ds = 6 + ("Influenza" in pathogen) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
         bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
-        transformed_samples = jnp.exp(posterior_samples['params']) + bounds[:,0]
+        fig, ax = plt.subplots(n, 2, figsize=(12, 3*n))
+        transformed_samples = jnp.exp(param_samples) + bounds[:,0]
         param_names = param_names[:n_ds] + param_names[n_ds+7:]
-        beta_idx = param_names.index('BETA')
-        s_rel2_idx = param_names.index('WANE2')
-        beta_samples = transformed_samples[:,beta_idx]/REC*13
-        s_rel2_samples = transformed_samples[:,s_rel2_idx]
-        # plot multiple seaborn-style contour plots on the same axis
-        sns.kdeplot(x=beta_samples, y=s_rel2_samples, levels=5, fill=True, alpha=0.3, ax=ax, color=pathogen_colors[pathogen_i])
-    # custom legend
-    legend_elements = [Patch(facecolor=pathogen_colors[i], edgecolor='k', label=pathogen) for i, pathogen in enumerate(["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"])]
-    ax.legend(handles=legend_elements, title="Pathogen", loc='upper right')
-    ax.set_xlabel('R0')
-    ax.set_ylabel('WANE')
-    plt.tight_layout()
-    plt.savefig("Figures/NumPyro"+str(seed)+"_R0_vs_WANEs.png", dpi=300)
+        for i in range(n):
+            for j in range(2):
+                idx = i*2 + j
+                if idx < len(param_names):
+                    plot_histogram(transformed_samples[:,idx], param_names[idx], ax=ax[i,j])
+        plt.tight_layout()
+        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+option1+str(seed)+"cm_sp100_mass.png", dpi=300)
+        plt.close()
+        fig, axes = plt.subplots(3,3,figsize=(13.3,7.5))
+        axes = axes.flatten()
+        plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=axes, age=True, monthly=True, noisy=False)
+        ## title axes
+        age_names = ["<3m", "3–11m", "1–4y", "5–7y", "8–39y", "40–64y", "<=65y"]
+        for i in range(7):
+            axes[i].set_title(f'{age_names[i]}')
+
+        # plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=False, ax=ax)
+        # plt.xlabel('Days since 1970-01-01')
+        # plt.ylabel('Number of Cases')
+        # plt.title(f'Posterior Predictive Trajectories for {pathogen}')
+        # plt.legend()
+        plt.suptitle(f'Posterior Predictive Trajectories for {pathogen} (Monthly Cases)', fontsize=16)
+        plt.tight_layout()
+        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+option1+str(seed)+"cm_sp100_mass_monthly.png", dpi=300)
+
+    # ## 2d contour plot comparisons
+    # fig, ax = plt.subplots(figsize=(6.5,6.5))
+    # # # ax.set_xlim(0.05, 0.55)
+    # # ax.set_xlim(0, 0.01)
+    # # # ax.set_ylim(0, 0.011)
+    # # ax.set_ylim(0.1, 1)
+    # pathogen_colors = ["#648FFF","#DC267F","#FFB000","#785EF0"]
+    # for pathogen_i in range(4):
+    #     pathogen = ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"][pathogen_i]
+    #     REC = [1/4.9,1/3,1/3,1/3][pathogen_i]
+    #     # 2d histograms of beta vs S_REL2
+    #     with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwiseNAflexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "rb") as f:
+    #         posterior_samples = pickle.load(f)
+    #     params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", "NA", "flexage", seed)
+    #     n_ds = 6 + ("Influenza" in pathogen) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
+    #     bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
+    #     transformed_samples = jnp.exp(posterior_samples['params']) + bounds[:,0]
+    #     param_names = param_names[:n_ds] + param_names[n_ds+7:]
+    #     beta_idx = param_names.index('BETA')
+    #     s_rel2_idx = param_names.index('WANE2')
+    #     beta_samples = transformed_samples[:,beta_idx]/REC*13
+    #     s_rel2_samples = transformed_samples[:,s_rel2_idx]
+    #     # plot multiple seaborn-style contour plots on the same axis
+    #     sns.kdeplot(x=beta_samples, y=s_rel2_samples, levels=5, fill=True, alpha=0.3, ax=ax, color=pathogen_colors[pathogen_i])
+    # # custom legend
+    # legend_elements = [Patch(facecolor=pathogen_colors[i], edgecolor='k', label=pathogen) for i, pathogen in enumerate(["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"])]
+    # ax.legend(handles=legend_elements, title="Pathogen", loc='upper right')
+    # ax.set_xlabel('R0')
+    # ax.set_ylabel('WANE')
+    # plt.tight_layout()
+    # plt.savefig("Figures/NumPyro"+str(seed)+"_R0_vs_WANEs.png", dpi=300)
