@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=prevaxDE
+#SBATCH --job-name=tttest
 #SBATCH --account=fc_coronamodel
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
