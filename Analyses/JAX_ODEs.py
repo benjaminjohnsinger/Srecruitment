@@ -12,13 +12,12 @@ def deltas(t, state, args):
     REC_UP, REC_SAME, IMPORT_STRENGTH) = args # pathogen parameters
     NAG = 7
     N_S = 3
-    t_idx = jnp.int32(t)
     delta = jnp.zeros((2*N_S+1,NAG))
     maternal = state[0]
     delta_maternal = 0
     shaped_state = state[1:].reshape((2*N_S+1,NAG))
-    age_pops = jnp.sum(shaped_state[:2*N_S+1, :], axis=0).at[0].add(maternal)
-    pop_size = jnp.sum(age_pops) + maternal
+    age_pops = jnp.sum(shaped_state[:2*N_S, :], axis=0).at[0].add(maternal)
+    pop_size = jnp.sum(age_pops)
     infectious = shaped_state[1:2*N_S:2, :]
     susceptible = shaped_state[0:2*N_S:2, :]
     # # births

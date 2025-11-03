@@ -141,7 +141,7 @@ def fit_transform(target_means, target_cov, bounds):
     return unconstrained_loc, unconstrained_cov
     
 
-def prior_distribution(filename, bounds, n=1000, dist_type="multilog", varlim=None, pathogen="RSV"):
+def prior_distribution(filename, bounds, n=1000, dist_type="multilog", varlim=None, pathogen="RSV", option1="NA"):
     DE_output = pd.read_csv(filename).values
     # remove columns 1,2,3 (pathogen, lockdown, seed)
     DE_output = np.delete(DE_output, [1,2,3], axis=1)
@@ -151,7 +151,7 @@ def prior_distribution(filename, bounds, n=1000, dist_type="multilog", varlim=No
     # sort by first column (best likelihood)
     de = de[jnp.argsort(de[:,0]),:]
     if varlim is not None:
-        n_ds = 6 + ("Influenza" in pathogen) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
+        n_ds = 6 + ("Influenza" in pathogen) + ("wane" in option1) + (("mimm" in option1) & ("maxmimm" not in option1)) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
         if varlim == "dynamicpathogen":
             de = de[:,:n_ds+1]
             bounds = bounds[:n_ds]
@@ -223,10 +223,10 @@ def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-
     else:
         prior_lockdown = lockdown
     prior_dist, prior_means = prior_distribution(f"Outputs/DE_outputs/{pathogen}{seed}{prior_lockdown}{option1}{option2}1e-92010.7.csv", bounds,
-        n=1000, dist_type="multilog", varlim = varlim, pathogen=pathogen)
+        n=1000, dist_type="multilog", varlim = varlim, pathogen=pathogen, option1=option1)
     if varlim is not None:
         option1 = option1 + varlim
-        n_ds = 6 + ("Influenza" in pathogen) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
+        n_ds = 6 + ("Influenza" in pathogen) + ("wane" in option1) + (("mimm" in option1) & ("maxmimm" not in option1)) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
         if varlim == "dynamicpathogen":
             bounds = bounds[:n_ds]
         elif varlim == "dynamic":
@@ -359,8 +359,8 @@ if __name__ == "__main__":
     print(jax.local_device_count())
     start = time.time()
     seed = 251024
-    option1 = "NA"
-    for pathogen in ["0test0", "1test0", "2test0", "3test0", "4test0", "5test0"]:
+    option1 = "maxmimmwane"
+    for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Parainfluenza3", "Adenovirus"]:
         print(pathogen, time.time()-start)
         mcmc = fit_MCMC(pathogen, str(seed), option1, "flexage", seed, import_multiplier=1e-9, samples=1000, varlim="pathogen")
         mcmc.print_summary()
@@ -374,11 +374,11 @@ if __name__ == "__main__":
         params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", option1, "flexage", seed)
         # plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
         # prior_dist, prior_means = prior_distribution(f"Data/Processed/DE_outputs/DE_{pathogen}FlexStepwise0.005flexage250709_sorted.csv",
-        #     bounds, n=1000, dist_type="multilog", varlim = "pathogen", pathogen=pathogen)
+        #     bounds, n=1000, dist_type="multilog", varlim = "pathogen", pathogen=pathogen, option1=option1)
         # param_samples = prior_dist.sample(jax.random.PRNGKey(0), sample_shape=(1000,))
         # plot histograms of each parameter
         n = param_samples.shape[1]//2 + param_samples.shape[1]%2
-        n_ds = 6 + ("Influenza" in pathogen) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
+        n_ds = 6 + ("Influenza" in pathogen) + ("wane" in option1) + (("mimm" in option1) & ("maxmimm" not in option1)) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
         bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
         fig, ax = plt.subplots(n, 2, figsize=(12, 3*n))
         transformed_samples = jnp.exp(param_samples) + bounds[:,0]
@@ -422,7 +422,7 @@ if __name__ == "__main__":
     #     with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwiseNAflexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "rb") as f:
     #         posterior_samples = pickle.load(f)
     #     params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", "NA", "flexage", seed)
-    #     n_ds = 6 + ("Influenza" in pathogen) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
+    #     n_ds = 6 + ("Influenza" in pathogen) + ("wane" in option1) + (("mimm" in option1) & ("maxmimm" not in option1)) + 2 * ((pathogen != "RSV") & ("Influenza" not in pathogen))
     #     bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
     #     transformed_samples = jnp.exp(posterior_samples['params']) + bounds[:,0]
     #     param_names = param_names[:n_ds] + param_names[n_ds+7:]
