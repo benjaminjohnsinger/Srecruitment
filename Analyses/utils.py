@@ -334,7 +334,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
-    if ('flexage' in option1) & ('dynamic' not in option1):
+    if ('flexage' in option2) & ('dynamic' not in option1):
         OBS_AGE = jnp.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
     elif 'dynamic' in option1:
         OBS_AGE = fixed_params[7]
