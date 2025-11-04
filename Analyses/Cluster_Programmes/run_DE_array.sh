@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=RSV
+#SBATCH --job-name=fluB
 #SBATCH --account=fc_coronamodel
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
@@ -15,14 +15,14 @@ module load python/3.11.6-gcc-11.4.0
 source ~/match-env/bin/activate
 
 combinations=(
-"RSV 251103 FlexStepwise mimm flexage 1e-9 20 1 0.7"
-"RSV 251103 FlexStepwise mimmwane flexage 1e-9 20 1 0.7"
-"RSV 251103 FlexStepwise NA flexagep01 1e-9 20 1 0.7"
-"RSV 251103 FlexStepwise maxmimmwane flexagep01 1e-9 20 1 0.7"
-"RSV 2511032 FlexStepwise mimm flexage 1e-9 20 1 0.7"
-"RSV 2511032 FlexStepwise mimmwane flexage 1e-9 20 1 0.7"
-"RSV 2511032 FlexStepwise NA flexagep01 1e-9 20 1 0.7"
-"RSV 2511032 FlexStepwise maxmimmwane flexagep01 1e-9 20 1 0.7"
+"InfluenzaB 251104 FlexStepwise maxmimmwane flexage 1e-9 20 1 0.7"
+"InfluenzaB 251104 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"InfluenzaB 2511042 FlexStepwise maxmimmwane flexage 1e-9 20 1 0.7"
+"InfluenzaB 2511042 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"InfluenzaB 2511043 FlexStepwise maxmimmwane flexage 1e-9 20 1 0.7"
+"InfluenzaB 2511043 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"InfluenzaB 2511044 FlexStepwise maxmimmwane flexage 1e-9 20 1 0.7"
+"InfluenzaB 2511044 FlexStepwise NA flexage 1e-9 20 1 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"

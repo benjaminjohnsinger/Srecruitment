@@ -118,6 +118,8 @@ if __name__ == '__main__':
     # print(printstr)
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",seed=seed,
     workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
-
-    with open("Data/Processed/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
+    # if there's no Data/Processed/results<seed> directory, create it
+    if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
+        os.makedirs("Data/Processed/results"+str(seed)[:6])
+    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)
