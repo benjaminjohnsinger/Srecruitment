@@ -22,8 +22,7 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-# pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
-pathogen, seed, lockdown, option1, option2, import_multiplier = "InfluenzaB", 2510312, "FlexStepwise", "maxmimmwane", "flexage", 1e-9
+pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
 
 # set seed
 np.random.seed(seed)
@@ -35,28 +34,26 @@ if re.match(r'\d{4}-\d{2}-\d{2}',option2):
     option2 = "flexage" #this is super hacky sorry
 
 print(pathogen, seed)
-# if re.match(r'\d{6}',lockdown):
-#     with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
-#         opt = pickle.load(f)
-# else:
-#     try:
-#         with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
-#             opt = pickle.load(f)
-#     except FileNotFoundError:
-#         print('No file found')
-#         sys.exit()
-# if opt.success:
-#     print("Optimization converged")
-# else:
-#     print("Optimization did not converge")
-#     print(opt.message)
-#     print(opt.x)
-#     sys.exit()
-# x = opt.x
+if re.match(r'\d{6}',lockdown):
+    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
+        opt = pickle.load(f)
+else:
+    try:
+        with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+            opt = pickle.load(f)
+    except FileNotFoundError:
+        print('No file found')
+        sys.exit()
+if opt.success:
+    print("Optimization converged")
+else:
+    print("Optimization did not converge")
+    print(opt.message)
+    print(opt.x)
+    sys.exit()
+x = opt.x
 # print likelihood
-# print("Log-Likelihood:",-1*opt.fun)
-x = np.array([0.0920922264366375,0.0857389248664212,0.34412362948903086,0.0013890005585791882,0.004330752687604533,0.12162202648932208,0.6350645450137923,0.5740822740849479,0.04084106711499752,0.8907200125374324,0.4680477536123758,0.8836957505968351,0.17297480296738238,0.12709467299298483,0.21091792195296394,0.00045243078910895025,0.0004005741971847155,0.0003220556884919025,0.0004029925574574591,0.003888478199829266,0.00001317011888880464,0.000317116403607777
-])
+print("Log-Likelihood:",-1*opt.fun)
 
 REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
 N_S, NAG = 3, 7
@@ -183,4 +180,4 @@ ax[2].set_title("Effective susceptibles")
 # ax[1].ticklabel_format(axis='y', style='sci', scilimits=(0,0))
 # ax[1].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
 plt.tight_layout()
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_intermediate0123456.png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)

@@ -376,20 +376,14 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
     
     from Parameters.census_population import AGING_RATE
     REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
-    N_S, NAG = 3, 7
     CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
     BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
-    age_pops = jnp.asarray(np.genfromtxt('Data/Processed/age_pops_daily.csv', delimiter=','))
 
-    start_date = '2015-07-04'
     end_date = '2025-05-01'
     EPOCH = pd.to_datetime('1970-01-01')
-    START = pd.to_datetime(start_date) 
     END = pd.to_datetime(end_date)
     FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
     FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
-    PERIOD = pd.date_range(start=START, end=END, freq='D')
-    POINTS = np.array(date_to_t(PERIOD))
 
     bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
 
