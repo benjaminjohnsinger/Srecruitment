@@ -268,7 +268,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         S_REL = jnp.array([1,x[n],x[n]*x[n+1]])
         pobsrel = jnp.array([1,x[n+2],x[n+2]*x[n+3]])
         n += 4
-    if option2 != 'flexage':
+    if 'flexage' not in option2:
         P_OBS = x[n]*pobsrel
         n += 1
     else:
@@ -334,7 +334,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
-    if option2 == 'flexage' and not 'dynamic' in option1:
+    if ('flexage' in option1) & ('dynamic' not in option1):
         OBS_AGE = jnp.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
     elif 'dynamic' in option1:
         OBS_AGE = fixed_params[7]
@@ -394,8 +394,8 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
         bounds_dict["WANE1"] = [0,1e-2]
     if option1 == "nb":
         bounds_dict["OVERDISPERSION"] = [-5,10]
-    elif option1 == "maternal":
-        bounds_dict["MATERNAL_IMMUNITY"] = [0,10]
+    elif ("mimm" in option1) & ("maxmimm" not in option1):
+        bounds_dict["MATERNAL_IMMUNITY"] = [0,1]
     if ("Influenza" in pathogen) and (option2 != "nr"):
         bounds_dict["EXTRA_IMMUNITY"] = [0,1]
         bounds_dict["FIRST_IMMUNITY"] = [0.1,1]

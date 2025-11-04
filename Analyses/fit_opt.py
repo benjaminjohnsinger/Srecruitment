@@ -62,8 +62,8 @@ if "wane" in option1:
     bounds_dict["WANE1"] = [0,1e-2]
 if option1 == "nb":
     bounds_dict["OVERDISPERSION"] = [-5,10]
-elif option1 == "maternal":
-    bounds_dict["MATERNAL_IMMUNITY"] = [0,10]
+elif ("mimm" in option1) & ("maxmimm" not in option1):
+    bounds_dict["MATERNAL_IMMUNITY"] = [0,1]
 if ("Influenza" in pathogen) and (option2 != "nr"):
     bounds_dict["EXTRA_IMMUNITY"] = [0,1]
     bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
