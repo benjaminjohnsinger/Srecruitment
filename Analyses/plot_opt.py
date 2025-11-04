@@ -79,7 +79,7 @@ STATE0 = STATE0.at[1,:].set(1)
 STATE0 = STATE0.flatten()
 STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-params = x_to_params(x, pathogen, lockdown, option1, option2, print_params=False)
+params = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True)
 
 from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 
@@ -101,27 +101,27 @@ times = solution.ts
 
 print(SIS_likelihood(incidence, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, solution=solution))
 
-# # for each season from the 2015/16 season onwards, sum the total number of infections
-seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
-season_infection_array = np.zeros((len(seasons)-1,3))
-season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
-for i in range(len(seasons)-1):
-    # get the number of infections in each season
-    season_start = np.argmax(times>=seasons[i])
-    season_end = np.argmax(times>=seasons[i+1])
-    pop_size = np.sum(values[:-NAG,season_start],dtype=np.float64)
-    age_pops = np.array([np.sum(values[range(1+i_age,2*N_S*NAG,NAG),season_start],axis=0) for i_age in range(NAG)])
-    age_pops[0] += values[0,season_start]  # add maternal immunity compartment to first age group
-    season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
-    season_infection_array[i,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end])*REC_UP[1]/pop_size
-    season_infection_array[i,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end])*REC_SAME[2]/pop_size
-    season_infection_by_age[i,:,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end],axis=1)*REC_UP[0]/age_pops
-    season_infection_by_age[i,:,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end],axis=1)*REC_UP[1]/age_pops
-    season_infection_by_age[i,:,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end],axis=1)*REC_SAME[2]/age_pops 
-season_infections = np.sum(season_infection_array,axis=1)
-season_infection_by_age = np.sum(season_infection_by_age,axis=2)
-print("Proportion infected per season (including reinfections):",season_infections)
-print("Proportion infected per season (by age):",season_infection_by_age)
+# # # for each season from the 2015/16 season onwards, sum the total number of infections
+# seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
+# season_infection_array = np.zeros((len(seasons)-1,3))
+# season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
+# for i in range(len(seasons)-1):
+#     # get the number of infections in each season
+#     season_start = np.argmax(times>=seasons[i])
+#     season_end = np.argmax(times>=seasons[i+1])
+#     pop_size = np.sum(values[:-NAG,season_start],dtype=np.float64)
+#     age_pops = np.array([np.sum(values[range(1+i_age,2*N_S*NAG,NAG),season_start],axis=0) for i_age in range(NAG)])
+#     age_pops[0] += values[0,season_start]  # add maternal immunity compartment to first age group
+#     season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
+#     season_infection_array[i,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end])*REC_UP[1]/pop_size
+#     season_infection_array[i,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end])*REC_SAME[2]/pop_size
+#     season_infection_by_age[i,:,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end],axis=1)*REC_UP[0]/age_pops
+#     season_infection_by_age[i,:,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end],axis=1)*REC_UP[1]/age_pops
+#     season_infection_by_age[i,:,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end],axis=1)*REC_SAME[2]/age_pops 
+# season_infections = np.sum(season_infection_array,axis=1)
+# season_infection_by_age = np.sum(season_infection_by_age,axis=2)
+# print("Proportion infected per season (including reinfections):",season_infections)
+# print("Proportion infected per season (by age):",season_infection_by_age)
 
 
 # # get R(t)

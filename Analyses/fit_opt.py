@@ -74,6 +74,8 @@ else:
     bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1,1]
 if option2 == "flexage":
     bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0,0.005]
+elif option2 == "flexagep01":
+    bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0,0.01]
 else:
     bounds_dict["P_OBS"] = [0,0.01]
     bounds_dict["AGE_OBS_YOUNG"] = bounds_dict["AGE_OBS_OLD"] = bounds_dict["AGE_OBS_YOUNG_OLD"] = [0,1]

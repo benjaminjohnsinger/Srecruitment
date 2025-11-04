@@ -356,7 +356,10 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     if print_params:
         param_names = ["BETA","WANE","SEASONALITY","OFFSET","S_REL","P_OBS","OBS_AGE","FF","TT"]
         for i in range(len(param_names)):
-            print(param_names[i]+": "+eval(param_names[i]).__str__())
+            if param_names[i] == "TT":
+                print("TT: " + [t_to_date(t).strftime('%Y-%m-%d') for t in eval(param_names[i])].__str__())
+            else:
+                print(param_names[i]+": "+eval(param_names[i]).__str__())
     
     return params
 
@@ -404,6 +407,8 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
     if "dynamic" not in option1:
         if option2 == "flexage":
             bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0,0.005]
+        elif option2 == "flexagep01":
+            bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0,0.01]
         else:
             bounds_dict["P_OBS"] = [0,0.01]
             bounds_dict["AGE_OBS_YOUNG"] = bounds_dict["AGE_OBS_OLD"] = bounds_dict["AGE_OBS_YOUNG_OLD"] = [0,1]
