@@ -181,37 +181,37 @@ def params_to_scalars(param_dict,scalar_names):
 
 def pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=False):
     ARRIVALS = jnp.asarray(np.genfromtxt('Data/Processed/arrivals_daily.csv', delimiter=','))
-    if pathogen == 'RSV':
+    if 'RSV' in pathogen:
         REC_UP = jnp.array([1/4.9,1/4.1,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/4.1])
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/RSV_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_RSV_incidence_age_daily.csv",index_col=0))
-    elif pathogen == 'InfluenzaA':
+    elif 'InfluenzaA' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/InfluenzaA_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_InfluenzaA_incidence_age_daily.csv",index_col=0))
-    elif pathogen == 'InfluenzaB':
+    elif 'InfluenzaB' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/InfluenzaB_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_InfluenzaB_incidence_age_daily.csv",index_col=0))
-    elif pathogen == 'Parainfluenza3':
+    elif 'Parainfluenza3' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Parainfluenza3_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Parainfluenza3_incidence_age_daily.csv",index_col=0))
-    elif pathogen == 'Adenovirus':
+    elif 'Adenovirus' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Adenovirus_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Adenovirus_incidence_age_daily.csv",index_col=0))
-    elif pathogen == 'Metapneumovirus':
+    elif 'Metapneumovirus' in pathogen:
         REC_UP = np.array([1/4.9,1/4.1,0.0]) # based on RSV - Okiro 2010
         REC_SAME = np.array([0.0,0.0,1/4.1]) # based on RSV - Okiro 2010
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Metapneumovirus_positivity_daily.csv', delimiter=','))
@@ -363,31 +363,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     
     return params
 
-def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=None, import_multiplier=1e-9):
-    if re.match(r'\d{6}',lockdown):
-        with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
-            opt = pickle.load(f)
-    else:
-        try:
-            with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
-                opt = pickle.load(f)
-        except FileNotFoundError:
-            print("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
-            print('No file found')
-            sys.exit()
-    x = opt.x
-    
-    from Parameters.census_population import AGING_RATE
-    REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
-    CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
-    BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
-
-    end_date = '2025-05-01'
-    EPOCH = pd.to_datetime('1970-01-01')
-    END = pd.to_datetime(end_date)
-    FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
-    FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
-
+def parameters_names_bounds(pathogen, lockdown, option1, option2):
     bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
 
     if "wane" in option1:
@@ -425,6 +401,35 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
         if key in bounds_dict.keys()}
     bounds = jnp.array(list(bounds_dict.values()))
     param_names = list(bounds_dict.keys())
+    
+    return param_names, bounds
+
+def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=None, import_multiplier=1e-9):
+    if re.match(r'\d{6}',lockdown):
+        with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
+            opt = pickle.load(f)
+    else:
+        try:
+            with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+                opt = pickle.load(f)
+        except FileNotFoundError:
+            print("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
+            print('No file found')
+            sys.exit()
+    x = opt.x
+    
+    from Parameters.census_population import AGING_RATE
+    REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
+    CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
+    BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
+
+    end_date = '2025-05-01'
+    EPOCH = pd.to_datetime('1970-01-01')
+    END = pd.to_datetime(end_date)
+    FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
+    FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
+
+    param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
 
     if lockdown_x is not None:
         for i,name in enumerate(param_names):
