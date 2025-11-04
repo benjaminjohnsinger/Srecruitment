@@ -4,7 +4,7 @@
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
 #SBATCH --time=72:00:00
-#SBATCH --array=0-7
+#SBATCH --array=0-8
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -16,13 +16,14 @@ source ~/match-env/bin/activate
 
 combinations=(
 "InfluenzaB 251104 FlexStepwise maxmimmwane flexage 1e-9 20 1 0.7"
+"InfluenzaB 251104 FlexStepwise wane flexage 1e-9 20 1 0.7"
 "InfluenzaB 251104 FlexStepwise NA flexage 1e-9 20 1 0.7"
 "InfluenzaB 2511042 FlexStepwise maxmimmwane flexage 1e-9 20 1 0.7"
+"InfluenzaB 2511042 FlexStepwise wane flexage 1e-9 20 1 0.7"
 "InfluenzaB 2511042 FlexStepwise NA flexage 1e-9 20 1 0.7"
 "InfluenzaB 2511043 FlexStepwise maxmimmwane flexage 1e-9 20 1 0.7"
+"InfluenzaB 2511043 FlexStepwise wane flexage 1e-9 20 1 0.7"
 "InfluenzaB 2511043 FlexStepwise NA flexage 1e-9 20 1 0.7"
-"InfluenzaB 2511044 FlexStepwise maxmimmwane flexage 1e-9 20 1 0.7"
-"InfluenzaB 2511044 FlexStepwise NA flexage 1e-9 20 1 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
