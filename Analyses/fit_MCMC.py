@@ -292,7 +292,7 @@ if __name__ == "__main__":
         plt.tight_layout()
         plt.savefig("Figures/NumPyro_test_likelihoods_"+pathogen+"_sp1000.png", dpi=300)
 
-    def plot_trajectories(posterior_samples_params, params, restricted_bounds, incidence, p_time_to_obs, downsample=False, ax=None, age=False, monthly=False, noisy=False):
+    def plot_trajectories(posterior_samples_params, params, restricted_bounds, incidence, p_time_to_obs, option1="pathogen", downsample=False, ax=None, age=False, monthly=False, noisy=False):
         if downsample:
             posterior_samples_params = posterior_samples_params[np.random.choice(posterior_samples_params.shape[0], size=downsample, replace=False)]
         age_pops = jnp.asarray(pd.read_csv("Data/Processed/age_pops_daily.csv").values)
@@ -320,7 +320,7 @@ if __name__ == "__main__":
         STATE0_shaped = STATE0_shaped.at[1,:].set(1)
         STATE0 = jnp.concatenate((jnp.array([0]), STATE0_shaped.flatten()))
         transformed_samples = jnp.exp(posterior_samples_params) + restricted_bounds[:,0]
-        sim_params = jax.vmap(lambda x: x_to_params(x, pathogen, "FlexStepwise", "pathogen", "flexage", vax_preprocessor=FluRatePreprocessor(jnp.arange(0, date_to_t('2025-05-01')), age_pops, AGING_RATE), fixed_params=params, import_multiplier=1e-9))(transformed_samples)
+        sim_params = jax.vmap(lambda x: x_to_params(x, pathogen, "FlexStepwise", option1, "flexage", vax_preprocessor=FluRatePreprocessor(jnp.arange(0, date_to_t('2025-05-01')), age_pops, AGING_RATE), fixed_params=params, import_multiplier=1e-9))(transformed_samples)
         trajectories = jax.vmap(lambda p: trajectory(STATE0, p)) (sim_params)
         if noisy:
             trajectories = sp.stats.poisson.rvs(trajectories)
@@ -358,18 +358,18 @@ if __name__ == "__main__":
     from matplotlib.patches import Patch
     print(jax.local_device_count())
     start = time.time()
-    seed = 251024
+    seed = 251103
     option1 = "maxmimmwane"
     for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Parainfluenza3", "Adenovirus"]:
         print(pathogen, time.time()-start)
-        mcmc = fit_MCMC(pathogen, str(seed), option1, "flexage", seed, import_multiplier=1e-9, samples=1000, varlim="pathogen")
-        mcmc.print_summary()
-        # save samples
-        posterior_samples = mcmc.get_samples()
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+str(seed)+option1+"flexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "wb") as f:
-            pickle.dump(posterior_samples, f)
-        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise0.005flexage250709_pathogen_samples_sp100_mass.pickle", "rb") as f:
-        #     posterior_samples = pickle.load(f)
+        # mcmc = fit_MCMC(pathogen, str(seed), option1, "flexage", seed, import_multiplier=1e-9, samples=1000, varlim="pathogen")
+        # mcmc.print_summary()
+        # # save samples
+        # posterior_samples = mcmc.get_samples()
+        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+str(seed)+option1+"flexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "wb") as f:
+        #     pickle.dump(posterior_samples, f)
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise"+option1+"flexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "rb") as f:
+            posterior_samples = pickle.load(f)
         param_samples = posterior_samples['params']
         params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", option1, "flexage", seed)
         # plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
@@ -393,7 +393,7 @@ if __name__ == "__main__":
         plt.close()
         fig, axes = plt.subplots(3,3,figsize=(13.3,7.5))
         axes = axes.flatten()
-        plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, downsample=100, ax=axes, age=True, monthly=True, noisy=False)
+        plot_trajectories(param_samples, params, bounds, incidence, p_time_to_obs, option1=option1+"pathogen", downsample=100, ax=axes, age=True, monthly=True, noisy=False)
         ## title axes
         age_names = ["<3m", "3–11m", "1–4y", "5–7y", "8–39y", "40–64y", "<=65y"]
         for i in range(7):
