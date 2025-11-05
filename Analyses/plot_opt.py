@@ -142,6 +142,12 @@ print(SIS_likelihood(incidence, params, POINTS, STATE0, p_time_to_obs, age=True,
 # print("Rt:",jnp.median(Rts),"("+str(jnp.min(Rts))+"–"+str(jnp.max(Rts))+")")
 # print("Ratio of import-caused cases to internal transmission:",jnp.median(contact_ratios),"("+str(jnp.min(contact_ratios))+"–"+str(jnp.max(contact_ratios))+")")
 
+# remove "free" from pathogen name for plotting
+if "free" in pathogen:
+    pathogen_name = pathogen.replace("free","")
+else:
+    pathogen_name = pathogen
+
 fig = plt.figure(figsize=(13.3,7.5))
 ax1 = fig.add_subplot(3,1,1)
 ax2 = fig.add_subplot(3,1,2, sharex=ax1
@@ -150,10 +156,10 @@ ax2 = fig.add_subplot(3,1,2, sharex=ax1
 ax3 = fig.add_subplot(3,1,3, sharex=ax1)
 ax = [ax1,ax2,ax3]
 aggregation = "Month"
-kpsc_positive_test_plot(ax[0],pathogen=pathogen,AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation=aggregation, load_data=True)
+kpsc_positive_test_plot(ax[0],pathogen=pathogen_name,AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation=aggregation, load_data=True)
 ax[0].set_xlabel("")
 pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
-# ax[0].set_title("Observed incidence of "+pnamedict[pathogen])
+# ax[0].set_title("Observed incidence of "+pnamedict[pathogen_name])
 ax[0].set_ylabel("Monthly incidence per 10k")
 # legend
 ax[0].legend(frameon=False)

@@ -256,7 +256,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     else:
         WANE = jnp.array([0.0,0.0,x[n]])
         n += 1
-    if ("Influenza" in pathogen) and (option2 != 'nr'):
+    if ("Influenza" in pathogen) and ("free" not in pathogen) and (option2 != 'nr'):
         srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
         S_REL = srel
         n += 3
@@ -372,7 +372,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
         bounds_dict["OVERDISPERSION"] = [-5,10]
     elif ("mimm" in option1) & ("maxmimm" not in option1):
         bounds_dict["MATERNAL_IMMUNITY"] = [0,1]
-    if ("Influenza" in pathogen) and (option2 != "nr"):
+    if ("Influenza" in pathogen) and ("free" not in pathogen) and (option2 != "nr"):
         bounds_dict["EXTRA_IMMUNITY"] = [0,1]
         bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
         bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
