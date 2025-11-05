@@ -37,7 +37,7 @@ else:
     option1_list = [option1]
 
 # set seed
-np.random.seed(seed)
+np.random.seed(seed_list[0])
 
 start_date = '2015-07-04'
 end_date = '2025-05-01'

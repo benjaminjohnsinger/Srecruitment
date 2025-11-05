@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=cm
+#SBATCH --job-name=cmDE
 #SBATCH --account=fc_coronamodel
 #SBATCH --partition=savio2
 #SBATCH --nodes=1
