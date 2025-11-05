@@ -21,10 +21,20 @@ from mobility_and_import import *
 from fit_MCMC import SIS_likelihood
 
 
-pathogens, seed, option1, option2, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], int(sys.argv[5]), float(sys.argv[6]), float(sys.argv[7])
+pathogens, seed, option1, option2, desize, max_mutation, recombination = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]), float(sys.argv[6]), float(sys.argv[7])
 
 # split pathogens by commas
 pathogen_list = pathogens.split(",")
+
+if "," in seed:
+    seed_list = [int(s) for s in seed.split(",")]
+else:
+    seed_list = [int(seed)]
+
+if "," in option1:
+    option1_list = option1.split(",")
+else:
+    option1_list = [option1]
 
 # set seed
 np.random.seed(seed)
@@ -64,8 +74,11 @@ def likelihood(x):
     lockdown_x = {"DT1": x[0], "DT2": x[1], "DT3": x[2], "F1": x[3], "F2": x[4], "F3": x[5], "F4": x[6]}
 
     lh = 0
-    for pathogen in pathogen_list:
-        params, param_names, bounds, incidence, p_time_to_obs= parameters_from_DE(pathogen,"FlexStepwise",option1,option2,seed,lockdown_x)
+    for i in range(len(pathogen_list)):
+        seed = seed_list[i % len(seed_list)]
+        option1 = option1_list[i % len(option1_list)]
+        pathogen = pathogen_list[i]
+        params, _, _, incidence, p_time_to_obs= parameters_from_DE(pathogen,"FlexStepwise",option1,option2,seed,lockdown_x)
         try:
             lh_pathogen = -SIS_likelihood(incidence,params,POINTS,STATE0,p_time_to_obs)
             lh += lh_pathogen
@@ -83,8 +96,7 @@ start = time.time()
 if __name__ == '__main__':
     multiprocessing.set_start_method('spawn', force=True)
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,
-    workers = 4)
-    # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
 
     with open("Data/Processed/DE_cm_opt_"+option1+option2+str(seed)+".pickle","wb") as f:
         pickle.dump(opt,f)
