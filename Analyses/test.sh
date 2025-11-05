@@ -3,11 +3,10 @@ combinations=(
 "RSVfree 251104 FlexStepwise NA flexage 1e-9 20 1 0.7"
 "RSVfree 2511042 FlexStepwise maxmimmwane flexage 1e-9 20 1 0.7"
 "RSVfree 2511042 FlexStepwise NA flexage 1e-9 20 1 0.7"
-"InfluenzaAfree 251104 FlexStepwise NA flexage 1e-9 20 1 0.7"
-"InfluenzaAfree 2511042 FlexStepwise NA flexage 1e-9 20 1 0.7"
-"InfluenzaBfree 251104 FlexStepwise NA flexage 1e-9 20 1 0.7"
-"InfluenzaBfree 2511042 FlexStepwise NA flexage 1e-9 20 1 0.7"
-"InfluenzaB 2511042 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"RSV 251103 FlexStepwise maxmimmwane flexage 1e-9 20 1 0.7"
+"RSV 251103 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"RSV 2511032 FlexStepwise maxmimmwane flexage 1e-9 20 1 0.7"
+"RSV 2511032 FlexStepwise NA flexage 1e-9 20 1 0.7"
 )
 
 for combination in "${combinations[@]}"; do
