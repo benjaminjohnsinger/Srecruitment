@@ -33,4 +33,4 @@ combinations=(
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
 
-python -u Analyses/cm_opt.py $combination >> Outputs/CM_Outputs/$(echo "$combination" | tr -d ' ').csv
+python -u Analyses/fit_opt.py $combination >> Outputs/DE_Outputs/$(echo "$combination" | tr -d ' ').csv
