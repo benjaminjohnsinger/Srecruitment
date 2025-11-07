@@ -195,7 +195,7 @@ def prior_distribution(filename, bounds, n=1000, dist_type="multilog", varlim=No
 
 def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-9, vax_preprocessor=None, samples=1000, varlim=None):
     params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seed)
-    age_pops = jnp.asarray(pd.read_csv("Data/Processed/age_pops_daily.csv").values)
+    age_pops = jnp.asarray(pd.read_csv("Data/Processed/age_pops_daily.csv",header=None).values)
     cases = jnp.round(incidence*age_pops[-len(incidence):])
     p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
     def obs_convolution(x):
@@ -235,7 +235,7 @@ def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-
             bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
     if "Influenza" in pathogen:
         if vax_preprocessor is None:
-            vax_preprocessor = FluRatePreprocessor(jnp.arange(0, date_to_t('2025-05-01')), age_pops, AGING_RATE)
+            vax_preprocessor = FluRatePreprocessor(jnp.arange(0, date_to_t('2025-05-02')), age_pops, AGING_RATE)
     def model(obs_cases=None):
         # sample parameters from prior
         sample = numpyro.sample("params", prior_dist)
@@ -358,20 +358,22 @@ if __name__ == "__main__":
     from matplotlib.patches import Patch
     print(jax.local_device_count())
     start = time.time()
-    seed = 251103
+    lockdown = "2511032"
     option1 = "maxmimmwane"
-    for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Parainfluenza3", "Adenovirus"]:
+    seeds = [2511032, 251103, 251103, 251103, 251103, ]
+    pathogens = ["InfluenzaA", "RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus", ]
+    for pathogen, seed in zip(pathogens, seeds):
         print(pathogen, time.time()-start)
-        # mcmc = fit_MCMC(pathogen, str(seed), option1, "flexage", seed, import_multiplier=1e-9, samples=1000, varlim="pathogen")
-        # mcmc.print_summary()
-        # # save samples
-        # posterior_samples = mcmc.get_samples()
-        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+str(seed)+option1+"flexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "wb") as f:
-        #     pickle.dump(posterior_samples, f)
-        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise"+option1+"flexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "rb") as f:
-            posterior_samples = pickle.load(f)
+        mcmc = fit_MCMC(pathogen, lockdown, option1, "flexage", seed, import_multiplier=1e-9, samples=2000, varlim="pathogen")
+        mcmc.print_summary()
+        # save samples
+        posterior_samples = mcmc.get_samples()
+        with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+lockdown+option1+"flexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "wb") as f:
+            pickle.dump(posterior_samples, f)
+        # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise"+option1+"flexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "rb") as f:
+        #     posterior_samples = pickle.load(f)
         param_samples = posterior_samples['params']
-        params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", option1, "flexage", seed)
+        params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, "flexage", seed)
         # plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
         # prior_dist, prior_means = prior_distribution(f"Data/Processed/DE_outputs/DE_{pathogen}FlexStepwise0.005flexage250709_sorted.csv",
         #     bounds, n=1000, dist_type="multilog", varlim = "pathogen", pathogen=pathogen, option1=option1)
@@ -406,7 +408,7 @@ if __name__ == "__main__":
         # plt.legend()
         plt.suptitle(f'Posterior Predictive Trajectories for {pathogen} (Monthly Cases)', fontsize=16)
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+option1+str(seed)+"cm_sp100_mass_monthly.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_trajectories_"+pathogen+option1+str(seed)+lockdown+"sp100_mass_monthly.png", dpi=300)
 
     # ## 2d contour plot comparisons
     # fig, ax = plt.subplots(figsize=(6.5,6.5))

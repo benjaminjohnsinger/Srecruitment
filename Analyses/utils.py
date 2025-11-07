@@ -228,6 +228,7 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=False):
         return REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs
     return REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence
 
+
 # @partial(jax.jit, static_argnames=['pathogen','lockdown','option1','option2'])
 def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False):
     if fixed_params is None:
@@ -348,7 +349,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         VAX_RATE = calculate_vax_rate_vectorized(S_REL*P_OBS, vax_preprocessor)
     else:
         VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
-    
+
     params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
                 BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
                 REC_UP, REC_SAME, IMPORT_STRENGTH)
