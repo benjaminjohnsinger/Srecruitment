@@ -332,6 +332,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         FF = jnp.array([1,F1,F2,F3,F4])
         PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+        n+=7
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
     if ('flexage' in option2) & ('dynamic' not in option1):
@@ -347,8 +348,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         VAX_RATE = calculate_vax_rate_vectorized(S_REL*P_OBS, vax_preprocessor)
     else:
         VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
-
-
+    
     params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
                 BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
                 REC_UP, REC_SAME, IMPORT_STRENGTH)
