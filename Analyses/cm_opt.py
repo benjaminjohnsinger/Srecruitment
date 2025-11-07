@@ -36,8 +36,8 @@ if "," in option1:
 else:
     option1_list = [option1]
 
-# set seed
-np.random.seed(seed_list[0])
+# set seed as sum of seed list
+np.random.seed(sum(seed_list))
 
 start_date = '2015-07-04'
 end_date = '2025-05-01'
