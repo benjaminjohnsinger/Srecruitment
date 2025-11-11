@@ -599,37 +599,37 @@ if __name__ == "__main__":
     kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=True,
+    ,incidence=False,aggregation=None,legend=True,
     save_data=True,load_data=False
     )
     kpsc_positive_test_plot(ax[1,0],pathogen="RSV"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=False,
+    ,incidence=False,aggregation=None,legend=False,
     save_data=True,load_data=False
     )
     kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=False,
+    ,incidence=False,aggregation=None,legend=False,
     save_data=True,load_data=False
     )
     kpsc_positive_test_plot(ax[0,1],pathogen="InfluenzaB"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=False,
+    ,incidence=False,aggregation=None,legend=False,
     save_data=True,load_data=False
     )
     kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=False,
+    ,incidence=False,aggregation=None,legend=False,
     save_data=True,load_data=False
     )
     kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3"
     ,AGE_GROUPS=AGE_GROUPS
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=True,aggregation="Month",legend=False,
+    ,incidence=False,aggregation=None,legend=False,
     save_data=True,load_data=False
     )
-    plt.savefig("Figures/KPSC_ARI_extended_daily.png",dpi=300)
+    plt.savefig("Figures/KPSC_ARI_extended_cases_daily.png",dpi=300)

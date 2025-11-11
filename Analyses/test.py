@@ -23,36 +23,39 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 from fit_MCMC import run_simulation
 import time
 
-with open("Data/Processed/DE_cm_opt_maxmimmwane,maxmimmwane,maxmimmwane,maxmimmwane,maxmimmwaneflexage2511032,2511032,2511032,2511032,2511032.pickle","rb") as f:
-    opt = pickle.load(f)
-x = opt.x
-START = pd.to_datetime('2015-10-01')
-END = pd.to_datetime('2025-05-01')
-PERIOD = pd.date_range(start=START, end=END, freq='D')
-POINTS = jnp.array(date_to_t(PERIOD))
-n = 0
-TT = jnp.array([date_to_t(START),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
-# Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
-F1 = x[n+3] # value between 0 and 1 (first lockdown)
-F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
-F3 = F2*x[n+5] # value less than F2 (second lockdown)
-F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
-FF = jnp.array([1,F1,F2,F3,F4])
-PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(POINTS)
 
-# plot relative contact rate over time
-plt.figure(figsize=(10, 6))
-plt.plot(PERIOD, PIECEWISE_CONTACT, label='Relative Contact Rate', color='blue')
-plt.xlabel('Date')
-plt.ylabel('Relative Contact Rate')
-plt.title('Relative Contact Rate Over Time')
-plt.legend()
-plt.grid()
-plt.show()
+print(date_to_t('2020-03-19')-date_to_t('2019-10-01'))
 
-with open("Data/Processed/DE_cm_opt_250715.pickle","rb") as f:
-    opt = pickle.load(f)
-print(opt.x)
+# with open("Data/Processed/DE_cm_opt_maxmimmwane,maxmimmwane,maxmimmwane,maxmimmwane,maxmimmwaneflexage2511032,2511032,2511032,2511032,2511032.pickle","rb") as f:
+#     opt = pickle.load(f)
+# x = opt.x
+# START = pd.to_datetime('2015-10-01')
+# END = pd.to_datetime('2025-05-01')
+# PERIOD = pd.date_range(start=START, end=END, freq='D')
+# POINTS = jnp.array(date_to_t(PERIOD))
+# n = 0
+# TT = jnp.array([date_to_t(START),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
+# # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
+# F1 = x[n+3] # value between 0 and 1 (first lockdown)
+# F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
+# F3 = F2*x[n+5] # value less than F2 (second lockdown)
+# F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
+# FF = jnp.array([1,F1,F2,F3,F4])
+# PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(POINTS)
+
+# # plot relative contact rate over time
+# plt.figure(figsize=(10, 6))
+# plt.plot(PERIOD, PIECEWISE_CONTACT, label='Relative Contact Rate', color='blue')
+# plt.xlabel('Date')
+# plt.ylabel('Relative Contact Rate')
+# plt.title('Relative Contact Rate Over Time')
+# plt.legend()
+# plt.grid()
+# plt.show()
+
+# with open("Data/Processed/DE_cm_opt_250715.pickle","rb") as f:
+#     opt = pickle.load(f)
+# print(opt.x)
 # N_S, NAG = 3, 7
 # from Parameters.census_population import CENSUS_AGE_POP
 # from Parameters.census_population import AGE_GROUP_NAMES

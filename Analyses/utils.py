@@ -327,7 +327,6 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         FF = jnp.array([1,F1,F2,F3,F4])
         PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
-        n+=7
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
     if ('flexage' in option2) & ('dynamic' not in option1):
@@ -436,7 +435,7 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
     return params, param_names, bounds, incidence, p_time_to_obs
 
 # unified x from DE, i.e. x is same length regardless of model options. assume option2=flexage, lockdown=FlexStepwise
-def consistent_x_from_DE(pathogen, option1, seed):
+def consistent_x_from_DE(pathogen, option1, seed, NAG=7):
     with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+"flexage"+str(seed)+".pickle","rb") as f:
         opt = pickle.load(f)
     x_DE = opt.x
@@ -447,7 +446,7 @@ def consistent_x_from_DE(pathogen, option1, seed):
         x_consistent = x_consistent.at[3:5].set(x_DE[3:5]) # WANE1, WANE2
         n += 2
     else:
-        x_consistent = x_consistent.at[3].set(x_DE[3]) # WANE2
+        x_consistent = x_consistent.at[4].set(x_DE[3]) # WANE2
         n += 1
     if ("Influenza" in pathogen) and ("free" not in pathogen):
         srel, pobsrel = constrained_immunity(x_DE[n],x_DE[n+1],x_DE[n+2])
@@ -469,7 +468,7 @@ def consistent_x_from_DE(pathogen, option1, seed):
     elif "mimm" in option1:
         x_consistent = x_consistent.at[9].set(x_DE[n]) # maternal immunity
         n += 1
-    x_consistent = x_consistent.at[10:17].set(x_DE[n]) # AGE_OBS_1 to AGE_OBS_7
+    x_consistent = x_consistent.at[10:17].set(x_DE[-NAG:]) # AGE_OBS_1 to AGE_OBS_7
     return x_consistent
 
 ####### Generating interesting quantities from ODE results #######
