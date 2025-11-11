@@ -58,471 +58,471 @@ np.set_printoptions(threshold=np.inf)
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Palatino']
 
-fig, ax = plt.subplots(3,2,figsize=(13.3,7.5), sharex=True)
-kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
-kpsc_positive_test_plot(ax[1,0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
-kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
-kpsc_positive_test_plot(ax[0,1],pathogen="InfluenzaB",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
-kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
-kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
-# for i in range(2):
-#     for j in range(2):
-#         ax[i,j].set_xlabel("")
-for i in range(3):
-    ax[i,1].set_ylabel("")
-#     for j in range(2):
-#         ax[i,j].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
+# fig, ax = plt.subplots(3,2,figsize=(13.3,7.5), sharex=True)
+# kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
+# kpsc_positive_test_plot(ax[1,0],pathogen="RSV",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
+# kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
+# kpsc_positive_test_plot(ax[0,1],pathogen="InfluenzaB",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
+# kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
+# kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False,aggregation="Month",save_data=True)
+# # for i in range(2):
+# #     for j in range(2):
+# #         ax[i,j].set_xlabel("")
+# for i in range(3):
+#     ax[i,1].set_ylabel("")
+# #     for j in range(2):
+# #         ax[i,j].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
 
-ax[0,0].set_title("Influenza A")
-ax[1,0].set_title("RSV")
-ax[2,0].set_title("Adenovirus")
-ax[0,1].set_title("Influenza B")
-ax[1,1].set_title("Metapneumovirus")
-ax[2,1].set_title("PIV 3")
+# ax[0,0].set_title("Influenza A")
+# ax[1,0].set_title("RSV")
+# ax[2,0].set_title("Adenovirus")
+# ax[0,1].set_title("Influenza B")
+# ax[1,1].set_title("Metapneumovirus")
+# ax[2,1].set_title("PIV 3")
 
-ax[0,1].legend(ncol=2,title="Age group")
+# ax[0,1].legend(ncol=2,title="Age group")
 
+# plt.tight_layout()
+# plt.savefig('Figures/KPSC_ARI_slide_age_incidence_monthly.png',dpi=300)
+
+
+start_date = '2015-07-04'
+end_date = '2025-04-30'
+EPOCH = pd.to_datetime('1970-01-01')
+START = pd.to_datetime(start_date) 
+END = pd.to_datetime(end_date)
+PERIOD = pd.date_range(start=START, end=END, freq='D')
+POINTS = np.array(date_to_t(PERIOD))
+# Ts = jnp.array([date_to_t('1970-01-01'), date_to_t('2020-03-19'), date_to_t('2020-12-05'), date_to_t('2020-12-10'), date_to_t('2021-08-12')])
+# Fs = jnp.array([1,0.4001427,0.89507013,0.70283776,0.93153405])
+# @jit
+# def contact(t,seasonality,offset):
+#     return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
+from Parameters.RSV import *
+# Parameters from differential evolution
+# RSV_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': jnp.array([0.        , 0.00136468, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': jnp.array([1.        , 0.10032712, 0.04941595]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': jnp.array([0.04535184, 0.02086185, 0.01405907]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+# 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01, 'BETA': 0.5001441612672278, 'SEASONALITY': 0.0875344346283, 'OFFSET': 0.13221726766772357,
+# 'contact': contact}
+# params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+# 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+# 'contact': contact}
+NAG = 7
+N_S = 3
+DAYS = 19632
+BETA = 0.2
+WANE = np.array([0.0,0.00395647,0])
+S_REL = np.array([1.0,0.11615855, 0.02183006])
+P_OBS = np.array([1,0.46,0.31])
+OBS_AGE = np.array([1.51790104e-03, 2.86322367e-03, 4.93356844e-03, 1.87785669e-04, 
+    4.49717437e-05, 3.69412228e-04, 3.33166543e-03])
+REC_UP = np.array([1/4.9,1/4.1,0.0])
+REC_SAME = np.array([0.0,0.0,1/4.1])
+fig, ax = plt.subplots(1,4,figsize=(12,3))
+ARRIVALS = np.genfromtxt('Data/Processed/arrivals_daily.csv', delimiter=',')
+POSITIVITY = np.genfromtxt('Data/Processed/RSV_positivity_daily.csv', delimiter=',')
+arrivals = lambda t: ARRIVALS[int(t)]/(30.44*np.max(ARRIVALS)) if t < len(ARRIVALS) else 0.0
+regional_positivity = lambda t: POSITIVITY[int(t)] if t < len(POSITIVITY) else 0.0
+dayrange = np.arange(date_to_t("2016-10-01"),date_to_t("2017-10-01"))
+ax[0].plot([arrivals(day) for day in dayrange], label='Arrivals')
+ax[0].set_title('Arrivals')
+ax[1].plot([regional_positivity(day) for day in dayrange], label='Regional positivity')
+ax[1].set_title('Regional positivity')
+IMPORT_RATE = 0.01
+CONTACT = np.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
+contact = lambda t, seasonality, offset: (1.0+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
+BIRTH_RATE = np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=',')
+birth_rate = lambda t: BIRTH_RATE[int(t)]
+ax[2].plot([contact(day, 0.0896529807571384, 0.18329654609521207).sum() for day in dayrange], label='Contact')
+ax[2].set_title('Contact')
+ax[3].plot([birth_rate(day) for day in dayrange], label='Birth rate')
+ax[3].set_title('Birth rate')
 plt.tight_layout()
-plt.savefig('Figures/KPSC_ARI_slide_age_incidence_monthly.png',dpi=300)
-
-
-# start_date = '2015-07-04'
-# end_date = '2025-04-30'
+plt.savefig('Figures/old_model_rates_test.png', dpi=300)
+params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': np.ones(7), 'I_REL': np.ones((3,1)), 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'S_VAX': 2, 'ACOV': ACOV, 'BCOV': BCOV,
+'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': 0.0896529807571384, 'OFFSET': 0.18329654609521207,
+'contact': contact}
+# OBS_AGE = jnp.array([0.24594159,0.1857486,0.12555562,0.02660094,0.025,0.09684663,1])
+# p_time_to_obs = np.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=','))
+p_time_to_obs = np.zeros(90)
+p_time_to_obs[-1] = 1.0
+## Initial conditions
+STATE0 = np.zeros((2*N_S+2)*NAG)
+# STATE0 = STATE0.at[NAG:2*NAG].set(CENSUS_AGE_POP-1) # Everyone is susceptible except
+STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
+# STATE0 = STATE0.at[2*NAG:3*NAG].set(1) # one individual in each age group that is infected.
+STATE0[2*NAG:3*NAG] = 1
+# params = RSV_params.copy()
+# start_date = '2015-10-01'
+# end_date = '2021-10-01'
 # EPOCH = pd.to_datetime('1970-01-01')
 # START = pd.to_datetime(start_date) 
 # END = pd.to_datetime(end_date)
 # PERIOD = pd.date_range(start=START, end=END, freq='D')
-# POINTS = np.array(date_to_t(PERIOD))
-# # Ts = jnp.array([date_to_t('1970-01-01'), date_to_t('2020-03-19'), date_to_t('2020-12-05'), date_to_t('2020-12-10'), date_to_t('2021-08-12')])
-# # Fs = jnp.array([1,0.4001427,0.89507013,0.70283776,0.93153405])
-# # @jit
-# # def contact(t,seasonality,offset):
-# #     return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
-# from Parameters.RSV import *
-# # Parameters from differential evolution
-# # RSV_params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': jnp.array([0.        , 0.00136468, 0.        ]), 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': jnp.array([1.        , 0.10032712, 0.04941595]), 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': jnp.array([0.04535184, 0.02086185, 0.01405907]), 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-# # 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0.01, 'BETA': 0.5001441612672278, 'SEASONALITY': 0.0875344346283, 'OFFSET': 0.13221726766772357,
-# # 'contact': contact}
-# # params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-# # 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': 0, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
-# # 'contact': contact}
-# NAG = 7
-# N_S = 3
-# DAYS = 19632
-# BETA = 0.2
-# WANE = np.array([0.0,0.00395647,0])
-# S_REL = np.array([1.0,0.11615855, 0.02183006])
-# P_OBS = np.array([1,0.46,0.31])
-# OBS_AGE = np.array([1.51790104e-03, 2.86322367e-03, 4.93356844e-03, 1.87785669e-04, 
-#     4.49717437e-05, 3.69412228e-04, 3.33166543e-03])
-# REC_UP = np.array([1/4.9,1/4.1,0.0])
-# REC_SAME = np.array([0.0,0.0,1/4.1])
-# fig, ax = plt.subplots(1,4,figsize=(12,3))
-# ARRIVALS = np.genfromtxt('Data/Processed/arrivals_daily.csv', delimiter=',')
-# POSITIVITY = np.genfromtxt('Data/Processed/RSV_positivity_daily.csv', delimiter=',')
-# arrivals = lambda t: ARRIVALS[int(t)]/(30.44*np.max(ARRIVALS)) if t < len(ARRIVALS) else 0.0
-# regional_positivity = lambda t: POSITIVITY[int(t)] if t < len(POSITIVITY) else 0.0
-# dayrange = np.arange(date_to_t("2016-10-01"),date_to_t("2017-10-01"))
-# ax[0].plot([arrivals(day) for day in dayrange], label='Arrivals')
-# ax[0].set_title('Arrivals')
-# ax[1].plot([regional_positivity(day) for day in dayrange], label='Regional positivity')
-# ax[1].set_title('Regional positivity')
-# IMPORT_RATE = 0.01
-# CONTACT = np.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
-# contact = lambda t, seasonality, offset: (1.0+seasonality*np.cos(2*np.pi*((t-274)/365-offset)))*CONTACT
-# BIRTH_RATE = np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=',')
-# birth_rate = lambda t: BIRTH_RATE[int(t)]
-# ax[2].plot([contact(day, 0.0896529807571384, 0.18329654609521207).sum() for day in dayrange], label='Contact')
-# ax[2].set_title('Contact')
-# ax[3].plot([birth_rate(day) for day in dayrange], label='Birth rate')
-# ax[3].set_title('Birth rate')
-# plt.tight_layout()
-# plt.savefig('Figures/old_model_rates_test.png', dpi=300)
-# params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': np.ones(7), 'I_REL': np.ones((3,1)), 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'S_VAX': 2, 'ACOV': ACOV, 'BCOV': BCOV,
-# 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': 0.0896529807571384, 'OFFSET': 0.18329654609521207,
-# 'contact': contact}
-# # OBS_AGE = jnp.array([0.24594159,0.1857486,0.12555562,0.02660094,0.025,0.09684663,1])
-# # p_time_to_obs = np.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=','))
-# p_time_to_obs = np.zeros(90)
-# p_time_to_obs[-1] = 1.0
-# ## Initial conditions
-# STATE0 = np.zeros((2*N_S+2)*NAG)
-# # STATE0 = STATE0.at[NAG:2*NAG].set(CENSUS_AGE_POP-1) # Everyone is susceptible except
-# STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
-# # STATE0 = STATE0.at[2*NAG:3*NAG].set(1) # one individual in each age group that is infected.
-# STATE0[2*NAG:3*NAG] = 1
-# # params = RSV_params.copy()
-# # start_date = '2015-10-01'
-# # end_date = '2021-10-01'
-# # EPOCH = pd.to_datetime('1970-01-01')
-# # START = pd.to_datetime(start_date) 
-# # END = pd.to_datetime(end_date)
-# # PERIOD = pd.date_range(start=START, end=END, freq='D')
-# # POINTS = jnp.array(date_to_t(PERIOD))
-# T_LOCKDOWN = date_to_t('2016-01-01')
+# POINTS = jnp.array(date_to_t(PERIOD))
+T_LOCKDOWN = date_to_t('2016-01-01')
+LOCKDOWN_DURATION = 365
+# Ts = jnp.array([date_to_t('1970-01-01'), T_LOCKDOWN, T_LOCKDOWN+LOCKDOWN_DURATION])
+# Fs = jnp.array([1,0.4,1])
+# @jit
+# def contact(t,seasonality,offset,CONTACT=CONTACT):
+#     return (1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
+# params["contact"] =  contact
+
+# start = time.time()
+# params, results = sim_grid(STATE0,params,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
+# grid_params=(("BETA",),("WANE",),("S_REL",)),
+# N=7,factors=(1,1,1),grid_mode=("scale","scale","power_vec"))
+# print(f"Simulation took {time.time()-start:.2f} seconds")
+# # Save the results
+# with open('Data/Processed/SIS_3D_power.pickle','wb') as f:
+#     pickle.dump(results,f)
+# with open('Data/Processed/SIS_3D_power_params.pickle','wb') as f:
+#     pickle.dump(params,f)
+
+# incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
+
+# # NON-NEGATIVE log likelihood
+# def likelihood(x):
+#     sim_params = RSV_params.copy()
+#     sim_params["WANE"] = jnp.array([0.0,x[0],0.0])
+#     sim_params["SEASONALITY"] = x[1]
+#     sim_params["OFFSET"] = x[2]
+#     sim_params["BETA"] = x[3]
+#     n = 4
+#     sim_params["IMPORT_RATE"] = x[n]
+#     n += 1
+#     sim_params["S_REL"] = jnp.array([1,x[n],x[n]*x[n+1]])
+#     pobsrel = jnp.array([1,x[n+2],x[n+2]*x[n+3]])
+#     n += 4
+#     sim_params["P_OBS"] = x[n]*pobsrel
+#     n += 1
+#     Ts = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
+#     # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
+#     F1 = x[n+3] # value between 0 and 1 (first lockdown)
+#     F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
+#     F3 = F2*x[n+5] # value less than F2 (second lockdown)
+#     F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
+#     Fs = jnp.array([1,F1,F2,F3,F4])
+#     # @jit
+#     def contact(t,seasonality,offset):
+#         return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
+#     sim_params["contact"] = contact
+#     n += 7
+#     obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
+#     lh = SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
+#     # print("neg log likelihood: ",lh)
+#     return lh
+# x_init = jnp.array([0.00438131,0.09607721848972506,0.12504213724959057,0.47973501805559776,0.008897365162093825,0.10871732,0.0372482/0.10871732, 0.01272225/0.01273131, 0.00913129/(0.01273131*0.01272225), 0.01273131, 261/365, 5/365, 245/365, 0.4001427, 0.89507013, 0.70283776, 0.93153405, 1-0.68056091, 0.9479402-0.09321769, 0.5-((1-0.9479402)/2)])
+# print(likelihood(x_init))
+# # calculate the hessian - could try method="forward" for faster but less reliable results. May want to choose a smaller order, 1-2.
+# hessian_f = nd.Hessian(likelihood,method="forward",order="1")
+# hessian = hessian_f(x_init)
+# print(hessian)
+# fisher_info = jnp.linalg.inv(-hessian)
+# prop_sigma = jnp.sqrt(jnp.diag(fisher_info))
+# upper_bound = x_init + 1.96*prop_sigma
+# lower_bound = x_init - 1.96*prop_sigma
+# print("Upper bound: ", upper_bound)
+# print("Lower bound: ", lower_bound)
+
+
+# ## Period of simulation
+# EPOCH = pd.to_datetime('1970-01-01')
+# START = pd.to_datetime('2015-08-01')
+# END = pd.to_datetime('2025-05-01')
+# PERIOD = pd.date_range(start=START, end=END, freq='D')
+
+# ## Contacts and force of infection
+# IMPORT_RATE = 1e-12
+# # Contact matrix for all contact types
+# CONTACT = jnp.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=jnp.float64)
+# print(CONTACT.shape)
+# print(NAG)
+# print(OBS_AGE.shape)
+# print(CENSUS_AGE_POP.shape)
+
+# # Lockdown and other mobility changes
+# T_LOCKDOWN = date_to_t('2020-03-01')
 # LOCKDOWN_DURATION = 365
-# # Ts = jnp.array([date_to_t('1970-01-01'), T_LOCKDOWN, T_LOCKDOWN+LOCKDOWN_DURATION])
-# # Fs = jnp.array([1,0.4,1])
-# # @jit
-# # def contact(t,seasonality,offset,CONTACT=CONTACT):
-# #     return (1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
-# # params["contact"] =  contact
+# LOCKDOWN_REDUCTION = 0.4
+# Ts = jnp.array([date_to_t(EPOCH),T_LOCKDOWN,date_to_t('2021-05-01'),date_to_t('2021-12-01'),date_to_t('2022-03-01')])
+# Fs = jnp.array([1,0.4,1,0.4,1])
+# @jit
+# def contact(t,seasonality,offset):
+#     return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*(t/365-offset)))*CONTACT
 
-# # start = time.time()
-# # params, results = sim_grid(STATE0,params,POINTS,T_LOCKDOWN,LOCKDOWN_DURATION,
-# # grid_params=(("BETA",),("WANE",),("S_REL",)),
-# # N=7,factors=(1,1,1),grid_mode=("scale","scale","power_vec"))
-# # print(f"Simulation took {time.time()-start:.2f} seconds")
-# # # Save the results
-# # with open('Data/Processed/SIS_3D_power.pickle','wb') as f:
-# #     pickle.dump(results,f)
-# # with open('Data/Processed/SIS_3D_power_params.pickle','wb') as f:
-# #     pickle.dump(params,f)
+# # ## Integrate the system
+# # # POINTS = jnp.concat((jnp.zeros(1),jnp.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+LOCKDOWN_DURATION+12*12,0.2),jnp.ones(1)*PERIOD))
+# # # POINTS = jnp.array([date_to_t('1960-01-01') + pd.DateOffset(months=x) for x in range(PERIOD)])
+# T_VAX = date_to_t('2035-01-01')
 
-# # incidence = pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0)
-
-# # # NON-NEGATIVE log likelihood
-# # def likelihood(x):
-# #     sim_params = RSV_params.copy()
-# #     sim_params["WANE"] = jnp.array([0.0,x[0],0.0])
-# #     sim_params["SEASONALITY"] = x[1]
-# #     sim_params["OFFSET"] = x[2]
-# #     sim_params["BETA"] = x[3]
-# #     n = 4
-# #     sim_params["IMPORT_RATE"] = x[n]
-# #     n += 1
-# #     sim_params["S_REL"] = jnp.array([1,x[n],x[n]*x[n+1]])
-# #     pobsrel = jnp.array([1,x[n+2],x[n+2]*x[n+3]])
-# #     n += 4
-# #     sim_params["P_OBS"] = x[n]*pobsrel
-# #     n += 1
-# #     Ts = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
-# #     # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
-# #     F1 = x[n+3] # value between 0 and 1 (first lockdown)
-# #     F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
-# #     F3 = F2*x[n+5] # value less than F2 (second lockdown)
-# #     F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
-# #     Fs = jnp.array([1,F1,F2,F3,F4])
-# #     # @jit
-# #     def contact(t,seasonality,offset):
-# #         return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
-# #     sim_params["contact"] = contact
-# #     n += 7
-# #     obs_age = age_detection(NAG,x[n],x[n+1],x[n+2])
-# #     lh = SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-# #     # print("neg log likelihood: ",lh)
-# #     return lh
-# # x_init = jnp.array([0.00438131,0.09607721848972506,0.12504213724959057,0.47973501805559776,0.008897365162093825,0.10871732,0.0372482/0.10871732, 0.01272225/0.01273131, 0.00913129/(0.01273131*0.01272225), 0.01273131, 261/365, 5/365, 245/365, 0.4001427, 0.89507013, 0.70283776, 0.93153405, 1-0.68056091, 0.9479402-0.09321769, 0.5-((1-0.9479402)/2)])
-# # print(likelihood(x_init))
-# # # calculate the hessian - could try method="forward" for faster but less reliable results. May want to choose a smaller order, 1-2.
-# # hessian_f = nd.Hessian(likelihood,method="forward",order="1")
-# # hessian = hessian_f(x_init)
-# # print(hessian)
-# # fisher_info = jnp.linalg.inv(-hessian)
-# # prop_sigma = jnp.sqrt(jnp.diag(fisher_info))
-# # upper_bound = x_init + 1.96*prop_sigma
-# # lower_bound = x_init - 1.96*prop_sigma
-# # print("Upper bound: ", upper_bound)
-# # print("Lower bound: ", lower_bound)
+# POINTS = jnp.array(date_to_t(PERIOD))
 
 
-# # ## Period of simulation
-# # EPOCH = pd.to_datetime('1970-01-01')
-# # START = pd.to_datetime('2015-08-01')
-# # END = pd.to_datetime('2025-05-01')
-# # PERIOD = pd.date_range(start=START, end=END, freq='D')
+# from Parameters.times_and_contacts import *
+# from Parameters.RSV_Lowensteyn import *
+# p_time_to_obs = jnp.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=jnp.float64)
 
-# # ## Contacts and force of infection
-# # IMPORT_RATE = 1e-12
-# # # Contact matrix for all contact types
-# # CONTACT = jnp.genfromtxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', dtype=jnp.float64)
-# # print(CONTACT.shape)
-# # print(NAG)
-# # print(OBS_AGE.shape)
-# # print(CENSUS_AGE_POP.shape)
 
-# # # Lockdown and other mobility changes
-# # T_LOCKDOWN = date_to_t('2020-03-01')
-# # LOCKDOWN_DURATION = 365
-# # LOCKDOWN_REDUCTION = 0.4
-# # Ts = jnp.array([date_to_t(EPOCH),T_LOCKDOWN,date_to_t('2021-05-01'),date_to_t('2021-12-01'),date_to_t('2022-03-01')])
-# # Fs = jnp.array([1,0.4,1,0.4,1])
-# # @jit
+# ## Initial conditions
+# STATE0 = jnp.zeros((2*N_S+2)*NAG)
+# STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
+# STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
+
+# # Parameters for the ODE
+# params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
+# 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
+# 'contact': contact}
+# params["ACOV"] = ACOV
+
+# @jit
 # # def contact(t,seasonality,offset):
-# #     return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*(t/365-offset)))*CONTACT
+# #     return cm.google_prestige_work(t)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
+# # params["contact"] = contact
 
-# # # ## Integrate the system
-# # # # POINTS = jnp.concat((jnp.zeros(1),jnp.arange(T_LOCKDOWN-12*12,T_LOCKDOWN+LOCKDOWN_DURATION+12*12,0.2),jnp.ones(1)*PERIOD))
-# # # # POINTS = jnp.array([date_to_t('1960-01-01') + pd.DateOffset(months=x) for x in range(PERIOD)])
-# # T_VAX = date_to_t('2035-01-01')
+# incidence = jnp.array(pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0))
 
-# # POINTS = jnp.array(date_to_t(PERIOD))
+# def likelihood(x):
+#     sim_params = params.copy()
+#     sim_params["WANE"] = jnp.array([0.0,x[0],0.0])
+#     sim_params["SEASONALITY"] = x[1]
+#     sim_params["OFFSET"] = x[2]
+#     sim_params["BETA"] = x[3]
+#     sim_params["IMPORT_RATE"] = x[4]
+#     sim_params["P_OBS"] = x[5]*jnp.array([1,0.4,0])
+#     obs_age = age_detection(NAG,x[6],x[7],x[8])
+#     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
 
+# # nelders-mead optimization
+# opt = sp.optimize.minimize(likelihood,[1/365,0.13,(274/365)+3.65/(2*jnp.pi),0.046,0.01,0.072*0.45,0.4,0.05,0.95],method='Nelder-Mead')
+# print(opt)
+# print(opt.x)
 
-# # from Parameters.times_and_contacts import *
-# # from Parameters.RSV_Lowensteyn import *
-# # p_time_to_obs = jnp.genfromtxt("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',',dtype=jnp.float64)
-
-
-# # ## Initial conditions
-# # STATE0 = jnp.zeros((2*N_S+2)*NAG)
-# # STATE0[NAG:2*NAG] = CENSUS_AGE_POP-1 # Everyone is susceptible except
-# # STATE0[2*NAG:3*NAG] = 1 # one individual in each age group that is infected.
-
-# # # Parameters for the ODE
-# # params = {'NAG': NAG, 'N_S': N_S, 'AGING_RATE': AGING_RATE, 'BIRTH_RATE': birth_rate, 'WANE': WANE, 'REC_UP': REC_UP, 'REC_SAME': REC_SAME, 'S_REL': S_REL, 'S_AGE': S_AGE, 'I_REL': I_REL, 'P_OBS': P_OBS, 'birth_vax': birth_vax, 'all_vax': all_vax, 'S_VAX': S_VAX, 'ACOV': ACOV, 'BCOV': BCOV,
-# # 'arrivals': arrivals, 'regional_positivity': regional_positivity, 'IMPORT_RATE': IMPORT_RATE, 'BETA': BETA, 'SEASONALITY': SEASONALITY, 'OFFSET': OFFSET,
-# # 'contact': contact}
-# # params["ACOV"] = ACOV
-
-# # @jit
-# # # def contact(t,seasonality,offset):
-# # #     return cm.google_prestige_work(t)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
-# # # params["contact"] = contact
-
-# # incidence = jnp.array(pd.read_csv("Data/Processed/KPSC_RSV_incidence_age_daily.csv",index_col=0))
-
-# # def likelihood(x):
-# #     sim_params = params.copy()
-# #     sim_params["WANE"] = jnp.array([0.0,x[0],0.0])
-# #     sim_params["SEASONALITY"] = x[1]
-# #     sim_params["OFFSET"] = x[2]
-# #     sim_params["BETA"] = x[3]
-# #     sim_params["IMPORT_RATE"] = x[4]
-# #     sim_params["P_OBS"] = x[5]*jnp.array([1,0.4,0])
-# #     obs_age = age_detection(NAG,x[6],x[7],x[8])
-# #     return -SIS_likelihood(incidence,sim_params,POINTS,STATE0,obs_age,p_time_to_obs,age=True,incidence=True)
-
-# # # nelders-mead optimization
-# # opt = sp.optimize.minimize(likelihood,[1/365,0.13,(274/365)+3.65/(2*jnp.pi),0.046,0.01,0.072*0.45,0.4,0.05,0.95],method='Nelder-Mead')
-# # print(opt)
-# # print(opt.x)
-
-# # x = opt.x
-# # params["WANE"] = jnp.array([0.0,x[0],0.0])
-# # params["SEASONALITY"] = x[1]
-# # params["OFFSET"] = x[2]
-# # params["BETA"] = x[3]
-# # params["IMPORT_RATE"] = x[4]
-# # params["P_OBS"] = x[5]*jnp.array([1,0.4,0])
-# # OBS_AGE = age_detection(NAG,x[6],x[7],x[8])
+# x = opt.x
+# params["WANE"] = jnp.array([0.0,x[0],0.0])
+# params["SEASONALITY"] = x[1]
+# params["OFFSET"] = x[2]
+# params["BETA"] = x[3]
+# params["IMPORT_RATE"] = x[4]
+# params["P_OBS"] = x[5]*jnp.array([1,0.4,0])
+# OBS_AGE = age_detection(NAG,x[6],x[7],x[8])
 
 
-# # # # # # # # # # # # #### One-shot line plot #####
-# # set pyplot font to arial
-# plt.rcParams.update({'font.size':11})
-# plt.rcParams['font.family'] = 'sans-serif'
-# plt.rcParams['font.sans-serif'] = ['Arial']
+# # # # # # # # # # # #### One-shot line plot #####
+# set pyplot font to arial
+plt.rcParams.update({'font.size':11})
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Arial']
 
 
-# # # # # params['contact'] = lambda t,seasonality,offset: contact(t,seasonality,offset)*(1-flu_eff_coverage(t,S_REL))
-# # # # # params['BETA'] = 0
-# # from diffrax import diffeqsolve, ODETerm, Dopri5, PIDController, SaveAt
-# # term = ODETerm(sis_deltas)
-# # solver = Dopri5()
-# # saveat = SaveAt(ts=POINTS)
-# # stepsize_controller = PIDController(rtol=1,atol=1)
-# # solution = diffeqsolve(term, solver, t0=date_to_t(EPOCH), t1=POINTS[-1], dt0=0.1, y0=STATE0, args=(NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact)
-# # ,saveat=saveat,stepsize_controller=stepsize_controller, max_steps=None)
-# # print(solution)
+# # # # params['contact'] = lambda t,seasonality,offset: contact(t,seasonality,offset)*(1-flu_eff_coverage(t,S_REL))
+# # # # params['BETA'] = 0
+# from diffrax import diffeqsolve, ODETerm, Dopri5, PIDController, SaveAt
+# term = ODETerm(sis_deltas)
+# solver = Dopri5()
+# saveat = SaveAt(ts=POINTS)
+# stepsize_controller = PIDController(rtol=1,atol=1)
+# solution = diffeqsolve(term, solver, t0=date_to_t(EPOCH), t1=POINTS[-1], dt0=0.1, y0=STATE0, args=(NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact)
+# ,saveat=saveat,stepsize_controller=stepsize_controller, max_steps=None)
+# print(solution)
 
-# # import jax
-# # from jax.experimental.ode import odeint
-# # from jax.random import PRNGKey
-# # import numpyro
-# # import numpyro.distributions as dist
-# # def temp_deltas(state, t, scalar_variables, params=params):
-# #     NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, SEASONALITY, contact = params['NAG'], params['N_S'], params['AGING_RATE'], params['BIRTH_RATE'], params['WANE'], params['REC_UP'], params['REC_SAME'], params['S_REL'], params['S_AGE'], params['I_REL'], params['P_OBS'], params['birth_vax'], params['S_VAX'], params['ACOV'], params['BCOV'], params['arrivals'], params['regional_positivity'], params['IMPORT_RATE'], params['SEASONALITY'], params['contact']
-# #     BETA, OFFSET = (
-# #         scalar_variables[..., 0],
-# #         scalar_variables[..., 1],
-# #         )
-# #     # x = scalar_variables[..., 2:9]  # Extract the contact variables
-# #     # Ts = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[0]*365,date_to_t('2020-03-19')+(x[0]+x[1])*365,date_to_t('2020-03-19')+(x[0]+x[1]+x[2])*365])
-# #     # # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
-# #     # F1 = x[3] # value between 0 and 1 (first lockdown)
-# #     # F2 = F1 + x[4] - F1*x[4] # value between x[3] and 1 (inter-lockdown)
-# #     # F3 = F2*x[5] # value less than F2 (second lockdown)
-# #     # F4 = F2 + x[6] - F2*x[6] # value between F2 and 1 (post-lockdown)
-# #     # Fs = jnp.array([1,F1,F2,F3,F4])
-# #     # def contact(t,seasonality,offset,CONTACT=CONTACT,Ts=Ts,Fs=Fs):
-# #     #     return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
-# #     return sis_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact)
-# # key = PRNGKey(250609)
-# # scalar_sample = numpyro.sample(
-# #     "scalar_variables",
-# #     dist.TruncatedNormal(
-# #         low = 0.0,
-# #         loc = jnp.array([params['BETA'], params['OFFSET']]),
-# #         scale = jnp.array([0.1, 0.1]),
-# #     ),
-# #     rng_key=key
-# # )
-# # start = time.time()
-# # solution = odeint(temp_deltas, STATE0, jnp.array(POINTS, dtype=jnp.float32), scalar_sample)
+# import jax
+# from jax.experimental.ode import odeint
+# from jax.random import PRNGKey
+# import numpyro
+# import numpyro.distributions as dist
+# def temp_deltas(state, t, scalar_variables, params=params):
+#     NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, SEASONALITY, contact = params['NAG'], params['N_S'], params['AGING_RATE'], params['BIRTH_RATE'], params['WANE'], params['REC_UP'], params['REC_SAME'], params['S_REL'], params['S_AGE'], params['I_REL'], params['P_OBS'], params['birth_vax'], params['S_VAX'], params['ACOV'], params['BCOV'], params['arrivals'], params['regional_positivity'], params['IMPORT_RATE'], params['SEASONALITY'], params['contact']
+#     BETA, OFFSET = (
+#         scalar_variables[..., 0],
+#         scalar_variables[..., 1],
+#         )
+#     # x = scalar_variables[..., 2:9]  # Extract the contact variables
+#     # Ts = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[0]*365,date_to_t('2020-03-19')+(x[0]+x[1])*365,date_to_t('2020-03-19')+(x[0]+x[1]+x[2])*365])
+#     # # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
+#     # F1 = x[3] # value between 0 and 1 (first lockdown)
+#     # F2 = F1 + x[4] - F1*x[4] # value between x[3] and 1 (inter-lockdown)
+#     # F3 = F2*x[5] # value less than F2 (second lockdown)
+#     # F4 = F2 + x[6] - F2*x[6] # value between F2 and 1 (post-lockdown)
+#     # Fs = jnp.array([1,F1,F2,F3,F4])
+#     # def contact(t,seasonality,offset,CONTACT=CONTACT,Ts=Ts,Fs=Fs):
+#     #     return cm.piecewise(t,Ts,Fs)*(1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*CONTACT
+#     return sis_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact)
+# key = PRNGKey(250609)
+# scalar_sample = numpyro.sample(
+#     "scalar_variables",
+#     dist.TruncatedNormal(
+#         low = 0.0,
+#         loc = jnp.array([params['BETA'], params['OFFSET']]),
+#         scale = jnp.array([0.1, 0.1]),
+#     ),
+#     rng_key=key
+# )
+# start = time.time()
+# solution = odeint(temp_deltas, STATE0, jnp.array(POINTS, dtype=jnp.float32), scalar_sample)
+# print("result took ",time.time()-start," seconds")
+# print(solution[-1])
+
+# def temp_deltas(state, t, params=params):
+#     NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params['NAG'], params['N_S'], params['AGING_RATE'], params['BIRTH_RATE'], params['WANE'], params['REC_UP'], params['REC_SAME'], params['S_REL'], params['S_AGE'], params['I_REL'], params['P_OBS'], params['birth_vax'], params['S_VAX'], params['ACOV'], params['BCOV'], params['arrivals'], params['regional_positivity'], params['IMPORT_RATE'], params['BETA'], params['SEASONALITY'], params['OFFSET'], params['contact']
+#     return sis_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact)
+# sstart = time.time()
+# jitted_observations = jax.jit(observations, static_argnames=('NAG', 'N_S', 'BETA', 'contact', 'SEASONALITY', 'OFFSET', 'incidence', 'time_conversion'))
+# print("jitting took ",time.time()-sstart," seconds")
+# start = time.time()
+# solution = odeint(temp_deltas, STATE0, jnp.array(POINTS,dtype=jnp.float32))
+# print(time.time() - start)
+# print([jnp.sum(solution[jnp.arange(i,(N_S*N_C+1)*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)])
+# print(time.time() - start)
+# obs = observations(solution.T, POINTS, params["NAG"], params["N_S"], params["BETA"], params["contact"], params["SEASONALITY"], params["OFFSET"], params["S_REL"], params["I_REL"], params["P_OBS"], OBS_AGE,incidence=True,time_conversion=30.44)
+# print(time.time() - start)
+# # find population size over time
+# age_pops = jnp.array([jnp.sum(solution[len(p_time_to_obs):,jnp.arange(i,(N_S*N_C+1)*NAG,NAG)],axis=1) for i in range(NAG)]).T
+# plt.plot(age_pops)
+# plt.show()
+
+# save as csv
+# age_pops_df = pd.DataFrame(age_pops, index=PERIOD[len(p_time_to_obs):], columns=AGE_GROUP_NAMES)
+# age_pops_df.to_csv('Data/Processed/SISn_population_over_time_250610.csv')
+
 # # print("result took ",time.time()-start," seconds")
-# # print(solution[-1])
-
-# # def temp_deltas(state, t, params=params):
-# #     NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params['NAG'], params['N_S'], params['AGING_RATE'], params['BIRTH_RATE'], params['WANE'], params['REC_UP'], params['REC_SAME'], params['S_REL'], params['S_AGE'], params['I_REL'], params['P_OBS'], params['birth_vax'], params['S_VAX'], params['ACOV'], params['BCOV'], params['arrivals'], params['regional_positivity'], params['IMPORT_RATE'], params['BETA'], params['SEASONALITY'], params['OFFSET'], params['contact']
-# #     return sis_deltas(t, state, NAG, N_S, AGING_RATE, birth_rate, WANE, REC_UP, REC_SAME, S_REL, S_AGE, I_REL, P_OBS, birth_vax, S_VAX, ACOV, BCOV, arrivals, regional_positivity, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact)
-# # sstart = time.time()
-# # jitted_observations = jax.jit(observations, static_argnames=('NAG', 'N_S', 'BETA', 'contact', 'SEASONALITY', 'OFFSET', 'incidence', 'time_conversion'))
-# # print("jitting took ",time.time()-sstart," seconds")
-# # start = time.time()
-# # solution = odeint(temp_deltas, STATE0, jnp.array(POINTS,dtype=jnp.float32))
-# # print(time.time() - start)
-# # print([jnp.sum(solution[jnp.arange(i,(N_S*N_C+1)*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)])
-# # print(time.time() - start)
-# # obs = observations(solution.T, POINTS, params["NAG"], params["N_S"], params["BETA"], params["contact"], params["SEASONALITY"], params["OFFSET"], params["S_REL"], params["I_REL"], params["P_OBS"], OBS_AGE,incidence=True,time_conversion=30.44)
-# # print(time.time() - start)
-# # # find population size over time
-# # age_pops = jnp.array([jnp.sum(solution[len(p_time_to_obs):,jnp.arange(i,(N_S*N_C+1)*NAG,NAG)],axis=1) for i in range(NAG)]).T
-# # plt.plot(age_pops)
-# # plt.show()
-
-# # save as csv
-# # age_pops_df = pd.DataFrame(age_pops, index=PERIOD[len(p_time_to_obs):], columns=AGE_GROUP_NAMES)
-# # age_pops_df.to_csv('Data/Processed/SISn_population_over_time_250610.csv')
-
-# # # print("result took ",time.time()-start," seconds")
-# # result = {'t': POINTS,'y': solution.T}  # Transpose to match the expected shape
-# # obs = observations(result,params,OBS_AGE,incidence=True,time_conversion=30.44)
-# # fig, ax = plt.subplots()
-# # mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-# # plt.show()
-
-# # import jax
-# # sis_deltas = jax.jit(sis_deltas, static_argnames=('NAG', 'N_S', 'birth_rate', 'birth_vax', 'S_VAX', 'ACOV', 'BCOV', 'arrivals', 'regional_positivity', 'IMPORT_RATE', 'BETA', 'SEASONALITY', 'OFFSET', 'contact'))
-
-# # start = time.time()
-# result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
-# # print("result took ",time.time()-start," seconds")
-
-# # plt.plot(result.t,np.sum(result.y,axis=0))
-# # plt.show()
-# # # get total infectious compartment over time
-# # I = jnp.sum(jnp.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,:] for j in range(N_S)]),axis=0)
-# # age_pops = jnp.array([jnp.sum(result.y[jnp.arange(i_age,(2*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)])
-# # @jit
-# # def proportion_infected(t,SP,ap,AR,rt=result.t):
-# #     """Calculate the proportion of the population that is infected at time t."""
-# #     idx = jnp.searchsorted(rt, t)
-# #     return I[:,idx]/age_pops[:,idx]
-
-# # @jit
-# # def contact2(t,seasonality,offset):
-# #     """Contact function where infected persons don't make contacts"""
-# #     eff_CONTACT = CONTACT.copy()
-# #     for i in range(NAG):
-# #         eff_CONTACT = eff_CONTACT.at[i,:].set(CONTACT[i,:] * (1 - 0.3 * proportion_infected(t, S_REL, S_VAX, ACOV)[i]))
-# #     return (1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*eff_CONTACT
-# # @jit
-# # def contact3(t,seasonality,offset):
-# #     """Contact function where infected persons don't make contacts"""
-# #     eff_CONTACT = CONTACT.copy()
-# #     for i in range(NAG):
-# #         eff_CONTACT = eff_CONTACT.at[i,:].set(CONTACT[i,:] * (1 - 0.1 * proportion_infected(t, S_REL, S_VAX, ACOV)[i]))
-# #     return (1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*eff_CONTACT
-
-# # params2 = params.copy()
-# # params2["OFFSET"] = 0.3
-# # start = time.time()
-# # result2 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2.values(),t_eval=POINTS,method='RK45')
-# # print("result2 took ",time.time()-start," seconds")
-# # params3 = params.copy()
-# # params3["OFFSET"] = 0.4
-# # start = time.time()
-# # result3 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3.values(),t_eval=POINTS,method='RK45')
-# # print("result3 took ",time.time()-start," seconds")
-
-# # params2_crossimmunity = params2.copy()
-# # params2_crossimmunity["ACOV"] = proportion_infected
-# # start = time.time()
-# # result2_crossimmunity = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_crossimmunity.values(),t_eval=POINTS,method='RK45')
-# # print("result2 took ",time.time()-start," seconds")
-
-# # params2_interference = params2.copy()
-# # params2_interference["contact"] = contact2
-# # start = time.time()
-# # result2_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_interference.values(),t_eval=POINTS,method='RK45')
-# # print("result2 took ",time.time()-start," seconds")
-
-# # params3_interference = params3.copy()
-# # params3_interference["contact"] = contact3
-# # start = time.time()
-# # result3_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_interference.values(),t_eval=POINTS,method='RK45')
-# # print("result3 took ",time.time()-start," seconds")
-
-# # params3_behaviour = params3.copy()
-# # params3_behaviour["contact"] = contact2
-# # start = time.time()
-# # result3_behaviour = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_behaviour.values(),t_eval=POINTS,method='RK45')
-# # print("result2 took ",time.time()-start," seconds")
-
-# # # # # # vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
-# # # # # # hsv_colors = colormaps.hsv(-0.02+jnp.arange(7)/7)
-# # # # # # hsv_colors[3] = colormaps.hsv((3/7)+0.04)
-# # # # # # pop_size_by_age = jnp.array([jnp.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
-# # # # # # for i in range(NAG): 
-# # # # # #     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# # # # # #     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
-# # # # # # # ax[0].plot(result.t,[jnp.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/jnp.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
-# # # # # # # ax[1].plot(result.t,jnp.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/jnp.sum(pop_size_by_age,axis=1),color="#648FFF")
-# # # # # # plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
-# obs = observations(result.y,POINTS,params,OBS_AGE,incidence=False,time_conversion=30.44)
-# # print(obs)
+# result = {'t': POINTS,'y': solution.T}  # Transpose to match the expected shape
+# obs = observations(result,params,OBS_AGE,incidence=True,time_conversion=30.44)
 # fig, ax = plt.subplots()
-# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-# plt.savefig('Figures/old_model_example.png',dpi=300)
-# # obs2 = observations(result2,params2,OBS_AGE,incidence=True,time_conversion=30.44)
-# # obs2_crossimmunity = observations(result2_crossimmunity,params2_crossimmunity,OBS_AGE,incidence=True,time_conversion=30.44)
-# # obs2_interference = observations(result2_interference,params2_interference,OBS_AGE,incidence=True,time_conversion=30.44)
-# # obs3_interference = observations(result3_interference,params3_interference,OBS_AGE,incidence=True,time_conversion=30.44)
-# # obs3 = observations(result3,params3,OBS_AGE,incidence=True,time_conversion=30.44)
-# # obs3_behaviour = observations(result3_behaviour,params3_behaviour,OBS_AGE,incidence=True,time_conversion=30.44)
+# mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+# plt.show()
 
-# fig, ax = plt.subplots(2,2,figsize=(6.5,4.5),sharex=True,sharey=True)
-# # panel 0 0 - no interaction
-# mx = lockdown_incidence_plot(ax[0,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-# mx2 = lockdown_incidence_plot(ax[0,0],STATE0,params2,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2,obs=obs2,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
-# mx3 = lockdown_incidence_plot(ax[0,0],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
-# # mx00 = jnp.max(jnp.array((mx, mx2, mx3)))
-# # lockdown_incidence_format(ax[0,0],date_to_t('2024-03-19'),365,mx00,year_window=2)
-# # panel 0 1 - cross-immunity
-# mx = lockdown_incidence_plot(ax[0,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-# mx2 = lockdown_incidence_plot(ax[0,1],STATE0,params2_crossimmunity,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_crossimmunity,obs=obs2_crossimmunity,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
-# mx3 = lockdown_incidence_plot(ax[0,1],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
-# # mx01 = jnp.max(jnp.array((mx, mx2, mx3)))
-# # lockdown_incidence_format(ax[0,1],date_to_t('2024-03-19'),365,mx01,year_window=2)
-# # panel 1 0 - interference
-# mx = lockdown_incidence_plot(ax[1,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-# mx2 = lockdown_incidence_plot(ax[1,0],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
-# mx3 = lockdown_incidence_plot(ax[1,0],STATE0,params3_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_interference,obs=obs3_interference,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
-# # mx10 = jnp.max(jnp.array((mx, mx2, mx3)))
-# # lockdown_incidence_format(ax[1,0],date_to_t('2024-03-19'),365,mx10,year_window=2)
-# # panel 1 1 - behaviour change
-# mx = lockdown_incidence_plot(ax[1,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
-# mx2 = lockdown_incidence_plot(ax[1,1],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
-# mx3 = lockdown_incidence_plot(ax[1,1],STATE0,params3_behaviour,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_behaviour,obs=obs3_behaviour,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
-# # lockdown_incidence_format(ax[1,1],date_to_t('2024-03-19'),365,mx10,year_window=2)
-# # # ax.plot(POINTS,[10*cm.piecewise(pt,Ts,Fs) for pt in POINTS],label='Mobility',color='k')
-# # # ax.plot(POINTS,[100*regional_positivity(pt) for pt in POINTS],label='Positivity',color='k',linestyle='--',alpha=0.5)
-# # # # # for i in range(NAG):
-# # # # #     ax.plot(POINTS,[jnp.sum(contact(t,params["SEASONALITY"],params["OFFSET"]),axis=1)[i] for t in POINTS],c=hsv_colors[i],linestyle='--',dashes=(1,0.5+i/NAG),label=AGE_GROUP_NAMES[i])
+# import jax
+# sis_deltas = jax.jit(sis_deltas, static_argnames=('NAG', 'N_S', 'birth_rate', 'birth_vax', 'S_VAX', 'ACOV', 'BCOV', 'arrivals', 'regional_positivity', 'IMPORT_RATE', 'BETA', 'SEASONALITY', 'OFFSET', 'contact'))
 
-# ax[0,0].set_yticks([])
-# ax[0,0].set_xticks([])
+# start = time.time()
+result = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params.values(),t_eval=POINTS,method='RK45')
+# print("result took ",time.time()-start," seconds")
+
+plt.plot(result.t,np.sum(result.y,axis=0))
+plt.show()
+# get total infectious compartment over time
+I = jnp.sum(jnp.array([result.y[(N_C*j+2)*NAG:(N_C*j+3)*NAG,:] for j in range(N_S)]),axis=0)
+age_pops = jnp.array([jnp.sum(result.y[jnp.arange(i_age,(2*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)])
+@jax.jit
+def proportion_infected(t,SP,ap,AR,rt=result.t):
+    """Calculate the proportion of the population that is infected at time t."""
+    idx = jnp.searchsorted(rt, t)
+    return I[:,idx]/age_pops[:,idx]
+
+@jax.jit
+def contact2(t,seasonality,offset):
+    """Contact function where infected persons don't make contacts"""
+    eff_CONTACT = CONTACT.copy()
+    for i in range(NAG):
+        eff_CONTACT = eff_CONTACT.at[i,:].set(CONTACT[i,:] * (1 - 0.3 * proportion_infected(t, S_REL, S_VAX, ACOV)[i]))
+    return (1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*eff_CONTACT
+@jax.jit
+def contact3(t,seasonality,offset):
+    """Contact function where infected persons don't make contacts"""
+    eff_CONTACT = CONTACT.copy()
+    for i in range(NAG):
+        eff_CONTACT = eff_CONTACT.at[i,:].set(CONTACT[i,:] * (1 - 0.1 * proportion_infected(t, S_REL, S_VAX, ACOV)[i]))
+    return (1+seasonality*jnp.cos(2*jnp.pi*((t-274)/365-offset)))*eff_CONTACT
+
+params2 = params.copy()
+params2["OFFSET"] = 0.3
+start = time.time()
+result2 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2.values(),t_eval=POINTS,method='RK45')
+print("result2 took ",time.time()-start," seconds")
+params3 = params.copy()
+params3["OFFSET"] = 0.4
+start = time.time()
+result3 = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3.values(),t_eval=POINTS,method='RK45')
+print("result3 took ",time.time()-start," seconds")
+
+params2_crossimmunity = params2.copy()
+params2_crossimmunity["ACOV"] = proportion_infected
+start = time.time()
+result2_crossimmunity = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_crossimmunity.values(),t_eval=POINTS,method='RK45')
+print("result2 took ",time.time()-start," seconds")
+
+params2_interference = params2.copy()
+params2_interference["contact"] = contact2
+start = time.time()
+result2_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params2_interference.values(),t_eval=POINTS,method='RK45')
+print("result2 took ",time.time()-start," seconds")
+
+params3_interference = params3.copy()
+params3_interference["contact"] = contact3
+start = time.time()
+result3_interference = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_interference.values(),t_eval=POINTS,method='RK45')
+print("result3 took ",time.time()-start," seconds")
+
+params3_behaviour = params3.copy()
+params3_behaviour["contact"] = contact2
+start = time.time()
+result3_behaviour = sp.integrate.solve_ivp(sis_deltas,(date_to_t(EPOCH),POINTS[-1]),STATE0,args=params3_behaviour.values(),t_eval=POINTS,method='RK45')
+print("result2 took ",time.time()-start," seconds")
+
+# # # # # vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv',index_col=0)
+# # # # # hsv_colors = colormaps.hsv(-0.02+jnp.arange(7)/7)
+# # # # # hsv_colors[3] = colormaps.hsv((3/7)+0.04)
+# # # # # pop_size_by_age = jnp.array([jnp.sum(result.y[range(i_age,(N_C*N_S+1)*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
+# # # # # for i in range(NAG): 
+# # # # #     ax[0].plot(result.t,[flu_eff_coverage(t,S_REL)[i] for t in result.t],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+# # # # #     ax[1].plot(result.t,result.y[(2*(N_S-1)+1)*NAG+i,:].T/pop_size_by_age[:,i],label=AGE_GROUP_NAMES[i],color=hsv_colors[i])
+# # # # # # ax[0].plot(result.t,[jnp.sum([flu_eff_coverage(t,S_REL)[i]*pop_size_by_age[:,i] for i in range(NAG)],axis=0)/jnp.sum(pop_size_by_age,axis=1) for t in result.t],label='Effective coverage',color="#648FFF")
+# # # # # # ax[1].plot(result.t,jnp.sum(result.y[(2*(N_S-1)+1)*NAG:(2*(N_S-1)+2)*NAG,:],axis=0)/jnp.sum(pop_size_by_age,axis=1),color="#648FFF")
+# # # # # plt.savefig('Figures/flu_vaccination_coverage_monthly_no_age_correction.png',dpi=300)
+obs = observations(result.y,POINTS,params,OBS_AGE,incidence=False,time_conversion=30.44)
+# print(obs)
+fig, ax = plt.subplots()
+mx = lockdown_incidence_plot(ax,STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+plt.savefig('Figures/old_model_example.png',dpi=300)
+# obs2 = observations(result2,params2,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs2_crossimmunity = observations(result2_crossimmunity,params2_crossimmunity,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs2_interference = observations(result2_interference,params2_interference,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs3_interference = observations(result3_interference,params3_interference,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs3 = observations(result3,params3,OBS_AGE,incidence=True,time_conversion=30.44)
+# obs3_behaviour = observations(result3_behaviour,params3_behaviour,OBS_AGE,incidence=True,time_conversion=30.44)
+
+fig, ax = plt.subplots(2,2,figsize=(6.5,4.5),sharex=True,sharey=True)
+# panel 0 0 - no interaction
+mx = lockdown_incidence_plot(ax[0,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+mx2 = lockdown_incidence_plot(ax[0,0],STATE0,params2,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2,obs=obs2,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
+mx3 = lockdown_incidence_plot(ax[0,0],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
+# mx00 = jnp.max(jnp.array((mx, mx2, mx3)))
+# lockdown_incidence_format(ax[0,0],date_to_t('2024-03-19'),365,mx00,year_window=2)
+# panel 0 1 - cross-immunity
+mx = lockdown_incidence_plot(ax[0,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+mx2 = lockdown_incidence_plot(ax[0,1],STATE0,params2_crossimmunity,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_crossimmunity,obs=obs2_crossimmunity,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
+mx3 = lockdown_incidence_plot(ax[0,1],STATE0,params3,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3,obs=obs3,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
+# mx01 = jnp.max(jnp.array((mx, mx2, mx3)))
+# lockdown_incidence_format(ax[0,1],date_to_t('2024-03-19'),365,mx01,year_window=2)
+# panel 1 0 - interference
+mx = lockdown_incidence_plot(ax[1,0],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+mx2 = lockdown_incidence_plot(ax[1,0],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
+mx3 = lockdown_incidence_plot(ax[1,0],STATE0,params3_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_interference,obs=obs3_interference,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
+# mx10 = jnp.max(jnp.array((mx, mx2, mx3)))
+# lockdown_incidence_format(ax[1,0],date_to_t('2024-03-19'),365,mx10,year_window=2)
+# panel 1 1 - behaviour change
+mx = lockdown_incidence_plot(ax[1,1],STATE0,params,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result,obs=obs,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs)
+mx2 = lockdown_incidence_plot(ax[1,1],STATE0,params2_interference,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result2_interference,obs=obs2_interference,label="Simulation 2",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#DC267F')
+mx3 = lockdown_incidence_plot(ax[1,1],STATE0,params3_behaviour,OBS_AGE,PERIOD,POINTS,date_to_t('2024-03-19'),365,result=result3_behaviour,obs=obs3_behaviour,label="Simulation 3",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=10000,p_time_to_obs=p_time_to_obs,color='#FFB000')
+# lockdown_incidence_format(ax[1,1],date_to_t('2024-03-19'),365,mx10,year_window=2)
+# # ax.plot(POINTS,[10*cm.piecewise(pt,Ts,Fs) for pt in POINTS],label='Mobility',color='k')
+# # ax.plot(POINTS,[100*regional_positivity(pt) for pt in POINTS],label='Positivity',color='k',linestyle='--',alpha=0.5)
+# # # # for i in range(NAG):
+# # # #     ax.plot(POINTS,[jnp.sum(contact(t,params["SEASONALITY"],params["OFFSET"]),axis=1)[i] for t in POINTS],c=hsv_colors[i],linestyle='--',dashes=(1,0.5+i/NAG),label=AGE_GROUP_NAMES[i])
+
+ax[0,0].set_yticks([])
+ax[0,0].set_xticks([])
 
 
-# # write a capital A in the top left corner of the first panel
-# ax[0,0].text(0.01, 0.98, 'A', transform=ax[0,0].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
-# ax[0,1].text(0.01, 0.98, 'B', transform=ax[0,1].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
-# ax[1,0].text(0.01, 0.98, 'C', transform=ax[1,0].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
-# ax[1,1].text(0.01, 0.98, 'D', transform=ax[1,1].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
+# write a capital A in the top left corner of the first panel
+ax[0,0].text(0.01, 0.98, 'A', transform=ax[0,0].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
+ax[0,1].text(0.01, 0.98, 'B', transform=ax[0,1].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
+ax[1,0].text(0.01, 0.98, 'C', transform=ax[1,0].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
+ax[1,1].text(0.01, 0.98, 'D', transform=ax[1,1].transAxes, fontsize=14, fontweight='bold', va='top', ha='left')
 
-# plt.tight_layout()
-# plt.savefig('Figures/interaction_demonstration_jaxtest.png',dpi=300)
+plt.tight_layout()
+plt.savefig('Figures/interaction_demonstration_jaxtest.png',dpi=300)
 
 # # params["WANE"] = jnp.array([0,1.195e-01,0])/365
 # # params["P_OBS"] = 3.396e-02*jnp.array([1,0.46,0.31])

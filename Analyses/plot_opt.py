@@ -52,6 +52,7 @@ else:
     print(opt.x)
     sys.exit()
 x = opt.x
+print(x)
 # print likelihood
 print("Log-Likelihood:",-1*opt.fun)
 
