@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
 # import itertools as it
-from plotting import lockdown_incidence_plot, lockdown_incidence_format
+from plotting import lockdown_incidence_plot, kpsc_positive_test_plot
 # from math import comb
 from utils import *
+from Parameters.census_population import AGE_GROUP_NAMES
 # import pickle
 # from scipy.optimize import curve_fit
 # import time
@@ -23,12 +24,42 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 from fit_MCMC import run_simulation
 import time
 
+plt.rcParams.update({'font.size':18})
+# text type is palatino
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Palatino']
 
-print(date_to_t('2020-03-19')-date_to_t('2019-10-01'))
+pathogen_name = "COVID-19"
+fig, ax = plt.subplots(figsize=(12.3/4,6.5/2))
+aggregation = "Month"
+kpsc_positive_test_plot(ax,pathogen=pathogen_name,AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation=aggregation, load_data=False, color="#DC267F")
+ax.legend(frameon=False)
+ax.set_xlabel("", fontfamily='Helvetica', fontsize=18)
+ax.set_ylabel("", fontfamily='Helvetica', fontsize=18)
+ax.set_title("COVID-19")
+ax.set_xticklabels(["","2016","","2018","","2020","","2022","","2024"], fontfamily='Helvetica', fontsize=10)
+# ax.set_xticklabels([])
+# set y tick labels to helvetica
+ax.set_yticklabels(ax.get_yticklabels(), fontfamily='Helvetica', fontsize=12)
+# ax.set_xticklabels([])
+
+plt.tight_layout()
+plt.savefig("Figures/DE_"+pathogen_name+"_noage_minimal.png",dpi=300)
 
 # with open("Data/Processed/DE_cm_opt_maxmimmwane,maxmimmwane,maxmimmwane,maxmimmwane,maxmimmwaneflexage2511032,2511032,2511032,2511032,2511032.pickle","rb") as f:
 #     opt = pickle.load(f)
 # x = opt.x
+
+# x = np.array([0.9381735039583684,0.807470490095935,0.18641838533050858,0.3003678719530728,0.9374092638648985,0.9725263495329137,0.9763928665615773])
+# # make object with x as attribute
+# class FakeOpt:
+#     def __init__(self, x):
+#         self.x = x
+# fake_opt_result = FakeOpt(x)
+
+# with open("Data/Processed/DE_cm_opt_251110intermediate.pickle","wb") as f:
+#     pickle.dump(fake_opt_result, f)
+
 # START = pd.to_datetime('2015-10-01')
 # END = pd.to_datetime('2025-05-01')
 # PERIOD = pd.date_range(start=START, end=END, freq='D')

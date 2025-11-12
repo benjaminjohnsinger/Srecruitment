@@ -20,6 +20,7 @@ from sklearn.linear_model import Lasso
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from scipy.stats import binned_statistic_2d
+from scipy.spatial import ConvexHull
 
 # Load opt.x for each pathogen and find a polygon that captures the parameter space
 def parameter_space(good_simulations):
@@ -355,7 +356,7 @@ def lasso_analysis(run_save_path, analyze_size=False, alpha=0.01, target_bounds=
     return lasso1.coef_, lasso2.coef_, valid_samples, untransformed_targets
 
 # plot the time to rebound or relative size as a heatmap with contours on the 2d space defined by the two lasso components
-def plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, analyze_size=False):
+def plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, analyze_size=False, use_scatter=False):
     """
     Plot heatmap using actual simulation data projected onto 2D Lasso space.
     
@@ -373,32 +374,35 @@ def plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coe
     if all(lasso2_projections == 0):
         lasso2_projections = np.random.normal(0, 1e-6, size=lasso2_projections.shape)
 
-    # Create a 2D histogram/heatmap instead of scatter plot
-    # Define grid resolution
-    grid_size = 50
-    
-    # Create bins for the 2D histogram
-    x_range = [lasso1_projections.min(), lasso1_projections.max()]
-    y_range = [lasso2_projections.min(), lasso2_projections.max()]
-    
-    # Use numpy's binned_statistic_2d to compute average values in each bin
-    
-    # Compute the average target value in each bin
-    ret = binned_statistic_2d(lasso1_projections, lasso2_projections, valid_targets, 
-                             statistic='mean', bins=grid_size, 
-                             range=[x_range, y_range])
     if analyze_size:
         vmin, vmax = 0.155, 1.82
     else:
-        # vmin, vmax = 742, 1850
-        # vmin, vmax = 1100, 1660
         vmin, vmax = 1004, 1850
-    # Create the heatmap
-    extent = [x_range[0], x_range[1], y_range[0], y_range[1]]
-    hist = ax.imshow(ret.statistic.T, origin='lower', extent=extent, 
-                       cmap=cm.viridis, aspect='auto', interpolation='nearest',
-                       vmin=vmin, vmax=vmax
-                       )
+
+    if use_scatter:
+        # Scatter plot with tiny points
+        hist = ax.scatter(lasso1_projections, lasso2_projections, c=valid_targets, 
+                         s=0.1, alpha=0.6, cmap=cm.viridis, vmin=vmin, vmax=vmax)
+
+    else:
+        # Create a 2D histogram/heatmap instead of scatter plot
+        # Define grid resolution
+        grid_size = 50
+        # Create bins for the 2D histogram
+        x_range = [lasso1_projections.min(), lasso1_projections.max()]
+        y_range = [lasso2_projections.min(), lasso2_projections.max()]
+
+        # Compute the average target value in each bin
+        ret = binned_statistic_2d(lasso1_projections, lasso2_projections, valid_targets, 
+                                 statistic='mean', bins=grid_size, 
+                                 range=[x_range, y_range])
+        # Create the heatmap
+        extent = [x_range[0], x_range[1], y_range[0], y_range[1]]
+        hist = ax.imshow(ret.statistic.T, origin='lower', extent=extent, 
+                           cmap=cm.viridis, aspect='auto', interpolation='nearest',
+                           vmin=vmin, vmax=vmax
+                           )
+    
     ax.set_xlabel('Lasso Component 1 Projection')
     ax.set_ylabel('Lasso Component 2 Projection')
     ax.set_title(title)
@@ -448,8 +452,47 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-    # n_samples = 6**8
-    # samples = lh_sampling(parameter_sets, n_samples)
+    n_samples = 6**8
+    samples = lh_sampling(parameter_sets, n_samples)
+
+    # # plot first and sixth dimensions of parameter sets, labelled by pathogen
+    # pathogen_colors = ["#648FFF", "#DC267F", "#FFB000", "#785EF0", "#FF832B", "#000000"]
+    # plt.figure(figsize=(6,5))
+    # for i in range(parameter_sets.shape[0]):
+    #     plt.scatter(parameter_sets[i,0], parameter_sets[i,5], label=good_simulations[i][0], color=pathogen_colors[i],
+    #                 edgecolor='black', linewidth=1, s=50)
+    #     plt.annotate(good_simulations[i][0], 
+    #                 (parameter_sets[i,0], parameter_sets[i,5]), 
+    #                 xytext=(5, 5), textcoords='offset points', 
+    #                 fontsize=8, ha='left')
+    # plt.xlabel("Transmissibility")
+    # plt.ylabel("Immunity from first infection")
+    # plt.savefig("Figures/parameter_sets_transmissibility_immunity.png", dpi=300)
+    # plt.close()
+
+    # plt.figure(figsize=(6,5))
+    # plt.scatter(samples[:,0], samples[:,5], color='gray', alpha=0.1, s=1)
+    # for i in range(parameter_sets.shape[0]):
+    #     plt.scatter(parameter_sets[i,0], parameter_sets[i,5], label=good_simulations[i][0], 
+    #                edgecolor='black', linewidth=1, s=50, color=pathogen_colors[i])
+    #     plt.annotate(good_simulations[i][0], 
+    #                 (parameter_sets[i,0], parameter_sets[i,5]), 
+    #                 xytext=(5, 5), textcoords='offset points', 
+    #                 fontsize=8, ha='left')
+    
+    # # Plot convex hull
+    # points = parameter_sets[:, [0, 5]]  # Extract transmissibility and immunity columns
+    # hull = ConvexHull(points)
+    # for simplex in hull.simplices:
+    #     plt.plot(points[simplex, 0], points[simplex, 1], 'k-', alpha=0.5, linewidth=1)
+    
+    # plt.xlabel("Transmissibility")
+    # plt.ylabel("Immunity from first infection")
+    # plt.savefig("Figures/parameter_sets_and_samples_transmissibility_immunity.png", dpi=300)
+    # plt.close()
+
+
+
     # # print(np.min(samples,axis=0)-np.min(parameter_sets,axis=0), np.max(parameter_sets,axis=0)-np.max(samples,axis=0))
     # CHUNK_SIZE = 40000
     # run_save_path = f"Outputs/sim_grid_lh_n{n_samples}_chunk{CHUNK_SIZE}_seed{seed}"
@@ -470,7 +513,7 @@ if __name__ == "__main__":
     # print(f"Simulations for n_samples={n_samples} completed in {end_time - start_time} seconds.")
     # print(f"Results saved in directory: {run_save_path}")
 
-    # # Example of plotting
+    # # # Example of plotting
     run_save_path = f"Outputs/sim_grid_lh_n1679616_chunk40000_seed251111"
     lasso1_coef, lasso2_coef, valid_samples, valid_targets = lasso_analysis(run_save_path, analyze_size=False, alpha=0, target_bounds=(1004, 1850))
     print("Limits of valid targets: ", valid_targets.min(), valid_targets.max())
@@ -479,9 +522,9 @@ if __name__ == "__main__":
     # find valid samples with lasso 1 projection
     lasso1_proj = valid_samples @ lasso1_coef
     print(lasso1_proj.min(), lasso1_proj.max())
-    valid_samples_lasso1 = valid_samples[np.abs(lasso1_proj - 4.6) < 1e-2]
+    valid_samples_lasso1 = valid_samples[np.abs(lasso1_proj - 4.1) < 5e-3]
     lasso2_proj = valid_samples_lasso1 @ lasso2_coef
-    valid_samples_lasso2 = valid_samples_lasso1[np.abs(lasso2_proj + 7.9e-6) < 1e-8]
+    valid_samples_lasso2 = valid_samples_lasso1[np.abs(lasso2_proj + 6.2e-6) < 5e-9]
     print("Samples around target: ", valid_samples_lasso2.shape[0])
     # Create a 3x3 subplot for the first 9 valid samples
     fig, axes = plt.subplots(3, 3, figsize=(13.3, 7.5))
@@ -491,7 +534,7 @@ if __name__ == "__main__":
         sample = valid_samples_lasso2[i]
         sim_params = x_to_params(sample * np.array([1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3]), "test", lockdown, "mimmwane", "flexage", print_params=False)
         ax = axes[i]
-        mx = lockdown_incidence_plot(ax, STATE0, sim_params, PERIOD, POINTS, date_to_t('2020-03-19'),365, by_age = True, AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+        mx = lockdown_incidence_plot(ax, STATE0, sim_params, POINTS, date_to_t('2020-03-19'), by_age = True, AGE_GROUP_NAMES=AGE_GROUP_NAMES)
         ax.set_title(f"Sample {i+1}")
         print(f"Plotted sample {i+1}/9")
     
@@ -500,11 +543,11 @@ if __name__ == "__main__":
         axes[i].set_visible(False)
     
     plt.tight_layout()
-    plt.savefig(f"Figures/selected_simulations_lasso1_4p6_lasso2_m0p79_3x3_grid.png", dpi=1000)
+    plt.savefig(f"Figures/selected_simulations_alpha0_hMPV_3x3_grid.png", dpi=1000)
     plt.close()  # Close the figure to free memory
 
     fig, ax = plt.subplots(figsize=(8,6))
-    scatter, ax = plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, analyze_size=False)
+    scatter, ax = plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, analyze_size=False, use_scatter=True)
     cbar = plt.colorbar(scatter, ax=ax)
     cbar.set_label('Time to Rebound (years)')
     # Convert colorbar ticks from days to years
@@ -514,7 +557,7 @@ if __name__ == "__main__":
     # plot points from good simulations parameter sets, projected onto lasso space
     # textcolors = ["white", "black", "black", "black", "white", "white"]
     # edgecolors = ["white", "black", "black", "black", "white", "black"]
-    textcolors = edgecolors = ["black"]*len(good_simulations)
+    textcolors = edgecolors = ["white"]*3 + ["black"]*3
     for i, pathogen_info in enumerate(good_simulations):
         pathogen, seed, option1 = pathogen_info
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
@@ -546,5 +589,6 @@ if __name__ == "__main__":
         ax.scatter(lasso1_proj, lasso2_proj, color=pathogen_color, s=50, edgecolor=edgecolors[i])
         ax.annotate(pathogen, (lasso1_proj, lasso2_proj), xytext=(5, 5), 
                textcoords='offset points', fontsize=8, ha='left', color=textcolors[i])
-
-    plt.savefig("Figures/lasso_time_to_rebound_histheatmap_sp.png", dpi=1000)
+    ax.set_xlabel('Component 1 Projection')
+    ax.set_ylabel('Component 2 Projection')
+    plt.savefig("Figures/lr_time_to_rebound_scatter_sp.png", dpi=1000)
