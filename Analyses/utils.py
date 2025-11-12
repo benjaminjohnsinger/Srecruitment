@@ -458,7 +458,7 @@ def consistent_x_from_DE(pathogen, option1, seed, NAG=7):
         n += 3
     elif pathogen == "RSV":
         x_consistent = x_consistent.at[5:7].set(x_DE[n:n+2]) # S_REL1, S_REL2
-        x_consistent = x_consistent.at[7:9].set(jnp.array([0.46,0.31])) # D_REL1, D_REL2
+        x_consistent = x_consistent.at[7:9].set(jnp.array([0.46,0.31/0.46])) # D_REL1, D_REL2
         n += 2
     else:
         x_consistent = x_consistent.at[5:9].set(x_DE[n:n+4]) # S_REL1, S_REL2, D_REL1, D_REL2

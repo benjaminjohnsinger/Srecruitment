@@ -12,12 +12,14 @@ import re
 import glob
 from utils import consistent_x_from_DE, x_to_params, date_to_t
 from fit_MCMC import run_simulation
-from Parameters.census_population import CENSUS_AGE_POP
+from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUP_NAMES
 from Parameters.times_and_contacts import PERIOD
+from plotting import lockdown_incidence_plot
 from scipy.stats import qmc
 from sklearn.linear_model import Lasso
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from scipy.stats import binned_statistic_2d
 
 # Load opt.x for each pathogen and find a polygon that captures the parameter space
 def parameter_space(good_simulations):
@@ -70,6 +72,7 @@ def worker(args):
     def obs_convolution(x):
         return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
     obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
+    obs = jax.nn.softplus(obs*100)/100
     obs_summed_age = obs.sum(axis=1)
     # sum obs over each season, starting with the first time point
     n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
@@ -192,8 +195,8 @@ def load_and_recombine_results(run_save_path):
             print(f"  Chunk {i} shape: {chunk.shape}")
         return None
 
-# Find the first season after the sixth season where the peak incidence rebounds to at least 50% of the average pre-pandemic peak, and measure the time of the peak of that season relative to 2020-03-19, i.e. the 170th day of the fifth season
-def time_to_rebound(x, threshold_factor=0.3):
+# Find the first season after the sixth season where the peak incidence rebounds to at least 70% of the average pre-pandemic peak, and measure the time of the peak of that season relative to 2020-03-19, i.e. the 170th day of the fifth season
+def time_to_rebound(x, threshold_factor=0.4):
     """
     Find the time from the last pre-pandemic peak to the first post-pandemic peak.
     
@@ -208,10 +211,10 @@ def time_to_rebound(x, threshold_factor=0.3):
     # Use the age-summed data (last column)
     obs_summed = x[0, :, -1]  # Shape: (n_seasons,)
     peak_times_summed = x[1, :, -1]  # Shape: (n_seasons,)
-    
-    pre_pandemic_peak = jnp.mean(obs_summed[:6])
-    threshold = threshold_factor * pre_pandemic_peak
-    
+
+    typical_pre_pandemic_season = jnp.median(obs_summed[:5])
+    threshold = threshold_factor * typical_pre_pandemic_season
+
     # Find last pre-pandemic peak time (season 5, which is index 4)
     last_pre_pandemic_peak_time = peak_times_summed[4] + (4 * 365)
     
@@ -249,12 +252,12 @@ def relative_size_of_rebound(x):
     """
     # Use the age-summed data (last column)
     obs_summed = x[0, :, -1]  # Shape: (n_seasons,)
-    pre_pandemic_max = jnp.max(obs_summed[:6])
+    pre_pandemic_median = jnp.median(obs_summed[:5])
     
     # Find largest post-pandemic season
-    post_pandemic_max = jnp.max(obs_summed[6:])
+    post_pandemic_max = jnp.max(obs_summed[5:])
     
-    relative_size = post_pandemic_max / pre_pandemic_max
+    relative_size = post_pandemic_max / pre_pandemic_median
     return relative_size
     # else:
     #     # Per age group analysis (excluding the summed column)
@@ -288,7 +291,7 @@ def load_samples_and_results(run_save_path):
 
     return samples, all_results
 
-def valid_samples_targets_array(samples,target_values):
+def valid_samples_targets_array(samples, target_values, target_bounds=None):
     """
     Remove invalid samples and targets.
     """
@@ -300,10 +303,18 @@ def valid_samples_targets_array(samples,target_values):
     # Convert to numpy
     valid_samples = np.asarray(valid_samples)
     valid_targets = np.asarray(valid_targets)
+
+    if target_bounds is not None:
+        low, high = target_bounds
+        bound_mask = (valid_targets >= low) & (valid_targets <= high)
+        valid_samples = valid_samples[bound_mask]
+        valid_targets = valid_targets[bound_mask]
+        print(f"After applying target bounds {target_bounds}, {valid_samples.shape[0]} valid samples remain.")
+        print(f"Target range after bounds: {valid_targets.min()} to {valid_targets.max()}")
     return valid_samples, valid_targets
 
 # use Lasso regression to find parameters that predict time to rebound, then run lasso regression again on the errors of that model to create a 2d space
-def lasso_analysis(run_save_path, analyze_size=False, alpha=0.01):
+def lasso_analysis(run_save_path, analyze_size=False, alpha=0.01, target_bounds=None):
     """
     Perform Lasso analysis on simulation results.
     
@@ -325,7 +336,11 @@ def lasso_analysis(run_save_path, analyze_size=False, alpha=0.01):
         target_values = vectorized_time_to_rebound(all_results)
     
     # Convert to numpy for sklearn
-    valid_samples, valid_targets = valid_samples_targets_array(samples, target_values)
+    valid_samples, valid_targets = valid_samples_targets_array(samples, target_values, target_bounds=target_bounds)
+
+    untransformed_targets = valid_targets.copy()
+
+    valid_samples *= 1/np.array([1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3])  # scale parameters for better lasso performance
 
     # First Lasso regression
     lasso1 = Lasso(alpha=alpha)
@@ -336,8 +351,8 @@ def lasso_analysis(run_save_path, analyze_size=False, alpha=0.01):
     # Second Lasso regression on residuals
     lasso2 = Lasso(alpha=alpha)
     lasso2.fit(valid_samples, residuals1)
-    
-    return lasso1.coef_, lasso2.coef_, valid_samples, valid_targets
+
+    return lasso1.coef_, lasso2.coef_, valid_samples, untransformed_targets
 
 # plot the time to rebound or relative size as a heatmap with contours on the 2d space defined by the two lasso components
 def plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, analyze_size=False):
@@ -358,15 +373,37 @@ def plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coe
     if all(lasso2_projections == 0):
         lasso2_projections = np.random.normal(0, 1e-6, size=lasso2_projections.shape)
 
-    # Create scatter plot of actual data points
-    scatter = ax.scatter(lasso1_projections, lasso2_projections, c=valid_targets, 
-                            cmap=cm.viridis, alpha=1, s=0.01)
-                            
+    # Create a 2D histogram/heatmap instead of scatter plot
+    # Define grid resolution
+    grid_size = 50
+    
+    # Create bins for the 2D histogram
+    x_range = [lasso1_projections.min(), lasso1_projections.max()]
+    y_range = [lasso2_projections.min(), lasso2_projections.max()]
+    
+    # Use numpy's binned_statistic_2d to compute average values in each bin
+    
+    # Compute the average target value in each bin
+    ret = binned_statistic_2d(lasso1_projections, lasso2_projections, valid_targets, 
+                             statistic='mean', bins=grid_size, 
+                             range=[x_range, y_range])
+    if analyze_size:
+        vmin, vmax = 0.155, 1.82
+    else:
+        # vmin, vmax = 742, 1850
+        # vmin, vmax = 1100, 1660
+        vmin, vmax = 1004, 1850
+    # Create the heatmap
+    extent = [x_range[0], x_range[1], y_range[0], y_range[1]]
+    hist = ax.imshow(ret.statistic.T, origin='lower', extent=extent, 
+                       cmap=cm.viridis, aspect='auto', interpolation='nearest',
+                       vmin=vmin, vmax=vmax
+                       )
     ax.set_xlabel('Lasso Component 1 Projection')
     ax.set_ylabel('Lasso Component 2 Projection')
     ax.set_title(title)
     ax.grid(True, alpha=0.3)
-    return scatter, ax
+    return hist, ax
 
 
 if __name__ == "__main__":
@@ -386,22 +423,34 @@ if __name__ == "__main__":
     lockdown = "maxmimmwaneflexage2511032"
 
     parameter_sets = parameter_space(good_simulations)
+    # for i, param_set in enumerate(parameter_sets):
+    #     print(f"Parameters for {good_simulations[i][0]}:")
+    #     x_to_params(param_set, "test", lockdown, "mimmwane", "flexage", print_params=True)
+
+    # colors = ["#648FFF", "#DC267F", "#FFB000", "#785EF0", "#FF832B", "#000000"]
+    # for i in range(parameter_sets.shape[0]):
+    #     plt.plot(np.arange(7),parameter_sets[i,-7:], label=good_simulations[i][0], color=colors[i])
+    # plt.xticks(np.arange(7), labels=[f"AGE_OBS_{i+1}" for i in range(7)])
+    # plt.ylabel("Detection Probability")
+    # plt.title("Parameter Sets from Good Simulations: Detection Probabilities by Age Group")
+    # plt.legend()
+    # plt.show()
     # # print third value of each parameter set
     # print(np.min(parameter_sets,axis=0), np.max(parameter_sets,axis=0))
 
     POINTS = np.array(date_to_t(PERIOD))
-    # N_S, NAG = 3, 7
-    # ## Initial conditions
-    # STATE0 = jnp.zeros((2*N_S+1,NAG))
-    # STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
-    # STATE0 = STATE0.at[1,:].set(1)
-    # # # flatten initial state and add maternal immunity compartment
-    # STATE0 = STATE0.flatten()
-    # STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+    N_S, NAG = 3, 7
+    ## Initial conditions
+    STATE0 = jnp.zeros((2*N_S+1,NAG))
+    STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
+    STATE0 = STATE0.at[1,:].set(1)
+    # # flatten initial state and add maternal immunity compartment
+    STATE0 = STATE0.flatten()
+    STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
     # n_samples = 6**8
     # samples = lh_sampling(parameter_sets, n_samples)
-    # print(np.min(samples,axis=0)-np.min(parameter_sets,axis=0), np.max(parameter_sets,axis=0)-np.max(samples,axis=0))
+    # # print(np.min(samples,axis=0)-np.min(parameter_sets,axis=0), np.max(parameter_sets,axis=0)-np.max(samples,axis=0))
     # CHUNK_SIZE = 40000
     # run_save_path = f"Outputs/sim_grid_lh_n{n_samples}_chunk{CHUNK_SIZE}_seed{seed}"
     # # save samples
@@ -421,17 +470,51 @@ if __name__ == "__main__":
     # print(f"Simulations for n_samples={n_samples} completed in {end_time - start_time} seconds.")
     # print(f"Results saved in directory: {run_save_path}")
 
-    # Example of plotting
-    fig, ax = plt.subplots(figsize=(8,6))
+    # # Example of plotting
     run_save_path = f"Outputs/sim_grid_lh_n1679616_chunk40000_seed251111"
-    lasso1_coef, lasso2_coef, valid_samples, valid_targets = lasso_analysis(run_save_path, analyze_size=False, alpha=0.0019)
+    lasso1_coef, lasso2_coef, valid_samples, valid_targets = lasso_analysis(run_save_path, analyze_size=False, alpha=0, target_bounds=(1004, 1850))
+    print("Limits of valid targets: ", valid_targets.min(), valid_targets.max())
     print(lasso1_coef)
     print(lasso2_coef)
+    # find valid samples with lasso 1 projection
+    lasso1_proj = valid_samples @ lasso1_coef
+    print(lasso1_proj.min(), lasso1_proj.max())
+    valid_samples_lasso1 = valid_samples[np.abs(lasso1_proj - 4.6) < 1e-2]
+    lasso2_proj = valid_samples_lasso1 @ lasso2_coef
+    valid_samples_lasso2 = valid_samples_lasso1[np.abs(lasso2_proj + 7.9e-6) < 1e-8]
+    print("Samples around target: ", valid_samples_lasso2.shape[0])
+    # Create a 3x3 subplot for the first 9 valid samples
+    fig, axes = plt.subplots(3, 3, figsize=(13.3, 7.5))
+    axes = axes.flatten()  # Flatten for easier indexing
+    
+    for i in range(min(9, len(valid_samples_lasso2))):
+        sample = valid_samples_lasso2[i]
+        sim_params = x_to_params(sample * np.array([1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3]), "test", lockdown, "mimmwane", "flexage", print_params=False)
+        ax = axes[i]
+        mx = lockdown_incidence_plot(ax, STATE0, sim_params, PERIOD, POINTS, date_to_t('2020-03-19'),365, by_age = True, AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+        ax.set_title(f"Sample {i+1}")
+        print(f"Plotted sample {i+1}/9")
+    
+    # Hide any unused subplots
+    for i in range(len(valid_samples_lasso2), 9):
+        axes[i].set_visible(False)
+    
+    plt.tight_layout()
+    plt.savefig(f"Figures/selected_simulations_lasso1_4p6_lasso2_m0p79_3x3_grid.png", dpi=1000)
+    plt.close()  # Close the figure to free memory
+
+    fig, ax = plt.subplots(figsize=(8,6))
     scatter, ax = plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, analyze_size=False)
     cbar = plt.colorbar(scatter, ax=ax)
-    cbar.set_label('Time to Rebound (days)')
+    cbar.set_label('Time to Rebound (years)')
+    # Convert colorbar ticks from days to years
+    ticks = cbar.get_ticks()
+    cbar.set_ticks(ticks)
+    cbar.set_ticklabels([f'{tick/365:.1f}' for tick in ticks])
     # plot points from good simulations parameter sets, projected onto lasso space
-    colors = ["#648FFF", "#DC267F", "#FFB000", "#785EF0", "#FF832B", "#000000"]
+    # textcolors = ["white", "black", "black", "black", "white", "white"]
+    # edgecolors = ["white", "black", "black", "black", "white", "black"]
+    textcolors = edgecolors = ["black"]*len(good_simulations)
     for i, pathogen_info in enumerate(good_simulations):
         pathogen, seed, option1 = pathogen_info
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
@@ -452,15 +535,16 @@ if __name__ == "__main__":
         peak_times_summed_age = jnp.argmax(obs_summed_age_curtailed.reshape((n_seasons, -1)), axis=1)
         peak_times = jnp.concatenate([peak_times, peak_times_summed_age[:, None]], axis=1)
         seasons = jnp.stack([obs_per_season, peak_times], axis=0)
-        time_to_rebound_value = time_to_rebound(seasons, threshold_factor=0.3)
-        print(f"{pathogen} time to rebound: {time_to_rebound_value} days")
+        time_to_rebound_value = time_to_rebound(seasons)
+        rebound_size_value = relative_size_of_rebound(seasons)
+        print(f"{pathogen} time to rebound: {time_to_rebound_value} days, relative size: {rebound_size_value}")
         # map to color using same scheme as scatter plot
-        pathogen_color = cm.viridis((time_to_rebound_value-np.min(valid_targets))/(np.max(valid_targets)-np.min(valid_targets)))
-        x = consistent_x_from_DE(pathogen, option1, seed)
+        pathogen_color = cm.viridis(( time_to_rebound_value - 1004) / (1850 - 1004))
+        x = consistent_x_from_DE(pathogen, option1, seed)/np.array([1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3])  # scale parameters for better lasso performance
         lasso1_proj = x @ lasso1_coef
         lasso2_proj = x @ lasso2_coef
-        ax.scatter(lasso1_proj, lasso2_proj, color=pathogen_color, s=50, edgecolor='black')
+        ax.scatter(lasso1_proj, lasso2_proj, color=pathogen_color, s=50, edgecolor=edgecolors[i])
         ax.annotate(pathogen, (lasso1_proj, lasso2_proj), xytext=(5, 5), 
-               textcoords='offset points', fontsize=8, ha='left')
+               textcoords='offset points', fontsize=8, ha='left', color=textcolors[i])
 
-    plt.savefig("Figures/lasso_time_to_rebound_heatmap.png", dpi=1000)
+    plt.savefig("Figures/lasso_time_to_rebound_histheatmap_sp.png", dpi=1000)

@@ -52,7 +52,7 @@ def lockdown_incidence_plot(ax,state0,params,period,points,T_LOCKDOWN,LOCKDOWN_D
 
     trajectory = np.diff(values[-NAG:,:],axis=1).T
     expected_obs = np.sum([np.roll(trajectory,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
-    
+
     if by_age:
         pop_size_by_age = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),1:],axis=0) for i_age in range(NAG)]).T
         obs = factor*expected_obs
