@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=freeflu
+#SBATCH --job-name=DEwCMmf032
 #SBATCH --account=fc_coronamodel
 #SBATCH --partition=savio2
 #SBATCH --nodes=1

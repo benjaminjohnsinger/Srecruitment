@@ -382,7 +382,7 @@ def plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coe
     if use_scatter:
         # Scatter plot with tiny points
         hist = ax.scatter(lasso1_projections, lasso2_projections, c=valid_targets, 
-                         s=0.1, alpha=0.6, cmap=cm.viridis, vmin=vmin, vmax=vmax)
+                         s=0.1, alpha=1, cmap=cm.viridis, vmin=vmin, vmax=vmax)
 
     else:
         # Create a 2D histogram/heatmap instead of scatter plot
@@ -421,6 +421,8 @@ if __name__ == "__main__":
     InfluenzaB = ["InfluenzaB", "2511042", "NA"]
     Adenovirus = ["Adenovirus", "2511032", "NA"]
     Parainfluenza3 = ["Parainfluenza3", "2511032", "NA"]
+
+    short_names = {"RSV":"RSV", "Metapneumovirus":"hMPV", "InfluenzaA":"FluA", "InfluenzaB":"FluB", "Adenovirus":"AdV", "Parainfluenza3":"PIV3"}
 
     good_simulations = [RSV, Metapneumovirus, InfluenzaA, InfluenzaB, Adenovirus, Parainfluenza3]
 
@@ -519,36 +521,44 @@ if __name__ == "__main__":
     print("Limits of valid targets: ", valid_targets.min(), valid_targets.max())
     print(lasso1_coef)
     print(lasso2_coef)
-    # find valid samples with lasso 1 projection
-    lasso1_proj = valid_samples @ lasso1_coef
-    print(lasso1_proj.min(), lasso1_proj.max())
-    valid_samples_lasso1 = valid_samples[np.abs(lasso1_proj - 4.1) < 5e-3]
-    lasso2_proj = valid_samples_lasso1 @ lasso2_coef
-    valid_samples_lasso2 = valid_samples_lasso1[np.abs(lasso2_proj + 6.2e-6) < 5e-9]
-    print("Samples around target: ", valid_samples_lasso2.shape[0])
-    # Create a 3x3 subplot for the first 9 valid samples
-    fig, axes = plt.subplots(3, 3, figsize=(13.3, 7.5))
-    axes = axes.flatten()  # Flatten for easier indexing
+    lasso1_coef = jnp.zeros(lasso1_coef.shape)
+    lasso1_coef = lasso1_coef.at[4].set(1)
+    lasso2_coef = jnp.zeros(lasso2_coef.shape)
+    lasso2_coef = lasso2_coef.at[6].set(1)
+
+    # # find valid samples with lasso 1 projection
+    # lasso1_proj = valid_samples @ lasso1_coef
+    # print(lasso1_proj.min(), lasso1_proj.max())
+    # valid_samples_lasso1 = valid_samples[np.abs(lasso1_proj - 4.1) < 5e-3]
+    # lasso2_proj = valid_samples_lasso1 @ lasso2_coef
+    # valid_samples_lasso2 = valid_samples_lasso1[np.abs(lasso2_proj + 6.2e-6) < 5e-9]
+    # print("Samples around target: ", valid_samples_lasso2.shape[0])
+    # # Create a 3x3 subplot for the first 9 valid samples
+    # fig, axes = plt.subplots(3, 3, figsize=(13.3, 7.5))
+    # axes = axes.flatten()  # Flatten for easier indexing
     
-    for i in range(min(9, len(valid_samples_lasso2))):
-        sample = valid_samples_lasso2[i]
-        sim_params = x_to_params(sample * np.array([1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3]), "test", lockdown, "mimmwane", "flexage", print_params=False)
-        ax = axes[i]
-        mx = lockdown_incidence_plot(ax, STATE0, sim_params, POINTS, date_to_t('2020-03-19'), by_age = True, AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-        ax.set_title(f"Sample {i+1}")
-        print(f"Plotted sample {i+1}/9")
+    # for i in range(min(9, len(valid_samples_lasso2))):
+    #     sample = valid_samples_lasso2[i]
+    #     sim_params = x_to_params(sample * np.array([1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3]), "test", lockdown, "mimmwane", "flexage", print_params=False)
+    #     ax = axes[i]
+    #     mx = lockdown_incidence_plot(ax, STATE0, sim_params, POINTS, date_to_t('2020-03-19'), by_age = True, AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+    #     ax.set_title(f"Sample {i+1}")
+    #     print(f"Plotted sample {i+1}/9")
     
-    # Hide any unused subplots
-    for i in range(len(valid_samples_lasso2), 9):
-        axes[i].set_visible(False)
+    # # Hide any unused subplots
+    # for i in range(len(valid_samples_lasso2), 9):
+    #     axes[i].set_visible(False)
     
-    plt.tight_layout()
-    plt.savefig(f"Figures/selected_simulations_alpha0_hMPV_3x3_grid.png", dpi=1000)
-    plt.close()  # Close the figure to free memory
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/selected_simulations_alpha0_hMPV_3x3_grid.png", dpi=1000)
+    # plt.close()  # Close the figure to free memory
 
     fig, ax = plt.subplots(figsize=(8,6))
+    # Get scatter plot object without displaying points (alpha=0 makes them invisible)
     scatter, ax = plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, analyze_size=False, use_scatter=True)
+    # Make scatter points invisible by setting alpha to 0
     cbar = plt.colorbar(scatter, ax=ax)
+    scatter.set_alpha(0)
     cbar.set_label('Time to Rebound (years)')
     # Convert colorbar ticks from days to years
     ticks = cbar.get_ticks()
@@ -557,7 +567,7 @@ if __name__ == "__main__":
     # plot points from good simulations parameter sets, projected onto lasso space
     # textcolors = ["white", "black", "black", "black", "white", "white"]
     # edgecolors = ["white", "black", "black", "black", "white", "black"]
-    textcolors = edgecolors = ["white"]*3 + ["black"]*3
+    textcolors = edgecolors = ["black"]*6
     for i, pathogen_info in enumerate(good_simulations):
         pathogen, seed, option1 = pathogen_info
         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
@@ -587,8 +597,13 @@ if __name__ == "__main__":
         lasso1_proj = x @ lasso1_coef
         lasso2_proj = x @ lasso2_coef
         ax.scatter(lasso1_proj, lasso2_proj, color=pathogen_color, s=50, edgecolor=edgecolors[i])
-        ax.annotate(pathogen, (lasso1_proj, lasso2_proj), xytext=(5, 5), 
-               textcoords='offset points', fontsize=8, ha='left', color=textcolors[i])
-    ax.set_xlabel('Component 1 Projection')
-    ax.set_ylabel('Component 2 Projection')
-    plt.savefig("Figures/lr_time_to_rebound_scatter_sp.png", dpi=1000)
+        ax.annotate(short_names[pathogen], (lasso1_proj, lasso2_proj), xytext=(5, 5), 
+               textcoords='offset points', fontsize=12, ha='left', color=textcolors[i])
+    ax.set_title("Fit Parameter Sets")
+    # put label on x-axis saying 1e-2
+    ax.set_xlabel('Waning (per 100 days)')
+    ax.set_ylabel('Immunity from second infection')
+    # Get current y-ticks and set new labels as 1 - original value
+    y_ticks = ax.get_yticks()
+    ax.set_yticklabels([f'{1-tick:.1f}' for tick in y_ticks])
+    plt.savefig("Figures/parameter_sets_waning_immunity2_time_to_rebound.png", dpi=1000)
