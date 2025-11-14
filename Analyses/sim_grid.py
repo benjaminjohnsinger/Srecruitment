@@ -33,31 +33,95 @@ def parameter_space(good_simulations):
     return(parameter_sets)
 
 
-def lh_sampling(parameter_sets, n_samples):
+def lh_sampling(parameter_sets, n_samples, dimension=None):
     n_pathogens = parameter_sets.shape[0]
+    
+    if dimension is None:
+        dimension = n_pathogens - 1  # Full simplex by default
+    
+    # Validate dimension parameter
+    if dimension < 0 or dimension > n_pathogens - 1:
+        raise ValueError(f"Dimension must be between 0 and {n_pathogens - 1}")
     
     # Use Latin Hypercube Sampling for better space-filling properties
     
-    # Create Latin Hypercube sampler
-    sampler = qmc.LatinHypercube(d=n_pathogens-1)
+    if dimension == 0:
+        # Sample from vertices (pure pathogens)
+        vertex_indices = np.random.choice(n_pathogens, size=n_samples)
+        samples = parameter_sets[vertex_indices]
+        return samples
     
-    # Generate samples in simplex coordinates
-    lhs_samples = sampler.random(n=n_samples)
+    elif dimension == 1:
+        # Sample from edges (between pairs of pathogens)
+        # Choose random pairs of pathogens
+        # pairs = np.random.choice(n_pathogens, size=(n_samples, 2), replace=True)
+        pairs = np.array(list(it.combinations(range(n_pathogens), 2)))
+        pairs = np.tile(pairs, (int(np.ceil(n_samples / pairs.shape[0])), 1))[:n_samples]
+        # Generate weights for each pair
+        weights = jnp.arange(n_samples)/(n_samples-1)
+        
+        samples = []
+        for i in range(n_samples):
+            idx1, idx2 = pairs[i]
+            w = weights[i]
+            sample = w * parameter_sets[idx1] + (1 - w) * parameter_sets[idx2]
+            samples.append(sample)
+        samples = jnp.array(samples)
+        return samples
     
-    # Convert to Dirichlet-like weights (ensure they sum to 1)
-    # Transform uniform samples to exponential, then normalize
-    exp_samples = -jnp.log(1 - lhs_samples + 1e-10)  # Add small epsilon to avoid log(0)
-    # Add one more dimension to complete the simplex
-    last_coord = np.random.exponential(1.0, size=(n_samples, 1))
-    full_exp = jnp.concatenate([exp_samples, last_coord], axis=1)
-    
-    # Normalize to create proper barycentric coordinates
-    lh_samples = full_exp / jnp.sum(full_exp, axis=1, keepdims=True)
-    
-    # Transform to parameter space via convex combination
-    samples = lh_samples @ parameter_sets
-    
-    return samples
+    else:
+        # Sample from higher-dimensional faces or full simplex
+        # Create Latin Hypercube sampler for the specified dimension
+        sampler = qmc.LatinHypercube(d=dimension)
+        
+        # Generate samples in simplex coordinates
+        lhs_samples = sampler.random(n=n_samples)
+        
+        # Convert to Dirichlet-like weights (ensure they sum to 1)
+        # Transform uniform samples to exponential, then normalize
+        exp_samples = -jnp.log(1 - lhs_samples + 1e-10)  # Add small epsilon to avoid log(0)
+        
+        if dimension < n_pathogens - 1:
+            # For lower-dimensional faces, we need to select which subset of pathogens to use
+            # and set the rest to zero weights
+            
+            # For each sample, randomly select which (dimension+1) pathogens to use
+            samples = []
+            for i in range(n_samples):
+                # Choose (dimension+1) pathogens for this sample
+                selected_pathogens = np.random.choice(n_pathogens, size=dimension+1, replace=False)
+                
+                # Create barycentric coordinates for selected pathogens
+                weights = jnp.zeros(n_pathogens)
+                selected_exp = exp_samples[i]
+                # Add one more dimension to complete the simplex for selected pathogens
+                last_coord = np.random.exponential(1.0)
+                full_exp = jnp.concatenate([selected_exp, jnp.array([last_coord])])
+                
+                # Normalize and assign to selected pathogens
+                normalized_weights = full_exp / jnp.sum(full_exp)
+                weights = weights.at[selected_pathogens].set(normalized_weights)
+                
+                # Compute sample as convex combination
+                sample = weights @ parameter_sets
+                samples.append(sample)
+            
+            samples = jnp.array(samples)
+            return samples
+        
+        else:
+            # Full simplex case (original code)
+            # Add one more dimension to complete the simplex
+            last_coord = np.random.exponential(1.0, size=(n_samples, 1))
+            full_exp = jnp.concatenate([exp_samples, last_coord], axis=1)
+            
+            # Normalize to create proper barycentric coordinates
+            lh_samples = full_exp / jnp.sum(full_exp, axis=1, keepdims=True)
+            
+            # Transform to parameter space via convex combination
+            samples = lh_samples @ parameter_sets
+            
+            return samples
 
 # Worker function defined at module level for pickling
 NAG = 7  # Number of age groups
@@ -382,7 +446,7 @@ def plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coe
     if use_scatter:
         # Scatter plot with tiny points
         hist = ax.scatter(lasso1_projections, lasso2_projections, c=valid_targets, 
-                         s=0.1, alpha=1, cmap=cm.viridis, vmin=vmin, vmax=vmax)
+                         s=1, alpha=1, cmap=cm.viridis, vmin=vmin, vmax=vmax)
 
     else:
         # Create a 2D histogram/heatmap instead of scatter plot
@@ -411,7 +475,7 @@ def plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coe
 
 
 if __name__ == "__main__":
-    seed = 251111
+    seed = 251113
     np.random.seed(seed)
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
     # Define good simulations
@@ -454,8 +518,9 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-    n_samples = 6**8
-    samples = lh_sampling(parameter_sets, n_samples)
+    n_samples = 15000
+    dimension = 2
+    samples = lh_sampling(parameter_sets, n_samples, dimension=dimension)
 
     # # plot first and sixth dimensions of parameter sets, labelled by pathogen
     # pathogen_colors = ["#648FFF", "#DC267F", "#FFB000", "#785EF0", "#FF832B", "#000000"]
@@ -495,29 +560,29 @@ if __name__ == "__main__":
 
 
 
-    # # print(np.min(samples,axis=0)-np.min(parameter_sets,axis=0), np.max(parameter_sets,axis=0)-np.max(samples,axis=0))
-    # CHUNK_SIZE = 40000
-    # run_save_path = f"Outputs/sim_grid_lh_n{n_samples}_chunk{CHUNK_SIZE}_seed{seed}"
-    # # save samples
-    # os.makedirs(run_save_path, exist_ok=True)
-    # with open(os.path.join(run_save_path, "samples.pickle"), "wb") as f:
-    #     pickle.dump(np.asarray(samples), f)
+    # print(np.min(samples,axis=0)-np.min(parameter_sets,axis=0), np.max(parameter_sets,axis=0)-np.max(samples,axis=0))
+    CHUNK_SIZE = 40000
+    run_save_path = f"Outputs/sim_grid_lh_n{n_samples}_chunk{CHUNK_SIZE}_seed{seed}_{dimension}d"
+    # save samples
+    os.makedirs(run_save_path, exist_ok=True)
+    with open(os.path.join(run_save_path, "samples.pickle"), "wb") as f:
+        pickle.dump(np.asarray(samples), f)
 
-    # start_time = time.time()  
-    # # Call the new chunked simulation function
-    # saved_files = simulate_samples_chunked(
-    #     samples, lockdown, POINTS, STATE0, p_time_to_obs,
-    #     base_save_path=run_save_path,
-    #     chunk_size=CHUNK_SIZE,
-    #     skip_existing=True,
-    # )
-    # end_time = time.time()
-    # print(f"Simulations for n_samples={n_samples} completed in {end_time - start_time} seconds.")
-    # print(f"Results saved in directory: {run_save_path}")
+    start_time = time.time()  
+    # Call the new chunked simulation function
+    saved_files = simulate_samples_chunked(
+        samples, lockdown, POINTS, STATE0, p_time_to_obs,
+        base_save_path=run_save_path,
+        chunk_size=CHUNK_SIZE,
+        skip_existing=True,
+    )
+    end_time = time.time()
+    print(f"Simulations for n_samples={n_samples} completed in {end_time - start_time} seconds.")
+    print(f"Results saved in directory: {run_save_path}")
 
     # # # Example of plotting
-    run_save_path = f"Outputs/sim_grid_lh_n1679616_chunk40000_seed251111"
-    lasso1_coef, lasso2_coef, valid_samples, valid_targets = lasso_analysis(run_save_path, analyze_size=False, alpha=0, target_bounds=(1004, 1850))
+    run_save_path = f"Outputs/sim_grid_lh_n15000_chunk40000_seed251113_2d"
+    lasso1_coef, lasso2_coef, valid_samples, valid_targets = lasso_analysis(run_save_path, analyze_size=False, alpha=0.001, target_bounds=(1004, 1850))
     print("Limits of valid targets: ", valid_targets.min(), valid_targets.max())
     print(lasso1_coef)
     print(lasso2_coef)
@@ -556,9 +621,9 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(figsize=(8,6))
     # Get scatter plot object without displaying points (alpha=0 makes them invisible)
     scatter, ax = plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, analyze_size=False, use_scatter=True)
-    # Make scatter points invisible by setting alpha to 0
     cbar = plt.colorbar(scatter, ax=ax)
-    scatter.set_alpha(0)
+    ## Make scatter points invisible by setting alpha to 0
+    # scatter.set_alpha(0)
     cbar.set_label('Time to Rebound (years)')
     # Convert colorbar ticks from days to years
     ticks = cbar.get_ticks()
@@ -601,9 +666,9 @@ if __name__ == "__main__":
                textcoords='offset points', fontsize=12, ha='left', color=textcolors[i])
     ax.set_title("Fit Parameter Sets")
     # put label on x-axis saying 1e-2
-    ax.set_xlabel('Waning (per 100 days)')
-    ax.set_ylabel('Immunity from second infection')
+    ax.set_xlabel('Transmissibility')
+    ax.set_ylabel('Immunity from first infection')
     # Get current y-ticks and set new labels as 1 - original value
     y_ticks = ax.get_yticks()
     ax.set_yticklabels([f'{1-tick:.1f}' for tick in y_ticks])
-    plt.savefig("Figures/parameter_sets_waning_immunity2_time_to_rebound.png", dpi=1000)
+    plt.savefig("Figures/parameter_sets_transmissibility_immunity_time_to_rebound_2d.png", dpi=1000)
