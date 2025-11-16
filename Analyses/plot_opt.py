@@ -34,7 +34,7 @@ if re.match(r'\d{4}-\d{2}-\d{2}',option2):
     option2 = "flexage" #this is super hacky sorry
 
 print(pathogen, seed)
-if re.search(r'\d{6}',lockdown):
+if re.match(r'\d{6}',lockdown):
     with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
         opt = pickle.load(f)
 else:
@@ -149,58 +149,42 @@ if "free" in pathogen:
 else:
     pathogen_name = pathogen
 
-plt.rcParams.update({'font.size':18})
-# text type is palatino
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['font.serif'] = ['Palatino']
-
-fig, ax = plt.subplots(figsize=(12.3/4,6.5/2))
-
-# fig = plt.figure(figsize=(13.3,7.5))
-# ax1 = fig.add_subplot(3,1,1)
-# ax2 = fig.add_subplot(3,1,2, sharex=ax1
-# , sharey=ax1
-# )
-# ax3 = fig.add_subplot(3,1,3, sharex=ax1)
-# ax = [ax1,ax2,ax3]
+fig = plt.figure(figsize=(13.3,7.5))
+ax1 = fig.add_subplot(3,1,1)
+ax2 = fig.add_subplot(3,1,2, sharex=ax1
+, sharey=ax1
+)
+ax3 = fig.add_subplot(3,1,3, sharex=ax1)
+ax = [ax1,ax2,ax3]
 aggregation = "Month"
-kpsc_positive_test_plot(ax,pathogen=pathogen_name,AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation=aggregation, load_data=False, save_data=True, color="#DC267F")
-# ax.set_xlabel("")
-pnamedict = {"RSV":"RSV","InfluenzaA":"Flu A","InfluenzaB":"Flu B","Parainfluenza3":"PIV 3","Adenovirus":"AdV","Metapneumovirus":"hMPV", "test":"test"}
-# ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
-# ax.set_ylabel("Weekly incidence per 10k")
+kpsc_positive_test_plot(ax[0],pathogen=pathogen_name,AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation=aggregation, load_data=True)
+ax[0].set_xlabel("")
+pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
+# ax[0].set_title("Observed incidence of "+pnamedict[pathogen_name])
+ax[0].set_ylabel("Monthly incidence per 10k")
 # legend
-ax.legend(frameon=False)
+ax[0].legend(frameon=False)
 
 # plt.rcParams.update({'font.size':20})
 # # text type is palatino
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Palatino']
 # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
-mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"Week","Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs,color="#648FFF")
+mx = lockdown_incidence_plot(ax[1],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),365,solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
+lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")
 # ax[1].set_ylabel("")
 # ax[1].set_xlabel("")
 # ax[1].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
 # ax[0].set_yticks([])
-# lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-# lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
-# ax[2].set_title("Effective susceptibles")
+lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
+ax[2].set_title("Effective susceptibles")
 # ax[1].set_xlabel("")
 # ax[1].set_ylabel("")
 # ax[1].set_xlabel("")
 # ax[1].ticklabel_format(axis='y', style='sci', scilimits=(0,0))
 # ax[1].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
-
-ax.set_xlabel("", fontfamily='Helvetica', fontsize=18)
-ax.set_ylabel("", fontfamily='Helvetica', fontsize=18)
-ax.set_title(pnamedict[pathogen_name])
-ax.set_xticklabels(["","2016","","2018","","2020","","2022","","2024"], fontfamily='Helvetica', fontsize=10)
-# ax.set_xticklabels([])
-# set y tick labels to helvetica
-ax.set_yticklabels(ax.get_yticklabels(), fontfamily='Helvetica', fontsize=12)
-# ax.set_xticklabels([])
-
 plt.tight_layout()
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_noage_minimal.png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)

@@ -25,8 +25,11 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 # '#ff0000', '#ffb700', '#6cff00', '#00ffc0', '#00bbff', '#1900ff', '#f300ff'
 
 ##### Simple line plots #####
-def lockdown_incidence_plot(ax,state0,params,points,T_LOCKDOWN,solution=None,incidence=True,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'),factor=1,p_time_to_obs=[1]):
+def lockdown_incidence_plot(ax,state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'),factor=1,p_time_to_obs=[1]):
     NAG, N_S = 7, 3
+    FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
+    BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
+    REC_UP, REC_SAME, IMPORT_STRENGTH  = params
     if solution is None:
         term = ODETerm(deltas)
         solver = Dopri5()
@@ -51,28 +54,30 @@ def lockdown_incidence_plot(ax,state0,params,points,T_LOCKDOWN,solution=None,inc
     expected_obs = np.sum([np.roll(trajectory,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
 
     if by_age:
-        if incidence:
-            pop_size_by_age = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),1:],axis=0) for i_age in range(NAG)]).T
-        else:
-            pop_size_by_age = np.ones(expected_obs.shape)
+        pop_size_by_age = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),1:],axis=0) for i_age in range(NAG)]).T
         obs = factor*expected_obs
         for i_age in range(NAG):
-            ax.plot(dates[start_index+1:end_index],obs[start_index:end_index,i_age]/pop_size_by_age[start_index:end_index,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)
+            ax.plot(dates[(start_index+1):end_index],obs[start_index:end_index,i_age]/pop_size_by_age[start_index:end_index,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)
         mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[start_index:end_index])
     else:
-        if incidence:
-            pop_size = np.sum(values[1:-7,1:],axis=0)
-        else:
-            pop_size = np.ones(expected_obs.shape)
-        obs = factor*np.sum(expected_obs,axis=1)
+        obs = factor*expected_obs
         if relative:
             pre_mx = np.max(obs[start_index:np.argmin(times<=T_LOCKDOWN)])
-            ax.plot(dates[start_index+1:end_index], obs[start_index:end_index]/pre_mx[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
+            ax.plot(dates[start_index:end_index], obs[start_index:end_index]/pre_mx[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
             mx = 1.1*np.max(obs[start_index:end_index])/pre_mx
         else:
-            ax.plot(dates[start_index+1:end_index], obs[start_index:end_index]/pop_size[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
+            ax.plot(dates[start_index:end_index], obs[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
             mx = 1.1*np.max(np.array(obs[start_index:end_index]))
     return(mx)
+
+def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,year_skip=1,title='Incidence of disease'):
+    # ax.set_xlim(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365)
+    # ax.set_ylim(0,mx)
+    ax.set_ylabel('Incidence per 10k')
+    # ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,mx,color='gray',alpha=0.2)
+    # ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365+365,365*year_skip),[str(int(x)-year_window-1) for x in np.arange(0,year_window*2+2,year_skip)])
+    ax.set_xlabel('Time (years)')
+    ax.set_title(title)
 
 def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,solution=None,label='Susceptible_population',color='#648FFF',relative=True,proportion=False,by_age=False,AGE_GROUP_NAMES=None,style='-',delta=deltas):
     NAG = 7
@@ -427,9 +432,7 @@ pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL V
 "Adenovirus": ["ADENOVIRUS",],
 # "Parainfluenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
 "Parainfluenza3": ["PARAINFLUENZA VIRUS 3"],
-# "Rhinovirus": ["ENTEROVIRUS/RHINOVIRUS"],
-# "COVID-19": ["SARS-COV-2 (COVID-19)"],
-}
+"Rhinovirus": ["ENTEROVIRUS/RHINOVIRUS"],}
 reverse_names = [{v:k for v in values} for k,values in pathogen_names.items()]
 reverse_names =  {k:v for d in reverse_names for k,v in d.items()}
 import numpy as np
@@ -529,8 +532,6 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
             if incidence:
                 cases = cases.div(age_by_year.loc[cases.index.year].values)
         elif incidence:
-            # change dtype of count
-            cases["Count"] = cases["Count"].astype(float)
             cases.loc[:,"Count"] = cases["Count"]/np.sum(age_by_year.loc[cases.index.year].values,axis=1)
 
         if save_data:
