@@ -12,6 +12,7 @@ from functools import partial
 
 ####### Utility functions #######
 
+
 def date_to_t(date, start_date=pd.to_datetime("1970-01-01")):
     """
     Convert date to time index
@@ -233,9 +234,12 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=False):
 def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False):
     if fixed_params is None:
         from Parameters.census_population import AGING_RATE
-        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs = pathogen_parameters(pathogen, import_multiplier=import_multiplier, skip_incidence=True)
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
         BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
+        if pathogen == "sim":
+            _, _, IMPORT_STRENGTH, _ = pathogen_parameters("test", import_multiplier=import_multiplier, skip_incidence=True)
+        else:
+            REC_UP, REC_SAME, IMPORT_STRENGTH, _ = pathogen_parameters(pathogen, import_multiplier=import_multiplier, skip_incidence=True)
     else:
         FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX = fixed_params[:4]
         REC_UP, REC_SAME, IMPORT_STRENGTH = fixed_params[-3:]
@@ -246,11 +250,16 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
     FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
 
-    BETA = x[0]
-    SEASONALITY = x[1]
-    OFFSET = x[2]
+    n = 0
+    if pathogen == "sim":
+        REC_UP = jnp.array([x[n],x[n+1],0.0])
+        REC_SAME = jnp.array([0.0,0.0,x[n+1]])
+        n += 2
+    BETA = x[n]
+    SEASONALITY = x[n+1]
+    OFFSET = x[n+2]
     MATERNAL_IMMUNITY = 0
-    n = 3
+    n += 3
     if "wane" in option1:
         WANE = jnp.array([0.0,x[n],x[n+1]])
         n += 2
@@ -327,6 +336,8 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         FF = jnp.array([1,F1,F2,F3,F4])
         PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+        if pathogen != "sim":
+            n += 7
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
     if ('flexage' in option2) & ('dynamic' not in option1):
@@ -438,15 +449,17 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
 def consistent_x_from_DE(pathogen, option1, seed, NAG=7):
     with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+"flexage"+str(seed)+".pickle","rb") as f:
         opt = pickle.load(f)
+    REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
     x_DE = opt.x
-    x_consistent = jnp.zeros(17)
-    x_consistent = x_consistent.at[0:3].set(x_DE[0:3]) # BETA, SEASONALITY, OFFSET
+    x_consistent = jnp.zeros(19)
+    x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC
+    x_consistent = x_consistent.at[2:5].set(x_DE[0:3]) # BETA, SEASONALITY, OFFSET
     n = 3
     if "wane" in option1:
-        x_consistent = x_consistent.at[3:5].set(x_DE[3:5]) # WANE1, WANE2
+        x_consistent = x_consistent.at[5:7].set(x_DE[3:5]) # WANE1, WANE2
         n += 2
     else:
-        x_consistent = x_consistent.at[4].set(x_DE[3]) # WANE2
+        x_consistent = x_consistent.at[6].set(x_DE[3]) # WANE2
         n += 1
     if ("Influenza" in pathogen) and ("free" not in pathogen):
         srel, pobsrel = constrained_immunity(x_DE[n],x_DE[n+1],x_DE[n+2])
@@ -454,21 +467,21 @@ def consistent_x_from_DE(pathogen, option1, seed, NAG=7):
         S_REL2 = srel[2]/srel[1]
         D_REL1 = pobsrel[1]
         D_REL2 = pobsrel[2]/pobsrel[1]
-        x_consistent = x_consistent.at[5:9].set(jnp.array([S_REL1,S_REL2,D_REL1,D_REL2]))
+        x_consistent = x_consistent.at[7:11].set(jnp.array([S_REL1,S_REL2,D_REL1,D_REL2]))
         n += 3
     elif pathogen == "RSV":
-        x_consistent = x_consistent.at[5:7].set(x_DE[n:n+2]) # S_REL1, S_REL2
-        x_consistent = x_consistent.at[7:9].set(jnp.array([0.46,0.31/0.46])) # D_REL1, D_REL2
+        x_consistent = x_consistent.at[7:9].set(x_DE[n:n+2]) # S_REL1, S_REL2
+        x_consistent = x_consistent.at[9:11].set(jnp.array([0.46,0.31/0.46])) # D_REL1, D_REL2
         n += 2
     else:
-        x_consistent = x_consistent.at[5:9].set(x_DE[n:n+4]) # S_REL1, S_REL2, D_REL1, D_REL2
+        x_consistent = x_consistent.at[7:11].set(x_DE[n:n+4]) # S_REL1, S_REL2, D_REL1, D_REL2
         n += 4
     if "maxmimm" in option1:
-        x_consistent = x_consistent.at[9].set(1) # maternal immunity
+        x_consistent = x_consistent.at[11].set(1) # maternal immunity
     elif "mimm" in option1:
-        x_consistent = x_consistent.at[9].set(x_DE[n]) # maternal immunity
+        x_consistent = x_consistent.at[11].set(x_DE[n]) # maternal immunity
         n += 1
-    x_consistent = x_consistent.at[10:17].set(x_DE[-NAG:]) # AGE_OBS_1 to AGE_OBS_7
+    x_consistent = x_consistent.at[12:19].set(x_DE[-NAG:]) # AGE_OBS_1 to AGE_OBS_7
     return x_consistent
 
 ####### Generating interesting quantities from ODE results #######

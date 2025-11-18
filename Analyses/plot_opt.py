@@ -34,7 +34,7 @@ if re.match(r'\d{4}-\d{2}-\d{2}',option2):
     option2 = "flexage" #this is super hacky sorry
 
 print(pathogen, seed)
-if re.match(r'\d{6}',lockdown):
+if re.search(r'\d{6}',lockdown):
     with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
         opt = pickle.load(f)
 else:
@@ -42,7 +42,7 @@ else:
         with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
             opt = pickle.load(f)
     except FileNotFoundError:
-        print('No file found')
+        print('File not found:',"Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
         sys.exit()
 if opt.success:
     print("Optimization converged")
@@ -102,25 +102,29 @@ times = solution.ts
 
 print(SIS_likelihood(incidence, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, solution=solution))
 
-# # # for each season from the 2015/16 season onwards, sum the total number of infections
-# seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
-# season_infection_array = np.zeros((len(seasons)-1,3))
-# season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
-# for i in range(len(seasons)-1):
-#     # get the number of infections in each season
-#     season_start = np.argmax(times>=seasons[i])
-#     season_end = np.argmax(times>=seasons[i+1])
-#     pop_size = np.sum(values[:-NAG,season_start],dtype=np.float64)
-#     age_pops = np.array([np.sum(values[range(1+i_age,2*N_S*NAG,NAG),season_start],axis=0) for i_age in range(NAG)])
-#     age_pops[0] += values[0,season_start]  # add maternal immunity compartment to first age group
-#     season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
-#     season_infection_array[i,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end])*REC_UP[1]/pop_size
-#     season_infection_array[i,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end])*REC_SAME[2]/pop_size
-#     season_infection_by_age[i,:,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end],axis=1)*REC_UP[0]/age_pops
-#     season_infection_by_age[i,:,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end],axis=1)*REC_UP[1]/age_pops
-#     season_infection_by_age[i,:,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end],axis=1)*REC_SAME[2]/age_pops 
-# season_infections = np.sum(season_infection_array,axis=1)
-# season_infection_by_age = np.sum(season_infection_by_age,axis=2)
+# # for each season from the 2015/16 season onwards, sum the total number of infections
+seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
+season_infection_array = np.zeros((len(seasons)-1,3))
+season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
+first_infections = np.zeros((len(seasons)-1,NAG))
+for i in range(len(seasons)-1):
+    # get the number of infections in each season
+    season_start = np.argmax(times>=seasons[i])
+    season_end = np.argmax(times>=seasons[i+1])
+    pop_size = np.sum(values[:-NAG,season_start],dtype=np.float64)
+    age_pops = np.array([np.sum(values[range(1+i_age,2*N_S*NAG,NAG),season_start],axis=0) for i_age in range(NAG)])
+    age_pops[0] += values[0,season_start]  # add maternal immunity compartment to first age group
+    first_infections[i,:] = np.sum(values[1:1+NAG,season_start:season_end],axis=1)
+    season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
+    season_infection_array[i,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end])*REC_UP[1]/pop_size
+    season_infection_array[i,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end])*REC_SAME[2]/pop_size
+    season_infection_by_age[i,:,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end],axis=1)*REC_UP[0]/age_pops
+    season_infection_by_age[i,:,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end],axis=1)*REC_UP[1]/age_pops
+    season_infection_by_age[i,:,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end],axis=1)*REC_SAME[2]/age_pops 
+average_age_of_first_infection = np.sum(first_infections*jnp.array(MEDIAN_AGE).reshape((1,NAG)),axis=1)/jnp.sum(first_infections,axis=1)
+season_infections = np.sum(season_infection_array,axis=1)
+season_infection_by_age = np.sum(season_infection_by_age,axis=2)
+print("Average age of first infection per season:",average_age_of_first_infection/12)
 # print("Proportion infected per season (including reinfections):",season_infections)
 # print("Proportion infected per season (by age):",season_infection_by_age)
 
@@ -170,7 +174,7 @@ ax[0].legend(frameon=False)
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Palatino']
 # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
-mx = lockdown_incidence_plot(ax[1],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),365,solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
+mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
 lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")

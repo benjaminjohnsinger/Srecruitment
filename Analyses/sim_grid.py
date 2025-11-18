@@ -12,7 +12,7 @@ import re
 import glob
 from utils import consistent_x_from_DE, x_to_params, date_to_t
 from fit_MCMC import run_simulation
-from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUP_NAMES
+from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUP_NAMES, MEDIAN_AGE
 from Parameters.times_and_contacts import PERIOD
 from plotting import lockdown_incidence_plot
 from scipy.stats import qmc
@@ -34,132 +34,100 @@ def parameter_space(good_simulations):
 
 
 def lh_sampling(parameter_sets, n_samples, dimension=None):
-    def lh_sampling(parameter_sets, n_samples, dimension=None, extrapolation_factor=0.0):
-        n_pathogens = parameter_sets.shape[0]
+    n_pathogens = parameter_sets.shape[0]
+    
+    if dimension is None:
+        dimension = n_pathogens - 1  # Full simplex by default
+    
+    # Validate dimension parameter
+    if dimension < 0 or dimension > n_pathogens - 1:
+        raise ValueError(f"Dimension must be between 0 and {n_pathogens - 1}")
+    
+    # Use Latin Hypercube Sampling for better space-filling properties
+    
+    if dimension == 0:
+        # Sample from vertices (pure pathogens)
+        vertex_indices = np.random.choice(n_pathogens, size=n_samples)
+        samples = parameter_sets[vertex_indices]
+        return samples
+    
+    elif dimension == 1:
+        # Sample from edges (between pairs of pathogens)
+        # Choose random pairs of pathogens
+        # pairs = np.random.choice(n_pathogens, size=(n_samples, 2), replace=True)
+        pairs = np.array(list(it.combinations(range(n_pathogens), 2)))
+        pairs = np.tile(pairs, (int(np.ceil(n_samples / pairs.shape[0])), 1))[:n_samples]
+        # Generate weights for each pair
+        weights = jnp.arange(n_samples)/(n_samples-1)
         
-        if dimension is None:
-            dimension = n_pathogens - 1  # Full simplex by default
+        samples = []
+        for i in range(n_samples):
+            idx1, idx2 = pairs[i]
+            w = weights[i]
+            sample = w * parameter_sets[idx1] + (1 - w) * parameter_sets[idx2]
+            samples.append(sample)
+        samples = jnp.array(samples)
+        return samples
+    
+    else:
+        # Sample from higher-dimensional faces or full simplex
+        # Create Latin Hypercube sampler for the specified dimension
+        sampler = qmc.LatinHypercube(d=dimension)
         
-        # Validate dimension parameter
-        if dimension < 0 or dimension > n_pathogens - 1:
-            raise ValueError(f"Dimension must be between 0 and {n_pathogens - 1}")
+        # Generate samples in simplex coordinates
+        lhs_samples = sampler.random(n=n_samples)
         
-        # Validate extrapolation factor
-        if extrapolation_factor < 0:
-            raise ValueError("Extrapolation factor must be non-negative")
+        # Convert to Dirichlet-like weights (ensure they sum to 1)
+        # Transform uniform samples to exponential, then normalize
+        exp_samples = -jnp.log(1 - lhs_samples + 1e-10)  # Add small epsilon to avoid log(0)
         
-        # Use Latin Hypercube Sampling for better space-filling properties
-        
-        if dimension == 0:
-            # Sample from vertices (pure pathogens)
-            vertex_indices = np.random.choice(n_pathogens, size=n_samples)
-            samples = parameter_sets[vertex_indices]
+        if dimension < n_pathogens - 1:
+            # For lower-dimensional faces, we need to select which subset of pathogens to use
+            # and set the rest to zero weights
             
-            if extrapolation_factor > 0:
-                # Apply random extrapolation to each sample
-                for i in range(n_samples):
-                    # Random direction from centroid
-                    centroid = jnp.mean(parameter_sets, axis=0)
-                    direction = samples[i] - centroid
-                    # Random extrapolation magnitude
-                    factor = 1 + np.random.uniform(0, extrapolation_factor)
-                    samples = samples.at[i].set(centroid + factor * direction)
-            
-            return samples
-        
-        elif dimension == 1:
-            # Sample from edges (between pairs of pathogens)
-            pairs = np.array(list(it.combinations(range(n_pathogens), 2)))
-            pairs = np.tile(pairs, (int(np.ceil(n_samples / pairs.shape[0])), 1))[:n_samples]
-            
-            # Generate weights for each pair, allowing extrapolation
-            if extrapolation_factor > 0:
-                # Extend range beyond [0,1] to allow extrapolation
-                weights = np.random.uniform(-extrapolation_factor, 1 + extrapolation_factor, size=n_samples)
-            else:
-                weights = jnp.arange(n_samples)/(n_samples-1)
-            
+            # For each sample, randomly select which (dimension+1) pathogens to use
             samples = []
             for i in range(n_samples):
-                idx1, idx2 = pairs[i]
-                w = weights[i]
-                sample = w * parameter_sets[idx1] + (1 - w) * parameter_sets[idx2]
+                # Choose (dimension+1) pathogens for this sample
+                selected_pathogens = np.random.choice(n_pathogens, size=dimension+1, replace=False)
+                
+                # Create barycentric coordinates for selected pathogens
+                weights = jnp.zeros(n_pathogens)
+                selected_exp = exp_samples[i]
+                # Add one more dimension to complete the simplex for selected pathogens
+                last_coord = np.random.exponential(1.0)
+                full_exp = jnp.concatenate([selected_exp, jnp.array([last_coord])])
+                
+                # Normalize and assign to selected pathogens
+                normalized_weights = full_exp / jnp.sum(full_exp)
+                weights = weights.at[selected_pathogens].set(normalized_weights)
+                
+                # Compute sample as convex combination
+                sample = weights @ parameter_sets
                 samples.append(sample)
+            
             samples = jnp.array(samples)
             return samples
         
         else:
-            # Sample from higher-dimensional faces or full simplex
-            # Create Latin Hypercube sampler for the specified dimension
-            sampler = qmc.LatinHypercube(d=dimension)
+            # Full simplex case (original code)
+            # Add one more dimension to complete the simplex
+            last_coord = np.random.exponential(1.0, size=(n_samples, 1))
+            full_exp = jnp.concatenate([exp_samples, last_coord], axis=1)
             
-            # Generate samples in simplex coordinates
-            lhs_samples = sampler.random(n=n_samples)
+            # Normalize to create proper barycentric coordinates
+            lh_samples = full_exp / jnp.sum(full_exp, axis=1, keepdims=True)
             
-            # Convert to Dirichlet-like weights (ensure they sum to 1)
-            # Transform uniform samples to exponential, then normalize
-            exp_samples = -jnp.log(1 - lhs_samples + 1e-10)  # Add small epsilon to avoid log(0)
+            # Transform to parameter space via convex combination
+            samples = lh_samples @ parameter_sets
             
-            if dimension < n_pathogens - 1:
-                # For lower-dimensional faces
-                samples = []
-                for i in range(n_samples):
-                    # Choose (dimension+1) pathogens for this sample
-                    selected_pathogens = np.random.choice(n_pathogens, size=dimension+1, replace=False)
-                    
-                    # Create barycentric coordinates for selected pathogens
-                    weights = jnp.zeros(n_pathogens)
-                    selected_exp = exp_samples[i]
-                    # Add one more dimension to complete the simplex for selected pathogens
-                    last_coord = np.random.exponential(1.0)
-                    full_exp = jnp.concatenate([selected_exp, jnp.array([last_coord])])
-                    
-                    # Normalize and assign to selected pathogens
-                    normalized_weights = full_exp / jnp.sum(full_exp)
-                    weights = weights.at[selected_pathogens].set(normalized_weights)
-                    
-                    # Compute sample as convex combination
-                    sample = weights @ parameter_sets
-                    
-                    # Apply extrapolation if requested
-                    if extrapolation_factor > 0:
-                        centroid = jnp.mean(parameter_sets[selected_pathogens], axis=0)
-                        direction = sample - centroid
-                        factor = 1 + np.random.uniform(0, extrapolation_factor)
-                        sample = centroid + factor * direction
-                    
-                    samples.append(sample)
-                
-                samples = jnp.array(samples)
-                return samples
-            
-            else:
-                # Full simplex case
-                # Add one more dimension to complete the simplex
-                last_coord = np.random.exponential(1.0, size=(n_samples, 1))
-                full_exp = jnp.concatenate([exp_samples, last_coord], axis=1)
-                
-                # Normalize to create proper barycentric coordinates
-                lh_samples = full_exp / jnp.sum(full_exp, axis=1, keepdims=True)
-                
-                # Transform to parameter space via convex combination
-                samples = lh_samples @ parameter_sets
-                
-                # Apply extrapolation if requested
-                if extrapolation_factor > 0:
-                    centroid = jnp.mean(parameter_sets, axis=0)
-                    for i in range(n_samples):
-                        direction = samples[i] - centroid
-                        factor = 1 + np.random.uniform(0, extrapolation_factor)
-                        samples = samples.at[i].set(centroid + factor * direction)
-                
-                return samples
+            return samples
 
 # Worker function defined at module level for pickling
 NAG = 7  # Number of age groups
 def worker(args):
     sample, lockdown, POINTS, STATE0, p_time_to_obs = args
-    params = x_to_params(sample, "test", lockdown, "mimmwane", "flexage")
+    params = x_to_params(sample, "sim", lockdown, "mimmwane", "flexage")
     solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS)
     # find total observed infections each season in each age group
     values = solution.ys.T
@@ -185,8 +153,61 @@ def worker(args):
     peak_times = jnp.argmax(obs_curtailed.reshape((n_seasons, -1, NAG)), axis=1)
     peak_times_summed_age = jnp.argmax(obs_summed_age_curtailed.reshape((n_seasons, -1)), axis=1)
     peak_times = jnp.concatenate([peak_times, peak_times_summed_age[:, None]], axis=1)
+    # dynamic quantities based on values, not obs
+    shaped_values = values[1:, :days_to_keep].reshape((1+2*N_S, NAG, days_to_keep))
+    infectious = shaped_values[1:2*N_S:2, :, :]
+    susceptible = shaped_values[0:2*N_S:2, :, :]
+    # find the proportion of those in the first infected compartment in each age group
+    first_infectious = infectious[0]
+    first_infectious_by_age = first_infectious.reshape((NAG, n_seasons, 365)).sum(axis=2).T
+    proportion_first_infectious = first_infectious_by_age / first_infectious_by_age.sum(axis=1, keepdims=True)
+    # and the summed age version for consistency
+    first_infectious_summed_age = first_infectious.sum(axis=0)
+    first_infectious_summed_age_by_season = first_infectious_summed_age.reshape((n_seasons, 365)).sum(axis=1)
+    proportion_first_infectious = jnp.concatenate([proportion_first_infectious,
+    first_infectious_summed_age_by_season[:, None]], axis=1)
+    # proportion of infected in each age group across all susceptibility classes
+    all_infectious = infectious.sum(axis=0)
+    all_infectious_by_season = all_infectious.reshape((NAG, n_seasons, 365)).sum(axis=2).T
+    proportion_infectious_by_age = all_infectious_by_season / all_infectious_by_season.sum(axis=1, keepdims=True)
+    # and the summed age version for consistency
+    all_infectious_summed_age = all_infectious.sum(axis=0)
+    all_infectious_summed_age_by_season = all_infectious_summed_age.reshape((n_seasons, 365)).sum(axis=1)
+    proportion_infectious = jnp.concatenate([proportion_infectious_by_age,
+    all_infectious_summed_age_by_season[:, None]], axis=1)
+    # how many infections are caused by each age group in each season?
+    # Calculate force of infection from each age group to each receiving age group
+    # Shape: (NAG_causing, NAG_receiving, time)
+    foi_matrix = params[4] * params[3][:, :, None] * all_infectious[None, :, :]
+    # Calculate new infections: susceptible * foi * susceptibility by class
+    # susceptible shape: (N_S, NAG, time)
+    # foi_matrix shape: (NAG_causing, NAG_receiving, time)
+    # params[6] shape: (N_S,)
+    infections_matrix = params[6][:, None, None, None] * foi_matrix[None, :, :, :] * susceptible[:, None, :, :]
+    # Sum over susceptibility classes and receiving age groups to get infections caused by each age group
+    # Shape: (NAG_causing, time)
+    infections_caused_by_age = infections_matrix.sum(axis=(0, 2))
+    # Reshape and sum by season
+    infections_caused_by_age_by_season = infections_caused_by_age.reshape((NAG, n_seasons, 365)).sum(axis=2).T
+    # summed version for consistency
+    infections_caused_by_age_summed = infections_caused_by_age.sum(axis=0)
+    infections_caused_by_age_summed_by_season = infections_caused_by_age_summed.reshape((n_seasons, 365)).sum(axis=1)
+    infections_caused_by_age_by_season = jnp.concatenate([infections_caused_by_age_by_season,
+    infections_caused_by_age_summed_by_season[:, None]], axis=1)
+    # what is the force of infection experienced by each age group each season?
+    # Sum over all age groups that are causing infections (first dimension of foi_matrix)
+    # foi_matrix shape: (NAG_causing, NAG_receiving, time)
+    foi_experienced_by_age = foi_matrix.sum(axis=0)  # Shape: (NAG_receiving, time)
+    # Reshape and sum by season
+    foi_experienced_by_age_by_season = foi_experienced_by_age.reshape((NAG, n_seasons, 365)).sum(axis=2).T
+    # summed version for consistency
+    foi_experienced_summed = foi_experienced_by_age.sum(axis=0)
+    foi_experienced_summed_by_season = foi_experienced_summed.reshape((n_seasons, 365)).sum(axis=1)
+    foi_experienced_by_age_by_season = jnp.concatenate([foi_experienced_by_age_by_season,
+    foi_experienced_summed_by_season[:, None]], axis=1)
+    
     # return as a 3d array
-    return jnp.stack([obs_per_season, peak_times], axis=0)
+    return jnp.stack([obs_per_season, peak_times, proportion_first_infectious, proportion_infectious, infections_caused_by_age_by_season, foi_experienced_by_age_by_season], axis=0)
 
 def simulate_samples_chunked(samples, lockdown, POINTS, STATE0, p_time_to_obs, 
                              base_save_path, chunk_size, skip_existing=False):
@@ -235,6 +256,10 @@ def simulate_samples_chunked(samples, lockdown, POINTS, STATE0, p_time_to_obs,
         # Save chunk to disk (convert to NumPy array for robust pickling)
         with open(chunk_path, "wb") as f:
             pickle.dump(np.asarray(chunk_results), f)
+        # Save sample chunk as well
+        samples_chunk_path = os.path.join(base_save_path, f"samples_chunk_{i:04d}.pickle")
+        with open(samples_chunk_path, "wb") as f:
+            pickle.dump(np.asarray(sample_chunk), f)
             
         all_chunk_paths.append(chunk_path)
         print(f"  Saved {chunk_path}")
@@ -244,12 +269,16 @@ def simulate_samples_chunked(samples, lockdown, POINTS, STATE0, p_time_to_obs,
 def load_and_recombine_results(run_save_path):
     """
     Loads all pickled chunks from a specific run directory,
-    recombines them, and returns a single NumPy array.
+    recombines them, and returns both results and samples arrays.
     """
     
     # Find all chunk files in the directory
     search_path = os.path.join(run_save_path, "chunk_*.pickle")
     chunk_files = glob.glob(search_path)
+    
+    # Find all sample chunk files
+    samples_search_path = os.path.join(run_save_path, "samples_chunk_*.pickle")
+    sample_chunk_files = glob.glob(samples_search_path)
     
     if not chunk_files:
         print(f"No chunk files found in: {run_save_path}")
@@ -257,7 +286,7 @@ def load_and_recombine_results(run_save_path):
         
     # --- Sort the files numerically ---
     def get_chunk_number(filepath):
-        # Extracts the number '0001' from '.../chunk_0001.pickle'
+        # Extracts the number '0001' from '.../chunk_0001.pickle' or '.../samples_chunk_0001.pickle'
         filename = os.path.basename(filepath)
         match = re.search(r'chunk_(\d+)\.pickle', filename)
         if match:
@@ -265,9 +294,11 @@ def load_and_recombine_results(run_save_path):
         return -1 # Should not happen if files are named correctly
 
     chunk_files.sort(key=get_chunk_number)
+    sample_chunk_files.sort(key=get_chunk_number)
     
-    print(f"Found {len(chunk_files)} chunks. Recombining...")
+    print(f"Found {len(chunk_files)} result chunks and {len(sample_chunk_files)} sample chunks. Recombining...")
     
+    # Load result chunks
     all_chunks_list = []
     for f_path in chunk_files:
         try:
@@ -276,24 +307,38 @@ def load_and_recombine_results(run_save_path):
                 all_chunks_list.append(chunk_data)
         except Exception as e:
             print(f"Error loading {f_path}: {e}")
+    
+    # Load sample chunks
+    all_sample_chunks_list = []
+    for f_path in sample_chunk_files:
+        try:
+            with open(f_path, "rb") as f:
+                sample_chunk_data = pickle.load(f)
+                all_sample_chunks_list.append(sample_chunk_data)
+        except Exception as e:
+            print(f"Error loading {f_path}: {e}")
             
     if not all_chunks_list:
-        print("No data loaded.")
+        print("No result data loaded.")
         return None
 
     # Concatenate all loaded chunks along the first axis (the samples axis)
     try:
         combined_results = np.concatenate(all_chunks_list, axis=0)
-        return combined_results
+        combined_samples = np.concatenate(all_sample_chunks_list, axis=0) if all_sample_chunks_list else None
+        return combined_results, combined_samples
     except ValueError as e:
         print(f"Error concatenating chunks. Are they all the same shape? {e}")
         print("Dumping individual chunk shapes:")
         for i, chunk in enumerate(all_chunks_list):
-            print(f"  Chunk {i} shape: {chunk.shape}")
+            print(f"  Result chunk {i} shape: {chunk.shape}")
+        if all_sample_chunks_list:
+            for i, chunk in enumerate(all_sample_chunks_list):
+                print(f"  Sample chunk {i} shape: {chunk.shape}")
         return None
 
 # Find the first season after the sixth season where the peak incidence rebounds to at least 70% of the average pre-pandemic peak, and measure the time of the peak of that season relative to 2020-03-19, i.e. the 170th day of the fifth season
-def time_to_rebound(x, threshold_factor=0.4):
+def time_to_rebound(x, threshold_factor=0.5):
     """
     Find the time from the last pre-pandemic peak to the first post-pandemic peak.
     
@@ -370,23 +415,99 @@ def relative_size_of_rebound(x):
 def vectorized_relative_size_of_rebound(all_results):
     return jax.vmap(relative_size_of_rebound)(all_results)
 
-def load_samples_and_results(run_save_path):
-    # Load samples
-    samples_path = os.path.join(run_save_path, "samples.pickle")
-    with open(samples_path, "rb") as f:
-        samples = pickle.load(f)
+# Find the rato of cases in 1-4y to 3-11m in the rebound season compared to the median pre-pandemic season
+def age_ratio_of_rebound(x):
+    """
+    Find the age ratio of the rebound season compared to pre-pandemic median.
     
+    Args:
+        x: Array of shape (2, n_seasons, n_age_groups+1) containing [obs_per_season, peak_times]
+           where the last column contains age-summed data
+    
+    Returns:
+        Age ratio in the rebound season compared to pre-pandemic median
+    """
+    # Use the obs_per_season data
+    obs_per_season = x[0, :, :]  # Shape: (n_seasons, n_age_groups+1)
+    
+    # Define age group indices
+    idx_3_11m = 1  # 3-11 months
+    idx_1_4y = 2   # 1-4 years
+
+    # Calculate pre-pandemic median ratios
+    pre_pandemic_ratios = obs_per_season[:5, idx_1_4y] / obs_per_season[:5, idx_3_11m]
+    pre_pandemic_median_ratio = jnp.median(pre_pandemic_ratios)
+
+    # Find largest post-pandemic season
+    post_pandemic_obs = obs_per_season[5:, :]
+    rebound_season_idx = jnp.argmax(jnp.sum(post_pandemic_obs, axis=1))
+    
+    # Calculate age ratio in rebound season
+    rebound_obs = post_pandemic_obs[rebound_season_idx]
+    rebound_ratio = rebound_obs[idx_1_4y] / rebound_obs[idx_3_11m]
+    
+    age_ratio_of_rebound = rebound_ratio / pre_pandemic_median_ratio
+    
+    return age_ratio_of_rebound
+@jax.jit
+def vectorized_age_ratio_of_rebound(all_results):
+    return jax.vmap(age_ratio_of_rebound)(all_results)
+
+def age_of_first_infection(x):
+    """
+    Find the average age of first infection pre-pandemic.
+    
+    Args:
+        x: Array of shape (3, n_seasons, n_age_groups+1) containing [obs_per_season, peak_times, proportion_first_infectious]
+           where the last column contains age-summed data
+    Returns:
+        Average age of first infection pre-pandemic
+    """
+    proportion_first_infectious = x[2, :, :-1]  # Shape: (n_seasons, n_age_groups)
+    pre_pandemic_ages = jnp.sum(proportion_first_infectious[:5, :] * jnp.array(MEDIAN_AGE), axis=1)  # Weight by median ages
+    average_age = jnp.mean(pre_pandemic_ages)/12
+    
+    return average_age
+@jax.jit
+def vectorized_age_of_first_infection(all_results):
+    return jax.vmap(age_of_first_infection)(all_results)
+
+def age_of_infection(x):
+    proportion_infections = x[3, :, :-1]  # Shape: (n_seasons, n_age_groups)
+    pre_pandemic_ages = jnp.sum(proportion_infections[:5, :] * jnp.array(MEDIAN_AGE), axis=1)  # Weight by median ages
+    average_age = jnp.mean(pre_pandemic_ages)/12
+    
+    return average_age
+@jax.jit
+def vectorized_age_of_infection(all_results):
+    return jax.vmap(age_of_infection)(all_results)
+
+def age_of_infector(x):
+    infections_caused = x[4, :, :-1]  # Shape: (n_seasons, n_age_groups)
+    pre_pandemic_ages = jnp.sum(infections_caused[:5, :] * jnp.array(MEDIAN_AGE), axis=1) / jnp.sum(infections_caused[:5, :], axis=1)  # Weight by median ages
+    average_age = jnp.mean(pre_pandemic_ages)/12
+    
+    return average_age
+@jax.jit
+def vectorized_age_of_infector(all_results):
+    return jax.vmap(age_of_infector)(all_results)
+
+def foi_weighted_age(x):
+    foi_experienced = x[5, :, :-1]  # Shape: (n_seasons, n_age_groups)
+    pre_pandemic_ages = jnp.sum(foi_experienced[:5, :] * jnp.array(MEDIAN_AGE), axis=1)  / jnp.sum(foi_experienced[:5, :], axis=1)  # Weight by median ages
+    average_age = jnp.mean(pre_pandemic_ages)/12
+    
+    return average_age
+@jax.jit
+def vectorized_foi_weighted_age(all_results):
+    return jax.vmap(foi_weighted_age)(all_results)
+
+def load_samples_and_results(run_save_path):
     # Load and recombine simulation results
-    all_results = load_and_recombine_results(run_save_path)
+    all_results, all_samples = load_and_recombine_results(run_save_path)
     if all_results is None:
         raise ValueError(f"Could not load results from {run_save_path}")
-    
-    # if simulation hasn't finished running, warn and trim samples
-    if all_results.shape[0] < samples.shape[0]:
-        print(f"Warning: Only {all_results.shape[0]} results found, but {samples.shape[0]} samples exist. Trimming samples.")
-        samples = samples[:all_results.shape[0]]
-
-    return samples, all_results
+    return all_samples, all_results
 
 def valid_samples_targets_array(samples, target_values, target_bounds=None):
     """
@@ -411,7 +532,7 @@ def valid_samples_targets_array(samples, target_values, target_bounds=None):
     return valid_samples, valid_targets
 
 # use Lasso regression to find parameters that predict time to rebound, then run lasso regression again on the errors of that model to create a 2d space
-def lasso_analysis(samples, all_results, analyze_size=False, alpha=0.01, target_bounds=None):
+def lasso_analysis(run_save_path, outcome="time_to_rebound", alpha=0.01, target_bounds=None):
     """
     Perform Lasso analysis on simulation results.
     
@@ -423,18 +544,32 @@ def lasso_analysis(samples, all_results, analyze_size=False, alpha=0.01, target_
     Returns:
         tuple: (lasso1_coef, lasso2_coef) - coefficients from both Lasso regressions
     """
+    # Load samples
+    samples, all_results = load_samples_and_results(run_save_path)
+
     # Calculate target variable (time to rebound or relative size) with age groups summed
-    if analyze_size:
+    if outcome == "relative_size":
         target_values = vectorized_relative_size_of_rebound(all_results)
+    elif outcome == "age_ratio":
+        target_values = vectorized_age_ratio_of_rebound(all_results)
+    elif outcome == "age_of_first_infection":
+        target_values = vectorized_age_of_first_infection(all_results)
+    elif outcome == "age_of_infection":
+        target_values = vectorized_age_of_infection(all_results)
+    elif outcome == "age_of_infector":
+        target_values = vectorized_age_of_infector(all_results)
+    elif outcome == "foi_weighted_age":
+        target_values = vectorized_foi_weighted_age(all_results)
     else:
         target_values = vectorized_time_to_rebound(all_results)
+    print(np.min(target_values), np.max(target_values))
     
     # Convert to numpy for sklearn
     valid_samples, valid_targets = valid_samples_targets_array(samples, target_values, target_bounds=target_bounds)
 
     untransformed_targets = valid_targets.copy()
 
-    valid_samples *= 1/np.array([1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3])  # scale parameters for better lasso performance
+    valid_samples *= 1/np.array([1,1,1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3])  # scale parameters for better lasso performance
 
     # First Lasso regression
     lasso1 = Lasso(alpha=alpha)
@@ -449,7 +584,7 @@ def lasso_analysis(samples, all_results, analyze_size=False, alpha=0.01, target_
     return lasso1.coef_, lasso2.coef_, valid_samples, untransformed_targets
 
 # plot the time to rebound or relative size as a heatmap with contours on the 2d space defined by the two lasso components
-def plot_lasso_heatmap(ax, valid_samples, valid_targets, projection1, projection2, analyze_size=False, use_scatter=False, component_names=None):
+def plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, outcome="time_to_rebound", use_scatter=False):
     """
     Plot heatmap using actual simulation data projected onto 2D Lasso space.
     
@@ -458,33 +593,40 @@ def plot_lasso_heatmap(ax, valid_samples, valid_targets, projection1, projection
         analyze_size: If True, analyze relative size of rebound instead of time to rebound
         alpha: Regularization parameter for Lasso regression
     """
+    title = "Relative Size of Rebound Season" if outcome == "relative_size" else ("Age Ratio of Rebound Season" if outcome == "age_ratio" else "Time to Rebound (days)")
 
     # Project samples onto the 2D Lasso space using precomputed coefficients
-    component1_projections = valid_samples @ projection1
-    component2_projections = valid_samples @ projection2
-
-    if all(component2_projections == 0):
-        component2_projections = np.random.normal(0, 1e-6, size=component2_projections.shape)
-    if analyze_size:
-        vmin, vmax = 0.155, 1.82
+    if lasso1_coef == "R0":
+        lasso1_projections = valid_samples[:, 2]/valid_samples[:, 0]
     else:
+        lasso1_projections = valid_samples @ lasso1_coef
+    lasso2_projections = valid_samples @ lasso2_coef
+
+    if all(lasso2_projections == 0):
+        lasso2_projections = np.random.normal(0, 1e-6, size=lasso2_projections.shape)
+
+    if outcome == "relative_size":
+        vmin, vmax = 0.155, 1.82
+    elif outcome == "time_to_rebound":
         vmin, vmax = 1004, 1850
+    else:
+        vmin, vmax = None, None
 
     if use_scatter:
         # Scatter plot with tiny points
-        hist = ax.scatter(component1_projections, component2_projections, c=valid_targets, 
+        hist = ax.scatter(lasso1_projections, lasso2_projections, c=valid_targets, 
                          s=1, alpha=1, cmap=cm.viridis, vmin=vmin, vmax=vmax)
 
     else:
         # Create a 2D histogram/heatmap instead of scatter plot
         # Define grid resolution
-        grid_size = 50
+        grid_size = 100
         # Create bins for the 2D histogram
-        x_range = [component1_projections.min(), component1_projections.max()]
-        y_range = [component2_projections.min(), component2_projections.max()]
+        x_range = [lasso1_projections.min(), lasso1_projections.max()]
+        y_range = [lasso2_projections.min(), lasso2_projections.max()]
 
         # Compute the average target value in each bin
-        ret = binned_statistic_2d(component1_projections, component2_projections, valid_targets, 
+        ret = binned_statistic_2d(lasso1_projections, lasso2_projections, valid_targets, 
                                  statistic='mean', bins=grid_size, 
                                  range=[x_range, y_range])
         # Create the heatmap
@@ -493,18 +635,16 @@ def plot_lasso_heatmap(ax, valid_samples, valid_targets, projection1, projection
                            cmap=cm.viridis, aspect='auto', interpolation='nearest',
                            vmin=vmin, vmax=vmax
                            )
-    if component_names is not None:
-        ax.set_xlabel(component_names[0])
-        ax.set_ylabel(component_names[1])
-    else:
-        ax.set_xlabel("Component 1 projection")
-        ax.set_ylabel("Component 2 projection")
+    
+    ax.set_xlabel('Lasso Component 1 Projection')
+    ax.set_ylabel('Lasso Component 2 Projection')
+    ax.set_title(title)
     ax.grid(True, alpha=0.3)
     return hist, ax
 
 
 if __name__ == "__main__":
-    seed = 251113
+    seed = 2511173
     np.random.seed(seed)
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
     # Define good simulations
@@ -519,7 +659,10 @@ if __name__ == "__main__":
 
     good_simulations = [RSV, Metapneumovirus, InfluenzaA, InfluenzaB, Adenovirus, Parainfluenza3]
 
-    lockdown = "maxmimmwaneflexage2511032"
+    class FakeOpt:
+        def __init__(self, x):
+            self.x = x
+    lockdown = "251110intermediate"
 
     parameter_sets = parameter_space(good_simulations)
     # for i, param_set in enumerate(parameter_sets):
@@ -547,9 +690,9 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-    # n_samples = 15000
-    # dimension = 2
-    # samples = lh_sampling(parameter_sets, n_samples, dimension=dimension, extrapolation_factor=0.1)
+    n_samples = 15000
+    dimension = 2
+    samples = lh_sampling(parameter_sets, n_samples, dimension=dimension)
 
     # # plot first and sixth dimensions of parameter sets, labelled by pathogen
     # pathogen_colors = ["#648FFF", "#DC267F", "#FFB000", "#785EF0", "#FF832B", "#000000"]
@@ -589,127 +732,162 @@ if __name__ == "__main__":
 
 
 
-    # print(np.min(samples,axis=0)-np.min(parameter_sets,axis=0), np.max(parameter_sets,axis=0)-np.max(samples,axis=0))
-    # CHUNK_SIZE = 40000
-    # run_save_path = f"Outputs/sim_grid_lh_n{n_samples}_chunk{CHUNK_SIZE}_seed{seed}_{dimension}d"
-    # # save samples
-    # os.makedirs(run_save_path, exist_ok=True)
-    # with open(os.path.join(run_save_path, "samples.pickle"), "wb") as f:
-    #     pickle.dump(np.asarray(samples), f)
+    print(np.min(samples,axis=0)-np.min(parameter_sets,axis=0), np.max(parameter_sets,axis=0)-np.max(samples,axis=0))
+    CHUNK_SIZE = 40000
+    run_save_path = f"Outputs/sim_grid_lh_n{n_samples}_chunk{CHUNK_SIZE}_seed{seed}_{dimension}d"
+    # save samples
+    os.makedirs(run_save_path, exist_ok=True)
+    with open(os.path.join(run_save_path, "samples.pickle"), "wb") as f:
+        pickle.dump(np.asarray(samples), f)
 
-    # start_time = time.time()  
-    # # Call the new chunked simulation function
-    # saved_files = simulate_samples_chunked(
-    #     samples, lockdown, POINTS, STATE0, p_time_to_obs,
-    #     base_save_path=run_save_path,
-    #     chunk_size=CHUNK_SIZE,
-    #     skip_existing=True,
-    # )
-    # end_time = time.time()
-    # print(f"Simulations for n_samples={n_samples} completed in {end_time - start_time} seconds.")
-    # print(f"Results saved in directory: {run_save_path}")
+    start_time = time.time()  
+    # Call the new chunked simulation function
+    saved_files = simulate_samples_chunked(
+        samples, lockdown, POINTS, STATE0, p_time_to_obs,
+        base_save_path=run_save_path,
+        chunk_size=CHUNK_SIZE,
+        skip_existing=True,
+    )
+    end_time = time.time()
+    print(f"Simulations for n_samples={n_samples} completed in {end_time - start_time} seconds.")
+    print(f"Results saved in directory: {run_save_path}")
 
     # # # Example of plotting
-    run_save_path = f"Outputs/sim_grid_lh_n15000_chunk40000_seed251113_2d"
-    parameter_names = ["Transmissibility", "Seasonality", "Phase", "Waning (per 100 days after first infection)", "Waning (per 100 days after second infection)",
+    # run_save_path = f"Outputs/sim_grid_lh_n80000_chunk40000_seed251117_2d"
+    outcome = "time_to_rebound" 
+    lasso1_coef, lasso2_coef, valid_samples, valid_targets = lasso_analysis(run_save_path, outcome=outcome, alpha=0.001, target_bounds=None)
+    print("Limits of valid targets: ", valid_targets.min(), valid_targets.max())
+    # print(lasso1_coef)
+    # print(lasso2_coef)
+
+    parameter_names = ["Reproduction number", "First infection duration", "Second infection duration", "Transmissibility", "Seasonality", "Phase", "Waning (per 100 days after first infection)", "Waning (per 100 days after second infection)",
                         "Immunity from first infection", "Immunity from second infection", "Immunity to severe disease after first infection","Immunity to severe disease after second infection",
                         "Maternal immunity","Disease susceptibility <3m", "Disease susceptibility 3–11m", "Disease susceptibility 1–4y",
                         "Disease susceptibility 5–7y", "Disease susceptibility 8–49y", "Disease susceptibility 50-64y", "Disease susceptibility 65+y"]
-    short_pnames = ["transmissibility", "seasonality", "phase", "wane1", "wane2", "immunity1", "immunity2", "disease_immunity1", "disease_immunity2",
+    short_pnames = ["R0", "rec_up", "rec_same", "transmissibility", "seasonality", "phase", "wane1", "wane2", "immunity1", "immunity2", "disease_immunity1", "disease_immunity2",
                      "maternal_immunity", "susceptibility_0_3m", "susceptibility_3_11m", "susceptibility_1_4y",
                      "susceptibility_5_7y", "susceptibility_8_49y", "susceptibility_50_64y", "susceptibility_65y"]
-    for i in range(17):
-        for j in range(i+1,17):
-            print(f"Analyzing components: {parameter_names[i]} and {parameter_names[j]}")
-            samples, all_results = load_samples_and_results(run_save_path)
-            lasso1_coef, lasso2_coef, valid_samples, valid_targets = lasso_analysis(samples, all_results, analyze_size=False, alpha=0.001, target_bounds=(1004, 1850))
-            # print("Limits of valid targets: ", valid_targets.min(), valid_targets.max())
-            # print(lasso1_coef)
-            # print(lasso2_coef)
-            # valid_samples, valid_targets = valid_samples_targets_array(samples, vectorized_time_to_rebound(all_results), target_bounds=(1004, 1850))
-            component1 = jnp.zeros(17)
-            component1 = component1.at[i].set(1)
-            component2 = jnp.zeros(17)
-            component2 = component2.at[j].set(1)
+    # for p1 in range(len(lasso1_coef)+1):
+    #     for p2 in range(p1+1,len(lasso2_coef)+1):
+    p1, p2 = 0, 8  # r0 and immunity from first infection
+    if p1 == 0:
+        lasso1_coef = "R0"
+    else:
+        lasso1_coef = jnp.zeros(19)
+        lasso1_coef = lasso1_coef.at[p1-1].set(1)
+    lasso2_coef = jnp.zeros(19)
+    lasso2_coef = lasso2_coef.at[p2-1].set(1)
 
-            # # find valid samples with lasso 1 projection
-            # lasso1_proj = valid_samples @ lasso1_coef
-            # print(lasso1_proj.min(), lasso1_proj.max())
-            # valid_samples_lasso1 = valid_samples[np.abs(lasso1_proj - 4.1) < 5e-3]
-            # lasso2_proj = valid_samples_lasso1 @ lasso2_coef
-            # valid_samples_lasso2 = valid_samples_lasso1[np.abs(lasso2_proj + 6.2e-6) < 5e-9]
-            # print("Samples around target: ", valid_samples_lasso2.shape[0])
-            # # Create a 3x3 subplot for the first 9 valid samples
-            # fig, axes = plt.subplots(3, 3, figsize=(13.3, 7.5))
-            # axes = axes.flatten()  # Flatten for easier indexing
-            
-            # for i in range(min(9, len(valid_samples_lasso2))):
-            #     sample = valid_samples_lasso2[i]
-            #     sim_params = x_to_params(sample * np.array([1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3]), "test", lockdown, "mimmwane", "flexage", print_params=False)
-            #     ax = axes[i]
-            #     mx = lockdown_incidence_plot(ax, STATE0, sim_params, POINTS, date_to_t('2020-03-19'), by_age = True, AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-            #     ax.set_title(f"Sample {i+1}")
-            #     print(f"Plotted sample {i+1}/9")
-            
-            # # Hide any unused subplots
-            # for i in range(len(valid_samples_lasso2), 9):
-            #     axes[i].set_visible(False)
-            
-            # plt.tight_layout()
-            # plt.savefig(f"Figures/selected_simulations_alpha0_hMPV_3x3_grid.png", dpi=1000)
-            # plt.close()  # Close the figure to free memory
+    # # find valid samples with lasso 1 projection
+    # if lasso1_coef == "R0":
+    #     lasso1_proj = valid_samples[:, 2] / valid_samples[:, 0]
+    # else:
+    #     lasso1_proj = valid_samples @ lasso1_coef
+    # print(lasso1_proj.min(), lasso1_proj.max())
+    # valid_samples_lasso1 = valid_samples[np.abs(lasso1_proj - (0.668-0.2/15)) < 2*0.2/15]
+    # lasso2_proj = valid_samples_lasso1 @ lasso2_coef
+    # print(lasso2_proj.min(), lasso2_proj.max())
+    # valid_samples_lasso2 = valid_samples_lasso1[np.abs(lasso2_proj - (0.315+0.2/24)) < 2*0.2/24]
+    # print("Samples around target: ", valid_samples_lasso2.shape[0])
+    # # Create a 3x3 subplot for the first 9 valid samples
+    # fig, axes = plt.subplots(10, 10, figsize=(13.3, 7.5))
+    # axes = axes.flatten()  # Flatten for easier indexing
+    
+    # for i in range(min(100, len(valid_samples_lasso2))):
+    #     sample = valid_samples_lasso2[i]
+    #     sim_params = x_to_params(sample * np.array([1,1,1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3]), "sim", lockdown, "mimmwane", "flexage", print_params=False)
+    #     ax = axes[i]
+    #     mx = lockdown_incidence_plot(ax, STATE0, sim_params, POINTS, date_to_t('2020-03-19'), by_age = True, AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+    #     ax.set_title(f"Sample {i+1}")
+    #     print(f"Plotted sample {i+1}/9")
+    
+    # # Hide any unused subplots
+    # for i in range(len(valid_samples_lasso2), 9):
+    #     axes[i].set_visible(False)
+    
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/selected_simulations_yellow_near_PIV3_3x3_grid.png", dpi=1000)
+    # plt.close()  # Close the figure to free memory
 
-            fig, ax = plt.subplots(figsize=(8,6))
-            # Get scatter plot object without displaying points (alpha=0 makes them invisible)
-            scatter, ax = plot_lasso_heatmap(ax, valid_samples, valid_targets, component1, component2, analyze_size=False, use_scatter=True)
-            cbar = plt.colorbar(scatter, ax=ax)
-            ## Make scatter points invisible by setting alpha to 0
-            # scatter.set_alpha(0)
-            cbar.set_label('Time to Rebound (years)')
-            # Convert colorbar ticks from days to years
-            ticks = cbar.get_ticks()
-            cbar.set_ticks(ticks)
-            cbar.set_ticklabels([f'{tick/365:.1f}' for tick in ticks])
-            # plot points from good simulations parameter sets, projected onto lasso space
-            # textcolors = ["white", "black", "black", "black", "white", "white"]
-            # edgecolors = ["white", "black", "black", "black", "white", "black"]
-            textcolors = edgecolors = ["black"]*6
-            for k, pathogen_info in enumerate(good_simulations):
-                pathogen, seed, option1 = pathogen_info
-                incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
-                obs_summed_age = incidence.sum(axis=1)
-                # sum obs over each season, starting with the first time point
-                n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
-                # Curtail obs to fit exact seasons (ignore partial days due to leap years)
-                days_to_keep = n_seasons * 365
-                obs_curtailed = incidence[:days_to_keep, :]
-                obs_summed_age_curtailed = obs_summed_age[:days_to_keep]
-                obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
-                obs_summed_age_per_season = obs_summed_age_curtailed.reshape((n_seasons, 365)).sum(axis=1)
-                # concatenate to obs_per_season
-                obs_per_season = jnp.concatenate([obs_per_season, obs_summed_age_per_season[:, None]], axis=1)
-                # print(obs_per_season[:,-1])
-                # find the time of peak incidence in each age group for each season
-                peak_times = jnp.argmax(obs_curtailed.reshape((n_seasons, -1, NAG)), axis=1)
-                peak_times_summed_age = jnp.argmax(obs_summed_age_curtailed.reshape((n_seasons, -1)), axis=1)
-                peak_times = jnp.concatenate([peak_times, peak_times_summed_age[:, None]], axis=1)
-                seasons = jnp.stack([obs_per_season, peak_times], axis=0)
-                time_to_rebound_value = time_to_rebound(seasons)
-                rebound_size_value = relative_size_of_rebound(seasons)
-                # print(f"{pathogen} time to rebound: {time_to_rebound_value} days, relative size: {rebound_size_value}")
-                # map to color using same scheme as scatter plot
-                pathogen_color = cm.viridis(( time_to_rebound_value - 1004) / (1850 - 1004))
-                x = consistent_x_from_DE(pathogen, option1, seed)/np.array([1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3])  # scale parameters for better lasso performance
-                lasso1_proj = x @ component1
-                lasso2_proj = x @ component2
-                ax.scatter(lasso1_proj, lasso2_proj, color=pathogen_color, s=50, edgecolor=edgecolors[k])
-                ax.annotate(short_names[pathogen], (lasso1_proj, lasso2_proj), xytext=(5, 5), 
-                    textcoords='offset points', fontsize=12, ha='left', color=textcolors[k])
-            ax.set_title("Fit Parameter Sets")
-            # put label on x-axis saying 1e-2
-            ax.set_xlabel(parameter_names[i])
-            ax.set_ylabel(parameter_names[j])
-            if "Immunity" in ax.get_ylabel():
-                y_ticks = ax.get_yticks()
-                ax.set_yticklabels([f'{1-tick:.1f}' for tick in y_ticks])
-            plt.savefig("Figures/Parameter_Sets/parameter_sets_"+short_pnames[i]+"_"+short_pnames[j]+"_time_to_rebound_2d.png", dpi=1000)
+    fig, ax = plt.subplots(figsize=(8,6))
+    scatter, ax = plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, outcome=outcome, use_scatter=False)
+    cbar = plt.colorbar(scatter, ax=ax)
+    ## Make scatter points invisible by setting alpha to 0
+    # scatter.set_alpha(0)
+    cbar.set_label('Time to re-emergence (years)' if outcome=="time_to_rebound" else ("Relative size of rebound" if outcome=="relative_size" else ("Age ratio of rebound" if outcome=="age_ratio" else "Age of infection (years)")))
+    if outcome == "foi_weighted_age":
+        cbar.set_label("Age weighted by FOI experienced (years)")
+    elif outcome == "age_of_infector":
+        cbar.set_label("Average age of infectors (years)")
+    # # Convert colorbar ticks from days to years
+    if outcome == "time_to_rebound":
+        ticks = cbar.get_ticks()
+        cbar.set_ticks(ticks)
+        cbar.set_ticklabels([f'{tick/365:.1f}' for tick in ticks])
+    # plot points from good simulations parameter sets, projected onto lasso space
+    # textcolors = ["white", "black", "black", "black", "white", "white"]
+    # edgecolors = ["white", "black", "black", "black", "white", "black"]
+    textcolors = edgecolors = ["black"]*6
+    for i, pathogen_info in enumerate(good_simulations):
+        pathogen, seed, option1 = pathogen_info
+        incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
+        obs_summed_age = incidence.sum(axis=1)
+        # sum obs over each season, starting with the first time point
+        n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
+        # Curtail obs to fit exact seasons (ignore partial days due to leap years)
+        days_to_keep = n_seasons * 365
+        obs_curtailed = incidence[:days_to_keep, :]
+        obs_summed_age_curtailed = obs_summed_age[:days_to_keep]
+        obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
+        obs_summed_age_per_season = obs_summed_age_curtailed.reshape((n_seasons, 365)).sum(axis=1)
+        # concatenate to obs_per_season
+        obs_per_season = jnp.concatenate([obs_per_season, obs_summed_age_per_season[:, None]], axis=1)
+        print(obs_per_season[:,-1])
+        # find the time of peak incidence in each age group for each season
+        peak_times = jnp.argmax(obs_curtailed.reshape((n_seasons, -1, NAG)), axis=1)
+        peak_times_summed_age = jnp.argmax(obs_summed_age_curtailed.reshape((n_seasons, -1)), axis=1)
+        peak_times = jnp.concatenate([peak_times, peak_times_summed_age[:, None]], axis=1)
+        seasons = jnp.stack([obs_per_season, peak_times], axis=0)
+        time_to_rebound_value = time_to_rebound(seasons)
+        rebound_size_value = relative_size_of_rebound(seasons)
+        age_ratio_value = age_ratio_of_rebound(seasons)
+        print(f"{pathogen} time to rebound: {time_to_rebound_value} days, relative size: {rebound_size_value}")
+        # map to color using same scheme as scatter plot
+        if outcome == "relative_size":
+            pathogen_color = cm.viridis(( rebound_size_value - 0.155) / (1.82 - 0.155))
+        elif outcome == "age_ratio":
+            pathogen_color = cm.viridis(( age_ratio_value - np.min(valid_targets)) / (np.max(valid_targets) - np.min(valid_targets)))
+        elif outcome == "time_to_rebound":
+            pathogen_color = cm.viridis(( time_to_rebound_value - 1004) / (1850 - 1004))
+        else:
+            pathogen_color = "white"            
+
+        x = consistent_x_from_DE(pathogen, option1, seed)/np.array([1,1,1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3])  # scale parameters for better lasso performance
+        
+        if lasso1_coef == "R0":
+            lasso1_proj = x[2]/x[0]
+        else:
+            lasso1_proj = x @ lasso1_coef
+        lasso2_proj = x @ lasso2_coef
+        print(f"{pathogen} projections: {lasso1_proj}, {lasso2_proj}")
+        ax.scatter(lasso1_proj, lasso2_proj, color=pathogen_color, s=50, edgecolor=edgecolors[i])
+        ax.annotate(short_names[pathogen], (lasso1_proj, lasso2_proj), xytext=(5, 5), 
+            textcoords='offset points', fontsize=12, ha='left', color=textcolors[i])
+    ax.set_title("Fit Parameter Sets")
+    # put label on x-axis saying 1e-2
+    ax.set_xlabel(parameter_names[p1] + ' (scaled)')
+    ax.set_ylabel(parameter_names[p2] + ' (scaled)')
+    # Get current y-ticks and set new labels as 1 - original value
+    if "Immunity" in parameter_names[p1]:
+        y_ticks = ax.get_yticks()
+        ax.set_yticklabels([f'{1-tick:.1f}' for tick in y_ticks])
+    if "Immunity" in parameter_names[p2]:
+        y_ticks = ax.get_yticks()
+        ax.set_yticklabels([f'{1-tick:.1f}' for tick in y_ticks])
+    if "duration" in parameter_names[p1]:
+        y_ticks = ax.get_yticks()
+        ax.set_yticklabels([f'{1/tick:.1f}' for tick in y_ticks])
+    if "duration" in parameter_names[p2]:
+        y_ticks = ax.get_yticks()
+        ax.set_yticklabels([f'{1/tick:.1f}' for tick in y_ticks])
+    plt.savefig(f"Figures/parameter_sets_{short_pnames[p1]}_{short_pnames[p2]}_{outcome}_2d_test.png", dpi=1000)
