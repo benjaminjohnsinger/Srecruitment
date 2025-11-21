@@ -358,13 +358,13 @@ if __name__ == "__main__":
     from matplotlib.patches import Patch
     print(jax.local_device_count())
     start = time.time()
-    lockdown = "2511032"
-    option1 = "maxmimmwane"
-    seeds = [2511032, 251103, 251103, 251103, 251103, ]
-    pathogens = ["InfluenzaA", "RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus", ]
+    lockdown = "FlexStepwise"
+    option1 = "NA"
+    seeds = [251103, 251103, 2511032, 2511032, 2511032, 2511042, ]
+    pathogens = ["RSV", "InfluenzaA", "Adenovirus", "Metapneumovirus", "Parainfluenza3", "InfluenzaB" ]
     for pathogen, seed in zip(pathogens, seeds):
         print(pathogen, time.time()-start)
-        mcmc = fit_MCMC(pathogen, lockdown, option1, "flexage", seed, import_multiplier=1e-9, samples=2000, varlim="pathogen")
+        mcmc = fit_MCMC(pathogen, lockdown, option1, "flexage", seed, import_multiplier=1e-9, samples=1000, varlim="pathogen")
         mcmc.print_summary()
         # save samples
         posterior_samples = mcmc.get_samples()
@@ -373,7 +373,7 @@ if __name__ == "__main__":
         # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise"+option1+"flexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "rb") as f:
         #     posterior_samples = pickle.load(f)
         param_samples = posterior_samples['params']
-        params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, "flexage", seed)
+        params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", option1, "flexage", seed)
         # plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
         # prior_dist, prior_means = prior_distribution(f"Data/Processed/DE_outputs/DE_{pathogen}FlexStepwise0.005flexage250709_sorted.csv",
         #     bounds, n=1000, dist_type="multilog", varlim = "pathogen", pathogen=pathogen, option1=option1)
@@ -391,7 +391,7 @@ if __name__ == "__main__":
                 if idx < len(param_names):
                     plot_histogram(transformed_samples[:,idx], param_names[idx], ax=ax[i,j])
         plt.tight_layout()
-        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+option1+str(seed)+"cm_sp100_mass.png", dpi=300)
+        plt.savefig("Figures/NumPyro_test_pathogen_variables_"+pathogen+option1+str(seed)+"_sp100_mass.png", dpi=300)
         plt.close()
         fig, axes = plt.subplots(3,3,figsize=(13.3,7.5))
         axes = axes.flatten()
