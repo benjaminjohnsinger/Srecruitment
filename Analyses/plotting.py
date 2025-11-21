@@ -25,7 +25,7 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 # '#ff0000', '#ffb700', '#6cff00', '#00ffc0', '#00bbff', '#1900ff', '#f300ff'
 
 ##### Simple line plots #####
-def lockdown_incidence_plot(ax,state0,params,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'),factor=1,p_time_to_obs=[1]):
+def lockdown_incidence_plot(ax,state0,params,points,T_LOCKDOWN,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'),factor=1,p_time_to_obs=[1]):
     NAG, N_S = 7, 3
     FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
     BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
@@ -594,42 +594,61 @@ def season_plot(ax,pathogen,incidence=False,relative=False):
         season_cumulative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
 
 if __name__ == "__main__":
+    plt.rcParams.update({'font.size':14})
+    # text type is palatino
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = ['Palatino']
     from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
-    fig,ax = plt.subplots(3,2,figsize=(13.3,7.5), sharex=True)
+    fig,ax = plt.subplots(3,2,figsize=(12.5,5.5), sharex=True)
     kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA"
-    ,AGE_GROUPS=AGE_GROUPS
+    ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation=None,legend=True,
-    save_data=True,load_data=False
+    ,incidence=False,aggregation="Week",legend=False,
+    save_data=False,load_data=True,
+    color = "k"
     )
+    ax[0,0].set_title("Influenza A")
     kpsc_positive_test_plot(ax[1,0],pathogen="RSV"
-    ,AGE_GROUPS=AGE_GROUPS
+    ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation=None,legend=False,
-    save_data=True,load_data=False
+    ,incidence=False,aggregation="Week",legend=False,
+    save_data=False,load_data=True,
+    color = "k"
     )
+    ax[1,0].set_title("RSV")
     kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus"
-    ,AGE_GROUPS=AGE_GROUPS
+    ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation=None,legend=False,
-    save_data=True,load_data=False
+    ,incidence=False,aggregation="Week",legend=False,
+    save_data=False,load_data=True,
+    color = "k"
     )
+    ax[2,0].set_title("Adenovirus")
     kpsc_positive_test_plot(ax[0,1],pathogen="InfluenzaB"
-    ,AGE_GROUPS=AGE_GROUPS
+    ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation=None,legend=False,
-    save_data=True,load_data=False
+    ,incidence=False,aggregation="Week",legend=False,
+    save_data=False,load_data=True,
+    color = "k"
     )
+    ax[0,1].set_title("Influenza B")
     kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus"
-    ,AGE_GROUPS=AGE_GROUPS
+    ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation=None,legend=False,
-    save_data=True,load_data=False
+    ,incidence=False,aggregation="Week",legend=False,
+    save_data=False,load_data=True,
+    color = "k"
     )
+    ax[1,1].set_title("Metapneumovirus")
     kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3"
-    ,AGE_GROUPS=AGE_GROUPS
+    ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation=None,legend=False,
-    save_data=True,load_data=False
+    ,incidence=False,aggregation="Week",legend=False,
+    save_data=False,load_data=True,
+    color = "k"
     )
-    plt.savefig("Figures/KPSC_ARI_extended_cases_daily.png",dpi=300)
+    ax[2,1].set_title("Parainfluenza 3")
+    for ax in ax.flatten():
+        ax.set_ylabel("")
+    plt.tight_layout()
+    plt.savefig("Figures/KPSC_ARI_extended_cases_weekly.png",dpi=300)

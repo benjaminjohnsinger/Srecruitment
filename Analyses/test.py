@@ -11,7 +11,8 @@ import pandas as pd
 from plotting import lockdown_incidence_plot, kpsc_positive_test_plot
 # from math import comb
 from utils import *
-from Parameters.census_population import AGE_GROUP_NAMES
+from Parameters.census_population import AGE_GROUP_NAMES, CENSUS_AGE_POP
+from Parameters.times_and_contacts import PERIOD
 # import pickle
 # from scipy.optimize import curve_fit
 # import time
@@ -24,27 +25,77 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 from fit_MCMC import run_simulation
 import time
 
-plt.rcParams.update({'font.size':18})
+plt.rcParams.update({'font.size':14})
 # text type is palatino
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-pathogen_name = "COVID-19"
-fig, ax = plt.subplots(figsize=(12.3/4,6.5/2))
-aggregation = "Month"
-kpsc_positive_test_plot(ax,pathogen=pathogen_name,AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation=aggregation, load_data=False, color="#DC267F")
-ax.legend(frameon=False)
-ax.set_xlabel("", fontfamily='Helvetica', fontsize=18)
-ax.set_ylabel("", fontfamily='Helvetica', fontsize=18)
-ax.set_title("COVID-19")
-ax.set_xticklabels(["","2016","","2018","","2020","","2022","","2024"], fontfamily='Helvetica', fontsize=10)
-# ax.set_xticklabels([])
-# set y tick labels to helvetica
-ax.set_yticklabels(ax.get_yticklabels(), fontfamily='Helvetica', fontsize=12)
-# ax.set_xticklabels([])
+RSV = ["RSV", "251103", "NA"]
+Metapneumovirus = ["Metapneumovirus", "2511032", "NA"]
+InfluenzaA = ["InfluenzaA", "251103", "NA"]
+InfluenzaB = ["InfluenzaB", "2511042", "NA"]
+Adenovirus = ["Adenovirus", "2511032", "NA"]
+Parainfluenza3 = ["Parainfluenza3", "2511032", "NA"]
 
+short_names = {"RSV":"RSV", "Metapneumovirus":"hMPV", "InfluenzaA":"FluA", "InfluenzaB":"FluB", "Adenovirus":"AdV", "Parainfluenza3":"PIV3"}
+
+good_simulations = [InfluenzaA, RSV, Adenovirus, InfluenzaB, Metapneumovirus, Parainfluenza3]
+
+POINTS = np.array(date_to_t(PERIOD))
+NAG = len(AGE_GROUP_NAMES)
+
+fig, ax = plt.subplots(2,3,figsize=(12.5,5.5), sharex=True)
+for i, (pathogen, model_type, waning_type) in enumerate(good_simulations):
+    incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
+    obs_summed_age = incidence.sum(axis=1)
+    # sum obs over each season, starting with the first time point
+    n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
+    # Curtail obs to fit exact seasons (ignore partial days due to leap years)
+    days_to_keep = n_seasons * 365
+    obs_curtailed = incidence[:days_to_keep, :]
+    obs_summed_age_curtailed = obs_summed_age[:days_to_keep]
+    obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
+    obs_summed_age_per_season = obs_summed_age_curtailed.reshape((n_seasons, 365)).sum(axis=1)
+    # concatenate to obs_per_season
+    obs_per_season = jnp.concatenate([obs_per_season, obs_summed_age_per_season[:, None]], axis=1)
+    # plot a line showing the incidence in each age group in the median-sized pre-pandemic season
+    median_pre_season_index = jnp.argsort(obs_per_season[:5, -1])[2]
+    pre_age_incidence = obs_per_season[median_pre_season_index, :-1] / CENSUS_AGE_POP
+    pre_age_incidence /= jnp.sum(pre_age_incidence)
+    rebound_index = 5 + jnp.argmax(obs_per_season[5:, -1])
+    rebound_age_incidence = obs_per_season[rebound_index, :-1] / CENSUS_AGE_POP
+    rebound_age_incidence /= jnp.sum(rebound_age_incidence)
+    ax[i//3, i%3].plot(jnp.arange(NAG), pre_age_incidence, label='Pre-pandemic', color='#DC267F')
+    ax[i//3, i%3].plot(jnp.arange(NAG), rebound_age_incidence, label='Re-emergence', color='#648FFF')
+    ax[i//3, i%3].set_title(short_names[pathogen])
+    if i//3==1:
+        ax[i//3, i%3].set_xlabel("Age Group")
+        ax[i//3, i%3].set_xticks(jnp.arange(NAG))
+        ax[i//3, i%3].set_xticklabels(AGE_GROUP_NAMES)
+        # tilt x tick labels
+        plt.setp(ax[i//3, i%3].get_xticklabels(), rotation=30, ha="right", rotation_mode="anchor")
+    if i%3==0:
+        ax[i//3, i%3].set_ylabel("Proportional Incidence")
+ax[0,0].legend(frameon=False)
 plt.tight_layout()
-plt.savefig("Figures/DE_"+pathogen_name+"_noage_minimal.png",dpi=300)
+plt.savefig("Figures/age_distribution_shift.png", dpi=300)
+
+# pathogen_name = "COVID-19"
+# fig, ax = plt.subplots(figsize=(12.3/4,6.5/2))
+# aggregation = "Month"
+# kpsc_positive_test_plot(ax,pathogen=pathogen_name,AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation=aggregation, load_data=False, color="#DC267F")
+# ax.legend(frameon=False)
+# ax.set_xlabel("", fontfamily='Helvetica', fontsize=18)
+# ax.set_ylabel("", fontfamily='Helvetica', fontsize=18)
+# ax.set_title("COVID-19")
+# ax.set_xticklabels(["","2016","","2018","","2020","","2022","","2024"], fontfamily='Helvetica', fontsize=10)
+# # ax.set_xticklabels([])
+# # set y tick labels to helvetica
+# ax.set_yticklabels(ax.get_yticklabels(), fontfamily='Helvetica', fontsize=12)
+# # ax.set_xticklabels([])
+
+# plt.tight_layout()
+# plt.savefig("Figures/DE_"+pathogen_name+"_noage_minimal.png",dpi=300)
 
 # with open("Data/Processed/DE_cm_opt_maxmimmwane,maxmimmwane,maxmimmwane,maxmimmwane,maxmimmwaneflexage2511032,2511032,2511032,2511032,2511032.pickle","rb") as f:
 #     opt = pickle.load(f)
@@ -141,7 +192,7 @@ plt.savefig("Figures/DE_"+pathogen_name+"_noage_minimal.png",dpi=300)
 
 # # load contact matrix
 # CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
-# print(np.sum(CONTACT_MATRIX,axis=0))
+# print(np.sum(np.sum(CONTACT_MATRIX,axis=1) * CENSUS_AGE_POP) / np.sum(CENSUS_AGE_POP))
 # true_x = jnp.array([0.001,0.1,0.1,0.5
 # ,0.1,0.5,0.6,0.5
 # ,0.9,0.5,0.4,0.8,0.7,0.8,0.1

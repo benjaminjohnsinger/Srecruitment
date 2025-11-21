@@ -575,7 +575,7 @@ def lasso_analysis(run_save_path, outcome="time_to_rebound", alpha=0.01, target_
 
     untransformed_targets = valid_targets.copy()
 
-    valid_samples *= 1/np.array([1,1,1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3])  # scale parameters for better lasso performance
+    valid_samples *= 1/np.array([1,1,1,1,1,1e-2,1e-2,-1,-1,-1,-1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3])  # scale parameters for better lasso performance
 
     # First Lasso regression
     lasso1 = Lasso(alpha=alpha)
@@ -603,7 +603,7 @@ def plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coe
 
     # Project samples onto the 2D Lasso space using precomputed coefficients
     if lasso1_coef == "R0":
-        lasso1_projections = valid_samples[:, 2]/valid_samples[:, 0]
+        lasso1_projections = 13.88 * valid_samples[:, 2]/valid_samples[:, 0]
     else:
         lasso1_projections = valid_samples @ lasso1_coef
     lasso2_projections = valid_samples @ lasso2_coef
@@ -644,7 +644,7 @@ def plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coe
     
     ax.set_xlabel('Lasso Component 1 Projection')
     ax.set_ylabel('Lasso Component 2 Projection')
-    ax.set_title(title)
+    # ax.set_title(title)
     ax.grid(True, alpha=0.3)
     return hist, ax
 
@@ -760,14 +760,14 @@ if __name__ == "__main__":
 
     # # # Example of plotting
     # run_save_path = f"Outputs/sim_grid_lh_n80000_chunk40000_seed251117_2d"
-    outcome = "time_to_rebound"
+    outcome = "NA"
     print(f"Performing Lasso analysis for outcome: {outcome}")
     lasso1_coef, lasso2_coef, valid_samples, valid_targets = lasso_analysis(run_save_path, outcome=outcome, alpha=0.001, target_bounds=None)
-    print("Limits of valid targets: ", valid_targets.min(), valid_targets.max())
+    # print("Limits of valid targets: ", valid_targets.min(), valid_targets.max())
     # print(lasso1_coef)
     # print(lasso2_coef)
 
-    parameter_names = ["Reproduction number", "First infection duration", "Second infection duration", "Transmissibility", "Seasonality", "Phase", "Waning (per 100 days after first infection)", "Waning (per 100 days after second infection)",
+    parameter_names = ["Basic reproduction number", "First infection duration", "Second infection duration", "Transmissibility", "Seasonality", "Phase", "Waning (per 100 days after first infection)", "Waning (per 100 days after second infection)",
                         "Immunity from first infection", "Immunity from second infection", "Immunity to severe disease after first infection","Immunity to severe disease after second infection",
                         "Maternal immunity","Disease susceptibility <3m", "Disease susceptibility 3–11m", "Disease susceptibility 1–4y",
                         "Disease susceptibility 5–7y", "Disease susceptibility 8–49y", "Disease susceptibility 50-64y", "Disease susceptibility 65+y"]
@@ -797,135 +797,202 @@ if __name__ == "__main__":
     # plt.savefig(f"Figures/random_forest_feature_importances_{outcome}.png", dpi=300)
     # plt.close()
 
-    for p1 in range(len(lasso1_coef)+1):
-        for p2 in range(p1+1,len(lasso2_coef)+1):
-            if p1 == 0:
-                lasso1_coef = "R0"
-            else:
-                lasso1_coef = jnp.zeros(19)
-                lasso1_coef = lasso1_coef.at[p1-1].set(1)
-            lasso2_coef = jnp.zeros(19)
-            lasso2_coef = lasso2_coef.at[p2-1].set(1)
+    # for p1 in range(len(lasso1_coef)+1):
+    #     for p2 in range(p1+1,len(lasso2_coef)+1):
+    p1, p2 = 0, 8
+    if p1 == 0:
+        lasso1_coef = "R0"
+    else:
+        lasso1_coef = jnp.zeros(19)
+        lasso1_coef = lasso1_coef.at[p1-1].set(1)
+    lasso2_coef = jnp.zeros(19)
+    lasso2_coef = lasso2_coef.at[p2-1].set(1)
 
-            # # find valid samples with lasso 1 projection
-            # if lasso1_coef == "R0":
-            #     lasso1_proj = valid_samples[:, 2] / valid_samples[:, 0]
-            # else:
-            #     lasso1_proj = valid_samples @ lasso1_coef
-            # print(lasso1_proj.min(), lasso1_proj.max())
-            # valid_samples_lasso1 = valid_samples[np.abs(lasso1_proj - (0.668-0.2/15)) < 2*0.2/15]
-            # lasso2_proj = valid_samples_lasso1 @ lasso2_coef
-            # print(lasso2_proj.min(), lasso2_proj.max())
-            # valid_samples_lasso2 = valid_samples_lasso1[np.abs(lasso2_proj - (0.315+0.2/24)) < 2*0.2/24]
-            # print("Samples around target: ", valid_samples_lasso2.shape[0])
-            # # Create a 3x3 subplot for the first 9 valid samples
-            # fig, axes = plt.subplots(10, 10, figsize=(13.3, 7.5))
-            # axes = axes.flatten()  # Flatten for easier indexing
-            
-            # for i in range(min(100, len(valid_samples_lasso2))):
-            #     sample = valid_samples_lasso2[i]
-            #     sim_params = x_to_params(sample * np.array([1,1,1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3]), "sim", lockdown, "mimmwane", "flexage", print_params=False)
-            #     ax = axes[i]
-            #     mx = lockdown_incidence_plot(ax, STATE0, sim_params, POINTS, date_to_t('2020-03-19'), by_age = True, AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-            #     ax.set_title(f"Sample {i+1}")
-            #     print(f"Plotted sample {i+1}/9")
-            
-            # # Hide any unused subplots
-            # for i in range(len(valid_samples_lasso2), 9):
-            #     axes[i].set_visible(False)
-            
-            # plt.tight_layout()
-            # plt.savefig(f"Figures/selected_simulations_yellow_near_PIV3_3x3_grid.png", dpi=1000)
-            # plt.close()  # Close the figure to free memory
+    # # find valid samples with lasso 1 projection
+    # if lasso1_coef == "R0":
+    #     lasso1_proj = valid_samples[:, 2] / valid_samples[:, 0]
+    # else:
+    #     lasso1_proj = valid_samples @ lasso1_coef
+    # print(lasso1_proj.min(), lasso1_proj.max())
+    # valid_samples_lasso1 = valid_samples[np.abs(lasso1_proj - (0.668-0.2/15)) < 2*0.2/15]
+    # lasso2_proj = valid_samples_lasso1 @ lasso2_coef
+    # print(lasso2_proj.min(), lasso2_proj.max())
+    # valid_samples_lasso2 = valid_samples_lasso1[np.abs(lasso2_proj - (0.315+0.2/24)) < 2*0.2/24]
+    # print("Samples around target: ", valid_samples_lasso2.shape[0])
+    # # Create a 3x3 subplot for the first 9 valid samples
+    # fig, axes = plt.subplots(10, 10, figsize=(13.3, 7.5))
+    # axes = axes.flatten()  # Flatten for easier indexing
+    
+    # for i in range(min(100, len(valid_samples_lasso2))):
+    #     sample = valid_samples_lasso2[i]
+    #     sim_params = x_to_params(sample * np.array([1,1,1,1,1,1e-2,1e-2,-1,-1,-1,-1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3]), "sim", lockdown, "mimmwane", "flexage", print_params=False)
+    #     ax = axes[i]
+    #     mx = lockdown_incidence_plot(ax, STATE0, sim_params, POINTS, date_to_t('2020-03-19'), by_age = True, AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+    #     ax.set_title(f"Sample {i+1}")
+    #     print(f"Plotted sample {i+1}/9")
+    
+    # # Hide any unused subplots
+    # for i in range(len(valid_samples_lasso2), 9):
+    #     axes[i].set_visible(False)
+    
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/selected_simulations_yellow_near_PIV3_3x3_grid.png", dpi=1000)
+    # plt.close()  # Close the figure to free memory
 
-            fig, ax = plt.subplots(figsize=(8,6))
-            scatter, ax = plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, outcome=outcome, use_scatter=True)
-            cbar = plt.colorbar(scatter, ax=ax)
-            ## Make scatter points invisible by setting alpha to 0
-            # scatter.set_alpha(0)
-            cbar.set_label('Time to re-emergence (years)' if outcome=="time_to_rebound" else ("Relative size of rebound" if outcome=="relative_size" else ("Age ratio of rebound" if outcome=="age_ratio" else "Age of infection (years)")))
-            if outcome == "foi_weighted_age":
-                cbar.set_label("Age weighted by FOI experienced (years)")
-            elif outcome == "age_of_infector":
-                cbar.set_label("Average age of infectors (years)")
-            elif "infectors_in_class_" in outcome:
-                class_idx = int(outcome.split("_")[-1])
-                cbar.set_label(f"Proportion of infectors in ages {AGE_GROUP_NAMES[class_idx]}")
-            elif "abs_foi_in_class_" in outcome:
-                class_idx = int(outcome.split("_")[-1])
-                cbar.set_label(f"Absolute FOI in ages {AGE_GROUP_NAMES[class_idx]}")
-            elif "foi_in_class_" in outcome:
-                class_idx = int(outcome.split("_")[-1])
-                cbar.set_label(f"Relative FOI in ages {AGE_GROUP_NAMES[class_idx]}")
-            # # Convert colorbar ticks from days to years
-            if outcome == "time_to_rebound":
-                ticks = cbar.get_ticks()
-                cbar.set_ticks(ticks)
-                cbar.set_ticklabels([f'{tick/365:.1f}' for tick in ticks])
-            # plot points from good simulations parameter sets, projected onto lasso space
-            # textcolors = ["white", "black", "black", "black", "white", "white"]
-            # edgecolors = ["white", "black", "black", "black", "white", "black"]
-            textcolors = edgecolors = ["black"]*6
-            for i, pathogen_info in enumerate(good_simulations):
-                pathogen, seed, option1 = pathogen_info
-                incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
-                obs_summed_age = incidence.sum(axis=1)
-                # sum obs over each season, starting with the first time point
-                n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
-                # Curtail obs to fit exact seasons (ignore partial days due to leap years)
-                days_to_keep = n_seasons * 365
-                obs_curtailed = incidence[:days_to_keep, :]
-                obs_summed_age_curtailed = obs_summed_age[:days_to_keep]
-                obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
-                obs_summed_age_per_season = obs_summed_age_curtailed.reshape((n_seasons, 365)).sum(axis=1)
-                # concatenate to obs_per_season
-                obs_per_season = jnp.concatenate([obs_per_season, obs_summed_age_per_season[:, None]], axis=1)
-                # print(obs_per_season[:,-1])
-                # find the time of peak incidence in each age group for each season
-                peak_times = jnp.argmax(obs_curtailed.reshape((n_seasons, -1, NAG)), axis=1)
-                peak_times_summed_age = jnp.argmax(obs_summed_age_curtailed.reshape((n_seasons, -1)), axis=1)
-                peak_times = jnp.concatenate([peak_times, peak_times_summed_age[:, None]], axis=1)
-                seasons = jnp.stack([obs_per_season, peak_times], axis=0)
-                # print(f"{pathogen} time to rebound: {time_to_rebound_value} days, relative size: {rebound_size_value}")
-                # map to color using same scheme as scatter plot
-                if outcome == "relative_size":
-                    rebound_size_value = relative_size_of_rebound(seasons)
-                    pathogen_color = cm.viridis(( rebound_size_value - 0.155) / (1.82 - 0.155))
-                elif outcome == "age_ratio":
-                    age_ratio_value = age_ratio_of_rebound(seasons)
-                    pathogen_color = cm.viridis(( age_ratio_value - np.min(valid_targets)) / (np.max(valid_targets) - np.min(valid_targets)))
-                elif outcome == "time_to_rebound":
-                    time_to_rebound_value = time_to_rebound(seasons)
-                    pathogen_color = cm.viridis(( time_to_rebound_value - 657) / (1095 - 657))
-                else:
-                    pathogen_color = "white"            
+    plt.rcParams.update({'font.size':18})
+    # text type is palatino
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = ['Palatino']
+    fig, ax = plt.subplots(figsize=(12,5))
+    # scatter, ax = plot_lasso_heatmap(ax, valid_samples, valid_targets, lasso1_coef, lasso2_coef, outcome=outcome, use_scatter=False)
+    # cbar = plt.colorbar(scatter, ax=ax)
+    # ## Make scatter points invisible by setting alpha to 0
+    # # scatter.set_alpha(0)
+    # cbar.set_label('Time to re-emergence (years)' if outcome=="time_to_rebound" else ("Relative size of rebound" if outcome=="relative_size" else ("Age ratio of rebound" if outcome=="age_ratio" else "Age of infection (years)")))
+    # if outcome == "foi_weighted_age":
+    #     cbar.set_label("Age weighted by FOI experienced (years)")
+    # elif outcome == "age_of_infector":
+    #     cbar.set_label("Average age of infectors (years)")
+    # elif "infectors_in_class_" in outcome:
+    #     class_idx = int(outcome.split("_")[-1])
+    #     cbar.set_label(f"Proportion of infectors in ages {AGE_GROUP_NAMES[class_idx]}")
+    # elif "abs_foi_in_class_" in outcome:
+    #     class_idx = int(outcome.split("_")[-1])
+    #     cbar.set_label(f"Absolute FOI in ages {AGE_GROUP_NAMES[class_idx]}")
+    # elif "foi_in_class_" in outcome:
+    #     class_idx = int(outcome.split("_")[-1])
+    #     cbar.set_label(f"Relative FOI in ages {AGE_GROUP_NAMES[class_idx]}")
+    # # # Convert colorbar ticks from days to years
+    # if outcome == "time_to_rebound":
+    #     ticks = cbar.get_ticks()
+    #     cbar.set_ticks(ticks)
+    #     cbar.set_ticklabels([f'{tick/365:.1f}' for tick in ticks])
+    # if "foi_in_class_0" in outcome:
+    #     ticks = cbar.get_ticks()
+    #     cbar.set_ticks(ticks)
+    #     cbar.set_ticklabels([f'{tick/0.00016:.2f}' for tick in ticks])
+    # plot points from good simulations parameter sets, projected onto lasso space
+    # textcolors = ["white", "black", "black", "black", "white", "white"]
+    # edgecolors = ["white", "black", "black", "black", "white", "black"]
+    textcolors = edgecolors = ["black"]*6
+    pathogen_proj = np.zeros((len(good_simulations), 2))
+    for i, pathogen_info in enumerate(good_simulations):
+        pathogen, seed, option1 = pathogen_info
+        if outcome in ["time_to_rebound", "relative_size", "age_ratio"]:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
+            obs_summed_age = incidence.sum(axis=1)
+            # sum obs over each season, starting with the first time point
+            n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
+            # Curtail obs to fit exact seasons (ignore partial days due to leap years)
+            days_to_keep = n_seasons * 365
+            obs_curtailed = incidence[:days_to_keep, :]
+            obs_summed_age_curtailed = obs_summed_age[:days_to_keep]
+            obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
+            obs_summed_age_per_season = obs_summed_age_curtailed.reshape((n_seasons, 365)).sum(axis=1)
+            # concatenate to obs_per_season
+            obs_per_season = jnp.concatenate([obs_per_season, obs_summed_age_per_season[:, None]], axis=1)
+            # print(obs_per_season[:,-1])
+            # find the time of peak incidence in each age group for each season
+            peak_times = jnp.argmax(obs_curtailed.reshape((n_seasons, -1, NAG)), axis=1)
+            peak_times_summed_age = jnp.argmax(obs_summed_age_curtailed.reshape((n_seasons, -1)), axis=1)
+            peak_times = jnp.concatenate([peak_times, peak_times_summed_age[:, None]], axis=1)
+            seasons = jnp.stack([obs_per_season, peak_times], axis=0)
+            # print(f"{pathogen} time to rebound: {time_to_rebound_value} days, relative size: {rebound_size_value}")
+        # map to color using same scheme as scatter plot
+        if outcome == "relative_size":
+            rebound_size_value = relative_size_of_rebound(seasons)
+            pathogen_color = cm.viridis(( rebound_size_value - 0.155) / (1.82 - 0.155))
+        elif outcome == "age_ratio":
+            age_ratio_value = age_ratio_of_rebound(seasons)
+            pathogen_color = cm.viridis(( age_ratio_value - np.min(valid_targets)) / (np.max(valid_targets) - np.min(valid_targets)))
+        elif outcome == "time_to_rebound":
+            time_to_rebound_value = time_to_rebound(seasons)
+            pathogen_color = cm.viridis(( time_to_rebound_value - 657) / (1095 - 657))
+        else:
+            pathogen_color = "white"            
 
-                x = consistent_x_from_DE(pathogen, option1, seed)/np.array([1,1,1,1,1,1e-2,1e-2,1,1,1,1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3])  # scale parameters for better lasso performance
-                
-                if lasso1_coef == "R0":
-                    lasso1_proj = x[2]/x[0]
-                else:
-                    lasso1_proj = x @ lasso1_coef
-                lasso2_proj = x @ lasso2_coef
-                print(f"{pathogen} projections: {lasso1_proj}, {lasso2_proj}")
-                ax.scatter(lasso1_proj, lasso2_proj, color=pathogen_color, s=50, edgecolor=edgecolors[i])
-                ax.annotate(short_names[pathogen], (lasso1_proj, lasso2_proj), xytext=(5, 5), 
-                    textcoords='offset points', fontsize=12, ha='left', color=textcolors[i])
-            ax.set_title("Fit Parameter Sets")
-            # put label on x-axis saying 1e-2
-            ax.set_xlabel(parameter_names[p1] + ' (scaled)')
-            ax.set_ylabel(parameter_names[p2] + ' (scaled)')
-            # Get current y-ticks and set new labels as 1 - original value
-            if "Immunity" in parameter_names[p1]:
-                y_ticks = ax.get_yticks()
-                ax.set_yticklabels([f'{1-tick:.1f}' for tick in y_ticks])
-            if "Immunity" in parameter_names[p2]:
-                y_ticks = ax.get_yticks()
-                ax.set_yticklabels([f'{1-tick:.1f}' for tick in y_ticks])
-            if "duration" in parameter_names[p1]:
-                y_ticks = ax.get_yticks()
-                ax.set_yticklabels([f'{1/tick:.1f}' for tick in y_ticks])
-            if "duration" in parameter_names[p2]:
-                y_ticks = ax.get_yticks()
-                ax.set_yticklabels([f'{1/tick:.1f}' for tick in y_ticks])
-            plt.savefig(f"Figures/Parameter_Sets_time_to_rebound/parameter_sets_{short_pnames[p1]}_{short_pnames[p2]}_{outcome}_2d_scatter.png", dpi=1000)
+        x = consistent_x_from_DE(pathogen, option1, seed)/np.array([1,1,1,1,1,1e-2,1e-2,-1,-1,-1,-1,1,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3,5e-3])  # scale parameters for better lasso performance
+        
+        if lasso1_coef == "R0":
+            lasso1_proj = 13.88 * x[2]/x[0]
+        else:
+            lasso1_proj = x @ lasso1_coef
+        lasso2_proj = x @ lasso2_coef
+        pathogen_proj[i, :] = jnp.array([lasso1_proj, lasso2_proj])
+        print(f"{pathogen} projections: {lasso1_proj}, {lasso2_proj}")
+        ax.scatter(lasso1_proj, lasso2_proj, color=pathogen_color, s=50, edgecolor=edgecolors[i])
+        ax.annotate(short_names[pathogen], (lasso1_proj, lasso2_proj), xytext=(5, 5), 
+            textcoords='offset points', fontsize=18, ha='left', color=textcolors[i])
+    # plot line of best fit with CIs through the good simulation points
+    from sklearn.linear_model import LinearRegression
+    from scipy import stats
+    model = LinearRegression()
+    model.fit(np.log(pathogen_proj[:,0]).reshape(-1,1), pathogen_proj[:,1])
+    print(model.coef_, model.intercept_)
+    x_fit = np.linspace(1, 44.4, 1000)
+    y_fit = model.predict(np.log(x_fit).reshape(-1,1))
+    
+    # Filter out points where y > 0 or y < -1
+    valid_mask = (y_fit >= -1) & (y_fit <= 0)
+    x_fit = x_fit[valid_mask]
+    y_fit = y_fit[valid_mask]
+    
+    # Calculate 95% confidence intervals
+    n = len(pathogen_proj)
+    x_mean = np.mean(np.log(pathogen_proj[:,0]))
+    residuals = pathogen_proj[:,1] - model.predict(np.log(pathogen_proj[:,0]).reshape(-1,1))
+    mse = np.sum(residuals**2) / (n - 2)
+    se = np.sqrt(mse * (1/n + (np.log(x_fit) - x_mean)**2 / np.sum((np.log(pathogen_proj[:,0]) - x_mean)**2)))
+    t_val = stats.t.ppf(0.975, n-2)  # 95% CI
+    ci_upper = np.minimum(y_fit + t_val * se, 0)
+    ci_lower = np.maximum(y_fit - t_val * se, -1)
+    
+    ax.plot(x_fit, y_fit, color='black', linestyle='--', label ='Line of best fit')
+    ax.fill_between(x_fit, ci_lower, ci_upper, alpha=0.3, color='gray', label='95% confidence interval')
+
+    # extra pathogen data
+    extra_names = ["Rotavirus", "Norovirus", "Measles"]
+    extra_R0s = [17.5, 2, 13.2]
+    extra_R0s_upper = [18.2, 7.2, 44.4]
+    extra_R0s_lower = [5.03, 1.1, 4.6]
+    extra_immunity1 = [-0.62, -0.74, 0]
+    extra_immunity1_upper = [-0.83, -0.95, 0]
+    extra_immunity1_lower = [-0.5, -0.57, 0]
+    # plot these points with error bars
+    for i, name in enumerate(extra_names):
+        ax.scatter(extra_R0s[i], extra_immunity1[i], s=50, color='grey', edgecolor='black')
+        ax.errorbar(extra_R0s[i], extra_immunity1[i], 
+                    xerr=[[extra_R0s[i]-extra_R0s_lower[i]], [extra_R0s_upper[i]-extra_R0s[i]]],
+                    yerr=[[extra_immunity1[i]-extra_immunity1_upper[i]], [extra_immunity1_lower[i]-extra_immunity1[i]]],
+                    fmt='o', color='grey', ecolor='black', elinewidth=1, capsize=6)
+        ax.annotate(name, (extra_R0s[i], extra_immunity1[i]), xytext=(5, 5), 
+            textcoords='offset points', fontsize=18, ha='left', color='black')
+
+    ax.set_xlim([0.901,45])
+    ax.set_ylim([-1.1,0.1])
+    ax.set_xscale('log')
+    ax.set_xticks([1,2,5,10,20,40])
+    ax.get_xaxis().set_major_formatter(plt.ScalarFormatter())
+    ax.set_xlabel("Basic reproduction number (log scale)")
+    ax.legend()
+    
+    # ax.set_title("Fit Parameter Sets")
+    # put label on x-axis saying 1e-2
+    # ax.set_xlabel(parameter_names[p1])
+    ax.set_ylabel(parameter_names[p2])
+    # Get current y-ticks and set new labels as 1 - original value
+    if "Immunity" in parameter_names[p1]:
+        y_ticks = ax.get_yticks()
+        ax.set_yticklabels([f'{1.01+tick:.1f}' for tick in y_ticks])
+    if "Immunity" in parameter_names[p2]:
+        y_ticks = ax.get_yticks()
+        ax.set_yticklabels([f'{1.01+tick:.1f}' for tick in y_ticks])
+    if "duration" in parameter_names[p1]:
+        y_ticks = ax.get_yticks()
+        ax.set_yticklabels([f'{1/tick:.1f}' for tick in y_ticks])
+    if "duration" in parameter_names[p2]:
+        y_ticks = ax.get_yticks()
+        ax.set_yticklabels([f'{1/tick:.1f}' for tick in y_ticks])
+
+    plt.tight_layout()
+    plt.savefig(f"Figures/parameter_sets_{short_pnames[p1]}_{short_pnames[p2]}_{outcome}_2d_extras.png", dpi=1000)
