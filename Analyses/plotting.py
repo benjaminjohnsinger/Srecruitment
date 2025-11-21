@@ -599,7 +599,7 @@ if __name__ == "__main__":
     plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.serif'] = ['Palatino']
     from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
-    fig,ax = plt.subplots(3,2,figsize=(12.5,5.5), sharex=True)
+    fig,ax = plt.subplots(2,3,figsize=(12.5,5.5), sharex=True)
     kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
@@ -608,30 +608,30 @@ if __name__ == "__main__":
     color = "k"
     )
     ax[0,0].set_title("Influenza A")
-    kpsc_positive_test_plot(ax[1,0],pathogen="RSV"
+    kpsc_positive_test_plot(ax[0,1],pathogen="RSV"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
     ,incidence=False,aggregation="Week",legend=False,
     save_data=False,load_data=True,
     color = "k"
     )
-    ax[1,0].set_title("RSV")
-    kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus"
+    ax[0,1].set_title("RSV")
+    kpsc_positive_test_plot(ax[0,2],pathogen="Adenovirus"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
     ,incidence=False,aggregation="Week",legend=False,
     save_data=False,load_data=True,
     color = "k"
     )
-    ax[2,0].set_title("Adenovirus")
-    kpsc_positive_test_plot(ax[0,1],pathogen="InfluenzaB"
+    ax[0,2].set_title("Adenovirus")
+    kpsc_positive_test_plot(ax[1,0],pathogen="InfluenzaB"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
     ,incidence=False,aggregation="Week",legend=False,
     save_data=False,load_data=True,
     color = "k"
     )
-    ax[0,1].set_title("Influenza B")
+    ax[1,0].set_title("Influenza B")
     kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
@@ -640,15 +640,20 @@ if __name__ == "__main__":
     color = "k"
     )
     ax[1,1].set_title("Metapneumovirus")
-    kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3"
+    kpsc_positive_test_plot(ax[1,2],pathogen="Parainfluenza3"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
     ,incidence=False,aggregation="Week",legend=False,
     save_data=False,load_data=True,
     color = "k"
     )
-    ax[2,1].set_title("Parainfluenza 3")
+    ax[1,2].set_title("Parainfluenza 3")
     for ax in ax.flatten():
         ax.set_ylabel("")
+        # set x ticks to every 2 years
+        ax.set_xticks(pd.date_range(start='2015-01-01',end='2025-01-01',freq='2YS'))
+        ax.set_xticklabels([str(year.year) for year in pd.date_range(start='2015-01-01',end='2025-01-01',freq='2YS')], rotation=30)
+        # add minor ticks for non-labelled years
+        ax.set_xticks(pd.date_range(start='2016-01-01',end='2024-01-01',freq='2YS'), minor=True)
     plt.tight_layout()
-    plt.savefig("Figures/KPSC_ARI_extended_cases_weekly.png",dpi=300)
+    plt.savefig("Figures/KPSC_ARI_extended_cases_weekly_rotated.png",dpi=300)

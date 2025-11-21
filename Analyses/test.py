@@ -74,8 +74,6 @@ for i, (pathogen, model_type, waning_type) in enumerate(good_simulations):
         ax[i//3, i%3].set_xticklabels(AGE_GROUP_NAMES)
         # tilt x tick labels
         plt.setp(ax[i//3, i%3].get_xticklabels(), rotation=30, ha="right", rotation_mode="anchor")
-    if i%3==0:
-        ax[i//3, i%3].set_ylabel("Proportional Incidence")
 ax[0,0].legend(frameon=False)
 plt.tight_layout()
 plt.savefig("Figures/age_distribution_shift.png", dpi=300)
