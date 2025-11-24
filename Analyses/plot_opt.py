@@ -153,42 +153,53 @@ if "free" in pathogen:
 else:
     pathogen_name = pathogen
 
-fig = plt.figure(figsize=(13.3,7.5))
-ax1 = fig.add_subplot(3,1,1)
-ax2 = fig.add_subplot(3,1,2, sharex=ax1
-, sharey=ax1
-)
-ax3 = fig.add_subplot(3,1,3, sharex=ax1)
-ax = [ax1,ax2,ax3]
-aggregation = "Month"
-kpsc_positive_test_plot(ax[0],pathogen=pathogen_name,AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation=aggregation, load_data=True)
-ax[0].set_xlabel("")
+plt.rcParams.update({'font.size':14})
+# text type is palatino
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Palatino']
+# fig = plt.figure(figsize=(13.3,7.5))
+fig, ax = plt.subplots(figsize=(13.3/3.5,7.5/2))
+# ax1 = fig.add_subplot(3,1,1)
+# ax2 = fig.add_subplot(3,1,2, sharex=ax1
+# , sharey=ax1
+# )
+# ax3 = fig.add_subplot(3,1,3, sharex=ax1)
+# ax = [ax1,ax2,ax3]
+aggregation = "Week"
+kpsc_positive_test_plot(ax,pathogen=pathogen_name,AGE_GROUPS=None,AGE_GROUP_NAMES=AGE_GROUP_NAMES, incidence=True, legend=False, aggregation=aggregation, load_data=True, color="#DC267F")
+ax.set_xlabel("")
 pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
-# ax[0].set_title("Observed incidence of "+pnamedict[pathogen_name])
-ax[0].set_ylabel("Monthly incidence per 10k")
+# ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
+ax.set_ylabel("Monthly incidence per 10k")
 # legend
-ax[0].legend(frameon=False)
+ax.legend(frameon=False)
 
-# plt.rcParams.update({'font.size':20})
-# # text type is palatino
-# plt.rcParams['font.family'] = 'serif'
-# plt.rcParams['font.serif'] = ['Palatino']
 # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
-mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
-lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
+mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"Week","Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs,color="#648FFF")
+lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
+
+ax.set_xlabel("")
+ax.set_ylabel("")
+ax.set_title(pnamedict[pathogen_name])
+
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")
 # ax[1].set_ylabel("")
 # ax[1].set_xlabel("")
 # ax[1].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
 # ax[0].set_yticks([])
-lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
-ax[2].set_title("Effective susceptibles")
+# lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+# lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
+# ax[2].set_title("Effective susceptibles")
 # ax[1].set_xlabel("")
 # ax[1].set_ylabel("")
 # ax[1].set_xlabel("")
 # ax[1].ticklabel_format(axis='y', style='sci', scilimits=(0,0))
-# ax[1].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
+ax.set_xticklabels(["","2016","","2018","","2020","","2022","","2024",""])
+# ax.set_yscale('log')
+# ax.set_ylim(1e-3,)
+# multiply y lables by 100
+ylabls = ax.get_yticks()
+ax.set_yticklabels([str(int(np.round(yl*100))) for yl in ylabls])
 plt.tight_layout()
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_mini_noage_weekly.png",dpi=300)

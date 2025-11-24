@@ -30,53 +30,73 @@ plt.rcParams.update({'font.size':14})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-RSV = ["RSV", "251103", "NA"]
-Metapneumovirus = ["Metapneumovirus", "2511032", "NA"]
-InfluenzaA = ["InfluenzaA", "251103", "NA"]
-InfluenzaB = ["InfluenzaB", "2511042", "NA"]
-Adenovirus = ["Adenovirus", "2511032", "NA"]
-Parainfluenza3 = ["Parainfluenza3", "2511032", "NA"]
+# axes with paramter 1 from 0 to 1 and parameter 2 from 0 to 1, and a faint grid in the background
+fig, ax = plt.subplots(figsize=(12.5,5.5))
 
-short_names = {"RSV":"RSV", "Metapneumovirus":"hMPV", "InfluenzaA":"FluA", "InfluenzaB":"FluB", "Adenovirus":"AdV", "Parainfluenza3":"PIV3"}
+ax.scatter([0.3,0.59,0.62], [0.11, 0.2, 0.8], s=150, color="white", edgecolor="black")
 
-good_simulations = [InfluenzaA, RSV, Adenovirus, InfluenzaB, Metapneumovirus, Parainfluenza3]
+# plot a grey triangle between these points
+triangle = plt.Polygon([[0.3,0.11],[0.59,0.2],[0.62,0.8]], color='grey', alpha=0.3)
+ax.add_patch(triangle)
 
-POINTS = np.array(date_to_t(PERIOD))
-NAG = len(AGE_GROUP_NAMES)
-
-fig, ax = plt.subplots(2,3,figsize=(12.5,5.5), sharex=True)
-for i, (pathogen, model_type, waning_type) in enumerate(good_simulations):
-    incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
-    obs_summed_age = incidence.sum(axis=1)
-    # sum obs over each season, starting with the first time point
-    n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
-    # Curtail obs to fit exact seasons (ignore partial days due to leap years)
-    days_to_keep = n_seasons * 365
-    obs_curtailed = incidence[:days_to_keep, :]
-    obs_summed_age_curtailed = obs_summed_age[:days_to_keep]
-    obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
-    obs_summed_age_per_season = obs_summed_age_curtailed.reshape((n_seasons, 365)).sum(axis=1)
-    # concatenate to obs_per_season
-    obs_per_season = jnp.concatenate([obs_per_season, obs_summed_age_per_season[:, None]], axis=1)
-    # plot a line showing the incidence in each age group in the median-sized pre-pandemic season
-    median_pre_season_index = jnp.argsort(obs_per_season[:5, -1])[2]
-    pre_age_incidence = obs_per_season[median_pre_season_index, :-1] / CENSUS_AGE_POP
-    pre_age_incidence /= jnp.sum(pre_age_incidence)
-    rebound_index = 5 + jnp.argmax(obs_per_season[5:, -1])
-    rebound_age_incidence = obs_per_season[rebound_index, :-1] / CENSUS_AGE_POP
-    rebound_age_incidence /= jnp.sum(rebound_age_incidence)
-    ax[i//3, i%3].plot(jnp.arange(NAG), pre_age_incidence, label='Pre-pandemic', color='#DC267F')
-    ax[i//3, i%3].plot(jnp.arange(NAG), rebound_age_incidence, label='Re-emergence', color='#648FFF')
-    ax[i//3, i%3].set_title(short_names[pathogen])
-    if i//3==1:
-        ax[i//3, i%3].set_xlabel("Age Group")
-        ax[i//3, i%3].set_xticks(jnp.arange(NAG))
-        ax[i//3, i%3].set_xticklabels(AGE_GROUP_NAMES)
-        # tilt x tick labels
-        plt.setp(ax[i//3, i%3].get_xticklabels(), rotation=30, ha="right", rotation_mode="anchor")
-ax[0,0].legend(frameon=False)
+ax.set_xlabel("Parameter 1")
+ax.set_ylabel("Parameter 2")
+ax.set_xlim(0,1)
+ax.set_ylim(0,1)
+ax.set_yticks(jnp.arange(0,1.1,0.2))
+ax.set_xticks(jnp.arange(0,1.1,0.2))
+ax.grid(True, alpha=0.3)
 plt.tight_layout()
-plt.savefig("Figures/age_distribution_shift.png", dpi=300)
+plt.savefig("Figures/parameter_grid_template_points_triangle.png", dpi=300)
+
+# RSV = ["RSV", "251103", "NA"]
+# Metapneumovirus = ["Metapneumovirus", "2511032", "NA"]
+# InfluenzaA = ["InfluenzaA", "251103", "NA"]
+# InfluenzaB = ["InfluenzaB", "2511042", "NA"]
+# Adenovirus = ["Adenovirus", "2511032", "NA"]
+# Parainfluenza3 = ["Parainfluenza3", "2511032", "NA"]
+
+# short_names = {"RSV":"RSV", "Metapneumovirus":"hMPV", "InfluenzaA":"FluA", "InfluenzaB":"FluB", "Adenovirus":"AdV", "Parainfluenza3":"PIV3"}
+# full_names = {"RSV": "RSV", "Metapneumovirus": "Metapneumovirus", "InfluenzaA": "Influenza A", "InfluenzaB": "Influenza B", "Adenovirus": "Adenovirus", "Parainfluenza3": "Parainfluenza 3"}
+
+# good_simulations = [InfluenzaA, RSV, Adenovirus, InfluenzaB, Metapneumovirus, Parainfluenza3]
+
+# POINTS = np.array(date_to_t(PERIOD))
+# NAG = len(AGE_GROUP_NAMES)
+
+# fig, ax = plt.subplots(2,3,figsize=(12.5,5.5), sharex=True)
+# for i, (pathogen, model_type, waning_type) in enumerate(good_simulations):
+#     incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
+#     obs_summed_age = incidence.sum(axis=1)
+#     # sum obs over each season, starting with the first time point
+#     n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
+#     # Curtail obs to fit exact seasons (ignore partial days due to leap years)
+#     days_to_keep = n_seasons * 365
+#     obs_curtailed = incidence[:days_to_keep, :]
+#     obs_summed_age_curtailed = obs_summed_age[:days_to_keep]
+#     obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
+#     obs_summed_age_per_season = obs_summed_age_curtailed.reshape((n_seasons, 365)).sum(axis=1)
+#     # concatenate to obs_per_season
+#     obs_per_season = jnp.concatenate([obs_per_season, obs_summed_age_per_season[:, None]], axis=1)
+#     # plot a line showing the incidence in each age group in the median-sized pre-pandemic season
+#     median_pre_season_index = jnp.argsort(obs_per_season[:5, -1])[2]
+#     pre_age_incidence = obs_per_season[median_pre_season_index, :-1] / CENSUS_AGE_POP
+#     pre_age_incidence /= jnp.sum(pre_age_incidence)
+#     rebound_index = 5 + jnp.argmax(obs_per_season[5:, -1])
+#     rebound_age_incidence = obs_per_season[rebound_index, :-1] / CENSUS_AGE_POP
+#     rebound_age_incidence /= jnp.sum(rebound_age_incidence)
+#     ax[i//3, i%3].plot(jnp.arange(NAG), pre_age_incidence, label='Pre-pandemic', color='#DC267F')
+#     ax[i//3, i%3].plot(jnp.arange(NAG), rebound_age_incidence, label='Re-emergence', color='#648FFF')
+#     ax[i//3, i%3].set_title(full_names[pathogen])
+#     if i//3==1:
+#         ax[i//3, i%3].set_xlabel("Age Group")
+#         ax[i//3, i%3].set_xticks(jnp.arange(NAG))
+#         ax[i//3, i%3].set_xticklabels(AGE_GROUP_NAMES)
+#         # tilt x tick labels
+#         plt.setp(ax[i//3, i%3].get_xticklabels(), rotation=30, ha="right", rotation_mode="anchor")
+# ax[0,0].legend(frameon=False)
+# plt.tight_layout()
+# plt.savefig("Figures/age_distribution_shift.png", dpi=300)
 
 # pathogen_name = "COVID-19"
 # fig, ax = plt.subplots(figsize=(12.3/4,6.5/2))

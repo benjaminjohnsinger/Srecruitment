@@ -60,13 +60,14 @@ def lockdown_incidence_plot(ax,state0,params,points,T_LOCKDOWN,solution=None,lab
             ax.plot(dates[(start_index+1):end_index],obs[start_index:end_index,i_age]/pop_size_by_age[start_index:end_index,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)
         mx = 1.1*np.max(np.max(obs/pop_size_by_age,axis=1)[start_index:end_index])
     else:
-        obs = factor*expected_obs
+        obs = factor*np.sum(expected_obs,axis=1)/np.sum(values[:-NAG,:],axis=0)[1:]
+        # obs = factor*np.sum(expected_obs,axis=1)
         if relative:
             pre_mx = np.max(obs[start_index:np.argmin(times<=T_LOCKDOWN)])
-            ax.plot(dates[start_index:end_index], obs[start_index:end_index]/pre_mx[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
+            ax.plot(dates[(start_index+1):end_index], obs[start_index:end_index]/pre_mx[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
             mx = 1.1*np.max(obs[start_index:end_index])/pre_mx
         else:
-            ax.plot(dates[start_index:end_index], obs[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
+            ax.plot(dates[(start_index+1):end_index], obs[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
             mx = 1.1*np.max(np.array(obs[start_index:end_index]))
     return(mx)
 
@@ -603,48 +604,48 @@ if __name__ == "__main__":
     kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Week",legend=False,
-    save_data=False,load_data=True,
+    ,incidence=False,aggregation="Month",legend=False,
+    save_data=True,load_data=False,
     color = "k"
     )
     ax[0,0].set_title("Influenza A")
     kpsc_positive_test_plot(ax[0,1],pathogen="RSV"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Week",legend=False,
-    save_data=False,load_data=True,
+    ,incidence=False,aggregation="Month",legend=False,
+    save_data=True,load_data=False,
     color = "k"
     )
     ax[0,1].set_title("RSV")
     kpsc_positive_test_plot(ax[0,2],pathogen="Adenovirus"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Week",legend=False,
-    save_data=False,load_data=True,
+    ,incidence=False,aggregation="Month",legend=False,
+    save_data=True,load_data=False,
     color = "k"
     )
     ax[0,2].set_title("Adenovirus")
     kpsc_positive_test_plot(ax[1,0],pathogen="InfluenzaB"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Week",legend=False,
-    save_data=False,load_data=True,
+    ,incidence=False,aggregation="Month",legend=False,
+    save_data=True,load_data=False,
     color = "k"
     )
     ax[1,0].set_title("Influenza B")
     kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Week",legend=False,
-    save_data=False,load_data=True,
+    ,incidence=False,aggregation="Month",legend=False,
+    save_data=True,load_data=False,
     color = "k"
     )
     ax[1,1].set_title("Metapneumovirus")
     kpsc_positive_test_plot(ax[1,2],pathogen="Parainfluenza3"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Week",legend=False,
-    save_data=False,load_data=True,
+    ,incidence=False,aggregation="Month",legend=False,
+    save_data=True,load_data=False,
     color = "k"
     )
     ax[1,2].set_title("Parainfluenza 3")
@@ -656,4 +657,4 @@ if __name__ == "__main__":
         # add minor ticks for non-labelled years
         ax.set_xticks(pd.date_range(start='2016-01-01',end='2024-01-01',freq='2YS'), minor=True)
     plt.tight_layout()
-    plt.savefig("Figures/KPSC_ARI_extended_cases_weekly_rotated.png",dpi=300)
+    plt.savefig("Figures/KPSC_ARI_extended_cases_Monthly_rotated.png",dpi=300)
