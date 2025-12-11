@@ -424,16 +424,22 @@ def mcmc_corner_plot(trajectory,param_names,burn_in):
 ##### KPSC data plots #####
 pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE B"],
 "InfluenzaA": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B"],
-# "InfluenzaAH1": ["INFLUENZA A H1N1 2009","INFLUENZA A VIRUS SUBTYPE H1"],
-# "InfluenzaAH3": ["INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3"],
+"InfluenzaAH1": ["INFLUENZA A H1N1 2009","INFLUENZA A VIRUS SUBTYPE H1"],
+"InfluenzaAH3": ["INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3"],
 "InfluenzaB": ["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"],
-# "Influenza": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B","INFLUENZA B","INFLUENZA VIRUS B"],
+"Influenza": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B","INFLUENZA B","INFLUENZA VIRUS B"],
 "Metapneumovirus": ["HUMAN METAPNEUMOVIRUS VIRUS",],
-# "HMPV" : ["HUMAN METAPNEUMOVIRUS VIRUS",],
+"HMPV" : ["HUMAN METAPNEUMOVIRUS VIRUS",],
 "Adenovirus": ["ADENOVIRUS",],
-# "Parainfluenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
+"Parainfluenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
 "Parainfluenza3": ["PARAINFLUENZA VIRUS 3"],
-"Rhinovirus": ["ENTEROVIRUS/RHINOVIRUS"],}
+"Rhinovirus": ["ENTEROVIRUS/RHINOVIRUS"],
+"Pertussis": ["BORDETELLA PERTUSSIS"],
+"M.pneumoniae": ["MYCOPLASMA PNEUMONIAE"],
+"C.pneumoniae": ["CHLAMYDOPHILA PNEUMONIAE"],
+"SARS-CoV-2": ["SARS-COV-2 (COVID-19)"],
+"Enterovirus": ["ENTEROVIRUS/RHINOVIRUS"],
+}
 reverse_names = [{v:k for v in values} for k,values in pathogen_names.items()]
 reverse_names =  {k:v for d in reverse_names for k,v in d.items()}
 import numpy as np
@@ -567,7 +573,7 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
 
 ## plot cumulative cases in each age group in each season
 def season_sizes(cases):
-    seasons = [pd.to_datetime('20'+str(x)+'-10-01') for x in range(15,24)]
+    seasons = [pd.to_datetime('20'+str(x)+'-10-01') for x in range(15,26)]
     season_cumulative = np.zeros((len(seasons)-1,7))
     season_relative = np.zeros((len(seasons)-1,7))
     for seas in range(len(seasons)-1):
@@ -575,20 +581,20 @@ def season_sizes(cases):
     return(pd.DataFrame(season_cumulative))
 
 def season_plot(ax,pathogen,incidence=False,relative=False):
-    cases = pd.read_csv('Data/Processed/KPSC_'+pathogen+'_cases_age_daily.csv',index_col=0)
+    cases = pd.read_csv('Data/Processed/KPSC_ARI_'+pathogen+'_cases_age_daily.csv',index_col=0)
     cases.index = pd.to_datetime(cases.index)
     season_cumulative = season_sizes(cases)
     print(pathogen,np.sum(season_cumulative,axis=1))
     if relative and not incidence:
         season_relative = season_cumulative.div(season_cumulative.sum(axis=1),axis=0)
     if relative and incidence:
-        incidence_data = pd.read_csv('Data/Processed/KPSC_'+pathogen+'_incidence_age_daily.csv',index_col=0)
+        incidence_data = pd.read_csv('Data/Processed/KPSC_ARI_'+pathogen+'_incidence_age_daily.csv',index_col=0)
         incidence_data.index = pd.to_datetime(incidence_data.index)
         season_incidence = season_sizes(incidence_data)
         season_relative = season_incidence.div(season_incidence.sum(axis=1),axis=0)
     if incidence or relative:
         for i in range(season_cumulative.shape[0]):
-            if np.sum(season_cumulative.iloc[i,:])<=37:
+            if np.sum(season_cumulative.iloc[i,:])<=50:
                 season_relative.iloc[i,:] = 0
         season_relative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
     else:
@@ -600,7 +606,7 @@ if __name__ == "__main__":
     plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.serif'] = ['Palatino']
     from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
-    fig,ax = plt.subplots(2,3,figsize=(12.5,5.5), sharex=True)
+    fig,ax = plt.subplots(3,3,figsize=(12.5,5.5), sharex=True)
     kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA"
     ,AGE_GROUPS=None
     ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
@@ -649,6 +655,30 @@ if __name__ == "__main__":
     color = "k"
     )
     ax[1,2].set_title("Parainfluenza 3")
+    kpsc_positive_test_plot(ax[2,0],pathogen="M.pneumoniae"
+    ,AGE_GROUPS=None
+    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=False,aggregation="Month",legend=False,
+    save_data=True,load_data=False,
+    color = "k"
+    )
+    ax[2,0].set_title("M. pneumoniae")
+    kpsc_positive_test_plot(ax[2,1],pathogen="C.pneumoniae"
+    ,AGE_GROUPS=None
+    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=False,aggregation="Month",legend=False,
+    save_data=True,load_data=False,
+    color = "k"
+    )
+    ax[2,1].set_title("C. pneumoniae")
+    kpsc_positive_test_plot(ax[2,2],pathogen="Pertussis"
+    ,AGE_GROUPS=None
+    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=False,aggregation="Month",legend=False,
+    save_data=True,load_data=False,
+    color = "k"
+    )
+    ax[2,2].set_title("Pertussis")
     for ax in ax.flatten():
         ax.set_ylabel("")
         # set x ticks to every 2 years
@@ -657,4 +687,4 @@ if __name__ == "__main__":
         # add minor ticks for non-labelled years
         ax.set_xticks(pd.date_range(start='2016-01-01',end='2024-01-01',freq='2YS'), minor=True)
     plt.tight_layout()
-    plt.savefig("Figures/KPSC_ARI_extended_cases_Monthly_rotated.png",dpi=300)
+    plt.savefig("Figures/KPSC_ARI_extended_cases_Monthly_rotated_w_bacteria.png",dpi=300)
