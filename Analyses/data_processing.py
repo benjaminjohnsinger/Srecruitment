@@ -197,27 +197,31 @@ import sys
 # plt.tight_layout()
 # plt.savefig('Figures/KPSC_data_sort_of_interesting_slide.png',dpi=300)
 
-# # Cumulative seasons plot
-# fig, axes = plt.subplots(6,3,sharex=True,figsize=(6.5,8.5))
-# for row,pathogen in enumerate(["RSV","Influenza_A","Influenza_B","Metapneumovirus","Adenovirus","Parainfluenza 3"]):
-#     for col,typ in enumerate([[False,False],[False,True],[True,True]]):
-#         season_plot(axes[row,col],pathogen,typ[0],typ[1])
-# axes[5,1].set_xticks(range(8),[year for year in range(2015,2025)])
+# Cumulative seasons plot
+plt.rcParams.update({'font.size':14})
+# text type is palatino
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Palatino']
+fig, axes = plt.subplots(2,6,sharex=True,figsize=(13.3,5))
+for row,pathogen in enumerate(["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]):
+    for col,typ in enumerate([[False,False],[False,True]]):
+        season_plot(axes[col,row],pathogen,typ[0],typ[1])
+# label every other x tick with season year
+axes[1,5].set_xticks(range(11),[f"20{year}/{year+1}" if year % 2 == 0 else "" for year in range(15,26)])
 # for i in range(6):
-#     for j in range(1,3):
-#         axes[i,j].set_yticks([],[])
-# axes[0,0].set_title("Cases")
-# axes[0,1].set_title("Age group share")
-# axes[0,2].set_title("Adjusted for population")
-# axes[0,0].set_ylabel("RSV")
-# axes[1,0].set_ylabel("Influenza A")
-# axes[2,0].set_ylabel("Influenza B")
-# axes[3,0].set_ylabel("Metapneumovirus")
-# axes[4,0].set_ylabel("Adenovirus")
-# axes[5,0].set_ylabel("Parainfluenza 3")
+#     for j in range(1,2):
+#         axes[j,i].set_yticks([],[])
+axes[0,0].set_ylabel("Cases")
+axes[1,0].set_ylabel("Age group share")
+axes[0,0].set_title("Influenza A")
+axes[0,1].set_title("Influenza B")
+axes[0,2].set_title("RSV")
+axes[0,3].set_title("Metapneumovirus")
+axes[0,4].set_title("Adenovirus")
+axes[0,5].set_title("Parainfluenza 3")
 # fig.suptitle("Cumulative cases by respiratory season")
-# plt.tight_layout()
-# plt.savefig("Figures/cumulative_seasons_all.png",dpi=300)
+plt.tight_layout()
+plt.savefig("Figures/cumulative_seasons_extended.png",dpi=300)
 
 # ############### Processing KPSC data into time series of test-confirmed cases ###############
 
@@ -227,11 +231,11 @@ import sys
 # test_data = pd.concat([test_data1,test_data2],ignore_index=True)
 # print("Time to load test data: ",time.time()-time_start)
 
-time_start = time.time()
-clinical_data1 = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat', format='sas7bdat', encoding='utf-8')
-clinical_data2 = pd.read_sas('Data/Raw/KPSC/clinical_20250818.sas7bdat', format='sas7bdat', encoding='utf-8')
-clinical_data = pd.concat([clinical_data1,clinical_data2],ignore_index=True)
-print("Time to load clinical data: ",time.time()-time_start)
+# time_start = time.time()
+# clinical_data1 = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat', format='sas7bdat', encoding='utf-8')
+# clinical_data2 = pd.read_sas('Data/Raw/KPSC/clinical_20250818.sas7bdat', format='sas7bdat', encoding='utf-8')
+# clinical_data = pd.concat([clinical_data1,clinical_data2],ignore_index=True)
+# print("Time to load clinical data: ",time.time()-time_start)
 # # clinical_data = clinical_data[clinical_data["age_in_mo"] < 12]
 # # clinical_data = clinical_data[clinical_data["YEAR"] < 2017]
 # # print rows where flu_vac=1
