@@ -30,24 +30,285 @@ plt.rcParams.update({'font.size':14})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-# axes with paramter 1 from 0 to 1 and parameter 2 from 0 to 1, and a faint grid in the background
-fig, ax = plt.subplots(figsize=(12.5,5.5))
+demog = pd.read_sas("Data/Raw/KPSC/demographics.sas7bdat", format='sas7bdat')
+# sum values in column "n" for each ndi_c group per year
+demog_grouped = demog.groupby(['YEAR','ndi_c'])['n'].sum().reset_index()
+# pivot
+demog_grouped = demog_grouped.pivot(index='YEAR', columns='ndi_c', values='n').reset_index()
+# clean up column names by removing b' prefix and ' suffix
+demog_grouped.columns = [col.decode('utf-8') if isinstance(col, bytes) else str(col).replace("b'", "").replace("'", "") for col in demog_grouped.columns]
+# set YEAR column as index
+demog_grouped = demog_grouped.set_index('YEAR')
+# reorder columns to <-1,-1-0, 0-1, >1
+demog_grouped = demog_grouped[['<-1', '-1-0', '0-1', '>1']]
+# save as csv
+demog_grouped.to_csv("Data/Processed/KPSC_population_by_ndi.csv", index=False)
 
-ax.scatter([0.3,0.59,0.62], [0.11, 0.2, 0.8], s=150, color="white", edgecolor="black")
+# dmflu = pd.read_csv("Data/Processed/DataMartFlu.csv", delimiter=',')
+# # make date column into date format
+# dmflu['Date'] = pd.to_datetime(dmflu['Date'], format='%d %B %Y')
+# # Sum "Influenza A not subtyped,Influenza A H1N1pdm09,Influenza A H3N2" into "Influenza A"
+# dmflu['Influenza A Cases'] = dmflu['Influenza A not subtyped'] + dmflu['Influenza A H1N1pdm09'] + dmflu['Influenza A H3N2']
+# # rename "Influenza B" to "Influenza B Cases"
+# dmflu.rename(columns={'Influenza B':'Influenza B Cases'}, inplace=True)
+# # Find relative proportions of Influenza A and Influenza B
+# total_flu = dmflu['Influenza A Cases'] + dmflu['Influenza B Cases']
+# dmflu['Proportion Influenza A'] = dmflu['Influenza A Cases'] / total_flu
+# dmflu['Proportion Influenza B'] = dmflu['Influenza B Cases'] / total_flu
+# # use this along with "Percentage testing positive for overall influenza" to get precent positive for Influenza A and B
+# dmflu['Influenza A'] = dmflu['Percentage testing positive for overall influenza'] * dmflu['Proportion Influenza A']
+# dmflu['Influenza B'] = dmflu['Percentage testing positive for overall influenza'] * dmflu['Proportion Influenza B']
 
-# plot a grey triangle between these points
-triangle = plt.Polygon([[0.3,0.11],[0.59,0.2],[0.62,0.8]], color='grey', alpha=0.3)
-ax.add_patch(triangle)
+# dmothers = pd.read_csv("Data/Processed/DataMartOthers.csv", delimiter=',')
+# # make date column into date format
+# dmothers['Date'] = pd.to_datetime(dmothers['Date'], format='%d %B %Y')
+# # rename from column format "Percentage testing positive for rhinovirus" to just "Rhinovirus"
+# dmothers.rename(columns={'Percentage testing positive for adenovirus':'Adenovirus', 'Percentage testing positive for hMPV':'Metapneumovirus', 'Percentage testing positive for rhinovirus':'Rhinovirus', 'Percentage testing positive for parainfluenza':'Parainfluenza'}, inplace=True)
+# # unify the two dataframes into one with columns Date, Pathogen, Percent Positive
+# dmflu_melted = dmflu.melt(id_vars=['Date'], value_vars=['Influenza A', 'Influenza B'], var_name='Pathogen', value_name='Percent Positive')
+# dmothers_melted = dmothers.melt(id_vars=['Date'], value_vars=['Adenovirus', 'Rhinovirus', 'Parainfluenza', 'Metapneumovirus'], var_name='Pathogen', value_name='Percent Positive')
+# dm_all = pd.concat([dmflu_melted, dmothers_melted], ignore_index=True)
+# # print earliest and latest date
+# print(f"Earliest date: {dm_all['Date'].min()}")
+# print(f"Latest date: {dm_all['Date'].max()}")
 
-ax.set_xlabel("Parameter 1")
-ax.set_ylabel("Parameter 2")
-ax.set_xlim(0,1)
-ax.set_ylim(0,1)
-ax.set_yticks(jnp.arange(0,1.1,0.2))
-ax.set_xticks(jnp.arange(0,1.1,0.2))
-ax.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.savefig("Figures/parameter_grid_template_points_triangle.png", dpi=300)
+# # plot pathogen percent positive over time
+# fig, ax = plt.subplots(3, 2, figsize=(13.3/2,5.7), sharex=True)
+# pathogen_list = ['Influenza A', 'Influenza B', 'Adenovirus', 'Rhinovirus', 'Parainfluenza', 'Metapneumovirus']
+# for i, pathogen in enumerate(pathogen_list):
+#     row = i // 2
+#     col = i % 2
+#     data = dm_all[dm_all['Pathogen'] == pathogen]
+#     ax[row, col].plot(data['Date'], data['Percent Positive'], color='k')
+#     ax[row, col].set_title(pathogen)
+#     if row == 2:
+#         ax[row, col].set_xlabel('Time')
+#     if col == 0:
+#         ax[row, col].set_ylabel('Positivity (%)')
+#     ax[row, col].set_xticks(pd.date_range(start='2018-01-01', end='2025-01-01', freq='2YS'))
+#     ax[row, col].set_xticklabels([date.strftime('%Y') for date in pd.date_range(start='2018-01-01', end='2025-01-01', freq='2YS')])
+#     # Add minor ticks for intermediate years
+#     ax[row, col].set_xticks(pd.date_range(start='2018-06-01', end='2025-06-01', freq='Y'), minor=True)
+# plt.tight_layout()
+# plt.savefig("Figures/DataMart_pathogen_percent_positive.png", dpi=300)
+
+# # mock-up of finding the optimal timing of a vaccination to minimize peak incidence
+# # heatmap with x axis being vaccination time, y axis being vaccine coverage, color being peak incidence change from baseline
+# # region of low incidence for the middle of vaccination times and high coverage, region of high incidence for early vaccinaiton and low coverage
+# n_days = 100
+# vaccination_times = jnp.arange(n_days)
+# vaccine_coverages = jnp.linspace(0,1,50)
+# peak_incidence_change = jnp.zeros((len(vaccine_coverages), len(vaccination_times)))
+# for i, coverage in enumerate(vaccine_coverages):
+#     for j, vacc_time in enumerate(vaccination_times):
+#         # mock peak incidence change as a function of vacc_time and coverage
+#         # Add a penalty for early vaccination with low coverage
+#         early_penalty = (1 - coverage) * jnp.exp(-0.01*(vacc_time)**2) * 0.2
+#         peak_incidence_change = peak_incidence_change.at[i,j].set(1 - 0.3 * coverage * jnp.exp(-0.01*(vacc_time - n_days/2)**2) + early_penalty)
+# plt.figure(figsize=(13.3/2.2,2.7))
+# plt.imshow(peak_incidence_change, extent=[0,n_days,0,1], aspect='auto', origin='lower', cmap='viridis')
+# plt.colorbar(label='Peak incidence change')
+# plt.xlabel('Vaccination time')
+# plt.ylabel('Vaccine coverage')
+# plt.xticks([])
+# plt.yticks([])
+# # plt.title('Finding optimal vaccination timing')
+# plt.savefig("Figures/optimal_vaccination_timing_mockup.png", dpi=300)
+
+# # mock-up of forecasting multiple pathogens simultaneously
+# # generate two classic SIR curves with differen timing
+# n_days = 60
+# t = jnp.arange(n_days)
+# def sir_model(beta, gamma, S0, I0, R0, days):
+#     S = jnp.zeros(days)
+#     I = jnp.zeros(days)
+#     R = jnp.zeros(days)
+#     S = S.at[0].set(S0)
+#     I = I.at[0].set(I0)
+#     R = R.at[0].set(R0)
+#     for day in range(1, days):
+#         new_infections = beta * S[day-1] * I[day-1] / (S0 + I0 + R0)
+#         new_recoveries = gamma * I[day-1]
+#         S = S.at[day].set(S[day-1] - new_infections)
+#         I = I.at[day].set(I[day-1] + new_infections - new_recoveries)
+#         R = R.at[day].set(R[day-1] + new_recoveries)
+#     return S, I, R
+# beta1, gamma1 = 0.3, 0.1
+# beta2, gamma2 = 0.4, 0.1
+# S1, I1, R1 = sir_model(beta1, gamma1, 990, 10, 0, n_days)
+# S2, I2, R2 = sir_model(beta2, gamma2, 990, 10, 0, n_days)
+# # plot both on same graph
+# plt.figure(figsize=(13.3/2.2,2.7))
+# # Create mock uncertainty intervals that grow then shrink with outbreak size
+# uncertainty_factor = 0.5  # Controls width of uncertainty bands
+# # Make uncertainty narrow at time 20 (the transition point)
+# transition_factor = 1 - jnp.exp(-0.5 * (t - 20)**2)  # Gaussian that's minimal at t=20
+# uncertainty1 = uncertainty_factor * I1 * (1 - I1/jnp.max(I1)) * transition_factor
+# uncertainty2 = uncertainty_factor * I2 * (1 - I2/jnp.max(I2)) * transition_factor
+
+# # Plot the main curves
+# plt.plot(t[:21], I1[:21], label='Virus A', color='#648FFF', linestyle='-')
+# plt.plot(t[20:], I1[20:], color='#648FFF', linestyle='--')
+# plt.plot(t[:21], I2[:21], label='Virus B', color='#DC267F', linestyle='-')
+# plt.plot(t[20:], I2[20:], color='#DC267F', linestyle='--')
+
+# # Add uncertainty bands
+# plt.fill_between(t[20:], I1[20:] - uncertainty1[20:], I1[20:] + uncertainty1[20:], alpha=0.2, color='#648FFF')
+# plt.fill_between(t[20:], I2[20:] - uncertainty2[20:], I2[20:] + uncertainty2[20:], alpha=0.2, color='#DC267F')
+# plt.legend()
+# plt.xlabel('Time')
+# plt.ylabel('Incidence')
+# plt.xticks([])
+# plt.yticks([])
+# # plt.tight_layout()
+# # plt.title('Forecasting simultaneous epidemics')
+# plt.savefig("Figures/multiple_pathogen_forecast_mockup.png", dpi=300)
+
+# # use the same SIR model as above, but do three pathogens and introduce a small perturbation in beta at day 30
+# n_days = 40
+# slowdown = 5
+# t = jnp.linspace(0, n_days-1, n_days*slowdown)
+# def sir_model_perturb(beta, gamma, S0, I0, R0, t, perturb_day, perturb_amount):
+#     S = jnp.zeros(t.shape[0])
+#     I = jnp.zeros(t.shape[0])
+#     R = jnp.zeros(t.shape[0])
+#     S = S.at[0].set(S0)
+#     I = I.at[0].set(I0)
+#     R = R.at[0].set(R0)
+#     for i in range(1, t.shape[0]):
+#         new_infections = beta * S[i-1] * I[i-1] / (S0 + I0 + R0) / slowdown
+#         new_recoveries = gamma * I[i-1] / slowdown
+#         S = S.at[i].set(S[i-1] - new_infections)
+#         I = I.at[i].set(I[i-1] + new_infections - new_recoveries)
+#         R = R.at[i].set(R[i-1] + new_recoveries)
+#     return S, I, R
+# beta_values = [0.5, 1, 0.4]
+# gamma = 0.1
+# perturb_day = 17
+# perturb_amount = 0
+# S_list, I_list, R_list = [], [], []
+# for beta in beta_values:
+#     S, I, R = sir_model_perturb(beta, gamma, 990, 10, 0, t, perturb_day, perturb_amount)
+#     S_list.append(S)
+#     I_list.append(I)
+#     R_list.append(R)
+# # create poisson noisy trajectories from I_list
+# key = jax.random.PRNGKey(0)
+# for i in range(3):
+#     I_noisy = jax.random.poisson(key, I_list[i])
+#     I_noisy = I_noisy*(1 - 0.25 * jnp.exp(-0.8 * (t - perturb_day)**2))  # small dip at perturbation day
+#     I_list[i] = I_noisy
+# # plot three on subgraphs with vertical dashed line at perturbation day
+# plt.figure(figsize=(13.3/2.2,2.7))
+# for i in range(3):
+#     plt.subplot(3,1,i+1)
+#     plt.plot(t, I_list[i], label=f'Virus {chr(65+i)}', color="k")
+#     plt.axvline(x=perturb_day, color='r', linestyle='--', alpha=0.7)
+#     # Add annotation with two asterisks
+#     if i==0:
+#         plt.annotate('*', xy=(perturb_day, plt.ylim()[1]*0.9), ha='center', fontsize=16, color='r')
+#     if i == 1:
+#         plt.ylabel('Incidence')
+#     else:
+#         plt.ylabel('')
+#     plt.xticks([])
+#     plt.yticks([])
+#     if i == 2:
+#         plt.xlabel('Time')
+# plt.tight_layout()
+# plt.savefig("Figures/epidemic_response_perturbation_mockup.png", dpi=300)
+
+
+
+# # Load DataMart data from Data/Raw/DataMartAllFlu2425.csv Data/Raw/DataMartInfluenzaB2425.csv Data/Raw/DataMartAdenovirus2425.csv Data/Raw/DataMartMetapneumovirus2425.csv Data/Raw/DataMartParainfluenza2425.csv Data/Raw/DataMartRhinovirus2425.csv Data/Raw/DataMartRSV2425NorthEngland.csv Data/Raw/DataMartCOVID192425NorthEngland.csv
+# allflu = pd.read_csv("Data/Raw/DataMartAllFlu2425.csv", delimiter=',', header=None)
+# influenzaB = pd.read_csv("Data/Raw/DataMartInfluenzaB2425.csv", delimiter=',', header=None)
+# adenovirus = pd.read_csv("Data/Raw/DataMartAdenovirus2425.csv", delimiter=',', header=None)
+# metapneumovirus = pd.read_csv("Data/Raw/DataMartMetapneumovirus2425.csv", delimiter=',', header=None)
+# parainfluenza = pd.read_csv("Data/Raw/DataMartParainfluenza2425.csv", delimiter=',', header=None)
+# rhinovirus = pd.read_csv("Data/Raw/DataMartRhinovirus2425.csv", delimiter=',', header=None)
+# # assign column names: Week, Cases
+# allflu.columns = ['Week', 'Cases']
+# influenzaB.columns = ['Week', 'Cases']
+# adenovirus.columns = ['Week', 'Cases']
+# metapneumovirus.columns = ['Week', 'Cases']
+# parainfluenza.columns = ['Week', 'Cases']
+# rhinovirus.columns = ['Week', 'Cases']
+# rsv = pd.read_csv("Data/Raw/DataMartRSV2425NorthEngland.csv", delimiter=',', header=None)
+# covid19 = pd.read_csv("Data/Raw/DataMartCOVID192425NorthEngland.csv", delimiter=',', header=None)
+# # column names: Month, Positivity
+# rsv.columns = ['Month', 'Positivity']
+# covid19.columns = ['Month', 'Positivity']
+# # x axis for everything except covid and rsv is number of weeks since 2024-01-01, convert to dates
+# allflu['Date'] = pd.to_datetime('2024-01-01') + pd.to_timedelta(allflu['Week']*7, unit='D')
+# influenzaB['Date'] = pd.to_datetime('2024-01-01') + pd.to_timedelta(influenzaB['Week']*7, unit='D')
+# adenovirus['Date'] = pd.to_datetime('2024-01-01') + pd.to_timedelta(adenovirus['Week']*7, unit='D')
+# metapneumovirus['Date'] = pd.to_datetime('2024-01-01') + pd.to_timedelta(metapneumovirus['Week']*7, unit='D')
+# parainfluenza['Date'] = pd.to_datetime('2024-01-01') + pd.to_timedelta(parainfluenza['Week']*7, unit='D')
+# rhinovirus['Date'] = pd.to_datetime('2024-01-01') + pd.to_timedelta(rhinovirus['Week']*7, unit='D')
+# # x axis for rsv and covid is number of months since 2024-06-01, convert to dates
+# rsv['Date'] = pd.to_datetime('2024-06-01') + pd.to_timedelta(rsv['Month']*30, unit='D')
+# covid19['Date'] = pd.to_datetime('2024-06-01') + pd.to_timedelta(covid19['Month']*30, unit='D')
+# # sort rsv by date
+# rsv = rsv.sort_values(by='Date')
+# # flu A is allflu - influenzaB
+# influenzaA = allflu.copy()
+# influenzaA['Cases'] = allflu['Cases'] - influenzaB['Cases']
+# # plot all pathogens on grid of subplots
+# fig, ax = plt.subplots(4,2,figsize=(13.3/2,6), sharex=True)
+# ax[0,0].plot(influenzaA['Date'], influenzaA['Cases'], label='Influenza A', color='k')
+# ax[0,0].set_title('Influenza A')
+# ax[0,1].plot(influenzaB['Date'], influenzaB['Cases'], label='Influenza B', color='k')
+# ax[0,1].set_title('Influenza B')
+# ax[1,0].plot(adenovirus['Date'], adenovirus['Cases'], label='Adenovirus', color='k')
+# ax[1,0].set_title('Adenovirus')
+# ax[1,1].plot(metapneumovirus['Date'], metapneumovirus['Cases'], label='Metapneumovirus', color='k')
+# ax[1,1].set_title('Metapneumovirus')
+# ax[2,0].plot(parainfluenza['Date'], parainfluenza['Cases'], label='Parainfluenza', color='k')
+# ax[2,0].set_title('Parainfluenza')
+# ax[2,1].plot(rhinovirus['Date'], rhinovirus['Cases'], label='Rhinovirus', color='k')
+# ax[2,1].set_title('Rhinovirus')
+# ax[3,0].plot(rsv['Date'], rsv['Positivity'], label='RSV Positivity', color='k')
+# ax[3,0].set_title('RSV')
+# ax[3,1].plot(covid19['Date'], covid19['Positivity'], label='COVID-19 Positivity', color='k')
+# ax[3,1].set_title('SARS-CoV-2')
+# for i in range(3):
+#     ax[i,0].set_ylabel("Incidence")
+#     ax[i,1].set_ylabel("")
+# ax[3,0].set_ylabel("Positivity (%)")
+# ax[3,1].set_ylabel("")
+# for j in range(2):
+#     ax[3,j].set_xlabel("Time")
+# for ax in ax.flatten():
+#     # set x ticks to every 2 years
+#     ax.set_xticks(pd.date_range(start='2024-06-01',end='2025-07-01',freq='2MS'))
+#     ax.set_xticklabels([year.strftime('%b') for year in pd.date_range(start='2024-06-01',end='2025-07-01',freq='2MS')], rotation=30)
+#     # add minor ticks for non-labelled years
+#     ax.set_xticks(pd.date_range(start='2024-06-01',end='2025-07-01',freq='MS'), minor=True)
+#     # ax.axvspan(npi_start, npi_end, color='gray', alpha=0.3)
+# # save
+# plt.setp(ax.get_xticklabels(), rotation=20, ha="right", rotation_mode="anchor")
+# plt.tight_layout()
+# plt.savefig("Figures/DataMart_pathogen_incidence.png", dpi=300)
+
+# # axes with paramter 1 from 0 to 1 and parameter 2 from 0 to 1, and a faint grid in the background
+# fig, ax = plt.subplots(figsize=(12.5,5.5))
+
+# ax.scatter([0.3,0.59,0.62], [0.11, 0.2, 0.8], s=150, color="white", edgecolor="black")
+
+# # plot a grey triangle between these points
+# triangle = plt.Polygon([[0.3,0.11],[0.59,0.2],[0.62,0.8]], color='grey', alpha=0.3)
+# ax.add_patch(triangle)
+
+# ax.set_xlabel("Parameter 1")
+# ax.set_ylabel("Parameter 2")
+# ax.set_xlim(0,1)
+# ax.set_ylim(0,1)
+# ax.set_yticks(jnp.arange(0,1.1,0.2))
+# ax.set_xticks(jnp.arange(0,1.1,0.2))
+# ax.grid(True, alpha=0.3)
+# plt.tight_layout()
+# plt.savefig("Figures/parameter_grid_template_points_triangle.png", dpi=300)
 
 # RSV = ["RSV", "251103", "NA"]
 # Metapneumovirus = ["Metapneumovirus", "2511032", "NA"]

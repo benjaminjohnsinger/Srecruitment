@@ -9,7 +9,7 @@ import jax.numpy as np
 import numpy as np
 
 # # adjust plot text size
-plt.rcParams.update({'font.size':11})
+plt.rcParams.update({'font.size':18})
 # text type is palatino
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
@@ -38,7 +38,7 @@ def categorize_pathogens(pathogen):
     elif "SARS-COV-2" in pathogen:
         return "SARS-CoV-2"
     elif "RHINOVIRUS" in pathogen:
-        return "Rhinovirus"
+        return "Enterovirus"
     elif "ENTEROVIRUS" in pathogen:
         return "Enterovirus"
     elif "BORDETELLA PERTUSSIS" in pathogen:
@@ -246,7 +246,7 @@ def plot_heatmap(ax, results, pathogens_of_interest, title='Viral Interference H
     pivot_table = pivot_table.reindex(pathogens_of_interest, axis=0).reindex(pathogens_of_interest, axis=1)
     p_values = p_values.reindex(pathogens_of_interest, axis=0).reindex(pathogens_of_interest, axis=1)
     # order columns and rows differently
-    order = ["InfluenzaA", "InfluenzaB", "Metapneumovirus", "RSV", "Parainfluenza", "SARS-CoV-2", "Enterovirus", "Adenovirus"]
+    order = ["InfluenzaA", "InfluenzaB", "SARS-CoV-2", "Metapneumovirus", "Parainfluenza", "RSV", "Enterovirus", "Adenovirus"]
     pivot_table = pivot_table.loc[order, order]
     # reflect the lower triangle to the upper triangle, and vice versa, replacing NaNs with corresponding value in other traingle
     for i in range(len(order)):
@@ -263,7 +263,7 @@ def plot_heatmap(ax, results, pathogens_of_interest, title='Viral Interference H
                 pivot_table.iloc[i, j] = np.nan
     print(p_values)
     # sns.set(font_scale=0.8)
-    sns.heatmap(pivot_table, annot=True, fmt=".2f", cmap='viridis_r', ax=ax, cbar_kws={'label': 'Odds Ratio'}, vmin=0.1, vmax=1, annot_kws={"size": 8})
+    sns.heatmap(pivot_table, annot=True, fmt=".2f", cmap='viridis_r', ax=ax, cbar_kws={'label': 'Odds Ratio'}, vmin=0.1, vmax=1, annot_kws={"size": 18})
     cells = ax.get_children()
     if significance != None:
         for i,p1 in enumerate(order):
@@ -342,10 +342,10 @@ if __name__ == "__main__":
     # for pathogen in pathogens_of_interest:
     #     print(pathogen, pathogen_names[pathogen])
 
-    old_test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', encoding='utf-8')
-    new_test_data = pd.read_sas('Data/Raw/KPSC/testing_20250818.sas7bdat', encoding='utf-8')
-    test_data = pd.concat([old_test_data, new_test_data], ignore_index=True)
-    test_data = test_data.loc[test_data["lab_type"]=="PCR"]
+    # old_test_data = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', encoding='utf-8')
+    # new_test_data = pd.read_sas('Data/Raw/KPSC/testing_20250818.sas7bdat', encoding='utf-8')
+    # test_data = pd.concat([old_test_data, new_test_data], ignore_index=True)
+    # test_data = test_data.loc[test_data["lab_type"]=="PCR"]
     # test_counts = test_data['pathogen'].value_counts()
     # # save test counts to csv
     # test_counts.to_csv('Data/Processed/KPSC_test_counts_extended.csv', index=False)
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     # # print(test_data.loc[test_data["pathogen"].isin(panel_pathogens)].len(), "tests of panel pathogens")
     # # print(test_data.loc[test_data["pathogen"].isin(panel_pathogens), "StudyID"].nunique(), "patients with panel pathogens")
 
-    print(len(test_data["StudyID"].unique()), "patients in the testing dataset")
+    # print(len(test_data["StudyID"].unique()), "patients in the testing dataset")
 
     # old_clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat', encoding='utf-8')
     # new_clinical_data = pd.read_sas('Data/Raw/KPSC/clinical_20250818.sas7bdat', encoding='utf-8')
@@ -408,9 +408,9 @@ if __name__ == "__main__":
     # # save the processed data
     # df.to_csv('Data/Processed/testing_extended.csv', index=False)
     # print(df["pathogen_group"].value_counts())
-    # load the processed data
-    df = pd.read_csv('Data/Processed/testing_extended.csv')
-    # generate_tables(pathogens_of_interest, restrictive=True, period='year_month', load=False, threshold=0, bias=False)
+    # # load the processed data
+    # df = pd.read_csv('Data/Processed/testing_extended.csv')
+    # generate_tables(pathogens_of_interest, restrictive=True, period='year_month', load=False, threshold=0, bias=True)
 
 
     # demographic_data = pd.read_sas('Data/Raw/KPSC/demographics.sas7bdat', encoding='utf-8')
@@ -433,24 +433,68 @@ if __name__ == "__main__":
     #         print(f"Probability of appearing in study given negativity for both, assuming high prevalence: {N_NA_NB/(N_S*(1-prev1)*(1-prev2))}")
     #         print("\n")
 
+    # load positivity tables and find the total number of co-infections
+    positivity_tables = {}
+    for i, pathogen1 in enumerate(pathogens_of_interest):
+        for pathogen2 in pathogens_of_interest[i+1:]:
+            pt = pd.read_csv('Data/Processed/positivity_table_'+pathogen1+pathogen2+"year_month_restrictive_extended.csv")
+            positivity_tables[(pathogen1, pathogen2)] = pt
+    
+    # Create a combined dataset to count unique co-infection instances
+    all_coinfections = []
+    for (pathogen1, pathogen2), pt in positivity_tables.items():
+        # Find rows where both pathogens are positive
+        coinfected = pt[(pt[pathogen1] == 1) & (pt[pathogen2] == 1)]
+        for _, row in coinfected.iterrows():
+            all_coinfections.append({
+                'StudyID': row['StudyID'],
+                'year_month': row['year_month'],
+                'pathogen1': pathogen1,
+                'pathogen2': pathogen2
+            })
+    
+    # Convert to DataFrame for easier manipulation
+    coinfections_df = pd.DataFrame(all_coinfections)
+    
+    # Count pairwise co-infections
+    for pathogen1 in pathogens_of_interest:
+        for pathogen2 in pathogens_of_interest:
+            if pathogen1 != pathogen2:
+                # Get co-infections for this specific pair (order doesn't matter)
+                pair_coinfections = coinfections_df[
+                    ((coinfections_df['pathogen1'] == pathogen1) & (coinfections_df['pathogen2'] == pathogen2)) |
+                    ((coinfections_df['pathogen1'] == pathogen2) & (coinfections_df['pathogen2'] == pathogen1))
+                ]
+                n_co = len(pair_coinfections)
+                print(f"Number of co-infections between {pathogen1} and {pathogen2}: {n_co}")
+    
+    # Count total unique co-infection instances (each patient-month with 2+ pathogens counts as 1)
+    total_coinfection_instances = coinfections_df.groupby(['StudyID', 'year_month']).size()
+    total_unique_coinfections = len(total_coinfection_instances)
+    
+    print(f"Total number of unique co-infection instances: {total_unique_coinfections}")
+    print(f"Distribution of co-infection complexity:")
+    print(total_coinfection_instances.value_counts().sort_index())
 
     # results = pd.read_csv('Data/Processed/viral_interference_CMH_tests2_restrictive_threshold0_extended.csv')
-    # results = results[(results['match_by_date'] == True) & (results['period'] == 'year_month')].copy()
-    results_corrected = pd.read_csv('Data/Processed/viral_interference_CMH_tests2_restrictive_Mbias_threshold0_extended.csv')
-    # results_corrected_reverse_order = pd.read_csv('Data/Processed/viral_interference_CMH_tests_prevalence_correction_reverse_order.csv')
-    # results_corrected_combined = pd.concat([results_corrected, results_corrected_reverse_order], ignore_index=True)
-    fig, axes = plt.subplots(figsize=(13.3/4, 7.5/3))
-    # Create the heatmaps without color bars
+    # # results = results[(results['match_by_date'] == True) & (results['period'] == 'year_month')].copy()
+    # results_corrected = pd.read_csv('Data/Processed/viral_interference_CMH_tests2_restrictive_Mbias_threshold0_extended.csv')
+    # # results_corrected_reverse_order = pd.read_csv('Data/Processed/viral_interference_CMH_tests_prevalence_correction_reverse_order.csv')
+    # # results_corrected_combined = pd.concat([results_corrected, results_corrected_reverse_order], ignore_index=True)
+    # fig, axes = plt.subplots(1,2,figsize=(13.3, 7.5))
+    # # Create the heatmaps without color bars
     # plot_heatmap(axes[0], results, pathogens_of_interest, title='Naïve', significance=None)
-    plot_heatmap(axes, results_corrected, pathogens_of_interest, title='', significance=None)
-    plt.tight_layout()
-    # remove color bar
+    # plot_heatmap(axes[1], results_corrected, pathogens_of_interest, title='Adjusted for bias', significance=None)
+    # # plt.tight_layout()
+    # # remove color bar
     # axes[0].collections[0].colorbar.remove()
     # axes[1].collections[0].colorbar.remove()
+    # # no y labels on right plot
+    # axes[1].set_yticklabels([])
 
-    # Add a shared color bar
+    # # Add a shared color bar
     # cbar = fig.colorbar(axes[0].collections[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
     # cbar.set_label('Odds Ratio')
-    # plt.suptitle('Chochran-Mantel-Haenszel odds ratios for viral interference')
+    # plt.suptitle('Chochran-Mantel-Haenszel odds ratios for co-infection probability')
 
-    plt.savefig('Figures/viral_interference_heatmap_CDA_presentation.png', dpi=300)
+    # plt.savefig('Figures/viral_interference_heatmap_slide.png', dpi=300)

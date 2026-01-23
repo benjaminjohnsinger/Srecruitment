@@ -424,14 +424,14 @@ def mcmc_corner_plot(trajectory,param_names,burn_in):
 ##### KPSC data plots #####
 pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE B"],
 "InfluenzaA": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B"],
-"InfluenzaAH1": ["INFLUENZA A H1N1 2009","INFLUENZA A VIRUS SUBTYPE H1"],
-"InfluenzaAH3": ["INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3"],
+# "InfluenzaAH1": ["INFLUENZA A H1N1 2009","INFLUENZA A VIRUS SUBTYPE H1"],
+# "InfluenzaAH3": ["INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3"],
 "InfluenzaB": ["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"],
-"Influenza": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B","INFLUENZA B","INFLUENZA VIRUS B"],
+# "Influenza": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B","INFLUENZA B","INFLUENZA VIRUS B"],
 "Metapneumovirus": ["HUMAN METAPNEUMOVIRUS VIRUS",],
-"HMPV" : ["HUMAN METAPNEUMOVIRUS VIRUS",],
+# "HMPV" : ["HUMAN METAPNEUMOVIRUS VIRUS",],
 "Adenovirus": ["ADENOVIRUS",],
-"Parainfluenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
+# "Parainfluenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
 "Parainfluenza3": ["PARAINFLUENZA VIRUS 3"],
 "Rhinovirus": ["ENTEROVIRUS/RHINOVIRUS"],
 "Pertussis": ["BORDETELLA PERTUSSIS"],
@@ -443,7 +443,7 @@ pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL V
 reverse_names = [{v:k for v in values} for k,values in pathogen_names.items()]
 reverse_names =  {k:v for d in reverse_names for k,v in d.items()}
 import numpy as np
-def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=None,AGE_GROUP_NAMES=None,incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None, save_data=False, load_data=False):
+def kpsc_positive_test_plot(ax, hospitalizations=True, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, NDI_GROUPS=None, NDI_GROUP_NAMES=None, incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None, save_data=False, load_data=False):
     print(pathogen)
     if load_data:
         if pathogen == "test":
@@ -462,6 +462,13 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
             # repeat last row for 2023-2025
             for year in range(2023,2026):
                 age_by_year.loc[year] = age_by_year.loc[2022]
+            # load ndi population data
+            ndi_by_year = pd.read_csv("Data/Processed/KPSC_population_by_ndi.csv")
+            ndi_by_year.columns = NDI_GROUP_NAMES
+            ndi_by_year.loc[:,"Year"] = np.arange(2015,2023)
+            ndi_by_year = ndi_by_year.set_index("Year")
+            for year in range(2023,2026):
+                ndi_by_year.loc[year] = ndi_by_year.loc[2022]
         
         if hospitalizations:
             positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
@@ -477,6 +484,8 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
             cases.loc[:,"Date"] = pd.to_datetime(cases["Clinical date"])
         print(cases.columns)
         print(cases["Date"].max())
+        print(cases["ndi"].min(),cases["ndi"].max())
+        print(cases["NDI"].min(),cases["NDI"].max())
         if aggregation is not None:
             cases.loc[:,"Year"] = cases["Date"].dt.year
             if aggregation == "Month":
@@ -490,6 +499,14 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
                 cases = cases.groupby(["Date","age_group"]).size().reset_index(name='Count')
             else:
                 cases = cases.groupby(["Year",aggregation,"age_group"]).size().reset_index(name='Count')
+            print(cases["Count"].sum())
+        elif NDI_GROUPS is not None:
+            for i in range(len(NDI_GROUPS)):
+                cases.loc[(cases["ndi"] >= NDI_GROUPS[i][0]) & (cases["ndi"] < NDI_GROUPS[i][-1]),"NDI_group"] = NDI_GROUP_NAMES[i]
+            if aggregation is None:
+                cases = cases.groupby(["Date","NDI_group"]).size().reset_index(name='Count')
+            else:
+                cases = cases.groupby(["Year",aggregation,"NDI_group"]).size().reset_index(name='Count')
         else:
             if aggregation is None:
                 cases = cases.groupby(["Date"]).size().reset_index(name='Count')
@@ -516,6 +533,14 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
                     else:
                         if not (((cases["Year"]==year) & (cases[aggregation]==agg)) & (cases["age_group"]==age_group)).any():
                             cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"age_group":[age_group],"Count":[0]})])
+            elif NDI_GROUPS is not None:
+                for ndi_group in NDI_GROUP_NAMES:
+                    if aggregation is None:
+                        if not ((cases["Date"]==date) & (cases["NDI_group"]==ndi_group)).any():
+                            cases = pd.concat([cases,pd.DataFrame({"Date":[date],"NDI_group":[ndi_group],"Count":[0]})])
+                    else:
+                        if not (((cases["Year"]==year) & (cases[aggregation]==agg)) & (cases["NDI_group"]==ndi_group)).any():
+                            cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"NDI_group":[ndi_group],"Count":[0]})])
             if aggregation is None:
                 if not (cases["Date"]==date).any():
                     cases = pd.concat([cases,pd.DataFrame({"Date":[date],"Count":[0]})])
@@ -538,6 +563,11 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
             cases = cases[AGE_GROUP_NAMES]
             if incidence:
                 cases = cases.div(age_by_year.loc[cases.index.year].values)
+        elif NDI_GROUPS is not None:
+            cases = cases.pivot(columns="NDI_group",values="Count")
+            cases = cases[NDI_GROUP_NAMES]
+            if incidence:
+                cases = cases.div(ndi_by_year.loc[cases.index.year].values)
         elif incidence:
             cases.loc[:,"Count"] = cases["Count"]/np.sum(age_by_year.loc[cases.index.year].values,axis=1)
 
@@ -558,6 +588,9 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
             ax.plot(cases.index, cases[AGE_GROUP_NAMES[i]], label=AGE_GROUP_NAMES[i], color=color[i])
             # ax.set_xticks(cases.index)
             # ax.set_xticklabels([year if year % 2 == 0 else '' for year in cases.index.year], rotation=45)
+    elif NDI_GROUPS is not None:
+        for i in range(len(NDI_GROUP_NAMES)):
+            ax.plot(cases.index, cases[NDI_GROUP_NAMES[i]], label=NDI_GROUP_NAMES[i], color=color[i])
     else:
         # cases.plot(ax=ax,legend=False,color=color,title=f"{pathogen} positive tests")
         ax.plot(cases.index,cases["Count"],color=color)
@@ -568,19 +601,21 @@ def kpsc_positive_test_plot(ax,hospitalizations=True,pathogen="RSV",AGE_GROUPS=N
         ax.set_ylabel("Cases")
     if legend:
         # two column legend
-        ax.legend(ncol=2,title="Age groups")
+        if AGE_GROUPS is not None:
+            ax.legend(ncol=2,title="Age groups")
+        elif NDI_GROUPS is not None:
+            ax.legend(ncol=2,title="NDI groups")
     # ax.set_xlabel("Date")
 
 ## plot cumulative cases in each age group in each season
 def season_sizes(cases):
     seasons = [pd.to_datetime('20'+str(x)+'-10-01') for x in range(15,26)]
     season_cumulative = np.zeros((len(seasons)-1,7))
-    season_relative = np.zeros((len(seasons)-1,7))
     for seas in range(len(seasons)-1):
         season_cumulative[seas,:] = cases[(cases.index>seasons[seas]) & (cases.index<seasons[seas+1])].sum(axis=0)
     return(pd.DataFrame(season_cumulative))
 
-def season_plot(ax,pathogen,incidence=False,relative=False):
+def season_plot(ax,pathogen,incidence=True,relative=False):
     cases = pd.read_csv('Data/Processed/KPSC_ARI_'+pathogen+'_cases_age_daily.csv',index_col=0)
     cases.index = pd.to_datetime(cases.index)
     season_cumulative = season_sizes(cases)
@@ -606,85 +641,130 @@ if __name__ == "__main__":
     plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.serif'] = ['Palatino']
     from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
-    fig,ax = plt.subplots(3,3,figsize=(12.5,5.5), sharex=True)
+    NDI_GROUPS = [[-100,-1],[-1,0],[0,1],[1,100]]
+    NDI_GROUP_NAMES = ["Low","Medium-Low","Medium-High","High"]
+    fig,ax = plt.subplots(4,2,figsize=(13.3,7.5), sharex=True)
+    # fig, ax = plt.subplots(figsize=(13.3/2,7.5))
     kpsc_positive_test_plot(ax[0,0],pathogen="InfluenzaA"
-    ,AGE_GROUPS=None
-    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
+    ,NDI_GROUPS=NDI_GROUPS,NDI_GROUP_NAMES=NDI_GROUP_NAMES
+    # , AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=True,aggregation="Month",legend=False,
     save_data=True,load_data=False,
-    color = "k"
+    color = ["r","g","b","m"]
     )
     ax[0,0].set_title("Influenza A")
-    kpsc_positive_test_plot(ax[0,1],pathogen="RSV"
-    ,AGE_GROUPS=None
-    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
+    kpsc_positive_test_plot(ax[1,0],pathogen="RSV"
+    ,NDI_GROUPS=NDI_GROUPS,NDI_GROUP_NAMES=NDI_GROUP_NAMES
+    # , AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=True,aggregation="Month",legend=False,
     save_data=True,load_data=False,
-    color = "k"
+    color = ["r","g","b","m"]
     )
-    ax[0,1].set_title("RSV")
-    kpsc_positive_test_plot(ax[0,2],pathogen="Adenovirus"
-    ,AGE_GROUPS=None
-    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
+    ax[1,0].set_title("RSV")
+    # kpsc_positive_test_plot(ax,pathogen="SARS-CoV-2"
+    # ,AGE_GROUPS=None
+    # ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    # ,incidence=True,aggregation="Month",legend=False,
+    # save_data=True,load_data=False,
+    # color = "#FFB000"
+    # )
+    # # add legend
+    # ax.legend(["Influenza","RSV","SARS-CoV-2"],title="Pathogen",ncol=1)
+    kpsc_positive_test_plot(ax[2,0],pathogen="Adenovirus"
+    ,NDI_GROUPS=NDI_GROUPS,NDI_GROUP_NAMES=NDI_GROUP_NAMES
+    # , AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=True,aggregation="Month",legend=False,
     save_data=True,load_data=False,
-    color = "k"
+    color = ["r","g","b","m"]
     )
-    ax[0,2].set_title("Adenovirus")
-    kpsc_positive_test_plot(ax[1,0],pathogen="InfluenzaB"
-    ,AGE_GROUPS=None
-    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
+    ax[2,0].set_title("Adenovirus")
+    kpsc_positive_test_plot(ax[0,1],pathogen="InfluenzaB"
+    ,NDI_GROUPS=NDI_GROUPS,NDI_GROUP_NAMES=NDI_GROUP_NAMES
+    # , AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=True,aggregation="Month",legend=True,
     save_data=True,load_data=False,
-    color = "k"
+    color = ["r","g","b","m"]
     )
-    ax[1,0].set_title("Influenza B")
+    ax[0,1].set_title("Influenza B")
     kpsc_positive_test_plot(ax[1,1],pathogen="Metapneumovirus"
-    ,AGE_GROUPS=None
-    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
+    ,NDI_GROUPS=NDI_GROUPS,NDI_GROUP_NAMES=NDI_GROUP_NAMES
+    # , AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=True,aggregation="Month",legend=False,
     save_data=True,load_data=False,
-    color = "k"
+    color = ["r","g","b","m"]
     )
     ax[1,1].set_title("Metapneumovirus")
-    kpsc_positive_test_plot(ax[1,2],pathogen="Parainfluenza3"
-    ,AGE_GROUPS=None
-    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
+    kpsc_positive_test_plot(ax[2,1],pathogen="Parainfluenza3"
+    ,NDI_GROUPS=NDI_GROUPS,NDI_GROUP_NAMES=NDI_GROUP_NAMES
+    # , AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=True,aggregation="Month",legend=False,
     save_data=True,load_data=False,
-    color = "k"
+    color = ["r","g","b","m"]
     )
-    ax[1,2].set_title("Parainfluenza 3")
-    kpsc_positive_test_plot(ax[2,0],pathogen="M.pneumoniae"
-    ,AGE_GROUPS=None
-    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
+    ax[2,1].set_title("Parainfluenza 3")
+    # kpsc_positive_test_plot(ax[2,0],pathogen="M.pneumoniae"
+    # ,AGE_GROUPS=None
+    # ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    # ,incidence=True,aggregation="Month",legend=False,
+    # save_data=True,load_data=False,
+    # color = ["r","g","b","m"]
+    # )
+    # ax[2,0].set_title("M. pneumoniae")
+    # kpsc_positive_test_plot(ax[2,1],pathogen="C.pneumoniae"
+    # ,AGE_GROUPS=None
+    # ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    # ,incidence=True,aggregation="Month",legend=False,
+    # save_data=True,load_data=False,
+    # color = ["r","g","b","m"]
+    # )
+    # ax[2,1].set_title("C. pneumoniae")
+    # kpsc_positive_test_plot(ax[2,2],pathogen="Pertussis"
+    # ,AGE_GROUPS=None
+    # ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    # ,incidence=True,aggregation="Month",legend=False,
+    # save_data=True,load_data=False,
+    # color = ["r","g","b","m"]
+    # )
+    # ax[2,2].set_title("Pertussis")
+    kpsc_positive_test_plot(ax[3,0],pathogen="Enterovirus"
+    ,NDI_GROUPS=NDI_GROUPS,NDI_GROUP_NAMES=NDI_GROUP_NAMES
+    # , AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=True,aggregation="Month",legend=False,
     save_data=True,load_data=False,
-    color = "k"
+    color = ["r","g","b","m"]
     )
-    ax[2,0].set_title("M. pneumoniae")
-    kpsc_positive_test_plot(ax[2,1],pathogen="C.pneumoniae"
-    ,AGE_GROUPS=None
-    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
+    ax[3,0].set_title("Enterovirus")
+    kpsc_positive_test_plot(ax[3,1],pathogen="SARS-CoV-2"
+    ,NDI_GROUPS=NDI_GROUPS,NDI_GROUP_NAMES=NDI_GROUP_NAMES
+    # , AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES
+    ,incidence=True,aggregation="Month",legend=False,
     save_data=True,load_data=False,
-    color = "k"
+    color = ["r","g","b","m"]
     )
-    ax[2,1].set_title("C. pneumoniae")
-    kpsc_positive_test_plot(ax[2,2],pathogen="Pertussis"
-    ,AGE_GROUPS=None
-    ,AGE_GROUP_NAMES=AGE_GROUP_NAMES
-    ,incidence=False,aggregation="Month",legend=False,
-    save_data=True,load_data=False,
-    color = "k"
-    )
-    ax[2,2].set_title("Pertussis")
+    ax[3,1].set_title("SARS-CoV-2")
+
+    for i in range(4):
+        ax[i,0].set_ylabel("Incidence")
+        ax[i,1].set_ylabel("")
+    for j in range(2):
+        ax[3,j].set_xlabel("Time")
+
+    npi_start = pd.to_datetime('2020-03-19')
+    npi_end = pd.to_datetime('2022-03-01')
     for ax in ax.flatten():
-        ax.set_ylabel("")
         # set x ticks to every 2 years
         ax.set_xticks(pd.date_range(start='2015-01-01',end='2025-01-01',freq='2YS'))
         ax.set_xticklabels([str(year.year) for year in pd.date_range(start='2015-01-01',end='2025-01-01',freq='2YS')], rotation=30)
         # add minor ticks for non-labelled years
         ax.set_xticks(pd.date_range(start='2016-01-01',end='2024-01-01',freq='2YS'), minor=True)
+        # ax.axvspan(npi_start, npi_end, color='gray', alpha=0.3)
+
+    # ax.set_xlim(pd.to_datetime('2022-09-01'),pd.to_datetime('2023-03-01'))
+    # ax.set_ylim(0,440)
+    # ax.set_title("ARI hospitalizations in Southern California")
+    # ax.set_xlabel("Date")
+    # ax.set_ylabel("Test-positive cases")
+    # # rotate x tick labels
+    plt.setp(ax.get_xticklabels(), rotation=20, ha="right", rotation_mode="anchor")
     plt.tight_layout()
-    plt.savefig("Figures/KPSC_ARI_extended_cases_Monthly_rotated_w_bacteria.png",dpi=300)
+    plt.savefig("Figures/KPSC_ARI_eight_slide_NDI.png",dpi=300)
