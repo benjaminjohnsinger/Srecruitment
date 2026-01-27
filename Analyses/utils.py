@@ -231,7 +231,7 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=False):
 
 
 # @partial(jax.jit, static_argnames=['pathogen','lockdown','option1','option2'])
-def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False):
+def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False):
     if fixed_params is None:
         from Parameters.census_population import AGING_RATE
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
@@ -258,7 +258,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     BETA = x[n]
     SEASONALITY = x[n+1]
     OFFSET = x[n+2]
-    MATERNAL_IMMUNITY = 0
+    MATERNAL_IMMUNITY = jnp.zeros(FULL_POINTS.shape)
     n += 3
     if "wane" in option1:
         WANE = jnp.array([0.0,x[n],x[n+1]])
@@ -283,11 +283,9 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
         n += 1
     else:
         P_OBS = pobsrel
-    if "maxmimm" in option1:
-        MATERNAL_IMMUNITY = 1
-    elif "mimm" in option1:
-        MATERNAL_IMMUNITY = x[n]
-        n += 1
+    if "RSV" in pathogen:
+        from new_vax import rsv_maternal_immunity
+        MATERNAL_IMMUNITY = rsv_maternal_immunity(FULL_POINTS)
     if 'pathogen' not in option1:
         if lockdown == 'FlexStepwise':
             TT = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
@@ -345,12 +343,16 @@ def x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=None, 
     elif 'dynamic' in option1:
         OBS_AGE = fixed_params[7]
     if ("Influenza" in pathogen):
-        from Gemini_vaccination import calculate_vax_rate_vectorized
-        if vax_preprocessor is None:
-            from Gemini_vaccination import FluRatePreprocessor
-            age_pops = jnp.asarray(np.genfromtxt('Data/Processed/age_pops_daily.csv', delimiter=','))
-            vax_preprocessor = FluRatePreprocessor(FULL_POINTS, age_pops, AGING_RATE)
-        VAX_RATE = calculate_vax_rate_vectorized(S_REL*P_OBS, vax_preprocessor)
+        from new_vax import flu_eff_vax_rate
+        protection_param = S_REL*P_OBS
+        max_eff = (protection_param[-2]-protection_param[-1])/protection_param[-2]
+        VAX_RATE = flu_eff_vax_rate(FULL_POINTS, max_eff)
+    elif ("RSV" in pathogen):
+        from new_vax import rsv_eff_vax_rate
+        protection_param = S_REL*P_OBS
+        max_eff0 = 1 - protection_param[-1]
+        max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
+        VAX_RATE = rsv_eff_vax_rate(FULL_POINTS, max_eff0, max_eff1)
     else:
         VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
 

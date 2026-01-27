@@ -172,10 +172,10 @@ if __name__ == "__main__":
     # times = result_jax.t
     from utils import parameters_from_DE
     import pickle
-    pathogen = "RSV"
+    pathogen = "InfluenzaA"
     option1 = "NA"
     option2 = "flexage"
-    seed = 2511032
+    seed = 251103
 
     paramst, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", option1, option2, str(seed))
     # S_REL = paramst[6]
@@ -183,12 +183,12 @@ if __name__ == "__main__":
     # protection_param = S_REL * P_OBS
     # max_eff0 = 1 - protection_param[-1]
     # max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
-    # from new_vax import rsv_eff_vax_rate
-    # VAX_RATE = rsv_eff_vax_rate(FULL_POINTS, max_eff0, max_eff1)
+    # from new_vax import flu_eff_vax_rate
+    # VAX_RATE = flu_eff_vax_rate(FULL_POINTS, max_eff1)
 
     # set MATERNAL_IMMUNITY in paramst
     paramst = (paramst[0], paramst[1], paramst[2], paramst[3],
-               paramst[4], paramst[5], paramst[6], paramst[7], paramst[8], paramst[9], VAX_RATE, MATERNAL_IMMUNITY,
+               paramst[4], paramst[5], paramst[6], paramst[7], paramst[8], paramst[9], paramst[10], MATERNAL_IMMUNITY,
                paramst[12], paramst[13], paramst[14])
     
     # with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
@@ -255,4 +255,4 @@ if __name__ == "__main__":
     ax.set_xticks(xticks, xticklabels)
 
 
-    plt.savefig('Figures/RSV_DEparamtest_wo_RSVvax.png', dpi=300)
+    plt.savefig('Figures/InfluenzaA_DEparamtest_wo_InfluenzaAvax.png', dpi=300)
