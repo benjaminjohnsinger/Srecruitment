@@ -186,10 +186,10 @@ if __name__ == "__main__":
     # from new_vax import flu_eff_vax_rate
     # VAX_RATE = flu_eff_vax_rate(FULL_POINTS, max_eff1)
 
-    # set MATERNAL_IMMUNITY in paramst
-    paramst = (paramst[0], paramst[1], paramst[2], paramst[3],
-               paramst[4], paramst[5], paramst[6], paramst[7], paramst[8], paramst[9], paramst[10], MATERNAL_IMMUNITY,
-               paramst[12], paramst[13], paramst[14])
+    # # set MATERNAL_IMMUNITY in paramst
+    # paramst = (paramst[0], paramst[1], paramst[2], paramst[3],
+    #            paramst[4], paramst[5], paramst[6], paramst[7], paramst[8], paramst[9], paramst[10], MATERNAL_IMMUNITY,
+    #            paramst[12], paramst[13], paramst[14])
     
     # with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
     #     opt = pickle.load(f)
@@ -255,4 +255,4 @@ if __name__ == "__main__":
     ax.set_xticks(xticks, xticklabels)
 
 
-    plt.savefig('Figures/InfluenzaA_DEparamtest_wo_InfluenzaAvax.png', dpi=300)
+    plt.savefig('Figures/InfluenzaA_DEparamtest_w_InfluenzaAvax.png', dpi=300)
