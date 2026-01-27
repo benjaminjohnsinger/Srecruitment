@@ -164,7 +164,8 @@ if __name__ == "__main__":
     print("Shape of VAX_RATE:", VAX_RATE.shape)
     import matplotlib.pyplot as plt
     plt.plot(VAX_RATE)
-    plt.show()
+    plt.xlim(14000, 20000)
+    plt.savefig("Figures/Old_vax_data_fig.png")
 
     # # save VAX_RATE
     np.savetxt('Data/Processed/KPSC_vaccination_rate_ages_monthly_optimized_unshift.csv', VAX_RATE, delimiter=',')

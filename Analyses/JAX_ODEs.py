@@ -4,6 +4,7 @@
 import jax
 import jax.numpy as jnp
 
+
 interp_fn = jax.vmap(jnp.interp, in_axes=(None, None, 1), out_axes=0)
 
 def deltas(t, state, args):
@@ -22,7 +23,7 @@ def deltas(t, state, args):
     susceptible = shaped_state[0:2*N_S:2, :]
     # # births
     birth_rate = jnp.interp(t, FULL_POINTS, BIRTH_RATE)
-    maternal_immunity = jnp.minimum(1, MATERNAL_IMMUNITY * susceptible[-1,4] / jnp.sum(shaped_state[:-1,4]))
+    maternal_immunity = jnp.interp(t, FULL_POINTS, MATERNAL_IMMUNITY)
     delta_maternal = delta_maternal + maternal_immunity*birth_rate*pop_size
     delta = delta.at[0,0].add((1-maternal_immunity)*birth_rate*pop_size)
     # infections - calculate force of infection
@@ -91,7 +92,8 @@ if __name__ == "__main__":
     # # example parameters for testing
     NAG = 7
     N_S = 3
-    DAYS = 19632
+    DAYS = len(BIRTH_RATE)
+    FULL_POINTS = jnp.arange(DAYS)
     # BIRTH_RATE = np.ones(DAYS)*np.mean(BIRTH_RATE) # np.mean(BIRTH_RATE)
     # ARRIVALS = np.ones(DAYS)*np.mean(ARRIVALS) # np.mean(ARRIVALS)
     # POSITIVITY = np.ones(DAYS)*np.mean(POSITIVITY) # np.mean(POSITIVITY)
@@ -106,7 +108,6 @@ if __name__ == "__main__":
     REC_SAME = np.array([0.0,0.0,1/4.1])
     IMPORT_STRENGTH = 0.01*ARRIVALS/np.max(ARRIVALS)*POSITIVITY/30.44
     # IMPORT_STRENGTH = 1e-5*ARRIVALS*POSITIVITY
-    VAX_RATE = np.zeros((DAYS,NAG))
     # plt.plot(IMPORT_STRENGTH, label='Import Strength')
     # plt.show()
 
@@ -119,10 +120,18 @@ if __name__ == "__main__":
     PIECEWISE_CONTACT = np.array([piecewise(t, TT, FF, steepness=0.2) for t in range(DAYS)])
     RELATIVE_CONTACT = PIECEWISE_CONTACT*(1.0 + SEASONALITY*np.cos(2*np.pi*((np.arange(DAYS)-274)/365 - OFFSET)))
     # RELATIVE_CONTACT = np.ones(DAYS)
+    # protection_param = S_REL * P_OBS
+    # max_eff0 = 1 - protection_param[-1]
+    # max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
+    # from new_vax import rsv_eff_vax_rate
+    # VAX_RATE = rsv_eff_vax_rate(FULL_POINTS, max_eff0, max_eff1)
+    VAX_RATE = jnp.zeros((DAYS, NAG))
     # plt.plot(RELATIVE_CONTACT*np.sum(CONTACT_MATRIX), label='Relative Contact')
     # plt.savefig('Figures/new_contact_test.png')
 
-    MATERNAL_IMMUNITY = 0
+    # from new_vax import rsv_maternal_immunity
+    # MATERNAL_IMMUNITY = rsv_maternal_immunity(FULL_POINTS)
+    MATERNAL_IMMUNITY = jnp.zeros(DAYS)
 
     # # dayrange = np.arange(date_to_t("2016-10-01"),date_to_t("2017-10-01"))
     # # fig, ax = plt.subplots(1,4, figsize=(12, 3))
@@ -144,7 +153,7 @@ if __name__ == "__main__":
     # # flatten initial state and add maternal immunity compartment
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-    params = (AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
+    params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
               BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
               REC_UP, REC_SAME, IMPORT_STRENGTH)
     
@@ -164,11 +173,24 @@ if __name__ == "__main__":
     from utils import parameters_from_DE
     import pickle
     pathogen = "RSV"
-    option1 = "0.005"
+    option1 = "NA"
     option2 = "flexage"
-    seed = 2507092
+    seed = 2511032
 
     paramst, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", option1, option2, str(seed))
+    # S_REL = paramst[6]
+    # P_OBS = paramst[7]
+    # protection_param = S_REL * P_OBS
+    # max_eff0 = 1 - protection_param[-1]
+    # max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
+    # from new_vax import rsv_eff_vax_rate
+    # VAX_RATE = rsv_eff_vax_rate(FULL_POINTS, max_eff0, max_eff1)
+
+    # set MATERNAL_IMMUNITY in paramst
+    paramst = (paramst[0], paramst[1], paramst[2], paramst[3],
+               paramst[4], paramst[5], paramst[6], paramst[7], paramst[8], paramst[9], VAX_RATE, MATERNAL_IMMUNITY,
+               paramst[12], paramst[13], paramst[14])
+    
     # with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
     #     opt = pickle.load(f)
     # print(opt.x)
@@ -185,7 +207,7 @@ if __name__ == "__main__":
     solution = diffeqsolve(
                         term, solver,
                         t0=0, t1=DAYS-1, dt0=None, stepsize_controller=step_controller,
-                        saveat=saveat, y0=STATE0, args=params, 
+                        saveat=saveat, y0=STATE0, args=paramst, 
                         max_steps=100000,  
                         )
     print("Diffrax Time:", time.time() - time0)
@@ -193,10 +215,10 @@ if __name__ == "__main__":
     values = solution.ys.T
     
     from fit_MCMC import SIS_likelihood
-    incidence = np.asarray(pd.read_csv("Data/Processed/KPSC_cleaned_RSV_incidence_age_daily.csv",index_col=0))
+    incidence = np.asarray(pd.read_csv("Data/Processed/KPSC_ARI_RSV_incidence_age_daily.csv",index_col=0))
     p_time_to_obs = np.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
     POINTS = jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2025-05-01'))
-    likelihood = SIS_likelihood(incidence, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False)
+    likelihood = SIS_likelihood(incidence, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, solution=solution)
     print(likelihood)
 
     p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
@@ -216,7 +238,7 @@ if __name__ == "__main__":
     age_pops = jnp.sum(shaped_values[:2*N_S, :, :], axis=0)
 
     from matplotlib import cm as colormaps
-    fig,ax = plt.subplots(1,1, figsize=(13.3, 1))
+    fig,ax = plt.subplots(1,1, figsize=(6,6))
     hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
     hsv_colors[3] = colormaps.hsv((3/7)+0.04)
     # plt.plot(result.t, np.diff(np.sum(result.y[-NAG:,:],axis=0)))
@@ -233,4 +255,4 @@ if __name__ == "__main__":
     ax.set_xticks(xticks, xticklabels)
 
 
-    plt.savefig('Figures/RSV_DEparamtest.pdf')
+    plt.savefig('Figures/RSV_DEparamtest_wo_RSVvax.png', dpi=300)
