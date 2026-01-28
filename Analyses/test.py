@@ -30,19 +30,61 @@ plt.rcParams.update({'font.size':14})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-demog = pd.read_sas("Data/Raw/KPSC/demographics.sas7bdat", format='sas7bdat')
-# sum values in column "n" for each ndi_c group per year
-demog_grouped = demog.groupby(['YEAR','ndi_c'])['n'].sum().reset_index()
-# pivot
-demog_grouped = demog_grouped.pivot(index='YEAR', columns='ndi_c', values='n').reset_index()
-# clean up column names by removing b' prefix and ' suffix
-demog_grouped.columns = [col.decode('utf-8') if isinstance(col, bytes) else str(col).replace("b'", "").replace("'", "") for col in demog_grouped.columns]
-# set YEAR column as index
-demog_grouped = demog_grouped.set_index('YEAR')
-# reorder columns to <-1,-1-0, 0-1, >1
-demog_grouped = demog_grouped[['<-1', '-1-0', '0-1', '>1']]
-# save as csv
-demog_grouped.to_csv("Data/Processed/KPSC_population_by_ndi.csv", index=False)
+import pickle
+contact_arrays = {}
+for pathogen, seed in [("RSV", "251103"), ("Metapneumovirus", "251103"), ("InfluenzaA", "251103"), ("InfluenzaB", "2511042"), ("Adenovirus", "251103"), ("Parainfluenza3", "251103")]:
+    lockdown = "FlexStepwise"
+    option1 = "NA"
+    option2 = "flexage"
+    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+        opt = pickle.load(f)
+    x = opt.x
+    START = pd.to_datetime('2020-01-01')
+    END = pd.to_datetime('2023-01-01')
+    PERIOD = pd.date_range(start=START, end=END, freq='D')
+    POINTS = jnp.array(date_to_t(PERIOD))
+    n = 4
+    if ("Influenza" in pathogen) and ("free" not in pathogen) and (option2 != 'nr'):
+        n += 3
+    elif pathogen == 'RSV':
+        n += 2
+    else:
+        n += 4
+    if 'flexage' not in option2:
+        n += 1
+    if 'pathogen' not in option1:
+        if lockdown == 'FlexStepwise':
+            TT = jnp.array([date_to_t(START),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
+            # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
+            F1 = x[n+3] # value between 0 and 1 (first lockdown)
+            F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
+            F3 = F2*x[n+5] # value less than F2 (second lockdown)
+            F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
+            FF = jnp.array([1,F1,F2,F3,F4])
+            PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(POINTS)
+            n += 7
+    contact_arrays[pathogen] = PIECEWISE_CONTACT
+# plot piecewise contact over time for each pathogen
+fig, axes = plt.subplots(figsize=(12.5, 5))
+colors = ["#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000", "#000000"]
+
+for i, (pathogen, contact_data) in enumerate(contact_arrays.items()):
+    axes.plot(PERIOD, contact_data, label=pathogen, color=colors[i])
+    axes.set_ylabel("Relative Contact Rate")
+    # axes.set_title(pathogen)
+    axes.set_ylim(0, 1)
+    
+# Only set x-axis labels on the bottom subplot
+axes.set_xlabel("Time")
+axes.set_xticks(pd.date_range(start='2020-01-01', end='2023-01-01', freq='2YS'))
+axes.set_xticklabels([date.strftime('%Y') for date in pd.date_range(start='2020-01-01', end='2023-01-01', freq='2YS')])
+
+# Add minor ticks for intermediate years to all subplots
+axes.set_xticks(pd.date_range(start='2020-06-01', end='2023-06-01', freq='Y'), minor=True)
+plt.legend()
+plt.tight_layout()
+plt.savefig("Figures/pathogen_specific_contact_rates_DE251103.png", dpi=300)
+
 
 # dmflu = pd.read_csv("Data/Processed/DataMartFlu.csv", delimiter=',')
 # # make date column into date format
