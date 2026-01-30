@@ -185,45 +185,45 @@ import sys
 
 
 
-############## Plotting KPSC data ###############
-# Incidence line plots
-# fig, axes = plt.subplots(3,2,figsize=(13.3,7.5),sharex=True)
-# kpsc_positive_test_plot(axes[0,0],pathogen="Metapneumovirus", hospitalizations=True, incidence=True, legend=False,aggregation="Month",color='#648FFF')
-# kpsc_positive_test_plot(axes[1,0],pathogen="Adenovirus", hospitalizations=True, incidence=True, legend=False,aggregation="Month",color='#648FFF')
-# kpsc_positive_test_plot(axes[2,0],pathogen="Parainfluenza 3", hospitalizations=True, incidence=True, legend=False,aggregation="Month",color='#648FFF')
-# kpsc_positive_test_plot(axes[0,1],pathogen="Metapneumovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, hospitalizations=True, incidence=True, legend=False,aggregation="Month")
-# kpsc_positive_test_plot(axes[1,1],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, hospitalizations=True, incidence=True, legend=False,aggregation="Month")
-# kpsc_positive_test_plot(axes[2,1],pathogen="Parainfluenza 3",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, hospitalizations=True, incidence=True, legend=True,aggregation="Month")
+# ############## Plotting KPSC data ###############
+# # Incidence line plots
+# # fig, axes = plt.subplots(3,2,figsize=(13.3,7.5),sharex=True)
+# # kpsc_positive_test_plot(axes[0,0],pathogen="Metapneumovirus", hospitalizations=True, incidence=True, legend=False,aggregation="Month",color='#648FFF')
+# # kpsc_positive_test_plot(axes[1,0],pathogen="Adenovirus", hospitalizations=True, incidence=True, legend=False,aggregation="Month",color='#648FFF')
+# # kpsc_positive_test_plot(axes[2,0],pathogen="Parainfluenza 3", hospitalizations=True, incidence=True, legend=False,aggregation="Month",color='#648FFF')
+# # kpsc_positive_test_plot(axes[0,1],pathogen="Metapneumovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, hospitalizations=True, incidence=True, legend=False,aggregation="Month")
+# # kpsc_positive_test_plot(axes[1,1],pathogen="Adenovirus",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, hospitalizations=True, incidence=True, legend=False,aggregation="Month")
+# # kpsc_positive_test_plot(axes[2,1],pathogen="Parainfluenza 3",AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES, hospitalizations=True, incidence=True, legend=True,aggregation="Month")
+# # plt.tight_layout()
+# # plt.savefig('Figures/KPSC_data_sort_of_interesting_slide.png',dpi=300)
+
+# # Cumulative seasons plot
+# plt.rcParams.update({'font.size':14})
+# # text type is palatino
+# plt.rcParams['font.family'] = 'serif'
+# plt.rcParams['font.serif'] = ['Palatino']
+# fig, axes = plt.subplots(2,6,sharex=True,figsize=(13.3,5))
+# for row,pathogen in enumerate(["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]):
+#     for col,typ in enumerate([[False,False],[False,True]]):
+#         season_plot(axes[col,row],pathogen,typ[0],typ[1])
+# # label every other x tick with season year
+# axes[1,5].set_xticks(range(11),[f"20{year}/{year+1}" if year % 2 == 0 else "" for year in range(15,26)])
+# # for i in range(6):
+# #     for j in range(1,2):
+# #         axes[j,i].set_yticks([],[])
+# axes[0,0].set_ylabel("Cases")
+# axes[1,0].set_ylabel("Age group share")
+# axes[0,0].set_title("Influenza A")
+# axes[0,1].set_title("Influenza B")
+# axes[0,2].set_title("RSV")
+# axes[0,3].set_title("Metapneumovirus")
+# axes[0,4].set_title("Adenovirus")
+# axes[0,5].set_title("Parainfluenza 3")
+# # fig.suptitle("Cumulative cases by respiratory season")
 # plt.tight_layout()
-# plt.savefig('Figures/KPSC_data_sort_of_interesting_slide.png',dpi=300)
+# plt.savefig("Figures/cumulative_seasons_extended.png",dpi=300)
 
-# Cumulative seasons plot
-plt.rcParams.update({'font.size':14})
-# text type is palatino
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['font.serif'] = ['Palatino']
-fig, axes = plt.subplots(2,6,sharex=True,figsize=(13.3,5))
-for row,pathogen in enumerate(["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]):
-    for col,typ in enumerate([[False,False],[False,True]]):
-        season_plot(axes[col,row],pathogen,typ[0],typ[1])
-# label every other x tick with season year
-axes[1,5].set_xticks(range(11),[f"20{year}/{year+1}" if year % 2 == 0 else "" for year in range(15,26)])
-# for i in range(6):
-#     for j in range(1,2):
-#         axes[j,i].set_yticks([],[])
-axes[0,0].set_ylabel("Cases")
-axes[1,0].set_ylabel("Age group share")
-axes[0,0].set_title("Influenza A")
-axes[0,1].set_title("Influenza B")
-axes[0,2].set_title("RSV")
-axes[0,3].set_title("Metapneumovirus")
-axes[0,4].set_title("Adenovirus")
-axes[0,5].set_title("Parainfluenza 3")
-# fig.suptitle("Cumulative cases by respiratory season")
-plt.tight_layout()
-plt.savefig("Figures/cumulative_seasons_extended.png",dpi=300)
-
-# ############### Processing KPSC data into time series of test-confirmed cases ###############
+# # ############### Processing KPSC data into time series of test-confirmed cases ###############
 
 # time_start = time.time()
 # test_data1 = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', format='sas7bdat', encoding='utf-8')
@@ -293,16 +293,16 @@ plt.savefig("Figures/cumulative_seasons_extended.png",dpi=300)
 # AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-7y','8-39y','40-64y','>=65y']
 # bins = [0, 3, 12, 5*12, 8*12, 40*12, 65*12, 100*12]
 # clinical_data.loc[:,"AGE_GROUP"] = pd.cut(clinical_data["age_in_mo"],bins=bins,labels=AGE_GROUP_NAMES,right=False)
-# # # get proportion of clinical cases with flu_vac == 1 in each month, for each age group.
-# vaccination_proportion = clinical_data.groupby(["Month","AGE_GROUP"], observed=True)["flu_vac"].mean().unstack()
-# # vaccination_proportion = vaccination_proportion.reindex(pd.period_range(start=vaccination_proportion.index.min(),end=vaccination_proportion.index.max(),freq='M'))
-# # print(vaccination_proportion)
-# vaccination_proportion = vaccination_proportion.fillna(0)
-# #reorder columns to match order in AGE_GROUP_NAMES
-# vaccination_proportion = vaccination_proportion[AGE_GROUP_NAMES]
+# # # # get proportion of clinical cases with flu_vac == 1 in each month, for each age group.
+# # vaccination_proportion = clinical_data.groupby(["Month","AGE_GROUP"], observed=True)["flu_vac"].mean().unstack()
+# # # vaccination_proportion = vaccination_proportion.reindex(pd.period_range(start=vaccination_proportion.index.min(),end=vaccination_proportion.index.max(),freq='M'))
+# # # print(vaccination_proportion)
+# # vaccination_proportion = vaccination_proportion.fillna(0)
+# # #reorder columns to match order in AGE_GROUP_NAMES
+# # vaccination_proportion = vaccination_proportion[AGE_GROUP_NAMES]
 
-# # # # save to csv
-# vaccination_proportion.to_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv')
+# # # # # save to csv
+# # vaccination_proportion.to_csv('Data/Processed/KPSC_vaccinated_proportion_ages_monthly.csv')
 
 # # # #load
 # # # vaccination_proportion = pd.read_csv('Data/Processed/KPSC_vaccinated_proportion_ages_by_season.csv',index_col=0)
@@ -339,7 +339,7 @@ plt.savefig("Figures/cumulative_seasons_extended.png",dpi=300)
 
 # test_data = test_data[test_data["StudyID"].isin(clinical_data["StudyID"])].copy()
 # positive_tests = test_data[test_data["result_val"] == 'Positive'].copy()
-# positive_tests.loc[:,"Date"] = pd.to_datetime(positive_tests["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(positive_tests["lab_days"],unit='D')
+# positive_tests.loc[:,"Date"] = pd.to_datetime(positive_tests["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(positive_tests["lab_days"].astype(int),unit='D')
 # positive_tests = clinical_data.merge(positive_tests[["StudyID","Date","pathogen","lab_type","lab_days"]],on="StudyID",how="left")
 # positive_tests = positive_tests.rename(columns={"Date_x":"Clinical date","Date_y":"Test date"})
 # positive_tests = positive_tests[np.abs((pd.to_datetime(positive_tests["Clinical date"]) - pd.to_datetime(positive_tests["Test date"])).dt.days) <= 14]
@@ -404,6 +404,88 @@ plt.savefig("Figures/cumulative_seasons_extended.png",dpi=300)
 
 # # # # save to csv
 # positive_tests.to_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv',index=False)
+
+time_start = time.time()
+test_data1 = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', format='sas7bdat', encoding='utf-8')
+test_data2 = pd.read_sas('Data/Raw/KPSC/testing_20250818.sas7bdat', format='sas7bdat', encoding='utf-8')
+test_data = pd.concat([test_data1,test_data2],ignore_index=True)
+print("Time to load test data: ",time.time()-time_start)
+hospitalizations = pd.read_csv('Data/Processed/KPSC_clinical_hospitalizations.csv')
+
+# Create daily counts keeping only one test per pathogen and hospitalization
+all_tests = test_data[test_data["StudyID"].isin(hospitalizations["StudyID"])].copy()
+all_tests.loc[:,"Date"] = (pd.to_datetime(all_tests["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(all_tests["lab_days"].astype(int),unit='D')).dt.normalize()
+
+# Merge with hospitalization data to get hospitalization dates
+all_tests = hospitalizations.merge(all_tests[["StudyID","Date","pathogen","lab_type","lab_days","result_val"]],on="StudyID",how="left")
+all_tests = all_tests.rename(columns={"Date_x":"Hospitalization date","Date_y":"Test date"})
+
+# Keep only tests within 14 days of hospitalization
+all_tests = all_tests[np.abs((pd.to_datetime(all_tests["Hospitalization date"]) - pd.to_datetime(all_tests["Test date"])).dt.days) <= 14]
+
+# Keep only one test per pathogen and hospitalization - prioritize positive tests
+all_tests = all_tests.sort_values(by=["StudyID","pathogen","result_val","Test date"], ascending=[True,True,False,True])
+all_tests.loc[:,"diff"] = all_tests.groupby(["StudyID","pathogen"])["Test date"].diff().dt.days
+all_tests = all_tests[(all_tests["diff"].isna()) | (all_tests["diff"] > 14)]
+
+# Create daily aggregations by pathogen and result
+daily_test_counts = all_tests.groupby(['Test date', 'pathogen', 'result_val']).size().reset_index(name='count')
+print("number of unique test dates:", daily_test_counts['Test date'].nunique())
+
+# print number of unique dates in daily_test_counts
+print("Number of unique dates in daily test counts:", daily_test_counts['Test date'].nunique())
+
+# Pivot to get positive and total counts
+daily_positive_counts = daily_test_counts[daily_test_counts['result_val'] == 'Positive'].groupby(['Test date', 'pathogen'])['count'].sum().reset_index()
+print(daily_positive_counts.head())
+print("number of unique dates in positive counts:", daily_positive_counts['Test date'].nunique())
+daily_positive = daily_positive_counts.pivot(index='Test date', columns='pathogen', values='count').fillna(0)
+print("number of unique dates after pivoting positives:", daily_positive.index.nunique())
+# what dates in daily_test_counts are missing from daily_positive
+missing_dates = set(daily_test_counts['Test date'].unique()) - set(daily_positive.index.unique())
+print("Dates in daily test counts missing from daily positive counts:", missing_dates)
+# daily_others = daily_test_counts[daily_test_counts['result_val'] != 'Positive'].groupby(['Test date', 'pathogen'])['count'].sum().unstack(fill_value=0)
+# print(daily_others.head())
+# daily_totals = daily_positive.add(daily_others, fill_value=0)
+daily_total_counts = daily_test_counts.groupby(['Test date', 'pathogen'])['count'].sum().reset_index()
+# save daily_total_counts to csv for debugging
+daily_total_counts.to_csv('Data/Processed/KPSC_daily_hospitalized_test_counts_debug.csv', index=True)
+print("number of unique test dates in total counts:", daily_total_counts['Test date'].nunique())
+daily_totals = daily_total_counts.pivot(index='Test date', columns='pathogen', values='count').fillna(0)
+# save daily_totals to csv for debugging
+daily_totals.index = pd.to_datetime(daily_test_counts['Test date'].unique())
+daily_totals.to_csv('Data/Processed/KPSC_daily_hospitalized_test_totals_debug.csv', index=True)
+print("number of unique dates after pivoting totals:", daily_totals.index.nunique())
+# daily_totals = daily_total_counts.pivot_table(index='Test date', columns='pathogen', values='count', aggfunc='sum').fillna(0)
+# print("number of unique dates after pivoting totals:", daily_totals.index.nunique())
+
+# Check for duplicate dates in the index
+print("Number of duplicate dates:", daily_totals.index.duplicated().sum())
+if daily_totals.index.duplicated().any():
+    print("Duplicate dates found:", daily_totals.index[daily_totals.index.duplicated()])
+
+# print min and max of date range in daily_totals
+print("Date range in daily totals:", daily_totals.index.min(), "to", daily_totals.index.max())
+print("Number of unique dates in daily totals:", daily_totals.index.nunique())
+print("Length of daily totals dataframe:", len(daily_totals))
+
+# daily_totals = daily_totals.groupby(daily_totals.index).sum()
+
+# Create a complete date range and reindex both dataframes
+date_range = pd.date_range(start=min(daily_positive.index.min(), daily_totals.index.min()), 
+                          end=max(daily_positive.index.max(), daily_totals.index.max()), 
+                          freq='D')
+daily_positive = daily_positive.reindex(date_range, fill_value=0)
+daily_totals = daily_totals.reindex(date_range, fill_value=0)
+
+# Combine into single dataframe with both positive and total columns
+daily_combined = pd.DataFrame(index=date_range)
+all_pathogens = set(daily_totals.columns) | set(daily_positive.columns)
+for pathogen in all_pathogens:
+    daily_combined[f'{pathogen} total'] = daily_totals.get(pathogen, 0)
+    daily_combined[f'{pathogen} positive'] = daily_positive.get(pathogen, 0)
+
+daily_combined.to_csv('Data/Processed/KPSC_daily_hospitalized_test_counts.csv')
 
 ################ Does testing behaviour change over time? ################
 
