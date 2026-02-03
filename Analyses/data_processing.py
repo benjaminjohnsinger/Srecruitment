@@ -11,12 +11,105 @@ import time
 import sys
 from matplotlib.patches import Rectangle
 from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
+from plotting import pathogen_names
 
 ################ Data processing functions ################
 
 ##### function to calculate proportion positive tests for a given pathogen in a moving window, and multiply by population-proportional incidence of ARI hospitalizations ######
+# daily_hospitalization_rates = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
 
+def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_factor=0.1, aggregation='D', sum_age_groups=False):
+    pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
+    daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index_col=0, parse_dates=True)
+    daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_test_counts_by_day_pathogen_age_group.csv',index_col=0,parse_dates=True)
+    
+    # if pathogen name is just a string (not a list), look it up in pathogen_names
+    if isinstance(pathogen, str):
+        pathogen_list = pathogen_names.get(pathogen, [pathogen])
+    else:
+        pathogen_list = pathogen
+    
+    # Filter for specified pathogens
+    pathogen_data = daily_test_counts_complete[daily_test_counts_complete['pathogen'].isin(pathogen_list)]
+    
+    # Pivot to get positive and total counts by date and age group
+    positive_counts = pathogen_data[pathogen_data['result_type'] == 'Positive'].pivot_table(
+        index='Test date', columns='age_group', values='count', aggfunc='sum', fill_value=0)
+    total_counts = pathogen_data[pathogen_data['result_type'] == 'Total'].pivot_table(
+        index='Test date', columns='age_group', values='count', aggfunc='sum', fill_value=0)
 
+    if aggregation == "D":
+        # When both positive and total counts are zero, set proportion to 0
+        prop_pos = positive_counts / total_counts.replace(0, np.nan)
+        prop_pos = prop_pos.fillna(0)  # Fill NaN values (from 0/0) with 0
+        
+        # Create exponential weights centered on middle of window
+        half_window = window_size // 2
+        weights = np.exp(-weighting_factor * np.abs(np.arange(window_size) - half_window))
+        weights = weights / weights.sum()  # Normalize weights to sum to 1
+        
+        # Apply weighted rolling window
+        prop_pos_smoothed = pd.DataFrame(index=prop_pos.index, columns=prop_pos.columns)
+        for col in prop_pos.columns:
+            prop_pos_smoothed[col] = prop_pos[col].rolling(
+                window=window_size, center=True, min_periods=1
+            ).apply(lambda x: np.average(x, weights=weights[:len(x)]) if len(x) > 0 else 0, raw=False)
+        
+        # Align with hospitalization rates and calculate incidence
+        pop_by_age_group_daily = pop_by_age_group_month.resample('D').ffill()
+        daily_hospitalization_rates = daily_hospitalization_counts.div(pop_by_age_group_daily, axis=1)
+        aligned_hosp_rates = daily_hospitalization_rates.reindex(prop_pos_smoothed.index)
+        incidence = prop_pos_smoothed * aligned_hosp_rates
+    else:
+        # Resample to desired aggregation
+        positive_counts_agg = positive_counts.resample(aggregation).sum()
+        total_counts_agg = total_counts.resample(aggregation).sum()
+        
+        # Calculate proportion positive
+        prop_pos_agg = positive_counts_agg / total_counts_agg.replace(0, np.nan)
+        prop_pos_agg = prop_pos_agg.fillna(0)  # Fill NaN values (from 0/0) with 0
+        
+        # Calculate incidence
+        pop_by_age_group_agg = pop_by_age_group_month.resample(aggregation).ffill()
+        daily_hospitalization_counts_agg = daily_hospitalization_counts.resample(aggregation).sum()
+        daily_hospitalization_rates_agg = daily_hospitalization_counts_agg.div(pop_by_age_group_agg, axis=1)
+        aligned_hosp_rates_agg = daily_hospitalization_rates_agg.reindex(prop_pos_agg.index)
+        incidence = prop_pos_agg * aligned_hosp_rates_agg
+    
+    # Sum age groups at the end if requested
+    if sum_age_groups:
+        # Weight by population when summing
+        if aggregation == "D":
+            pop_weights = pop_by_age_group_daily.reindex(incidence.index)
+        else:
+            pop_weights = pop_by_age_group_agg.reindex(incidence.index)
+        
+        # Calculate weighted sum
+        weighted_incidence = (incidence * pop_weights).sum(axis=1)
+        total_population = pop_weights.sum(axis=1)
+        incidence = (weighted_incidence / total_population).to_frame(name='Total')
+    
+    return incidence
+
+if __name__ == "__main__":
+    # test function
+    # incidence = calculate_proportion_positive_incidence(["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"], aggregation="ME", window_size=28, weighting_factor=np.log(2))
+    # plot
+    from plotting import hsv_colors
+    fig, ax = plt.subplots(3,2,figsize=(13.3,7.5),sharex=True)
+    for pi,pathogen in enumerate(["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]):
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="ME", window_size=28, weighting_factor=np.log(2), sum_age_groups=False)
+
+        for i,age_group in enumerate(AGE_GROUP_NAMES):
+            (incidence[age_group] * 10000).plot(ax=ax[pi//2, pi%2],color=hsv_colors[i],label=age_group)
+        # (incidence['Total'] * 10000).plot(ax=ax[pi//2, pi%2],color='k',label='Total')
+        ax[pi//2, pi%2].set_title(f"{pathogen}")
+        ax[pi//2, 0].set_ylabel('Incidence per 10k members')
+    ax[2,0].set_xlabel('Date')
+    ax[2,1].set_xlabel('Date')
+    ax[0,1].legend(title="Age group", loc = "upper right", ncol=2)
+    plt.tight_layout()
+    plt.savefig("Figures/KPSC_proportion_positive_ARI_nonCOVID_slide_monthly_age.png",dpi=300)
 # ############### CDC data ###############
 # ### full NREVSS data
 # data = pd.read_excel('Data/Raw/NREVSS_all.xlsx',sheet_name='Final')
@@ -552,29 +645,71 @@ from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
 # plt.savefig('Figures/KPSC_ARI_hospitalized_total_test_counts_by_day_pathogen.png', dpi=300)
 # plt.close()
 
-###### Total number of ARI hospitalizations each day ########
-hospitalizations = pd.read_csv('Data/Processed/KPSC_clinical_hospitalizations.csv')
-resp_hospitalizations = hospitalizations[hospitalizations["dxgroup"] == "ARI"]
-resp_hospitalizations.loc[:,"Hospitalization date"] = pd.to_datetime(resp_hospitalizations["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(resp_hospitalizations["dx_days"],unit='D')
+# ###### Total number of ARI hospitalizations each day ########
+# hospitalizations = pd.read_csv('Data/Processed/KPSC_clinical_hospitalizations.csv')
+# resp_hospitalizations = hospitalizations[hospitalizations["dxgroup"] == "ARI"]
+# resp_hospitalizations.loc[:,"Hospitalization date"] = pd.to_datetime(resp_hospitalizations["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(resp_hospitalizations["dx_days"],unit='D')
 
-# Classify age groups
-bins = [group[0] for group in AGE_GROUPS] + [AGE_GROUPS[-1][-1] + 1]
-resp_hospitalizations.loc[:,"age_group"] = pd.cut(resp_hospitalizations["age_in_mo"], bins=bins, labels=AGE_GROUP_NAMES, right=False)
+# # keep only one record for each hospitalization per StudyID within 14 days
+# resp_hospitalizations = resp_hospitalizations.sort_values(by=["StudyID","Hospitalization date"], ascending=[True,True])
+# resp_hospitalizations.loc[:,"diff"] = resp_hospitalizations.groupby(["StudyID"])["Hospitalization date"].diff().dt.days
+# resp_hospitalizations = resp_hospitalizations[(resp_hospitalizations["diff"].isna()) | (resp_hospitalizations["diff"] > 14)]
 
-daily_hospitalization_counts = resp_hospitalizations.pivot_table(index='Hospitalization date', columns='age_group', values='StudyID', aggfunc='count').fillna(0).reset_index()
-# reorder columns
-daily_hospitalization_counts = daily_hospitalization_counts[['Hospitalization date'] + AGE_GROUP_NAMES]
-daily_hospitalization_counts.to_csv('Data/Processed/KPSC_ARI_hospitalizations_by_day_age_group.csv', index=False)
+# # Exclude records where the same StudyID has a COVID-19 diagnosis (U07.1) within a 14-day window
+# covid_records = resp_hospitalizations[resp_hospitalizations["CODE"] == "U07.1"].copy()
+# # print(covid_records.head())
+# # what is the earliest date in covid_records
+# print("Earliest COVID record date: ", covid_records["Hospitalization date"].min())
 
-# hospitalizations per capita using demographic data
-pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
-# expand to daily population by forward filling each month
-pop_by_age_group_daily = pop_by_age_group_month.resample('D').ffill()
-# merge with daily hospitalizations
-daily_hospitalization_counts = daily_hospitalization_counts.set_index('Hospitalization date')
-daily_hospitalization_rates = daily_hospitalization_counts.div(pop_by_age_group_daily, axis=1)
-daily_hospitalization_rates = daily_hospitalization_rates.reset_index()
-daily_hospitalization_rates.to_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv', index=False)
+# if not covid_records.empty:
+#     # For each record, check if there's a COVID record for the same StudyID within 14 days
+#     exclude_indices = []
+#     total_records = len(resp_hospitalizations)
+    
+#     for i, (idx, row) in enumerate(resp_hospitalizations.iterrows()):
+#         if i % 10000 == 0:  # Print progress every 10,000 records
+#             print(f"Processing record {i+1}/{total_records} ({(i+1)/total_records*100:.1f}%)")
+        
+#         study_id = row["StudyID"]
+#         hosp_date = row["Hospitalization date"]
+        
+#         # Get all COVID dates for this StudyID
+#         covid_dates = covid_records[covid_records["StudyID"] == study_id]["Hospitalization date"]
+        
+#         if not covid_dates.empty:
+#             # Calculate days difference with all COVID dates for this StudyID
+#             days_diffs = np.abs((pd.to_datetime(hosp_date) - pd.to_datetime(covid_dates)).dt.days)
+            
+#             # If any COVID date is within 14 days, exclude this record
+#             if (days_diffs <= 14).any():
+#                 exclude_indices.append(idx)
+    
+#     print(f"Excluding {len(exclude_indices)} records with COVID diagnoses within 14 days")
+#     # Remove excluded records
+#     resp_hospitalizations = resp_hospitalizations.drop(exclude_indices)
+
+# # Classify age groups
+# bins = [group[0] for group in AGE_GROUPS] + [AGE_GROUPS[-1][-1] + 1]
+# resp_hospitalizations.loc[:,"age_group"] = pd.cut(resp_hospitalizations["age_in_mo"], bins=bins, labels=AGE_GROUP_NAMES, right=False)
+
+# # ### no age group version
+# # daily_hospitalization_counts = resp_hospitalizations.groupby('Hospitalization date').size().reset_index(name='count')
+
+# ## age group version
+# daily_hospitalization_counts = resp_hospitalizations.pivot_table(index='Hospitalization date', columns='age_group', values='StudyID', aggfunc='count').fillna(0).reset_index()
+# # reorder columns
+# daily_hospitalization_counts = daily_hospitalization_counts[['Hospitalization date'] + AGE_GROUP_NAMES]
+# daily_hospitalization_counts.to_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index=False)
+
+# # # hospitalizations per capita using demographic data
+# # pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
+# # # expand to daily population by forward filling each month
+# # pop_by_age_group_daily = pop_by_age_group_month.resample('D').ffill()
+# # # merge with daily hospitalizations
+# # daily_hospitalization_counts = daily_hospitalization_counts.set_index('Hospitalization date')
+# # daily_hospitalization_rates = daily_hospitalization_counts.div(pop_by_age_group_daily, axis=1)
+# # daily_hospitalization_rates = daily_hospitalization_rates.reset_index()
+# # daily_hospitalization_rates.to_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv', index=False)
 
 # # there's a big outlier on 2024-10-01, which can't be real. generate some diagnostics for this day
 # print(resp_hospitalizations[resp_hospitalizations['Hospitalization date'] == '2024-10-02']["age_in_mo"].value_counts())
@@ -594,13 +729,13 @@ daily_hospitalization_rates.to_csv('Data/Processed/KPSC_ARI_hospitalization_rate
 # # # get second highest day
 # second_max = daily_hospitalization_counts.sort_values(by='count', ascending=False).iloc[1]
 
-# # Get the six most common codes
-# top_codes = resp_hospitalizations['CODE'].value_counts().head(6).index
-# colors = ['#648FFF', '#DC267F', '#FFB000', '#785EF0', '#FF832B', '#000000']
+# # # Get the six most common codes
+# # top_codes = resp_hospitalizations['CODE'].value_counts().head(6).index
+# # colors = ['#648FFF', '#DC267F', '#FFB000', '#785EF0', '#FF832B', '#000000']
 
-# # Create daily counts by code
-# daily_counts_by_code = resp_hospitalizations.groupby(['Hospitalization date', 'CODE']).size().reset_index(name='count')
-# daily_counts_by_code = daily_counts_by_code[daily_counts_by_code['CODE'].isin(top_codes)]
+# # # Create daily counts by code
+# # daily_counts_by_code = resp_hospitalizations.groupby(['Hospitalization date', 'CODE']).size().reset_index(name='count')
+# # daily_counts_by_code = daily_counts_by_code[daily_counts_by_code['CODE'].isin(top_codes)]
 
 # # plot daily hospitalization counts with axis break
 # import matplotlib.pyplot as plt
@@ -608,22 +743,26 @@ daily_hospitalization_rates.to_csv('Data/Processed/KPSC_ARI_hospitalization_rate
 # fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6.5, 4), sharex=True, gridspec_kw={'height_ratios': [1, 3]})
 
 # # Plot trajectories for each of the six most common codes
-# for i, code in enumerate(top_codes):
-#     code_data = daily_counts_by_code[daily_counts_by_code['CODE'] == code]
-#     code_daily = code_data.set_index('Hospitalization date')['count']
+# # for i, code in enumerate(top_codes):
+# #     code_data = daily_counts_by_code[daily_counts_by_code['CODE'] == code]
+# #     code_daily = code_data.set_index('Hospitalization date')['count']
     
-#     # Plot on both axes
-#     code_daily.plot(ax=ax1, color=colors[i], label=code, alpha=0.7)
-#     code_daily.plot(ax=ax2, color=colors[i], label=code, alpha=0.7)
+# #     # Plot on both axes
+# #     code_daily.plot(ax=ax1, color=colors[i], label=code, alpha=0.7)
+# #     code_daily.plot(ax=ax2, color=colors[i], label=code, alpha=0.7)
+
+# # plot total daily hospitalizations on both axes
+# daily_hospitalization_counts.set_index('Hospitalization date')['count'].plot(ax=ax1, color='black', label='Total')
+# daily_hospitalization_counts.set_index('Hospitalization date')['count'].plot(ax=ax2, color='black', label='Total')
 
 # # # Set y-limits for break
-# # max_count = daily_counts_by_code['count'].max()
-# # # find the maximum second highest count among the top codes
-# # second_max_count = daily_counts_by_code[daily_counts_by_code['CODE'].isin(top_codes)].groupby('CODE')['count'].max().sort_values(ascending=False).iloc[1]
-# # print("Max count:", max_count, "Second max count:", second_max_count)
+# max_count = daily_hospitalization_counts['count'].max()
+# # find the maximum second highest count among the top codes
+# second_max_count = daily_hospitalization_counts['count'].sort_values(ascending=False).iloc[1]
+# print("Max count:", max_count, "Second max count:", second_max_count)
 
-# max_count = 17777
-# second_max_count = 250
+# # max_count = daily_counts_by_code['count'].max()
+# # second_max_count = 175
 
 # # Calculate scale to match ax2 with 3:1 height ratio
 # ax1_range = (second_max_count * 1.1) / 3
@@ -657,7 +796,7 @@ daily_hospitalization_rates.to_csv('Data/Processed/KPSC_ARI_hospitalization_rate
 # ax2.legend(title="Diagnosis Code", fontsize='small', title_fontsize='small')
 
 # plt.tight_layout()
-# plt.savefig('Figures/KPSC_ARI_hospitalizations_by_day_code.png', dpi=300)
+# plt.savefig('Figures/KPSC_ARI_hospitalizations_nonduplicate_by_day.png', dpi=300)
 
 ################ Does testing behaviour change over time? ################
 
