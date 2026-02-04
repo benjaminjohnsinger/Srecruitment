@@ -40,7 +40,7 @@ def run_simulation(params, y0, t1, saveat_ts):
     return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
-def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), overdispersion=False, solution=None):
+def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), exclude=(date_to_t(pd.to_datetime('2024-05-01')),date_to_t(pd.to_datetime('2024-10-01'))), overdispersion=False, solution=None):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
@@ -70,6 +70,13 @@ def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incide
     expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
     # cut off the first few days of the trajectory since they are not used in the likelihood (and the roll function is wrapping around)
     expected_obs = jax.nn.softplus(expected_obs[-len(cases):]*100)/100
+
+    # exclude date range from likelihood calculation
+    if exclude is not None:
+        mask = jnp.ones(cases.shape, dtype=bool)
+        mask = mask.at[(POINTS[-len(cases):] >= exclude[0]) & (POINTS[-len(cases):] < exclude[1])].set(False)
+        cases = cases[mask]
+        expected_obs = expected_obs[mask]
     
     # calculate the log likelihood
     if overdispersion:

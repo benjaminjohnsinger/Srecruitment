@@ -180,44 +180,62 @@ def params_to_scalars(param_dict,scalar_names):
             scalar_dict[name] = param_dict["P_OBS"][int(name[5:])]
     return scalar_dict
 
-def pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=False):
+def pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=False, proportion_positive=False):
     ARRIVALS = jnp.asarray(np.genfromtxt('Data/Processed/arrivals_daily.csv', delimiter=','))
     if 'RSV' in pathogen:
         REC_UP = jnp.array([1/4.9,1/4.1,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/4.1])
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/RSV_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-        incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_RSV_incidence_age_daily.csv",index_col=0))
+        if proportion_positive:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_proportion_positive_ARI_RSV_incidence_age_daily.csv",index_col=0))
+        else:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_RSV_incidence_age_daily.csv",index_col=0))
     elif 'InfluenzaA' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/InfluenzaA_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-        incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_InfluenzaA_incidence_age_daily.csv",index_col=0))
+        if proportion_positive:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_proportion_positive_ARI_InfluenzaA_incidence_age_daily.csv",index_col=0))
+        else:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_InfluenzaA_incidence_age_daily.csv",index_col=0))
     elif 'InfluenzaB' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/InfluenzaB_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-        incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_InfluenzaB_incidence_age_daily.csv",index_col=0))
+        if proportion_positive:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_proportion_positive_ARI_InfluenzaB_incidence_age_daily.csv",index_col=0))
+        else:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_InfluenzaB_incidence_age_daily.csv",index_col=0))
     elif 'Parainfluenza3' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Parainfluenza3_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-        incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Parainfluenza3_incidence_age_daily.csv",index_col=0))
+        if proportion_positive:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_proportion_positive_ARI_Parainfluenza3_incidence_age_daily.csv",index_col=0))
+        else:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Parainfluenza3_incidence_age_daily.csv",index_col=0))
     elif 'Adenovirus' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Adenovirus_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-        incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Adenovirus_incidence_age_daily.csv",index_col=0))
+        if proportion_positive:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_proportion_positive_ARI_Adenovirus_incidence_age_daily.csv",index_col=0))
+        else:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Adenovirus_incidence_age_daily.csv",index_col=0))
     elif 'Metapneumovirus' in pathogen:
         REC_UP = np.array([1/4.9,1/4.1,0.0]) # based on RSV - Okiro 2010
         REC_SAME = np.array([0.0,0.0,1/4.1]) # based on RSV - Okiro 2010
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Metapneumovirus_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-        incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Metapneumovirus_incidence_age_daily.csv",index_col=0))
+        if proportion_positive:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_proportion_positive_ARI_Metapneumovirus_incidence_age_daily.csv",index_col=0))
+        else:
+            incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Metapneumovirus_incidence_age_daily.csv",index_col=0))
     elif "test" in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])

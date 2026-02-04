@@ -91,25 +91,25 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
     
     return incidence
 
-if __name__ == "__main__":
-    # test function
-    # incidence = calculate_proportion_positive_incidence(["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"], aggregation="ME", window_size=28, weighting_factor=np.log(2))
-    # plot
-    from plotting import hsv_colors
-    fig, ax = plt.subplots(3,2,figsize=(13.3,7.5),sharex=True)
-    for pi,pathogen in enumerate(["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]):
-        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="ME", window_size=28, weighting_factor=np.log(2), sum_age_groups=False)
-
-        for i,age_group in enumerate(AGE_GROUP_NAMES):
-            (incidence[age_group] * 10000).plot(ax=ax[pi//2, pi%2],color=hsv_colors[i],label=age_group)
-        # (incidence['Total'] * 10000).plot(ax=ax[pi//2, pi%2],color='k',label='Total')
-        ax[pi//2, pi%2].set_title(f"{pathogen}")
-        ax[pi//2, 0].set_ylabel('Incidence per 10k members')
-    ax[2,0].set_xlabel('Date')
-    ax[2,1].set_xlabel('Date')
-    ax[0,1].legend(title="Age group", loc = "upper right", ncol=2)
-    plt.tight_layout()
-    plt.savefig("Figures/KPSC_proportion_positive_ARI_nonCOVID_slide_monthly_age.png",dpi=300)
+# if __name__ == "__main__":
+#     # test function
+#     # incidence = calculate_proportion_positive_incidence(["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"], aggregation="ME", window_size=28, weighting_factor=np.log(2))
+#     # plot
+#     from plotting import hsv_colors
+#     fig, ax = plt.subplots(3,2,figsize=(13.3,7.5),sharex=True)
+#     for pi,pathogen in enumerate(["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]):
+#         incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=28, weighting_factor=0.5, sum_age_groups=False)
+#         incidence.to_csv(f'Data/Processed/KPSC_proportion_positive_ARI_{pathogen}_incidence_age_daily.csv')
+#         for i,age_group in enumerate(AGE_GROUP_NAMES):
+#             (incidence[age_group] * 10000).plot(ax=ax[pi//2, pi%2],color=hsv_colors[i],label=age_group)
+#         # (incidence['Total'] * 10000).plot(ax=ax[pi//2, pi%2],color='k',label='Total')
+#         ax[pi//2, pi%2].set_title(f"{pathogen}")
+#         ax[pi//2, 0].set_ylabel('Incidence per 10k members')
+#     ax[2,0].set_xlabel('Date')
+#     ax[2,1].set_xlabel('Date')
+#     ax[0,1].legend(title="Age group", loc = "upper right", ncol=2)
+#     plt.tight_layout()
+#     plt.savefig("Figures/KPSC_proportion_positive_ARI_slide_daily_age.png",dpi=300)
 # ############### CDC data ###############
 # ### full NREVSS data
 # data = pd.read_excel('Data/Raw/NREVSS_all.xlsx',sheet_name='Final')
@@ -333,7 +333,7 @@ if __name__ == "__main__":
 # # save to csv
 # pop_by_age_group_month.to_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv')
 
-# # ############### Processing KPSC data into time series of test-confirmed cases ###############
+# # # ############### Processing KPSC data into time series of test-confirmed cases ###############
 
 # time_start = time.time()
 # test_data1 = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', format='sas7bdat', encoding='utf-8')
@@ -343,8 +343,8 @@ if __name__ == "__main__":
 
 # time_start = time.time()
 # clinical_data1 = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat', format='sas7bdat', encoding='utf-8')
-# clinical_data2 = pd.read_sas('Data/Raw/KPSC/clinical_20250818.sas7bdat', format='sas7bdat', encoding='utf-8')
-# clinical_data = pd.concat([clinical_data1,clinical_data2],ignore_index=True)
+# clinical_data2 = pd.read_sas('Data/Raw/KPSC/clinical_20260203.sas7bdat', format='sas7bdat', encoding='utf-8')
+# clinical_data = pd.concat([clinical_data1, clinical_data2], ignore_index=True)
 # print("Time to load clinical data: ",time.time()-time_start)
 # # clinical_data = clinical_data[clinical_data["age_in_mo"] < 12]
 # # clinical_data = clinical_data[clinical_data["YEAR"] < 2017]
@@ -400,8 +400,8 @@ if __name__ == "__main__":
 
 # clinical_data.loc[:,"Month"] = clinical_data["Date"].dt.strftime('%Y-%m')
 # # bin by age group
-# AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-7y','8-39y','40-64y','>=65y']
-# bins = [0, 3, 12, 5*12, 8*12, 40*12, 65*12, 100*12]
+# from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
+# bins = [group[0] for group in AGE_GROUPS] + [AGE_GROUPS[-1][-1] + 1]
 # clinical_data.loc[:,"AGE_GROUP"] = pd.cut(clinical_data["age_in_mo"],bins=bins,labels=AGE_GROUP_NAMES,right=False)
 # # # # get proportion of clinical cases with flu_vac == 1 in each month, for each age group.
 # # vaccination_proportion = clinical_data.groupby(["Month","AGE_GROUP"], observed=True)["flu_vac"].mean().unstack()
@@ -497,7 +497,7 @@ if __name__ == "__main__":
 # # # positive_tests = test_data[test_data["result_val"] == 'Positive']
 
 
-####### find hospitalizations with matching positive tests ########
+# ###### find hospitalizations with matching positive tests ########
 # test_data = test_data[test_data["StudyID"].isin(hospitalizations["StudyID"])].copy()
 # positive_tests = test_data[test_data["result_val"] == 'Positive'].copy()
 # positive_tests.loc[:,"Date"] = pd.to_datetime(positive_tests["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(positive_tests["lab_days"],unit='D')
@@ -577,73 +577,67 @@ if __name__ == "__main__":
 
 # daily_test_counts_complete.to_csv('Data/Processed/KPSC_ARI_hospitalized_test_counts_by_day_pathogen_age_group.csv', index=False)
 
-# #load test counts
-# pathogen_names = {
+#load test counts
+pathogen_names = {
 # "SARS-CoV-2": ["SARS-COV-2 (COVID-19)"],
-# "RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE B"],
-# "InfluenzaA": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B"],
-# "InfluenzaB": ["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"],
-# "Metapneumovirus": ["HUMAN METAPNEUMOVIRUS VIRUS",],
-# "Adenovirus": ["ADENOVIRUS",],
-# # "Parainfluenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
-# "Parainfluenza3": ["PARAINFLUENZA VIRUS 3"],
+"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE B"],
+"InfluenzaA": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B"],
+"InfluenzaB": ["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"],
+"Metapneumovirus": ["HUMAN METAPNEUMOVIRUS VIRUS",],
+"Adenovirus": ["ADENOVIRUS",],
+# "Parainfluenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
+"Parainfluenza3": ["PARAINFLUENZA VIRUS 3"],
 # "Rhinovirus": ["ENTEROVIRUS/RHINOVIRUS"],
-# # "Pertussis": ["BORDETELLA PERTUSSIS"],
-# # "M.pneumoniae": ["MYCOPLASMA PNEUMONIAE"],
-# # "C.pneumoniae": ["CHLAMYDOPHILA PNEUMONIAE"],
-# # "Enterovirus": ["ENTEROVIRUS/RHINOVIRUS"],
-# }
-# daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_test_counts_by_day_pathogen_age_group.csv')
+# "Pertussis": ["BORDETELLA PERTUSSIS"],
+# "M.pneumoniae": ["MYCOPLASMA PNEUMONIAE"],
+# "C.pneumoniae": ["CHLAMYDOPHILA PNEUMONIAE"],
+# "Enterovirus": ["ENTEROVIRUS/RHINOVIRUS"],
+}
+daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_test_counts_by_day_pathogen_age_group.csv')
 
-# # Create reverse mapping from pathogen names to group names
-# reverse_pathogen_mapping = {}
-# for group_name, pathogen_list in pathogen_names.items():
-#     for pathogen in pathogen_list:
-#         reverse_pathogen_mapping[pathogen] = group_name
+# Create reverse mapping from pathogen names to group names
+reverse_pathogen_mapping = {}
+for group_name, pathogen_list in pathogen_names.items():
+    for pathogen in pathogen_list:
+        reverse_pathogen_mapping[pathogen] = group_name
 
-# # Map pathogen names to groups
-# daily_test_counts_complete['pathogen_group'] = daily_test_counts_complete['pathogen'].map(reverse_pathogen_mapping)
+# Map pathogen names to groups
+daily_test_counts_complete['pathogen_group'] = daily_test_counts_complete['pathogen'].map(reverse_pathogen_mapping)
 
-# # Filter to only include pathogens that are in our mapping and sum by group
-# grouped_data = daily_test_counts_complete[daily_test_counts_complete['pathogen_group'].notna()]
-# grouped_data = grouped_data.groupby(['Test date', 'pathogen_group', 'age_group', 'result_type'])['count'].sum().reset_index()
+# Filter to only include pathogens that are in our mapping and sum by group
+grouped_data = daily_test_counts_complete[daily_test_counts_complete['pathogen_group'].notna()]
+grouped_data = grouped_data.groupby(['Test date', 'pathogen_group', 'age_group', 'result_type'])['count'].sum().reset_index()
 
-# # plot total test counts for pathogen groups over time
-# import matplotlib.pyplot as plt
+# Create six panel plot separating test data for each pathogen
+import matplotlib.pyplot as plt
 
-# # Get pathogen groups in reverse order
-# pathogen_groups = list(pathogen_names.keys())[::-1]
+# Get pathogen groups
+pathogen_groups = ["InfluenzaA", "InfluenzaB", "RSV", "Metapneumovirus", "Adenovirus", "Parainfluenza3"]
 
 # colors = ['#648FFF', '#DC267F', "#242118", '#785EF0', '#FF832B', '#000000', '#00C1A6', '#FF61CC']
 # # reverse order
 # colors = colors[::-1]
 
-# fig, ax = plt.subplots(figsize=(6.5,4))
-# for i, pathogen_group in enumerate(pathogen_groups):
-#     pathogen_data = grouped_data[(grouped_data['pathogen_group'] == pathogen_group) & (grouped_data['result_type'] == 'Total')]
-#     pathogen_daily_counts = pathogen_data.groupby('Test date')['count'].sum().reset_index()
+fig, ax = plt.subplots(3, 2, figsize=(13.3, 7.5), sharex=True)
+ax = ax.flatten()  # Flatten for easier indexing
+
+for i, pathogen_group in enumerate(pathogen_groups):
+    pathogen_data = grouped_data[(grouped_data['pathogen_group'] == pathogen_group) & (grouped_data['result_type'] == 'Total')]
+    pathogen_daily_counts = pathogen_data.groupby('Test date')['count'].sum().reset_index()
     
-#     ax.plot(pd.to_datetime(pathogen_daily_counts['Test date']), pathogen_daily_counts['count'], 
-#             label=pathogen_group, color=colors[i], linewidth=0.3)
+    ax[i].plot(pd.to_datetime(pathogen_daily_counts['Test date']), pathogen_daily_counts['count'], 
+               color='k', linewidth=1)
+    
+    ax[i].set_title(f"{pathogen_group}")
+    if i >= 4:  # Bottom row
+        ax[i].set_xlabel('Date')
+    if i % 2 == 0:  # Left column
+        ax[i].set_ylabel('Number of tests')
 
-# ax.set_title("Daily total hospitalized test counts for ARI by pathogen")
-# ax.set_ylabel("Number of tests")
-# ax.set_xlabel("Date")
-# legend = ax.legend(title="Pathogen", fontsize='small')
-# legend.get_title().set_fontsize('small')
-# for line in legend.get_lines():
-#     line.set_linewidth(2)
-
-# # Reverse the order of legend entries
-# handles, labels = ax.get_legend_handles_labels()
-# ax.legend(handles[::-1], labels[::-1], title="Pathogen", fontsize='small')
-# legend = ax.get_legend()
-# legend.get_title().set_fontsize('small')
-# for line in legend.get_lines():
-#     line.set_linewidth(2)
-# plt.tight_layout()
-# plt.savefig('Figures/KPSC_ARI_hospitalized_total_test_counts_by_day_pathogen.png', dpi=300)
-# plt.close()
+plt.suptitle("Daily total hospitalized test counts for ARI by pathogen")
+plt.tight_layout()
+plt.savefig('Figures/KPSC_ARI_hospitalized_test_counts_by_pathogen_panels.png', dpi=300)
+plt.close()
 
 # ###### Total number of ARI hospitalizations each day ########
 # hospitalizations = pd.read_csv('Data/Processed/KPSC_clinical_hospitalizations.csv')
@@ -701,102 +695,26 @@ if __name__ == "__main__":
 # daily_hospitalization_counts = daily_hospitalization_counts[['Hospitalization date'] + AGE_GROUP_NAMES]
 # daily_hospitalization_counts.to_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index=False)
 
-# # # hospitalizations per capita using demographic data
-# # pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
-# # # expand to daily population by forward filling each month
-# # pop_by_age_group_daily = pop_by_age_group_month.resample('D').ffill()
-# # # merge with daily hospitalizations
-# # daily_hospitalization_counts = daily_hospitalization_counts.set_index('Hospitalization date')
-# # daily_hospitalization_rates = daily_hospitalization_counts.div(pop_by_age_group_daily, axis=1)
-# # daily_hospitalization_rates = daily_hospitalization_rates.reset_index()
-# # daily_hospitalization_rates.to_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv', index=False)
-
-# # there's a big outlier on 2024-10-01, which can't be real. generate some diagnostics for this day
-# print(resp_hospitalizations[resp_hospitalizations['Hospitalization date'] == '2024-10-02']["age_in_mo"].value_counts())
-# print(resp_hospitalizations[resp_hospitalizations['Hospitalization date'] == '2024-10-02']["StudyID"].value_counts())
-# print(resp_hospitalizations[resp_hospitalizations['Hospitalization date'] == '2024-10-01']["age_in_mo"].value_counts())
-# print(resp_hospitalizations[resp_hospitalizations['Hospitalization date'] == '2024-10-01']["StudyID"].value_counts())
-# # print number of duplicate rows for that day
-# print(resp_hospitalizations[resp_hospitalizations['Hospitalization date'] == '2024-10-03'].duplicated().sum())
-# print(resp_hospitalizations[resp_hospitalizations['Hospitalization date'] == '2024-10-02'].duplicated().sum())
-# print(resp_hospitalizations[resp_hospitalizations['Hospitalization date'] == '2024-09-30'].duplicated().sum())
-# print(resp_hospitalizations[resp_hospitalizations['Hospitalization date'] == '2024-10-01'].duplicated().sum())
-# # how many unique duplicated rows are there
-# print(resp_hospitalizations[resp_hospitalizations['Hospitalization date'] == '2024-10-01'][resp_hospitalizations[resp_hospitalizations['Hospitalization date'] == '2024-10-01'].duplicated()]["StudyID"].nunique())
-
-# # # print most common day
+# # print most common day
 # print(daily_hospitalization_counts.sort_values(by='count', ascending=False).head())
-# # # get second highest day
+# # get second highest day
 # second_max = daily_hospitalization_counts.sort_values(by='count', ascending=False).iloc[1]
 
-# # # Get the six most common codes
-# # top_codes = resp_hospitalizations['CODE'].value_counts().head(6).index
-# # colors = ['#648FFF', '#DC267F', '#FFB000', '#785EF0', '#FF832B', '#000000']
-
-# # # Create daily counts by code
-# # daily_counts_by_code = resp_hospitalizations.groupby(['Hospitalization date', 'CODE']).size().reset_index(name='count')
-# # daily_counts_by_code = daily_counts_by_code[daily_counts_by_code['CODE'].isin(top_codes)]
-
-# # plot daily hospitalization counts with axis break
+# # plot daily hospitalization counts on single axis
 # import matplotlib.pyplot as plt
 
-# fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6.5, 4), sharex=True, gridspec_kw={'height_ratios': [1, 3]})
+# fig, ax = plt.subplots(figsize=(6.5, 4))
 
-# # Plot trajectories for each of the six most common codes
-# # for i, code in enumerate(top_codes):
-# #     code_data = daily_counts_by_code[daily_counts_by_code['CODE'] == code]
-# #     code_daily = code_data.set_index('Hospitalization date')['count']
-    
-# #     # Plot on both axes
-# #     code_daily.plot(ax=ax1, color=colors[i], label=code, alpha=0.7)
-# #     code_daily.plot(ax=ax2, color=colors[i], label=code, alpha=0.7)
+# # plot total daily hospitalizations
+# daily_hospitalization_counts.set_index('Hospitalization date')['count'].plot(ax=ax, color='black', label='Total')
 
-# # plot total daily hospitalizations on both axes
-# daily_hospitalization_counts.set_index('Hospitalization date')['count'].plot(ax=ax1, color='black', label='Total')
-# daily_hospitalization_counts.set_index('Hospitalization date')['count'].plot(ax=ax2, color='black', label='Total')
-
-# # # Set y-limits for break
-# max_count = daily_hospitalization_counts['count'].max()
-# # find the maximum second highest count among the top codes
-# second_max_count = daily_hospitalization_counts['count'].sort_values(ascending=False).iloc[1]
-# print("Max count:", max_count, "Second max count:", second_max_count)
-
-# # max_count = daily_counts_by_code['count'].max()
-# # second_max_count = 175
-
-# # Calculate scale to match ax2 with 3:1 height ratio
-# ax1_range = (second_max_count * 1.1) / 3
-# ax1.set_ylim([max_count - ax1_range/2, max_count + ax1_range/2])
-# ax2.set_ylim([0, second_max_count * 1.1])
-
-# # Remove x-axis labels from top plot
-# ax1.set_xlabel('')
-# ax1.tick_params(labelbottom=False)
-
-# # Add break indicators
-# ax1.spines['bottom'].set_visible(False)
-# ax2.spines['top'].set_visible(False)
-# ax1.xaxis.tick_top()
-# ax1.tick_params(labeltop=False)
-# ax2.xaxis.tick_bottom()
-
-# # Add diagonal lines to indicate break
-# d = .015  # size of diagonal lines
-# kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
-# ax1.plot((-d, +d), (-d, +d), **kwargs)
-# ax1.plot((1 - d, 1 + d), (-d, +d), **kwargs)
-
-# kwargs.update(transform=ax2.transAxes)
-# ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)
-# ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)
-
-# ax1.set_title("Daily ARI hospitalizations by diagnosis code in KPSC")
-# ax2.set_ylabel("Number of hospitalizations")
-# ax2.set_xlabel("Date")
-# ax2.legend(title="Diagnosis Code", fontsize='small', title_fontsize='small')
+# ax.set_title("Daily ARI hospitalizations KPSC, without repeat records within 14 days")
+# ax.set_ylabel("Number of hospitalizations")
+# ax.set_xlabel("Date")
 
 # plt.tight_layout()
 # plt.savefig('Figures/KPSC_ARI_hospitalizations_nonduplicate_by_day.png', dpi=300)
+
 
 ################ Does testing behaviour change over time? ################
 
