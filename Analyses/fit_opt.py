@@ -17,6 +17,7 @@ from Parameters.times_and_contacts import *
 
 from utils import *
 from fit_MCMC import SIS_likelihood
+import traceback
 
 
 pathogen, seed, lockdown, option1, option2, import_multiplier, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
@@ -40,13 +41,16 @@ POINTS = np.array(date_to_t(PERIOD))
 FULL_PERIOD = pd.date_range(start=pd.to_datetime('1970-01-01'), end=END, freq='D')
 FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
 
-REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, incidence = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
+REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, positives, total_tests = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
+hospitalizations = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_hospitalizations_noCOVID.csv', header=None, index_col=None).values)
 N_S, NAG = 3, 7
 
 # trim incidence so that Date is between START and END
 start_idx = int(date_to_t(start_date) - date_to_t('2015-07-04'))
 end_idx = int(date_to_t(end_date) - date_to_t('2015-07-04')) + 1
-incidence = incidence[start_idx:end_idx, :]
+positives = positives[start_idx:end_idx, :]
+total_tests = total_tests[start_idx:end_idx, :]
+hospitalizations = hospitalizations[start_idx:end_idx, :]
 
 ## Initial conditions
 STATE0 = jnp.zeros((2*N_S+1,NAG))
@@ -58,20 +62,15 @@ STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
 param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
 
-if "Influenza" in pathogen:
-    age_pops = jnp.asarray(np.genfromtxt('Data/Processed/age_pops_daily.csv', delimiter=','))
-    vax_preprocessor = FluRatePreprocessor(FULL_POINTS, age_pops, AGING_RATE)
-else:
-    vax_preprocessor = None
-
 def likelihood(x):
-    sim_params = x_to_params(x, pathogen, lockdown, option1, option2, vax_preprocessor=vax_preprocessor)
+    sim_params = x_to_params(x, pathogen, lockdown, option1, option2)
     try:
-        lh = -SIS_likelihood(incidence,sim_params,POINTS,STATE0,p_time_to_obs,age=True,incidence=True,overdispersion=False)
+        lh = -SIS_likelihood(positives, total_tests, hospitalizations, sim_params, POINTS, STATE0, p_time_to_obs)
     except Exception as e: # Catch the specific exception
         worker_pid = os.getpid()
         print(f"!!! ERROR in worker {worker_pid} with params {x}")
         print(f"Error details: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
         return 1e10
     printstr = str(lh) + "," + pathogen + "," + lockdown + "," + str(seed) + "," + ",".join([str(value) for value in x])
     print(printstr, flush=True)
@@ -82,7 +81,8 @@ if __name__ == '__main__':
     # printstr = "neg_log_likelihood,pathogen,seed," + ",".join([key for key in bounds_dict.keys()])
     # print(printstr)
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",seed=seed,
-    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    workers = 4)
+    # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
     # if there's no Data/Processed/results<seed> directory, create it
     if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
         os.makedirs("Data/Processed/results"+str(seed)[:6])

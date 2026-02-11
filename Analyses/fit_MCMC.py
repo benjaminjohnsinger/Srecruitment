@@ -40,7 +40,7 @@ def run_simulation(params, y0, t1, saveat_ts):
     return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
-def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incidence=True, start_t=date_to_t(pd.to_datetime('1970-01-01')), exclude=(date_to_t(pd.to_datetime('2024-05-01')),date_to_t(pd.to_datetime('2024-10-01'))), overdispersion=False, solution=None):
+def SIS_likelihood(positives, total_tests, hospitalizations, params, POINTS, STATE0, p_time_to_obs, start_t=date_to_t(pd.to_datetime('1970-01-01')), exclude=(date_to_t(pd.to_datetime('2024-05-01')),date_to_t(pd.to_datetime('2024-10-01'))), overdispersion=False, solution=None):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
@@ -52,15 +52,6 @@ def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incide
     # convert into observed cases
     trajectory = jnp.diff(values[-NAG:,:],axis=1).T
 
-    # format data into cases, rescaled appropriately by population age distribution
-    if incidence:
-        if age:
-            cases = jnp.round(data*jnp.array([jnp.sum(values[range(1+i,N_S*N_C*NAG,NAG),len(p_time_to_obs):],axis=0) for i in range(NAG)]).T)
-        else:
-            cases = data*jnp.sum(values,axis=0)
-    else:
-        cases = data.copy()
-
     p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
     @jax.jit
     def obs_convolution(x):
@@ -69,21 +60,33 @@ def SIS_likelihood(data, params, POINTS, STATE0, p_time_to_obs, age=True, incide
     # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
     expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
     # cut off the first few days of the trajectory since they are not used in the likelihood (and the roll function is wrapping around)
-    expected_obs = jax.nn.softplus(expected_obs[-len(cases):]*100)/100
+    expected_obs = jax.nn.softplus(expected_obs[-len(positives):]*100)/100
+
+    # divide expected_obs by total hospitalizations to get expected proportion positive
+    # clamp to maximum of 1 and handle zero hospitalizations safely
+    expected_positivity = jnp.minimum(0.99, jnp.divide(expected_obs, jnp.maximum(hospitalizations, 1e-10)))
+
+    # # plot expected and actual positivity over time for each age group
+    # fig, ax = plt.subplots(4,2,figsize=(10,6))
+    # for i in range(NAG):
+    #     ax[i//2, i%2].plot(POINTS[-len(positives):], expected_positivity[:,i], label='Expected Positivity')
+    #     ax[i//2, i%2].scatter(POINTS[-len(positives):], jnp.divide(positives[:,i], total_tests[:,i]), color='red', alpha=0.5, label='Observed Positivity')
+    #     ax[i//2, i%2].set_title(f'Age Group {i}')
+    #     ax[i//2, i%2].set_xlabel('Time (days since 1970-01-01)')
+    #     ax[i//2, i%2].set_ylabel('Positivity')
+    #     ax[i//2, i%2].legend()
+    # plt.show()
 
     # exclude date range from likelihood calculation
     if exclude is not None:
-        mask = jnp.ones(cases.shape, dtype=bool)
-        mask = mask.at[(POINTS[-len(cases):] >= exclude[0]) & (POINTS[-len(cases):] < exclude[1])].set(False)
-        cases = cases[mask]
-        expected_obs = expected_obs[mask]
+        mask = jnp.ones(positives.shape, dtype=bool)
+        mask = mask.at[(POINTS[-len(positives):] >= exclude[0]) & (POINTS[-len(positives):] < exclude[1])].set(False)
+        positives = positives[mask]
+        total_tests = total_tests[mask]
+        expected_positivity = expected_positivity[mask]
     
-    # calculate the log likelihood
-    if overdispersion:
-        p = overdispersion/(overdispersion+expected_obs)
-        likelihood = jsp.stats.nbinom.logpmf(cases,overdispersion,p).sum()
-    else:
-        likelihood = jsp.stats.poisson.logpmf(cases,expected_obs).sum()
+    # calculate binomial likelihood of observed positives given expected proportion positive and total tests
+    likelihood = jsp.stats.binom.logpmf(positives, total_tests, expected_positivity).sum()
     return likelihood
 
 def fit_transform(target_means, target_cov, bounds):
