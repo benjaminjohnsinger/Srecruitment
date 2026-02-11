@@ -11,14 +11,12 @@ import sys
 import os
 import multiprocessing
 
-from Gemini_vaccination import FluRatePreprocessor
 from Parameters.census_population import *
 from Parameters.times_and_contacts import *
 
 from utils import *
 from fit_MCMC import SIS_likelihood
 import traceback
-
 
 pathogen, seed, lockdown, option1, option2, import_multiplier, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
 
@@ -81,8 +79,7 @@ if __name__ == '__main__':
     # printstr = "neg_log_likelihood,pathogen,seed," + ",".join([key for key in bounds_dict.keys()])
     # print(printstr)
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",seed=seed,
-    workers = 4)
-    # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
     # if there's no Data/Processed/results<seed> directory, create it
     if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
         os.makedirs("Data/Processed/results"+str(seed)[:6])

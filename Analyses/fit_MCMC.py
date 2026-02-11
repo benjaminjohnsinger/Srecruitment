@@ -52,30 +52,20 @@ def SIS_likelihood(positives, total_tests, hospitalizations, params, POINTS, STA
     # convert into observed cases
     trajectory = jnp.diff(values[-NAG:,:],axis=1).T
 
+    # convolution of trajectory with probability of detection at each day after infection to get expected observations on each day
     p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
     @jax.jit
     def obs_convolution(x):
         return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
-
     # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
     expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
     # cut off the first few days of the trajectory since they are not used in the likelihood (and the roll function is wrapping around)
+    # use softplus to avoid negative expected observations and aid stability
     expected_obs = jax.nn.softplus(expected_obs[-len(positives):]*100)/100
 
     # divide expected_obs by total hospitalizations to get expected proportion positive
-    # clamp to maximum of 1 and handle zero hospitalizations safely
+    # clamp to maximum of 0.99 and handle zero hospitalizations safely
     expected_positivity = jnp.minimum(0.99, jnp.divide(expected_obs, jnp.maximum(hospitalizations, 1e-10)))
-
-    # # plot expected and actual positivity over time for each age group
-    # fig, ax = plt.subplots(4,2,figsize=(10,6))
-    # for i in range(NAG):
-    #     ax[i//2, i%2].plot(POINTS[-len(positives):], expected_positivity[:,i], label='Expected Positivity')
-    #     ax[i//2, i%2].scatter(POINTS[-len(positives):], jnp.divide(positives[:,i], total_tests[:,i]), color='red', alpha=0.5, label='Observed Positivity')
-    #     ax[i//2, i%2].set_title(f'Age Group {i}')
-    #     ax[i//2, i%2].set_xlabel('Time (days since 1970-01-01)')
-    #     ax[i//2, i%2].set_ylabel('Positivity')
-    #     ax[i//2, i%2].legend()
-    # plt.show()
 
     # exclude date range from likelihood calculation
     if exclude is not None:
