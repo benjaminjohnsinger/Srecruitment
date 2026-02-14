@@ -5,13 +5,11 @@ from matplotlib import pyplot as plt
 from sas7bdat import SAS7BDAT
 from matplotlib import cm as colormaps
 from Parameters.census_population import *
-from plotting import *
 import pickle
 import time
 import sys
 from matplotlib.patches import Rectangle
 from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
-from plotting import pathogen_names
 
 ################ Data processing functions ################
 

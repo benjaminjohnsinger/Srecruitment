@@ -1,10 +1,22 @@
 combinations=(
-"RSV 251103 FlexStepwise NA flexage 1e-9 20 1 0.7"
-"Metapneumovirus 2511032 FlexStepwise NA flexage 1e-9 20 1 0.7"
-"InfluenzaA 251103 FlexStepwise NA flexage 1e-9 20 1 0.7"
-"InfluenzaB 2511042 FlexStepwise NA flexage 1e-9 20 1 0.7"
-"Adenovirus 2511032 FlexStepwise NA flexage 1e-9 20 1 0.7"
-"Parainfluenza3 2511032 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"RSV 260210 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"RSV 2602102 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"RSV 2602103 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"InfluenzaA 260210 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"InfluenzaA 2602102 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"InfluenzaA 2602103 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"InfluenzaB 260210 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"InfluenzaB 2602102 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"InfluenzaB 2602103 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"Metapneumovirus 260210 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"Metapneumovirus 2602102 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"Metapneumovirus 2602103 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"Adenovirus 260210 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"Adenovirus 2602102 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"Adenovirus 2602103 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"Parainfluenza3 260210 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"Parainfluenza3 2602102 FlexStepwise NA flexage 1e-9 20 1 0.7"
+"Parainfluenza3 2602103 FlexStepwise NA flexage 1e-9 20 1 0.7"
 )
 
 for combination in "${combinations[@]}"; do
