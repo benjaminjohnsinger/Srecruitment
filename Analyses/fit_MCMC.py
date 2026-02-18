@@ -40,7 +40,7 @@ def run_simulation(params, y0, t1, saveat_ts):
     return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
-def SIS_likelihood(positives, total_tests, hospitalizations, params, POINTS, STATE0, p_time_to_obs, start_t=date_to_t(pd.to_datetime('1970-01-01')), exclude=(date_to_t(pd.to_datetime('2024-05-01')),date_to_t(pd.to_datetime('2024-10-01'))), overdispersion=False, solution=None):
+def SIS_likelihood(positives, total_tests, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, start_t=date_to_t(pd.to_datetime('1970-01-01')), exclude=(date_to_t(pd.to_datetime('2024-05-01')),date_to_t(pd.to_datetime('2024-10-01'))), overdispersion=False, solution=None):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
@@ -63,9 +63,13 @@ def SIS_likelihood(positives, total_tests, hospitalizations, params, POINTS, STA
     # use softplus to avoid negative expected observations and aid stability
     expected_obs = jax.nn.softplus(expected_obs[-len(positives):]*100)/100
 
-    # divide expected_obs by total hospitalizations to get expected proportion positive
-    # clamp to maximum of 0.99 and handle zero hospitalizations safely
-    expected_positivity = jnp.minimum(0.99, jnp.divide(expected_obs, jnp.maximum(hospitalizations, 1e-10)))
+    # probability of getting a positive test in hospital is expected_obs / population size over time
+    population_size = jnp.sum(values[1:-NAG,:].reshape(-1, 2*N_S, NAG), axis=1)
+    # add maternal immunity compartment to youngest age group population size
+    population_size = population_size.at[:,0].add(values[0,:])
+    expected_ratio = jnp.divide(expected_obs, population_size[-len(positives):])
+    # then condition by baseline probabilty of hospitalization
+    expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-len(positives):], 1e-10)))
 
     # exclude date range from likelihood calculation
     if exclude is not None:

@@ -23,7 +23,7 @@ pathogen, seed, lockdown, option1, option2, import_multiplier, desize, max_mutat
 # set seed
 np.random.seed(seed)
 
-start_date = '2015-07-04'
+start_date = '2015-10-01'
 end_date = '2025-05-01'
 # check if option1 is in date format with regex
 if re.match(r'\d{4}-\d{2}-\d{2}',option1):
@@ -40,15 +40,18 @@ FULL_PERIOD = pd.date_range(start=pd.to_datetime('1970-01-01'), end=END, freq='D
 FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
 
 REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, positives, total_tests = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
-hospitalizations = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_hospitalizations_noCOVID.csv', header=None, index_col=None).values)
 N_S, NAG = 3, 7
 
-# trim incidence so that Date is between START and END
-start_idx = int(date_to_t(start_date) - date_to_t('2015-07-04'))
-end_idx = int(date_to_t(end_date) - date_to_t('2015-07-04')) + 1
+# # trim incidence so that Date is between START and END
+start_idx = int(date_to_t(start_date) - date_to_t('2015-10-01'))
+end_idx = int(date_to_t(end_date) - date_to_t('2015-10-01'))
 positives = positives[start_idx:end_idx, :]
 total_tests = total_tests[start_idx:end_idx, :]
-hospitalizations = hospitalizations[start_idx:end_idx, :]
+
+daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
+daily_hospitalization_rates = jnp.asarray(daily_hospitalization_rates_pd.values)
+daily_hospitalization_rates = daily_hospitalization_rates[start_idx:end_idx,]
 
 ## Initial conditions
 STATE0 = jnp.zeros((2*N_S+1,NAG))
@@ -63,7 +66,7 @@ param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, optio
 def likelihood(x):
     sim_params = x_to_params(x, pathogen, lockdown, option1, option2)
     try:
-        lh = -SIS_likelihood(positives, total_tests, hospitalizations, sim_params, POINTS, STATE0, p_time_to_obs)
+        lh = -SIS_likelihood(positives, total_tests, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs)
     except Exception as e: # Catch the specific exception
         worker_pid = os.getpid()
         print(f"!!! ERROR in worker {worker_pid} with params {x}")
