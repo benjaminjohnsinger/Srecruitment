@@ -233,7 +233,9 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=False):
     #         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_incidence_age_daily.csv",index_col=0))
     # if skip_incidence:
     #     return REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs
-    return REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, positives, total_tests
+    # join positives and total_tests into a single array with shape (time, age_group, 2)
+    tests = jnp.stack((total_tests, positives), axis=-1)
+    return REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests
 
 
 # @partial(jax.jit, static_argnames=['pathogen','lockdown','option1','option2'])
@@ -243,9 +245,9 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
         BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
         if pathogen == "sim":
-            _, _, IMPORT_STRENGTH, _, _, _ = pathogen_parameters("test", import_multiplier=import_multiplier, skip_incidence=True)
+            _, _, IMPORT_STRENGTH, _, _ = pathogen_parameters("test", import_multiplier=import_multiplier, skip_incidence=True)
         else:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, _, _, _ = pathogen_parameters(pathogen, import_multiplier=import_multiplier, skip_incidence=True)
+            REC_UP, REC_SAME, IMPORT_STRENGTH, _, _ = pathogen_parameters(pathogen, import_multiplier=import_multiplier, skip_incidence=True)
     else:
         FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX = fixed_params[:4]
         REC_UP, REC_SAME, IMPORT_STRENGTH = fixed_params[-3:]
