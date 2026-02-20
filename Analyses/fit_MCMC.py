@@ -67,6 +67,8 @@ def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p
     population_size = jnp.sum(values[1:-NAG,:].reshape(-1, 2*N_S, NAG), axis=1)
     # add maternal immunity compartment to youngest age group population size
     population_size = population_size.at[:,0].add(values[0,:])
+    # softplus population size to avoid negative values and aid stability
+    population_size = jax.nn.softplus(population_size*100)/100
     expected_ratio = jnp.divide(expected_obs, population_size[-len(tests):])
     # then condition by baseline probabilty of hospitalization
     expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-len(tests):], 1e-10)))
