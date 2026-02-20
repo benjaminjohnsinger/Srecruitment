@@ -53,6 +53,14 @@ def to_increment(vec):
     else:
         return vec
 
+def calculate_population_size(values, N_S=3, NAG=7):
+    """
+    Calculate population size from model output
+    """
+    population_size = jnp.sum(values[1:-NAG].reshape(2*N_S, NAG, -1), axis=0).T
+    population_size = population_size.at[:,0].add(values[0,:])
+    return population_size
+
 def age_detection(NAG,young_immunity,old_immunity,young_old,maternal_immunity=None,linear=True,min_obs=0.05,n_infant_groups=2):
     """
     Calculate age-specific relative probabilty of detection from parameters.
@@ -434,7 +442,7 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
     x = opt.x
     
     from Parameters.census_population import AGING_RATE
-    REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, positives, total_tests = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
+    REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
     CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
     BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
 
@@ -453,7 +461,7 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
         bounds = jnp.array([[0,1]]*7)
     params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, REC_UP, REC_SAME, IMPORT_STRENGTH), import_multiplier=import_multiplier)
 
-    return params, param_names, bounds, positives, total_tests, p_time_to_obs
+    return params, param_names, bounds, tests, p_time_to_obs
 
 # unified x from DE, i.e. x is same length regardless of model options. assume option2=flexage, lockdown=FlexStepwise
 def consistent_x_from_DE(pathogen, option1, seed, NAG=7):

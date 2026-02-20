@@ -21,7 +21,7 @@ from JAX_ODEs import deltas
 N_C = 2
 NAG = 7
 N_S = 3
-from utils import date_to_t, parameters_from_DE, x_to_params
+from utils import date_to_t, parameters_from_DE, x_to_params, calculate_population_size
 from Gemini_vaccination import FluRatePreprocessor
 import time
 
@@ -40,7 +40,7 @@ def run_simulation(params, y0, t1, saveat_ts):
     return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
-def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, start_t=date_to_t(pd.to_datetime('1970-01-01')), exclude=(date_to_t(pd.to_datetime('2024-05-01')),date_to_t(pd.to_datetime('2024-10-01'))), overdispersion=False, solution=None):
+def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, exclude=(date_to_t(pd.to_datetime('2024-05-01')),date_to_t(pd.to_datetime('2024-10-01'))), solution=None):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
@@ -64,9 +64,7 @@ def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p
     expected_obs = jax.nn.softplus(expected_obs[-len(tests):]*100)/100
 
     # probability of getting a positive test in hospital is expected_obs / population size over time
-    population_size = jnp.sum(values[1:-NAG].reshape(2*N_S, NAG, -1), axis=0).T
-    # add maternal immunity compartment to youngest age group population size
-    population_size = population_size.at[:,0].add(values[0,:])
+    population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
     expected_ratio = jnp.divide(expected_obs, population_size[-len(tests):])
     # then condition by baseline probabilty of hospitalization
     expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-len(tests):], 1e-10)))
@@ -196,10 +194,9 @@ def prior_distribution(filename, bounds, n=1000, dist_type="multilog", varlim=No
 
     return prior_dist, fit_means
 
-def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-9, vax_preprocessor=None, samples=1000, varlim=None):
-    params, _, bounds, p_time_to_obs, tests = parameters_from_DE(pathogen, lockdown, option1, option2, seed)
-    age_pops = jnp.asarray(pd.read_csv("Data/Processed/age_pops_daily.csv",header=None).values)
-    daily_hospitalization_rates = jnp.asarray(pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0).values.fillna(0))
+def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-9, samples=1000, varlim=None, ts_length=3500):
+    params, _, bounds, tests, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seed)
+    daily_hospitalization_rates = jnp.asarray(pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0).fillna(0).values)
     p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
     def obs_convolution(x):
         return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
@@ -232,37 +229,31 @@ def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-
             bounds = bounds[:n_ds+7]
         elif varlim == "pathogen":
             bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
-    if "Influenza" in pathogen:
-        if vax_preprocessor is None:
-            vax_preprocessor = FluRatePreprocessor(jnp.arange(0, date_to_t('2025-05-02')), age_pops, AGING_RATE)
     def model(obs_tests=None):
+        masked_obs_tests = jnp.ones((3347,NAG,2))
+        masked_expected_positivity = jnp.ones((3347,NAG))
+
         # sample parameters from prior
         sample = numpyro.sample("params", prior_dist)
         x_sampled = jnp.exp(sample) + bounds[:,0]
-        sim_params = x_to_params(x_sampled, pathogen, lockdown, option1, option2, vax_preprocessor=vax_preprocessor, fixed_params=params, import_multiplier=import_multiplier)
+        sim_params = x_to_params(x_sampled, pathogen, lockdown, option1, option2, fixed_params=params, import_multiplier=import_multiplier)
         solution = trajectory(STATE0, sim_params)
         values = solution.ys.T
         
         # Compute expected positivity using binomial likelihood from SIS_likelihood
         trajectory_diff = jnp.diff(values[-NAG:,:],axis=1).T
         expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory_diff)
-        expected_obs = jax.nn.softplus(expected_obs[-len(obs_tests),:]*100)/100
+        expected_obs = jax.nn.softplus(expected_obs[-ts_length:]*100)/100
         
         # Compute population size and expected positivity
-        population_size = jnp.sum(values[1:-NAG,:].reshape(-1, 2*N_S, NAG), axis=1)
-        population_size = population_size.at[:,0].add(values[0,:])
-        expected_ratio = jnp.divide(expected_obs, population_size[-len(obs_tests):])
-        expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-len(obs_tests):], 1e-10)))
+        population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
+        expected_ratio = jnp.divide(expected_obs, population_size[-ts_length:])
+        expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-ts_length:], 1e-10)))
         
-        # Mask out date range 2024-05-01 to 2024-10-01
-        mask = jnp.ones(obs_tests.shape[:2], dtype=bool)
-        start_t = date_to_t(pd.to_datetime('2015-10-01')) - 90
-        obs_times = jnp.arange(start_t, start_t + len(obs_tests))
-        mask = mask.at[(obs_times >= date_to_t(pd.to_datetime('2024-05-01'))) & (obs_times < date_to_t(pd.to_datetime('2024-10-01')))].set(False)
-        masked_obs_tests = obs_tests[mask]
-        masked_expected_positivity = expected_positivity[mask]
+        # Remove masked values by explicitly indexing
+        masked_obs_tests = masked_obs_tests.at[:3135].set(obs_tests[:3135]).at[3135:].set(obs_tests[3288:])
+        masked_expected_positivity = masked_expected_positivity.at[:3135].set(expected_positivity[:3135]).at[3135:].set(expected_positivity[3288:])
         
-        # Use binomial likelihood with masked data
         numpyro.sample("obs_tests", dist.Binomial(masked_obs_tests[...,0], masked_expected_positivity), obs=masked_obs_tests[...,1])
     nuts_kernel = NUTS(model,
                         init_strategy=numpyro.infer.init_to_value(values={"params": prior_means}),
@@ -379,11 +370,11 @@ if __name__ == "__main__":
     start = time.time()
     lockdown = "FlexStepwise"
     option1 = "NA"
-    seeds = [251103, 251103, 2511032, 2511032, 2511032, 2511042, ]
+    seeds = [260217, 260217, 260217, 260217, 2602173, 2511042, ]
     pathogens = ["RSV", "InfluenzaA", "Adenovirus", "Metapneumovirus", "Parainfluenza3", "InfluenzaB" ]
     for pathogen, seed in zip(pathogens, seeds):
         print(pathogen, time.time()-start)
-        mcmc = fit_MCMC(pathogen, lockdown, option1, "flexage", seed, import_multiplier=1e-9, samples=1000, varlim="pathogen")
+        mcmc = fit_MCMC(pathogen, lockdown, option1, "flexage", seed, import_multiplier=1e-9, samples=10, varlim="pathogen")
         mcmc.print_summary()
         # save samples
         posterior_samples = mcmc.get_samples()
@@ -392,7 +383,7 @@ if __name__ == "__main__":
         # with open("Data/Processed/MCMC_outputs/MCMC_"+pathogen+"FlexStepwise"+option1+"flexage"+str(seed)+"_pathogen_samples_sp100_mass.pickle", "rb") as f:
         #     posterior_samples = pickle.load(f)
         param_samples = posterior_samples['params']
-        params, param_names, bounds, incidence, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", option1, "flexage", seed)
+        params, param_names, bounds, tests, p_time_to_obs = parameters_from_DE(pathogen, "FlexStepwise", option1, "flexage", seed)
         # plot_likelihoods(param_samples, params, incidence, p_time_to_obs, downsample=100)
         # prior_dist, prior_means = prior_distribution(f"Data/Processed/DE_outputs/DE_{pathogen}FlexStepwise0.005flexage250709_sorted.csv",
         #     bounds, n=1000, dist_type="multilog", varlim = "pathogen", pathogen=pathogen, option1=option1)

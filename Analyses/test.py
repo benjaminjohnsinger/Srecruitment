@@ -30,10 +30,9 @@ plt.rcParams.update({'font.size':14})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-x = np.array([[1,2,3,4,5,6,7],[11,12,13,14,15,16,17],[21,22,23,24,25,26,27],[31,32,33,34,35,36,37],[41,42,43,44,45,46,47],[51,52,53,54,55,56,57],[61,62,63,64,65,66,67]])
-z = x[:6].reshape((2,3,7))
-print(z)
-print(z.sum(axis=1))
+mask = jnp.ones(3500, dtype=bool)
+mask = mask.at[3135:3288].set(False)
+print(mask.sum())
 
 # # data1 = pd.read_sas("Data/Raw/KPSC/testing.sas7bdat", format='sas7bdat', encoding='utf-8')
 # data2 = pd.read_sas("Data/Raw/KPSC/testing_20250818.sas7bdat", format='sas7bdat', encoding='utf-8')

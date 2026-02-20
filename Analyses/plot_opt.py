@@ -56,8 +56,10 @@ print(x)
 # print likelihood
 print("Log-Likelihood:",-1*opt.fun)
 
-REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, positives, total_tests = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
-hospitalizations = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_hospitalizations_noCOVID.csv', header=None, index_col=None).values)
+REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
+daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
+daily_hospitalization_rates = jnp.asarray(daily_hospitalization_rates_pd.values)
 N_S, NAG = 3, 7
 CONTACT_MATRIX = np.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
 BIRTH_RATE = np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=',')
@@ -101,7 +103,7 @@ print("ODE integration time:",time.time()-time0)
 values = solution.ys.T
 times = solution.ts
 
-print(SIS_likelihood(positives, total_tests, hospitalizations, params, POINTS, STATE0, p_time_to_obs, start_t=date_to_t(pd.to_datetime('1970-01-01')), solution=solution))
+print(SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, start_t=date_to_t(pd.to_datetime('1970-01-01')), solution=solution))
 
 # # for each season from the 2015/16 season onwards, sum the total number of infections
 seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
