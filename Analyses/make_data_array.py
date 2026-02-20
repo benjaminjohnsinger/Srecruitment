@@ -125,7 +125,7 @@ STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
 joints = jnp.array(FULL_POINTS)
 values = run_simulation(params, STATE0, joints[-1], joints)
-age_pops = np.array([jnp.sum(values[range(1+i,3*2*7,7),:],axis=0) for i in range(7)]).T
+age_pops = np.array([jnp.sum(values[range(1+i,3*2*7+1,7),:],axis=0) for i in range(7)]).T
 
 np.savetxt("Data/Processed/age_pops_daily.csv", age_pops, delimiter=",")
 
