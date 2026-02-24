@@ -303,7 +303,12 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         from new_vax import rsv_maternal_immunity
         MATERNAL_IMMUNITY = rsv_maternal_immunity(FULL_POINTS)
     if 'pathogen' not in option1:
-        if lockdown == 'FlexStepwise':
+        if lockdown == 'Default':
+            from Parameters.times_and_contacts import TT, FF
+            PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(FULL_POINTS)
+            RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+            n+=7
+        elif lockdown == 'FlexStepwise':
             TT = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
             # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
             F1 = x[n+3] # value between 0 and 1 (first lockdown)
@@ -406,11 +411,14 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
     if "dynamic" not in option1:
         if option2 == "flexage":
             bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0,0.005]
-        elif option2 == "flexagep01":
-            bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0,0.01]
         else:
-            bounds_dict["P_OBS"] = [0,0.01]
-            bounds_dict["AGE_OBS_YOUNG"] = bounds_dict["AGE_OBS_OLD"] = bounds_dict["AGE_OBS_YOUNG_OLD"] = [0,1]
+            # Extract decimal value from option2 (e.g., "flexagep01" -> 0.01, "flexagep5" -> 0.5)
+            match = re.search(r'flexagep(\d+)', option2)
+            if match:
+                upper_bound = int(match.group(1)) / (10 ** len(match.group(1)))
+            else:
+                upper_bound = 0.01
+            bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0, upper_bound]
     if "pathogen" not in option1:
         if lockdown == "Mobility":
             bounds_dict["F1"] = [0,2]

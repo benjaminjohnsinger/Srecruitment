@@ -52,11 +52,11 @@ else:
     print(opt.x)
     sys.exit()
 x = opt.x
-print(x)
+# print(x)
 # print likelihood
 print("Log-Likelihood:",-1*opt.fun)
 
-REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
+REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
 daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
 daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
 daily_hospitalization_rates = jnp.asarray(daily_hospitalization_rates_pd.values)
@@ -75,6 +75,15 @@ FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
 PERIOD = pd.date_range(start=START, end=END, freq='D')
 POINTS = np.array(date_to_t(PERIOD))
 
+start_idx = int(date_to_t(start_date) + 90 - date_to_t('2015-10-01'))
+end_idx = int(date_to_t(end_date) - date_to_t('2015-10-01'))
+tests = tests_full[start_idx:end_idx, :, :]
+
+daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
+daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
+daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
+
 ## Initial conditions
 STATE0 = jnp.zeros((2*N_S+1,NAG))
 STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
@@ -85,25 +94,11 @@ STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
 params = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True)
 
-from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
-
-term = ODETerm(deltas)
-solver = Dopri5()
-saveat = SaveAt(ts=jnp.arange(date_to_t('2015-10-01')-90,date_to_t('2025-05-01')))
-step_controller = PIDController(rtol=1e-5, atol=1e-5)
-print("Starting Diffrax solve...")
-time0 = time.time()
-solution = diffeqsolve(
-                    term, solver,
-                    t0=0, t1=int(POINTS[-1]), dt0=None, stepsize_controller=step_controller,
-                    saveat=saveat, y0=STATE0.flatten(), args=params, 
-                    max_steps=None,  
-                    )
-print("ODE integration time:",time.time()-time0)
+solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS)
 values = solution.ys.T
 times = solution.ts
 
-print(SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, start_t=date_to_t(pd.to_datetime('1970-01-01')), solution=solution))
+print(SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, solution=solution))
 
 # # for each season from the 2015/16 season onwards, sum the total number of infections
 seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
@@ -128,7 +123,7 @@ average_age_of_first_infection = np.sum(first_infections*jnp.array(MEDIAN_AGE).r
 season_infections = np.sum(season_infection_array,axis=1)
 season_infection_by_age = np.sum(season_infection_by_age,axis=2)
 print("Average age of first infection per season:",average_age_of_first_infection/12)
-# print("Proportion infected per season (including reinfections):",season_infections)
+print("Proportion infected per season (including reinfections):",season_infections)
 # print("Proportion infected per season (by age):",season_infection_by_age)
 
 
@@ -136,6 +131,9 @@ print("Average age of first infection per season:",average_age_of_first_infectio
 # R0s = jnp.zeros(len(times))
 # Rts = jnp.zeros(len(times))
 # contact_ratios = jnp.zeros(len(times))
+# SEASONALITY = x[-1]
+# OFFSET = x[-2]
+
 # for idx in range(len(times)):
 #     pop_size = jnp.sum(values[:,idx],dtype=jnp.float64)
 #     age_pops = jnp.array([jnp.sum(values[range(i_age,(2*N_S+1)*NAG,NAG),idx],axis=0) for i_age in range(NAG)])
@@ -168,7 +166,7 @@ ax2 = fig.add_subplot(3,1,2, sharex=ax1
 ax3 = fig.add_subplot(3,1,3, sharex=ax1)
 ax = [ax1,ax2,ax3]
 aggregation = "Month"
-kpsc_proportion_positive_incidence_plot(ax[0], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="M", factor=10000)
+kpsc_proportion_positive_incidence_plot(ax[0], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="ME", factor=10000)
 ax[0].set_xlabel("")
 pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
 # ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
@@ -184,7 +182,7 @@ lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-0
 lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
 ax[2].set_title("Effective susceptibles")
 
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_test2.png",dpi=300)
 
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")

@@ -23,7 +23,7 @@ pathogen, seed, lockdown, option1, option2, import_multiplier, desize, max_mutat
 # set seed
 np.random.seed(seed)
 
-start_date = '2015-10-01'
+start_date = '2015-07-04'
 end_date = '2025-05-01'
 # check if option1 is in date format with regex
 if re.match(r'\d{4}-\d{2}-\d{2}',option1):
@@ -43,7 +43,7 @@ REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests_full = pathogen_paramete
 N_S, NAG = 3, 7
 
 # # trim incidence so that Date is between START and END
-start_idx = int(date_to_t(start_date) - date_to_t('2015-10-01'))
+start_idx = int(date_to_t(start_date) + 90 - date_to_t('2015-10-01'))
 end_idx = int(date_to_t(end_date) - date_to_t('2015-10-01'))
 tests = tests_full[start_idx:end_idx, :, :]
 
@@ -81,7 +81,9 @@ if __name__ == '__main__':
     # printstr = "neg_log_likelihood,pathogen,seed," + ",".join([key for key in bounds_dict.keys()])
     # print(printstr)
     opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",seed=seed,
-    workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
+    strategy="currenttobest1bin",
+    workers = 10)
+    # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
     # if there's no Data/Processed/results<seed> directory, create it
     if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
         os.makedirs("Data/Processed/results"+str(seed)[:6])
