@@ -15,7 +15,7 @@ import pickle
 import colorsys
 from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 
-from utils import *
+from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, infections_by_age, parameters_from_DE, observations
 
 N_C = 2
 N_S = 3
@@ -29,10 +29,6 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 
 ##### Simple line plots #####
 def lockdown_incidence_plot(ax,state0,params,points,T_LOCKDOWN,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,relative=False,deltas=deltas,obs=None,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'),factor=1,p_time_to_obs=[1]):
-    NAG, N_S = 7, 3
-    FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
-    BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
-    REC_UP, REC_SAME, IMPORT_STRENGTH  = params
     if solution is None:
         term = ODETerm(deltas)
         solver = Dopri5()
@@ -57,7 +53,7 @@ def lockdown_incidence_plot(ax,state0,params,points,T_LOCKDOWN,solution=None,lab
     expected_obs = np.sum([np.roll(trajectory,i,axis=0)*p_time_to_obs[i] for i in range(len(p_time_to_obs))],axis=0)
 
     if by_age:
-        pop_size_by_age = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),1:],axis=0) for i_age in range(NAG)]).T
+        pop_size_by_age = calculate_population_size(values)[1:]
         obs = factor*expected_obs
         for i_age in range(NAG):
             ax.plot(dates[(start_index+1):end_index],obs[start_index:end_index,i_age]/pop_size_by_age[start_index:end_index,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)
@@ -67,7 +63,7 @@ def lockdown_incidence_plot(ax,state0,params,points,T_LOCKDOWN,solution=None,lab
         # obs = factor*np.sum(expected_obs,axis=1)
         if relative:
             pre_mx = np.max(obs[start_index:np.argmin(times<=T_LOCKDOWN)])
-            ax.plot(dates[(start_index+1):end_index], obs[start_index:end_index]/pre_mx[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
+            ax.plot(dates[(start_index+1):end_index], obs[start_index:end_index]/pre_mx, label=label,color=color,linewidth=linewidth,alpha=alpha)
             mx = 1.1*np.max(obs[start_index:end_index])/pre_mx
         else:
             ax.plot(dates[(start_index+1):end_index], obs[start_index:end_index], label=label,color=color,linewidth=linewidth,alpha=alpha)
@@ -104,9 +100,7 @@ def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,solut
     sus = susceptibility(solution,params)
     if by_age:
         if proportion:
-            pop_by_age = np.array([np.sum(values[range(1+i_age,N_C*N_S*NAG,NAG),:],axis=0) for i_age in range(NAG)]).T
-            print(values[0])
-            pop_by_age[:,0] += values[0]
+            pop_by_age = calculate_population_size(values)
             sus = sus/pop_by_age
         for i in range(NAG):
             ax.plot(dates,sus[:,i], label=AGE_GROUP_NAMES[i], color=hsv_colors[i],linestyle=style)

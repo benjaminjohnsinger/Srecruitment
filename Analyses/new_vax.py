@@ -6,7 +6,6 @@ import numpy as np
 import jax.numpy as jnp
 import pandas as pd
 import matplotlib.pyplot as plt
-from plotting import hsv_colors
 from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES, POP_SIZE, AGING_RATE
 
 ############## Calculating effective vaccination rates ###############

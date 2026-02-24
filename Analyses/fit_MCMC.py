@@ -25,7 +25,6 @@ from utils import date_to_t, parameters_from_DE, x_to_params, calculate_populati
 from Gemini_vaccination import FluRatePreprocessor
 import time
 
-@jax.jit
 def run_simulation(params, y0, t1, saveat_ts):
     term = ODETerm(deltas)
     solver = Dopri5()
@@ -33,14 +32,14 @@ def run_simulation(params, y0, t1, saveat_ts):
     step_controller = PIDController(rtol=1e-5, atol=1e-5)
     solution = diffeqsolve(
                         term, solver,
-                        t0=0, t1=t1, dt0=None, stepsize_controller=step_controller,
+                        t0=0, t1=t1, dt0=0.1, stepsize_controller=step_controller,
                         saveat=saveat, y0=y0.flatten(), args=params, 
-                        max_steps=None,
+                        max_steps=10000, throw=False,
                         )
     return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
-def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, exclude=(date_to_t(pd.to_datetime('2024-05-01')),date_to_t(pd.to_datetime('2024-10-01'))), solution=None):
+def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, mask=[3135,3288], solution=None):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
@@ -54,7 +53,6 @@ def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p
 
     # convolution of trajectory with probability of detection at each day after infection to get expected observations on each day
     p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
-    @jax.jit
     def obs_convolution(x):
         return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
     # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
@@ -70,14 +68,13 @@ def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p
     expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-len(tests):], 1e-10)))
 
     # exclude date range from likelihood calculation
-    if exclude is not None:
-        mask = jnp.ones(tests.shape[:2], dtype=bool)
-        mask = mask.at[(POINTS[-len(tests):] >= exclude[0]) & (POINTS[-len(tests):] < exclude[1])].set(False)
-        tests = tests[mask]
-        expected_positivity = expected_positivity[mask]
+    masked_tests = jnp.ones((len(tests)- (mask[1] - mask[0]),NAG,2))
+    masked_expected_positivity = jnp.ones((len(tests)- (mask[1] - mask[0]),NAG))
+    masked_tests = masked_tests.at[:mask[0]].set(tests[:mask[0]]).at[mask[0]:].set(tests[mask[1]:])
+    masked_expected_positivity = masked_expected_positivity.at[:mask[0]].set(expected_positivity[:mask[0]]).at[mask[0]:].set(expected_positivity[mask[1]:])
     
     # calculate binomial likelihood of observed positives given expected proportion positive and total tests
-    likelihood = jsp.stats.binom.logpmf(tests[...,1], tests[...,0], expected_positivity).sum()
+    likelihood = jsp.stats.binom.logpmf(masked_tests[...,1], masked_tests[...,0], masked_expected_positivity).sum()
     return likelihood
 
 def fit_transform(target_means, target_cov, bounds):
@@ -194,7 +191,7 @@ def prior_distribution(filename, bounds, n=1000, dist_type="multilog", varlim=No
 
     return prior_dist, fit_means
 
-def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-9, samples=1000, varlim=None, ts_length=3500):
+def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-9, samples=1000, varlim=None, ts_length=3500, mask=[3135,3288]):
     params, _, bounds, tests, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seed)
     daily_hospitalization_rates = jnp.asarray(pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0).fillna(0).values)
     p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
@@ -230,8 +227,8 @@ def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-
         elif varlim == "pathogen":
             bounds = jnp.concatenate((bounds[:n_ds], bounds[n_ds+7:]))
     def model(obs_tests=None):
-        masked_obs_tests = jnp.ones((3347,NAG,2))
-        masked_expected_positivity = jnp.ones((3347,NAG))
+        masked_obs_tests = jnp.ones((ts_length - (mask[1] - mask[0]),NAG,2))
+        masked_expected_positivity = jnp.ones((ts_length - (mask[1] - mask[0]),NAG))
 
         # sample parameters from prior
         sample = numpyro.sample("params", prior_dist)
@@ -251,8 +248,8 @@ def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-
         expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-ts_length:], 1e-10)))
         
         # Remove masked values by explicitly indexing
-        masked_obs_tests = masked_obs_tests.at[:3135].set(obs_tests[:3135]).at[3135:].set(obs_tests[3288:])
-        masked_expected_positivity = masked_expected_positivity.at[:3135].set(expected_positivity[:3135]).at[3135:].set(expected_positivity[3288:])
+        masked_obs_tests = masked_obs_tests.at[:mask[0]].set(obs_tests[:mask[0]]).at[mask[0]:].set(obs_tests[mask[1]:])
+        masked_expected_positivity = masked_expected_positivity.at[:mask[0]].set(expected_positivity[:mask[0]]).at[mask[0]:].set(expected_positivity[mask[1]:])
         
         numpyro.sample("obs_tests", dist.Binomial(masked_obs_tests[...,0], masked_expected_positivity), obs=masked_obs_tests[...,1])
     nuts_kernel = NUTS(model,

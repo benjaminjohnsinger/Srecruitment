@@ -64,25 +64,23 @@ param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, optio
 
 def likelihood(x):
     sim_params = x_to_params(x, pathogen, lockdown, option1, option2)
-    try:
-        lh = -SIS_likelihood(tests, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs)
-    except Exception as e: # Catch the specific exception
-        worker_pid = os.getpid()
-        print(f"!!! ERROR in worker {worker_pid} with params {x}")
-        print(f"Error details: {e}")
-        print(f"Traceback: {traceback.format_exc()}")
-        return 1e10
-    printstr = str(lh) + "," + pathogen + "," + lockdown + "," + str(seed) + "," + ",".join([str(value) for value in x])
-    print(printstr, flush=True)
-    return lh
+    lh = -SIS_likelihood(tests, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs)
+    # printstr = str(lh) + "," + pathogen + "," + lockdown + "," + str(seed) + "," + ",".join([str(value) for value in x])
+    # print(printstr, flush=True)
+    is_invalid = jnp.isnan(lh) | jnp.isinf(lh)
+    return jnp.where(is_invalid, 1e10, lh)
 
 if __name__ == '__main__':
+    vmap_likelihood = jax.jit(jax.vmap(likelihood))
+    def scipy_objective(x):
+        x_transposed = x.T
+        return np.asarray(vmap_likelihood(x_transposed))
+
     multiprocessing.set_start_method('spawn', force=True)
     # printstr = "neg_log_likelihood,pathogen,seed," + ",".join([key for key in bounds_dict.keys()])
     # print(printstr)
-    opt = sp.optimize.differential_evolution(likelihood,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",seed=seed,
-    strategy="currenttobest1bin",
-    workers = 10)
+    opt = sp.optimize.differential_evolution(scipy_objective,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",seed=seed,updating="deferred",
+    strategy="currenttobest1bin", vectorized=True)
     # workers=int(os.getenv('SLURM_CPUS_ON_NODE')))
     # if there's no Data/Processed/results<seed> directory, create it
     if not os.path.exists("Data/Processed/results"+str(seed)[:6]):

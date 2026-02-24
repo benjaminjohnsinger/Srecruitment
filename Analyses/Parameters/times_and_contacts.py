@@ -3,7 +3,13 @@ import pandas as pd
 import numpy as np
 
 import contact_model as cm
-from utils import date_to_t
+
+def date_to_t(date, start_date=pd.to_datetime("1970-01-01")):
+    """
+    Convert date to time index
+    """
+    date_time = pd.to_datetime(date)
+    return (date_time - start_date).days
 
 ## Period of simulation
 EPOCH = pd.to_datetime('1970-01-01')

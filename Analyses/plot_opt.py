@@ -33,28 +33,29 @@ if re.match(r'\d{4}-\d{2}-\d{2}',option2):
     end_date = option2
     option2 = "flexage" #this is super hacky sorry
 
-print(pathogen, seed)
-if re.search(r'\d{6}',lockdown):
-    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
-        opt = pickle.load(f)
-else:
-    try:
-        with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
-            opt = pickle.load(f)
-    except FileNotFoundError:
-        print('File not found:',"Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
-        sys.exit()
-if opt.success:
-    print("Optimization converged")
-else:
-    print("Optimization did not converge")
-    print(opt.message)
-    print(opt.x)
-    sys.exit()
-x = opt.x
+# print(pathogen, seed)
+# if re.search(r'\d{6}',lockdown):
+#     with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
+#         opt = pickle.load(f)
+# else:
+#     try:
+#         with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+#             opt = pickle.load(f)
+#     except FileNotFoundError:
+#         print('File not found:',"Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
+#         sys.exit()
+# if opt.success:
+#     print("Optimization converged")
+# else:
+#     print("Optimization did not converge")
+#     print(opt.message)
+#     print(opt.x)
+#     sys.exit()
+# x = opt.x
 # print(x)
 # print likelihood
-print("Log-Likelihood:",-1*opt.fun)
+# print("Log-Likelihood:",-1*opt.fun)
+x = np.array([0.5091970294775983,0.038138830713551564,0.2776556980681545,0.0012602789393627205,0.21627206445128822,0.20132784339390866,0.776982704823667,0.9139105471077289,0.54807007936065,0.4334829303363706,0.6131687988231295,0.9716579791321339,0.9718995750684601,0.008945287311417248,0.0052320472826917885,0.004748656272096281,0.0021215495357909,0.0002600260083962844,0.0011335649942571457,0.008355163912106502])
 
 REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
 daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
@@ -105,13 +106,13 @@ seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017
 season_infection_array = np.zeros((len(seasons)-1,3))
 season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
 first_infections = np.zeros((len(seasons)-1,NAG))
+population_size = calculate_population_size(values)
 for i in range(len(seasons)-1):
     # get the number of infections in each season
     season_start = np.argmax(times>=seasons[i])
     season_end = np.argmax(times>=seasons[i+1])
     pop_size = np.sum(values[:-NAG,season_start],dtype=np.float64)
-    age_pops = np.array([np.sum(values[range(1+i_age,2*N_S*NAG,NAG),season_start],axis=0) for i_age in range(NAG)])
-    age_pops[0] += values[0,season_start]  # add maternal immunity compartment to first age group
+    age_pops = population_size[season_start]
     first_infections[i,:] = np.sum(values[1:1+NAG,season_start:season_end],axis=1)
     season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
     season_infection_array[i,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end])*REC_UP[1]/pop_size
@@ -182,7 +183,7 @@ lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-0
 lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
 ax[2].set_title("Effective susceptibles")
 
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_test2.png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_test3.png",dpi=300)
 
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")

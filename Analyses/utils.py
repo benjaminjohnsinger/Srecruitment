@@ -10,6 +10,7 @@ import sys
 import time
 from functools import partial
 
+
 ####### Utility functions #######
 
 
@@ -247,6 +248,11 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=False):
 
 
 # @partial(jax.jit, static_argnames=['pathogen','lockdown','option1','option2'])
+
+# jax-safe importations for x_to_params
+from Parameters.times_and_contacts import TT as defaultTT
+from Parameters.times_and_contacts import FF as defaultFF
+from new_vax import rsv_eff_vax_rate
 def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False):
     if fixed_params is None:
         from Parameters.census_population import AGING_RATE
@@ -304,8 +310,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         MATERNAL_IMMUNITY = rsv_maternal_immunity(FULL_POINTS)
     if 'pathogen' not in option1:
         if lockdown == 'Default':
-            from Parameters.times_and_contacts import TT, FF
-            PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(FULL_POINTS)
+            PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, defaultTT, defaultFF, steepness=0.2))(FULL_POINTS)
             RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n+=7
         elif lockdown == 'FlexStepwise':
@@ -369,7 +374,6 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         max_eff = (protection_param[-2]-protection_param[-1])/protection_param[-2]
         VAX_RATE = flu_eff_vax_rate(FULL_POINTS, max_eff)
     elif ("RSV" in pathogen):
-        from new_vax import rsv_eff_vax_rate
         protection_param = S_REL*P_OBS
         max_eff0 = 1 - protection_param[-1]
         max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
