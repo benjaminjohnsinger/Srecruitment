@@ -253,7 +253,7 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=False):
 from Parameters.times_and_contacts import TT as defaultTT
 from Parameters.times_and_contacts import FF as defaultFF
 from new_vax import rsv_eff_vax_rate
-def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False):
+def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None):
     if fixed_params is None:
         from Parameters.census_population import AGING_RATE
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
@@ -266,6 +266,9 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX = fixed_params[:4]
         REC_UP, REC_SAME, IMPORT_STRENGTH = fixed_params[-3:]
 
+    if rescale is not None:
+        x = rescale[:,0] + x * (rescale[:,1] - rescale[:,0])
+    
     N_S, NAG = 3, 7
     EPOCH = pd.to_datetime('1970-01-01')
     END = pd.to_datetime(end_date)

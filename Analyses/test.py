@@ -33,23 +33,28 @@ plt.rcParams['font.serif'] = ['Palatino']
 
 
 # ##### Likelihood profile for offset parameter ######
-pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 260223, "FlexStepwise", "NA", "flexagep01", 1e-9
+pathogen, seed, lockdown, option1, option2, import_multiplier = "InfluenzaA", 260223, "FlexStepwise", "NA", "flexagep01", 1e-9
 
 import sys
 sys.argv = [sys.argv[0], pathogen, str(seed), lockdown, option1, option2, str(import_multiplier), "20", "1", "0.7"]
-from fit_opt import likelihood, vmap_likelihood
+from fit_opt import likelihood
 jlikelihood = jax.jit(likelihood)
 # with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
 #     opt = pickle.load(f)
 # x = jnp.array(opt.x)
 
-x = jnp.array([0.3930, 0.0488, 0.2457, 0.0036, 0.1792, 0.1622, 0.9081, 0.4926, 0.8474, 0.4486, 0.9121, 0.8380, 1.0000, 0.0100, 0.0064, 0.0046, 0.0016, 0.0002, 0.0010, 0.0096])
-gradient = jax.grad(jlikelihood)(x)
-print(jnp.linalg.norm(gradient))
+# x = jnp.array([0.3930, 0.0488, 0.2457, 0.0036, 0.1792, 0.1622, 0.9081, 0.4926, 0.8474, 0.4486, 0.9121, 0.8380, 1.0000, 0.0100, 0.0064, 0.0046, 0.0016, 0.0002, 0.0010, 0.0096])
+# gradient = jax.grad(jlikelihood)(x)
+# print(jnp.linalg.norm(gradient))
 
 
+import itertools
 param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
-x = jnp.array([(bounds[i,0] + bounds[i,1])/10 for i in range(len(bounds))])
+valid_sample = False
+while not valid_sample:
+    x = jnp.array([np.random.uniform(bounds[i, 0], bounds[i, 1]) for i in range(len(bounds))])
+    if likelihood(x) < 10:
+        valid_sample = True
 
 jlikelihood = jax.jit(likelihood)
 start_likelihood = jlikelihood(x)
@@ -60,6 +65,7 @@ solver = optax.adabelief(learning_rate=0.003)
 opt_state = solver.init(x)
 jgrad = jax.jit(jax.grad(jlikelihood))
 for i in range(1000):
+    start_time = time.time()
     grad = jgrad(x)
     update, opt_state = solver.update(grad, opt_state, x)
     x = optax.apply_updates(x, update)
@@ -81,6 +87,7 @@ for i in range(1000):
     if jnp.linalg.norm(grad) < 1e-3:
         print("Gradient close to zero, stopping optimization.")
         break
+    print(f"Iteration {i+1} completed in {time.time() - start_time:.2f} seconds.")
 
 # orders_of_magnitude = 10
 # times = np.zeros(orders_of_magnitude)

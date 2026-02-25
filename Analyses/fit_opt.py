@@ -18,7 +18,7 @@ from utils import *
 from fit_MCMC import SIS_likelihood
 import traceback
 
-pathogen, seed, lockdown, option1, option2, import_multiplier, desize, max_mutation, recombination = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
+pathogen, seed, lockdown, option1, option2, import_multiplier, opt_size, opt_rate1, opt_rate2 = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
 
 # set seed
 np.random.seed(seed)
@@ -63,21 +63,21 @@ STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
 
 def likelihood(x):
-    sim_params = x_to_params(x, pathogen, lockdown, option1, option2)
+    sim_params = x_to_params(x, pathogen, lockdown, option1, option2, rescale=bounds)
     lh = -SIS_likelihood(tests, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs)
     lh = lh / jnp.prod(jnp.asarray(daily_hospitalization_rates.shape)) # normalize by number of data points
     is_invalid = jnp.isnan(lh) | jnp.isinf(lh)
     return jnp.where(is_invalid, 1e10, lh)
 
-vmap_likelihood = jax.jit(jax.vmap(likelihood))
 
 if __name__ == '__main__':
-    # #scipy version
+    # #scipy version of DE
+    vmap_likelihood = jax.jit(jax.vmap(likelihood))
     # def scipy_objective(x):
     #     x_transposed = x.T
     #     return np.asarray(vmap_likelihood(x_transposed))
     # multiprocessing.set_start_method('spawn', force=True)
-    # opt = sp.optimize.differential_evolution(scipy_objective,bounds,popsize=desize,mutation=(0.5,max_mutation),recombination=recombination,init="halton",seed=seed,updating="deferred",
+    # opt = sp.optimize.differential_evolution(scipy_objective,bounds,popsize=opt_size,mutation=(0.5,opt_rate1),recombination=opt_rate2,init="halton",seed=seed,updating="deferred",
     # strategy="currenttobest1bin", vectorized=True)
     # # if there's no Data/Processed/results<seed> directory, create it
     # if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
@@ -85,61 +85,103 @@ if __name__ == '__main__':
     # with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
     #     pickle.dump(opt,f)
 
-    # evosax version
-    from evosax.algorithms import CMA_ES
+    # optax minimizer
+    import optax
+
+    hypercube_size = int(opt_rate2)
+
+    # generate latin hypercube starting points within bounds
+    sampling_start_time = time.time()
+    from scipy.stats import qmc
+    sampler = qmc.LatinHypercube(d=len(bounds), seed=seed)
+    xs = jnp.array(sampler.random(n=hypercube_size))
+    # xs = jnp.array(bounds[:, 0] + lhs_samples * (bounds[:, 1] - bounds[:, 0]))
+    print(f"Generated {hypercube_size} Latin hypercube samples in {time.time() - sampling_start_time:.2f} seconds.")
+
+    # if there are opt_states with likelihood over 100, resample those points
+    likelihoods = vmap_likelihood(xs)
+    likelihood_threshold = 10
+    print(f"n initial points with likelihood > {likelihood_threshold}: {jnp.sum(likelihoods > likelihood_threshold)}")
+    max_resampling_iterations = 100
+    for iteration in range(max_resampling_iterations):
+        bad_indices = jnp.where(likelihoods > likelihood_threshold)[0]
+        if len(bad_indices) == 0:
+            break
+        
+        # Resample all bad points at once
+        n_bad = len(bad_indices)
+        new_samples = sampler.random(n=n_bad)
+        # scaled_new_samples = jnp.array(bounds[:, 0] + new_samples * (bounds[:, 1] - bounds[:, 0]))
+        
+        # Replace bad samples
+        xs = xs.at[bad_indices].set(new_samples)
+        new_likelihoods = vmap_likelihood(new_samples)
+        likelihoods = likelihoods.at[bad_indices].set(new_likelihoods)
+        print(f"Iteration {iteration + 1}: {jnp.sum(likelihoods > likelihood_threshold)} points still exceed threshold")
+    print(f"Resampled points with likelihood > {likelihood_threshold} in {time.time() - sampling_start_time:.2f} seconds.")
+
+    schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=opt_size/5, decay_rate=0.9, staircase=True)
+    solver = optax.chain(
+        optax.clip_by_global_norm(1.0),
+        optax.adabelief(learning_rate=schedule)
+    )
+
+    def single_step(x, opt_state):
+        neglogL, grad = jax.value_and_grad(likelihood)(x)
+        update, opt_state = solver.update(grad, opt_state, x)
+        x = optax.apply_updates(x, update)
+        x = optax.projections.projection_box(x, 0, 1)
+        return x, opt_state, neglogL
+    vmapped_step = jax.jit(jax.vmap(single_step))
+
+    def scan_body(carry, step_index):
+        x, opt_state = carry
+        x, opt_state, neglogL = vmapped_step(x, opt_state)
+        return (x, opt_state), neglogL
     
-    # set up random key and bounds for evosax
-    rng = jax.random.PRNGKey(seed)
-    lower_bounds = jnp.array([b[0] for b in bounds])
-    upper_bounds = jnp.array([b[1] for b in bounds])
-    nD = len(bounds)
-    # n_generations = 1000
-    n_generations = 40
-
-    dummy_solution = jnp.array([(lower_bounds[i] + upper_bounds[i]) / 2 for i in range(nD)])
-
-    # initialize CMA-ES optimizer
-    strategy = CMA_ES(population_size=desize, num_dims=nD)
-    # pass the bounds into the optimizer parameters
-    es_params = strategy.default_params
-    # es_params = es_params.replace(
-    #     bounds_min=lower_bounds,
-    #     bounds_max=upper_bounds,
-    # )
-
-    # create the optimization step
     @jax.jit
-    def step(state, rng_key):
-        # get population of candidate parameters
-        x, state = strategy.ask(rng_key, state, es_params)
-        # evaluate the likelihood for each candidate parameter set
-        fitness = vmap_likelihood(x)
-        # update the optimizer state with the fitness values
-        state = strategy.tell(x, fitness, state, es_params)
-        return state, x, fitness
-    
-    # initialize the optimizer state
-    rng, init_rng = jax.random.split(rng)
-    state = strategy.init(init_rng, es_params)
+    def run_optimization(xs):
+        vmapped_init = jax.jit(jax.vmap(solver.init))
+        opt_states = vmapped_init(xs)
 
-    # run the optimization loop
-    print(f"Starting optimization for {pathogen} with seed {seed}...")
+        initial_carry = (xs, opt_states)
+        final_carry, neglogL_history = jax.lax.scan(scan_body, initial_carry, jnp.arange(opt_size))
+        final_xs, _ = final_carry
+        return final_xs, neglogL_history
+    
+    final_xs, neglogL_history = run_optimization(xs)
+    # save results to disk
     if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
         os.makedirs("Data/Processed/results"+str(seed)[:6])
+    results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+    with open(results_file, "wb") as f:
+        pickle.dump({"final_xs": final_xs, "neglogL_history": neglogL_history}, f)
+    # print best parameters and likelihood
+    best_index = jnp.argmin(neglogL_history[-1])
+    best_params = bounds[:,0] + final_xs[best_index] * (bounds[:,1] - bounds[:,0])
+    best_likelihood = jnp.min(neglogL_history[-1])
+    print(f"Best parameters: {best_params}")
+    print(f"Best likelihood: {best_likelihood}")
 
-    best_x = None
-    best_fitness = jnp.inf
 
-    for gen in range(n_generations):
-        rng, step_rng = jax.random.split(rng)
+    # vmapped_init = jax.jit(jax.vmap(solver.init))
+    # opt_states = vmapped_init(xs)
 
-        state, population, fitness = step(state, step_rng)
-
-        # track the best solution found so far
-        if state.best_fitness < best_fitness:
-            best_fitness = state.best_fitness
-            best_x = state.best_x
-
-    # save results
-    with open("Data/Processed/results"+str(seed)[:6]+"/evosax_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
-        pickle.dump({"x": best_x, "fun": best_fitness},f)
+    # record_likelihoods = jnp.zeros((opt_size, hypercube_size))
+    # record_xs = jnp.zeros((opt_size, hypercube_size, len(bounds)))
+    # sampling_start_time = time.time()
+    
+    # # if there's no Data/Processed/results<seed> directory, create it
+    # if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
+    #     os.makedirs("Data/Processed/results"+str(seed)[:6])
+    
+    # results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+    
+    # for i in range(opt_size):
+    #     xs, opt_states, neglogLs = vmapped_step(xs, opt_states)
+    #     record_likelihoods = record_likelihoods.at[i].set(neglogLs)
+    #     record_xs = record_xs.at[i].set(xs)
+        
+    #     # Write to disk after each iteration
+    #     with open(results_file, "wb") as f:
+    #         pickle.dump({"opt_states": opt_states, "record_likelihoods": record_likelihoods, "record_xs": record_xs, "iteration": i+1}, f)
