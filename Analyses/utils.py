@@ -288,11 +288,11 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     else:
         WANE = jnp.array([0.0,0.0,x[n]])
         n += 1
-    if ("Influenza" in pathogen) and ("free" not in pathogen) and (option2 != 'nr'):
+    if ("Influenza" in pathogen) and ("free" not in pathogen) and ('nr' not in option2):
         srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
         S_REL = srel
         n += 3
-    elif pathogen == 'RSV':
+    elif (pathogen == 'RSV') and ('nr' not in option2):
         S_REL = jnp.array([1,x[n],x[n]*x[n+1]])
         pobsrel = jnp.array([1,0.46,0.31]) # Henderson 1979
         n += 2
@@ -450,7 +450,7 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
         except FileNotFoundError:
             print("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
             print('No file found')
-            sys.exit()
+            raise FileNotFoundError("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
     x = opt.x
     
     from Parameters.census_population import AGING_RATE

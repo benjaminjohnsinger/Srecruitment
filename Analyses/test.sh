@@ -1,5 +1,5 @@
 combinations=(
-"RSV 260223 FlexStepwise NA flexagep01 1e-9 4 1 0.7"
+"RSV 260223 FlexStepwise NA flexagep01 1e-9 20 1 0.7"
 "Metapneumovirus 260223 FlexStepwise NA flexagep01 1e-9 20 1 0.7"
 "Adenovirus 260223 FlexStepwise NA flexagep01 1e-9 20 1 0.7"
 "RSV 2602232 FlexStepwise NA flexagep01 1e-9 20 1 0.7"

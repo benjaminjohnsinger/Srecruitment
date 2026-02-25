@@ -1,7 +1,7 @@
 ## SIR model with n susceptibility classes, for a single pathogen
 ## BJS September 2024
 
-# import jax.numpy as jnp
+import jax.numpy as jnp
 import numpy as np
 import scipy as sp
 import pandas as pd
@@ -770,13 +770,14 @@ if __name__ == "__main__":
 
     fig = plt.figure(layout="constrained", figsize=(7,4))
 
+    pathogens = ["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Parainfluenza3","Adenovirus"]
+
     subfigs = fig.subfigures(1, 2, wspace=0.05, width_ratios=[7, 3])
-    axA = subfigs[1].subplots(6, 1, sharex = True)
-    axB = subfigs[0].subplots(3, 2, sharex = True)
+    axA = subfigs[1].subplots(len(pathogens), 1, sharex = True)
+    axB = subfigs[0].subplots((len(pathogens) + 1)//2, 2, sharex = True)
 
     
     # figA, axA = plt.subplots(6, 1, figsize=(2.5,4), sharex = True)
-    pathogens = ["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Parainfluenza3","Adenovirus"]
     for pi,pathogen in enumerate(pathogens):
         print(pathogen)
         age_group_incidence_plot(axA[pi],pathogen,color="k",season="pre_median", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Pre-COVID-19")
@@ -806,10 +807,10 @@ if __name__ == "__main__":
             color=data_color, aggregation=aggregation, factor=factor,
             annotations=True, label="Data")
     # suppress all y labels and replace with single label on left
-    for i in range(3):
+    for i in range(len(pathogens)//2):
         for j in range(2):
             axB[i,j].set_ylabel("")
-    axB[1,0].set_ylabel(f"Incidence per {factor_label} members")
+    axB[len(pathogens)//4,0].set_ylabel(f"Incidence per {factor_label} members")
     # only icnlude every other year label
     for axB_i in axB.flatten():
         axB_i.set_xticks(pd.date_range(start='2016-01-01',end='2025-01-01',freq='2YS'))
@@ -823,8 +824,8 @@ if __name__ == "__main__":
     
     lockdown = "FlexStepwise"
     option1 = "NA"
-    option2 = "flexage"
-    seeds = [260217,2511042,260217,260217,2602173,260217]
+    option2 = "flexagep01"
+    seeds = [260223, 260223, 260223, 260223, 260223, 260223]
     ## Initial conditions
     from Parameters.census_population import CENSUS_AGE_POP
     STATE0 = jnp.zeros((2*N_S+1,NAG))
@@ -838,9 +839,14 @@ if __name__ == "__main__":
     T_LOCKDOWN = date_to_t(pd.to_datetime("2020-03-20"))
     for pi, pathogen in enumerate(pathogens):
         print(pathogen)
-        params, _, _, _, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seeds[pi])
+        print(f"Plotting simulations for {pathogen}...")
+        try:
+            params, _, _, _, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seeds[pi])
+        except Exception as e:
+            print(f"Pathogen {pathogen} not found")
+            continue
         lockdown_incidence_plot(axB[pi//2,pi%2], STATE0, params, POINTS, T_LOCKDOWN,
-                                # p_time_to_obs=p_time_to_obs,
+                                p_time_to_obs=p_time_to_obs,
                                 color="#DC267F", factor=factor*7, label="Simulation")
     axB[0,1].legend(loc="upper right")
     
@@ -850,4 +856,4 @@ if __name__ == "__main__":
     subfigs[0].suptitle("A", x=0.01, fontweight='bold')
     subfigs[1].suptitle("B", x=0.01, fontweight='bold')
 
-    plt.savefig("Figures/Figure1_unptto.png",dpi=300)
+    plt.savefig("Figures/Figure1_currentto.png",dpi=300)

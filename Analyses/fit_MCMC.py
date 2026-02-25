@@ -14,7 +14,7 @@ import time
 from functools import partial
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
-from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
+from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController, DirectAdjoint
 
 from Parameters.census_population import CENSUS_AGE_POP, AGING_RATE
 from JAX_ODEs import deltas
@@ -35,6 +35,7 @@ def run_simulation(params, y0, t1, saveat_ts):
                         t0=0, t1=t1, dt0=0.1, stepsize_controller=step_controller,
                         saveat=saveat, y0=y0.flatten(), args=params, 
                         max_steps=10000, throw=False,
+                        adjoint=DirectAdjoint(),
                         )
     return solution
 

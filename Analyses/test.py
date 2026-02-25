@@ -30,98 +30,179 @@ plt.rcParams.update({'font.size':14})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-# # data1 = pd.read_sas("Data/Raw/KPSC/testing.sas7bdat", format='sas7bdat', encoding='utf-8')
-# data2 = pd.read_sas("Data/Raw/KPSC/testing_20250818.sas7bdat", format='sas7bdat', encoding='utf-8')
-# # print total number of tests where "pathogen" contains "RESPIRATORY SYNCYTIAL VIRUS"
-# print(data2[data2['pathogen'].str.contains("INFLUENZA VIRUS B", na=False)].shape[0])
 
-# filter to result_val == "Positive"
-# data1 = data1[data1['result_val'] == "Positive"]
-# data2 = data2[data2['result_val'] == "Positive"]
 
-# add date column by adding lab_days to first of october of given YEAR
-# data1['date'] = pd.to_datetime(data1['YEAR'].astype(int).astype(str) + '-10-01') + pd.to_timedelta(data1['lab_days'], unit='D')
-# data2['date'] = pd.to_datetime(data2['YEAR'].astype(int).astype(str) + '-10-01') + pd.to_timedelta(data2['dx_days'], unit='D')
+# ##### Likelihood profile for offset parameter ######
+pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 260223, "FlexStepwise", "NA", "flexagep01", 1e-9
 
-# # in data2, which months in 2024 have data?
-# print(data2[data2['date'].dt.year == 2024]['date'].dt.month.unique())
+import sys
+sys.argv = [sys.argv[0], pathogen, str(seed), lockdown, option1, option2, str(import_multiplier), "20", "1", "0.7"]
+from fit_opt import likelihood, vmap_likelihood
+jlikelihood = jax.jit(likelihood)
+# with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+#     opt = pickle.load(f)
+# x = jnp.array(opt.x)
 
-#### Lockdowns plot ####
-class FakeOpt:
-    def __init__(self, x):
-        self.x = x
-import pickle
-contact_arrays = {}
-for pathogen, seed in [("RSV", "260217"),("RSV", "2602172"),("RSV", "2602173"), ("Metapneumovirus", "260217"),("Metapneumovirus", "2602172"),("Metapneumovirus", "2602173"), ("InfluenzaA", "260217"), ("Adenovirus", "260217"), ("Parainfluenza3", "2602173")]:
-    lockdown = "FlexStepwise"
-    option1 = "NA"
-    option2 = "flexage"
-    if pathogen != "None":
-        with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
-            opt = pickle.load(f)
-        x = opt.x
-    START = pd.to_datetime('2020-01-01')
-    END = pd.to_datetime('2023-01-01')
-    PERIOD = pd.date_range(start=START, end=END, freq='D')
-    POINTS = jnp.array(date_to_t(PERIOD))
-    n = 4
-    if ("Influenza" in pathogen) and ("free" not in pathogen) and (option2 != 'nr'):
-        n += 3
-    elif pathogen == 'RSV':
-        n += 2
-    else:
-        n += 4
-    if 'flexage' not in option2:
-        n += 1
-    if pathogen == 'None':
-        n = 0
-        with open("Data/Processed/DE_cm_opt_"+str(seed)+".pickle","rb") as f:
-            opt = pickle.load(f)
-        x = opt.x
-    if 'pathogen' not in option1:
-        if lockdown == 'FlexStepwise':
-            TT = jnp.array([date_to_t(START),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
-            # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
-            F1 = x[n+3] # value between 0 and 1 (first lockdown)
-            F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
-            F3 = F2*x[n+5] # value less than F2 (second lockdown)
-            F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
-            FF = jnp.array([1,F1,F2,F3,F4])
-            PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(POINTS)
-            n += 7
-    contact_arrays[(pathogen, seed)] = PIECEWISE_CONTACT
-# plot piecewise contact over time for each pathogen on stacked subplots
-fig, axes = plt.subplots(len(contact_arrays), 1, figsize=(12.5, 8), sharex=True)
-colors = ["#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000", "#000000", "#00BB00", "#648FFF", "#785EF0", "#DC267F"]
+x = jnp.array([0.3930, 0.0488, 0.2457, 0.0036, 0.1792, 0.1622, 0.9081, 0.4926, 0.8474, 0.4486, 0.9121, 0.8380, 1.0000, 0.0100, 0.0064, 0.0046, 0.0016, 0.0002, 0.0010, 0.0096])
+gradient = jax.grad(jlikelihood)(x)
+print(jnp.linalg.norm(gradient))
 
-pathogen_labels = {
-    "RSV": "RSV",
-    "Metapneumovirus": "Metapneumovirus", 
-    "InfluenzaA": "Influenza A",
-    "InfluenzaB": "Influenza B",
-    "Adenovirus": "Adenovirus",
-    "Parainfluenza3": "Parainfluenza 3",
-    "None": "Compromise Fit"
-}
 
-for i, ((pathogen, seed), contact_data) in enumerate(contact_arrays.items()):
-    axes[i].plot(PERIOD, contact_data, color=colors[i], linewidth=2)
-    axes[i].set_ylabel("Relative Contact Rate")
-    axes[i].set_title(f"{pathogen_labels[pathogen]} (Seed: {seed})")
-    axes[i].set_ylim(0, 1)
-    axes[i].grid(True, alpha=0.3)
+param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
+x = jnp.array([(bounds[i,0] + bounds[i,1])/10 for i in range(len(bounds))])
+
+jlikelihood = jax.jit(likelihood)
+start_likelihood = jlikelihood(x)
+print(f"Negative log-likelihood: {start_likelihood:.2f}")
+
+import optax
+solver = optax.adabelief(learning_rate=0.003)
+opt_state = solver.init(x)
+jgrad = jax.jit(jax.grad(jlikelihood))
+for i in range(1000):
+    grad = jgrad(x)
+    update, opt_state = solver.update(grad, opt_state, x)
+    x = optax.apply_updates(x, update)
+    x = optax.projections.projection_box(x, bounds[:,0], bounds[:,1])
+    current_likelihood = jlikelihood(x)
+    print(f"Negative log-likelihood: {current_likelihood:.2f}")
+    if current_likelihood < start_likelihood:
+        print("Parameters improved:", end=" ")
+        for name, value in zip(param_names, x):
+            print(f"{name}: {value:.4f}", end=", ")
+        print()
+        start_likelihood = current_likelihood
+    elif i % 100 == 0:
+        print("No improvement, current parameters:", end=" ")
+        for name, value in zip(param_names, x):
+            print(f"{name}: {value:.4f}", end=", ")
+        print()
+    # check if gradient is close to zero
+    if jnp.linalg.norm(grad) < 1e-3:
+        print("Gradient close to zero, stopping optimization.")
+        break
+
+# orders_of_magnitude = 10
+# times = np.zeros(orders_of_magnitude)
+# test_lengths = 3**np.arange(1, orders_of_magnitude+1)
+# likelihoods = None
+# for i, test_length in enumerate(test_lengths):
+#     # delete likelihoods to save memory
+#     del likelihoods
+#     offsets = jnp.array(np.linspace(0.2,0.3,test_length))
+#     xs = jnp.array([jnp.concatenate((x[:2], jnp.array([offset]), x[3:])) for offset in offsets])
+#     start_time = time.time()
+#     likelihoods = vmap_likelihood(xs)
+#     end_time = time.time()
+#     print(f"Test length: {test_length}, Time taken: {end_time - start_time:.2f} seconds")
+#     times[i] = end_time - start_time
+
+# # fit scaling law
+# def scaling_law(x, a, b, c):
+#     return c + a * x**b
+# popt, pcov = sp.optimize.curve_fit(scaling_law, test_lengths, times)
+
+# plt.figure(figsize=(4,4))
+# plt.plot(test_lengths, times, marker='o', label='Observed times', color='k')
+# plt.xlabel('Test length')
+# plt.xscale('log')
+# plt.yscale('log')
+# plt.plot(test_lengths, scaling_law(test_lengths, *popt), label=f'Fit: a={popt[0]:.2e}, b={popt[1]:.2f}, c={popt[2]:.2e}', color='r')
+# plt.legend()
+# plt.ylabel('Time (s)')
+# plt.title('Computation time vs. test length')
+# plt.tight_layout()
+# plt.savefig(f"Figures/{pathogen}260223_offset_likelihood_test_time.png", dpi=300)
+# plt.close()
+
+# plt.figure(figsize=(12.5,5.5))
+# plt.plot(offsets, likelihoods, color='k')
+# plt.xlabel('Offset')
+# plt.ylabel('Negative log-likelihood')
+# #annotate peak
+# peak_idx = jnp.argmin(likelihoods)
+# plt.annotate(f'Optimal offset: {offsets[peak_idx]:.3f}', xy=(offsets[peak_idx], likelihoods[peak_idx]), xytext=(offsets[peak_idx]+0.02, likelihoods[peak_idx]+5), arrowprops=dict(facecolor='black', shrink=0.05), fontsize=12)
+# plt.title('Sensitivity of likelihood to offset parameter')
+# plt.savefig(f"Figures/{pathogen}260223_offset_likelihood_test.png", dpi=300)
+# plt.close()
+
+
+##### Lockdowns plot ####
+# class FakeOpt:
+#     def __init__(self, x):
+#         self.x = x
+# import pickle
+# contact_arrays = {}
+# for pathogen, seed in [("RSV", "260217"),("RSV", "2602172"),("RSV", "2602173"), ("Metapneumovirus", "260217"),("Metapneumovirus", "2602172"),("Metapneumovirus", "2602173"), ("InfluenzaA", "260217"), ("Adenovirus", "260217"), ("Parainfluenza3", "2602173")]:
+#     lockdown = "FlexStepwise"
+#     option1 = "NA"
+#     option2 = "flexage"
+#     if pathogen != "None":
+#         with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+#             opt = pickle.load(f)
+#         x = opt.x
+#     START = pd.to_datetime('2020-01-01')
+#     END = pd.to_datetime('2023-01-01')
+#     PERIOD = pd.date_range(start=START, end=END, freq='D')
+#     POINTS = jnp.array(date_to_t(PERIOD))
+#     n = 4
+#     if ("Influenza" in pathogen) and ("free" not in pathogen) and (option2 != 'nr'):
+#         n += 3
+#     elif pathogen == 'RSV':
+#         n += 2
+#     else:
+#         n += 4
+#     if 'flexage' not in option2:
+#         n += 1
+#     if pathogen == 'None':
+#         n = 0
+#         with open("Data/Processed/DE_cm_opt_"+str(seed)+".pickle","rb") as f:
+#             opt = pickle.load(f)
+#         x = opt.x
+#     if 'pathogen' not in option1:
+#         if lockdown == 'FlexStepwise':
+#             TT = jnp.array([date_to_t(START),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
+#             # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
+#             F1 = x[n+3] # value between 0 and 1 (first lockdown)
+#             F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
+#             F3 = F2*x[n+5] # value less than F2 (second lockdown)
+#             F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
+#             FF = jnp.array([1,F1,F2,F3,F4])
+#             PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(POINTS)
+#             n += 7
+#     contact_arrays[(pathogen, seed)] = PIECEWISE_CONTACT
+# # plot piecewise contact over time for each pathogen on stacked subplots
+# fig, axes = plt.subplots(len(contact_arrays), 1, figsize=(12.5, 8), sharex=True)
+# colors = ["#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000", "#000000", "#00BB00", "#648FFF", "#785EF0", "#DC267F"]
+
+# pathogen_labels = {
+#     "RSV": "RSV",
+#     "Metapneumovirus": "Metapneumovirus", 
+#     "InfluenzaA": "Influenza A",
+#     "InfluenzaB": "Influenza B",
+#     "Adenovirus": "Adenovirus",
+#     "Parainfluenza3": "Parainfluenza 3",
+#     "None": "Compromise Fit"
+# }
+
+# for i, ((pathogen, seed), contact_data) in enumerate(contact_arrays.items()):
+#     axes[i].plot(PERIOD, contact_data, color=colors[i], linewidth=2)
+#     axes[i].set_ylabel("Relative Contact Rate")
+#     axes[i].set_title(f"{pathogen_labels[pathogen]} (Seed: {seed})")
+#     axes[i].set_ylim(0, 1)
+#     axes[i].grid(True, alpha=0.3)
     
-# Only set x-axis labels on the bottom subplot
-axes[-1].set_xlabel("Time")
-axes[-1].set_xticks(pd.date_range(start='2020-01-01', end='2023-01-01', freq='2YS'))
-axes[-1].set_xticklabels([date.strftime('%Y') for date in pd.date_range(start='2020-01-01', end='2023-01-01', freq='2YS')])
+# # Only set x-axis labels on the bottom subplot
+# axes[-1].set_xlabel("Time")
+# axes[-1].set_xticks(pd.date_range(start='2020-01-01', end='2023-01-01', freq='2YS'))
+# axes[-1].set_xticklabels([date.strftime('%Y') for date in pd.date_range(start='2020-01-01', end='2023-01-01', freq='2YS')])
 
-# Add minor ticks for intermediate years to all subplots
-for ax in axes:
-    ax.set_xticks(pd.date_range(start='2020-06-01', end='2023-06-01', freq='Y'), minor=True)
+# # Add minor ticks for intermediate years to all subplots
+# for ax in axes:
+#     ax.set_xticks(pd.date_range(start='2020-06-01', end='2023-06-01', freq='Y'), minor=True)
 
-plt.tight_layout()
-plt.savefig("Figures/pathogen_specific_contact_rates_stacked_DE260217.png", dpi=300)
+# plt.tight_layout()
+# plt.savefig("Figures/pathogen_specific_contact_rates_stacked_DE260217.png", dpi=300)
 
 
 # dmflu = pd.read_csv("Data/Processed/DataMartFlu.csv", delimiter=',')
