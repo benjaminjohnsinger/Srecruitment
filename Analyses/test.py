@@ -25,70 +25,101 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 from fit_MCMC import SIS_likelihood, run_simulation
 import time
 
-plt.rcParams.update({'font.size':14})
-# text type is palatino
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['font.serif'] = ['Palatino']
+# plt.rcParams.update({'font.size':14})
+# # text type is palatino
+# plt.rcParams['font.family'] = 'serif'
+# plt.rcParams['font.serif'] = ['Palatino']
 
 
+# # ##### Testing optax ######
+pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 260224, "FlexStepwise", "NA", "flexagep01", 1e-9
 
-# ##### Likelihood profile for offset parameter ######
-pathogen, seed, lockdown, option1, option2, import_multiplier = "InfluenzaA", 260223, "FlexStepwise", "NA", "flexagep01", 1e-9
+for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "Parainfluenza3", "Adenovirus"]:
+    results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+    with open(results_file, "rb") as f:
+        results = pickle.load(f)
+        final_xs = results["final_xs"]
+        neglogL_history = results["neglogL_history"]
+    print(final_xs)
+    daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+    N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
+    neglogL_history = jnp.asarray(neglogL_history)*N
+    fig, ax = plt.subplots(3,2,figsize=(8,6), sharex='col')
+    for i in range(3):
+        # Full trajectory
+        ax[i,0].plot(neglogL_history[:,i], color='k')
+        ax[i,0].set_ylabel('Negative log-likelihood')
+        ax[i,0].set_yscale('log')
+        ax[i,0].set_title(f'Optimization trajectory (Run {i+1})')
+        if i == 2:
+            ax[i,0].set_xlabel('Iteration')
+        
+        # Zoomed in on last 200 iterations
+        ax[i,1].plot(neglogL_history[-200:,i], color='k')
+        ax[i,1].set_yscale('log')
+        ax[i,1].set_title(f'Last 200 iterations (Run {i+1})')
+        if i == 2:
+            ax[i,1].set_xlabel('Iteration')
 
-import sys
-sys.argv = [sys.argv[0], pathogen, str(seed), lockdown, option1, option2, str(import_multiplier), "20", "1", "0.7"]
-from fit_opt import likelihood
-jlikelihood = jax.jit(likelihood)
-# with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
-#     opt = pickle.load(f)
-# x = jnp.array(opt.x)
+    plt.tight_layout()
+    plt.savefig(f"Figures/{pathogen}{seed}_optax_optimization_trajectory.png", dpi=300)
 
-# x = jnp.array([0.3930, 0.0488, 0.2457, 0.0036, 0.1792, 0.1622, 0.9081, 0.4926, 0.8474, 0.4486, 0.9121, 0.8380, 1.0000, 0.0100, 0.0064, 0.0046, 0.0016, 0.0002, 0.0010, 0.0096])
-# gradient = jax.grad(jlikelihood)(x)
-# print(jnp.linalg.norm(gradient))
+# import sys
+# sys.argv = [sys.argv[0], pathogen, str(seed), lockdown, option1, option2, str(import_multiplier), "20", "1", "0.7"]
+# from fit_opt import likelihood
+# jlikelihood = jax.jit(likelihood)
+# # with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+# #     opt = pickle.load(f)
+# # x = jnp.array(opt.x)
+
+# # x = jnp.array([0.3930, 0.0488, 0.2457, 0.0036, 0.1792, 0.1622, 0.9081, 0.4926, 0.8474, 0.4486, 0.9121, 0.8380, 1.0000, 0.0100, 0.0064, 0.0046, 0.0016, 0.0002, 0.0010, 0.0096])
+# # gradient = jax.grad(jlikelihood)(x)
+# # print(jnp.linalg.norm(gradient))
 
 
-import itertools
-param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
-valid_sample = False
-while not valid_sample:
-    x = jnp.array([np.random.uniform(bounds[i, 0], bounds[i, 1]) for i in range(len(bounds))])
-    if likelihood(x) < 10:
-        valid_sample = True
+# import itertools
+# param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
+# valid_sample = False
+# while not valid_sample:
+#     x = jnp.array([np.random.uniform(bounds[i, 0], bounds[i, 1]) for i in range(len(bounds))])
+#     if likelihood(x) < 10:
+#         valid_sample = True
 
-jlikelihood = jax.jit(likelihood)
-start_likelihood = jlikelihood(x)
-print(f"Negative log-likelihood: {start_likelihood:.2f}")
+# jlikelihood = jax.jit(likelihood)
+# start_likelihood = jlikelihood(x)
+# print(f"Negative log-likelihood: {start_likelihood:.2f}")
 
-import optax
-solver = optax.adabelief(learning_rate=0.003)
-opt_state = solver.init(x)
-jgrad = jax.jit(jax.grad(jlikelihood))
-for i in range(1000):
-    start_time = time.time()
-    grad = jgrad(x)
-    update, opt_state = solver.update(grad, opt_state, x)
-    x = optax.apply_updates(x, update)
-    x = optax.projections.projection_box(x, bounds[:,0], bounds[:,1])
-    current_likelihood = jlikelihood(x)
-    print(f"Negative log-likelihood: {current_likelihood:.2f}")
-    if current_likelihood < start_likelihood:
-        print("Parameters improved:", end=" ")
-        for name, value in zip(param_names, x):
-            print(f"{name}: {value:.4f}", end=", ")
-        print()
-        start_likelihood = current_likelihood
-    elif i % 100 == 0:
-        print("No improvement, current parameters:", end=" ")
-        for name, value in zip(param_names, x):
-            print(f"{name}: {value:.4f}", end=", ")
-        print()
-    # check if gradient is close to zero
-    if jnp.linalg.norm(grad) < 1e-3:
-        print("Gradient close to zero, stopping optimization.")
-        break
-    print(f"Iteration {i+1} completed in {time.time() - start_time:.2f} seconds.")
+# import optax
+# solver = optax.adabelief(learning_rate=0.003)
+# opt_state = solver.init(x)
+# jgrad = jax.jit(jax.grad(jlikelihood))
+# for i in range(1000):
+#     start_time = time.time()
+#     grad = jgrad(x)
+#     update, opt_state = solver.update(grad, opt_state, x)
+#     x = optax.apply_updates(x, update)
+#     x = optax.projections.projection_box(x, bounds[:,0], bounds[:,1])
+#     current_likelihood = jlikelihood(x)
+#     print(f"Negative log-likelihood: {current_likelihood:.2f}")
+#     if current_likelihood < start_likelihood:
+#         print("Parameters improved:", end=" ")
+#         for name, value in zip(param_names, x):
+#             print(f"{name}: {value:.4f}", end=", ")
+#         print()
+#         start_likelihood = current_likelihood
+#     elif i % 100 == 0:
+#         print("No improvement, current parameters:", end=" ")
+#         for name, value in zip(param_names, x):
+#             print(f"{name}: {value:.4f}", end=", ")
+#         print()
+#     # check if gradient is close to zero
+#     if jnp.linalg.norm(grad) < 1e-3:
+#         print("Gradient close to zero, stopping optimization.")
+#         break
+#     print(f"Iteration {i+1} completed in {time.time() - start_time:.2f} seconds.")
 
+
+####### likelihood of offset parameter ######
 # orders_of_magnitude = 10
 # times = np.zeros(orders_of_magnitude)
 # test_lengths = 3**np.arange(1, orders_of_magnitude+1)

@@ -33,37 +33,28 @@ if re.match(r'\d{4}-\d{2}-\d{2}',option2):
     end_date = option2
     option2 = "flexage" #this is super hacky sorry
 
-# print(pathogen, seed)
-# if re.search(r'\d{6}',lockdown):
-#     with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
-#         opt = pickle.load(f)
-# else:
-#     try:
-#         with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
-#             opt = pickle.load(f)
-#     except FileNotFoundError:
-#         print('File not found:',"Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
-#         sys.exit()
-# if opt.success:
-#     print("Optimization converged")
-# else:
-#     print("Optimization did not converge")
-#     print(opt.message)
-#     print(opt.x)
-#     sys.exit()
-# x = opt.x
-# print(x)
-# # print likelihood
-# print("Log-Likelihood:",-1*opt.fun)
-# BETA: 0.3930, SEASONALITY: 0.0488, OFFSET: 0.2457, WANE2: 0.0036, S_REL1: 0.1792, S_REL2: 0.1622, DT1: 0.9081, DT2: 0.4926, DT3: 0.8474, F1: 0.4486, F2: 0.9121, F3: 0.8380, F4: 1.0000, AGE_OBS_1: 0.0100, AGE_OBS_2: 0.0064, AGE_OBS_3: 0.0046, AGE_OBS_4: 0.0016, AGE_OBS_5: 0.0002, AGE_OBS_6: 0.0010, AGE_OBS_7: 0.0096, 
-# x = jnp.array([0.3930, 0.0488, 0.2457, 0.0036, 0.1792, 0.1622, 0.9081, 0.4926, 0.8474, 0.4486, 0.9121, 0.8380, 1.0000, 0.0100, 0.0064, 0.0046, 0.0016, 0.0002, 0.0010, 0.0096])
-#BETA: 0.2879, SEASONALITY: 0.0482, OFFSET: 0.2331, WANE2: 0.0036, S_REL1: 0.2441, S_REL2: 0.1631, DT1: 0.8212, DT2: 0.5956, DT3: 0.8055, F1: 0.7006, F2: 0.7835, F3: 0.8649, F4: 1.0000, AGE_OBS_1: 0.0100, AGE_OBS_2: 0.0071, AGE_OBS_3: 0.0044, AGE_OBS_4: 0.0016, AGE_OBS_5: 0.0002, AGE_OBS_6: 0.0010, AGE_OBS_7: 0.0098, 
-# x = jnp.array([0.2879, 0.0482, 0.2331, 0.0036, 0.2441, 0.1631, 0.8212, 0.5956, 0.8055, 0.7006, 0.7835, 0.8649, 1.0000, 0.0100, 0.0071, 0.0044, 0.0016, 0.0002, 0.0010, 0.0098])
-# #BETA: 0.0794, SEASONALITY: 0.0961, OFFSET: 0.1037, WANE2: 0.0100, EXTRA_IMMUNITY: 0.1332, FIRST_IMMUNITY: 0.1262, FIRST_DIS_INF_FACTOR: 0.1323, DT1: 0.0000, DT2: 0.0000, DT3: 0.9681, F1: 0.7941, F2: 0.7857, F3: 0.0000, F4: 0.7868, AGE_OBS_1: 0.0009, AGE_OBS_2: 0.0007, AGE_OBS_3: 0.0003, AGE_OBS_4: 0.0003, AGE_OBS_5: 0.0001, AGE_OBS_6: 0.0005, AGE_OBS_7: 0.0048,  
-# x = jnp.array([0.0794, 0.0961, 0.1037, 0.0100, 0.1332, 0.1262, 0.1323, 0.0000, 0.0000, 0.9681, 0.7941, 0.7857, 0.0000, 0.7868, 0.0009, 0.0007, 0.0003, 0.0003, 0.0001, 0.0005, 0.0048])
-# BETA: 0.0744, SEASONALITY: 0.1050, OFFSET: 0.1150, WANE2: 0.0100, EXTRA_IMMUNITY: 0.1048, FIRST_IMMUNITY: 0.1058, FIRST_DIS_INF_FACTOR: 0.1261, DT1: 0.4743, DT2: 0.3834, DT3: 0.2629, F1: 0.7040, F2: 0.8519, F3: 0.0081, F4: 0.8516, AGE_OBS_1: 0.0011, AGE_OBS_2: 0.0016, AGE_OBS_3: 0.0008, AGE_OBS_4: 0.0013, AGE_OBS_5: 0.0004, AGE_OBS_6: 0.0011, AGE_OBS_7: 0.0100, 
-x = jnp.array([0.0744, 0.1050, 0.1150, 0.0100, 0.1048, 0.1058, 0.1261, 0.4743, 0.3834, 0.2629, 0.7040, 0.8519, 0.0081, 0.8516, 0.0011, 0.0016, 0.0008, 0.0013, 0.0004, 0.0011, 0.0100])
-
+print(pathogen, seed)
+if re.search(r'\d{6}',lockdown):
+    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
+        opt = pickle.load(f)
+else:
+    try:
+        with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+            opt = pickle.load(f)
+    except FileNotFoundError:
+        print('File not found:',"Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
+        sys.exit()
+if opt.success:
+    print("Optimization converged")
+else:
+    print("Optimization did not converge")
+    print(opt.message)
+    print(opt.x)
+    sys.exit()
+x = opt.x
+print(x)
+# print likelihood
+print("Log-Likelihood:",-1*opt.fun)
 
 REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
 daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
@@ -133,65 +124,72 @@ season_infections = np.sum(season_infection_array,axis=1)
 season_infection_by_age = np.sum(season_infection_by_age,axis=2)
 print("Average age of first infection per season:",average_age_of_first_infection/12)
 print("Proportion infected per season (including reinfections):",season_infections)
-# print("Proportion infected per season (by age):",season_infection_by_age)
+print("Proportion infected in last season (by age):",season_infection_by_age[-1,:])
 
+population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
+# trajectory is total proportion infected over time
+infectious = jnp.sum(values[1:].reshape((2*N_S+1, NAG, -1))[1:2*N_S:2], axis=0).T
+expected_infectious = jax.nn.softplus(infectious[-len(tests):]*100)/100
+expected_prevalence = jnp.divide(expected_infectious, population_size[-len(tests):])
+print("Average prevalence over observed period:",jnp.mean(expected_prevalence, axis=0))
+print("Peak prevalence over observed period:",jnp.max(expected_prevalence, axis=0))
 
-# # get R(t)
-# R0s = jnp.zeros(len(times))
-# Rts = jnp.zeros(len(times))
-# contact_ratios = jnp.zeros(len(times))
-# SEASONALITY = x[-1]
-# OFFSET = x[-2]
+# # # get R(t)
+# # R0s = jnp.zeros(len(times))
+# # Rts = jnp.zeros(len(times))
+# # contact_ratios = jnp.zeros(len(times))
+# # SEASONALITY = x[-1]
+# # OFFSET = x[-2]
 
-# for idx in range(len(times)):
-#     pop_size = jnp.sum(values[:,idx],dtype=jnp.float64)
-#     age_pops = jnp.array([jnp.sum(values[range(i_age,(2*N_S+1)*NAG,NAG),idx],axis=0) for i_age in range(NAG)])
-#     contact_t = contact(times[idx],SEASONALITY,OFFSET)
-#     infectious_contact_equal = jnp.dot(contact_t,jnp.sum(jnp.array([values[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=jnp.float64).reshape((N_S,NAG))*I_REL,axis=0))/jnp.sum(jnp.array([values[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=jnp.float64))
-#     infectious_contact = jnp.dot(contact_t,jnp.sum(jnp.array([values[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=jnp.float64).reshape((N_S,NAG))*I_REL,axis=0))/pop_size
-#     import_contact = IMPORT_RATE*regional_positivity(times[idx])*arrivals(times[idx])*jnp.dot(contact_t,age_pops)/pop_size
-#     contact_ratios[idx] = jnp.sum(jnp.repeat(S_REL,NAG*N_C)*jnp.tile(S_AGE,N_S*N_C)*BETA*jnp.tile(import_contact,N_S*N_C)*jnp.repeat(jnp.tile(jnp.array([0,1]+[0]*(N_C-2)),N_S),NAG)*jnp.array([jnp.tile(values[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())/jnp.sum(jnp.repeat(S_REL,NAG*N_C)*jnp.tile(S_AGE,N_S*N_C)*BETA*jnp.tile(infectious_contact,N_S*N_C)*jnp.repeat(jnp.tile(jnp.array([0,1]+[0]*(N_C-2)),N_S),NAG)*jnp.array([jnp.tile(values[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())
-#     R0s[idx] = BETA*jnp.sum(infectious_contact_equal)/REC_UP[0]
-#     Rts[idx] = (1/pop_size)*(1/REC_UP[0])*jnp.sum(jnp.repeat(S_REL,NAG*N_C)*jnp.tile(S_AGE,N_S*N_C)*BETA*jnp.tile(infectious_contact_equal,N_S*N_C)*jnp.repeat(jnp.tile(jnp.array([1,0]+[0]*(N_C-2)),N_S),NAG)*jnp.array([jnp.tile(values[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())
-# print("R0:",jnp.median(R0s),"("+str(jnp.min(R0s))+"–"+str(jnp.max(R0s))+")")
-# print("Rt:",jnp.median(Rts),"("+str(jnp.min(Rts))+"–"+str(jnp.max(Rts))+")")
-# print("Ratio of import-caused cases to internal transmission:",jnp.median(contact_ratios),"("+str(jnp.min(contact_ratios))+"–"+str(jnp.max(contact_ratios))+")")
+# # for idx in range(len(times)):
+# #     pop_size = jnp.sum(values[:,idx],dtype=jnp.float64)
+# #     age_pops = jnp.array([jnp.sum(values[range(i_age,(2*N_S+1)*NAG,NAG),idx],axis=0) for i_age in range(NAG)])
+# #     contact_t = contact(times[idx],SEASONALITY,OFFSET)
+# #     infectious_contact_equal = jnp.dot(contact_t,jnp.sum(jnp.array([values[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=jnp.float64).reshape((N_S,NAG))*I_REL,axis=0))/jnp.sum(jnp.array([values[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=jnp.float64))
+# #     infectious_contact = jnp.dot(contact_t,jnp.sum(jnp.array([values[j,idx] for j in range(NAG,(2*N_S+1)*NAG) if (j//NAG)%2==0],dtype=jnp.float64).reshape((N_S,NAG))*I_REL,axis=0))/pop_size
+# #     import_contact = IMPORT_RATE*regional_positivity(times[idx])*arrivals(times[idx])*jnp.dot(contact_t,age_pops)/pop_size
+# #     contact_ratios[idx] = jnp.sum(jnp.repeat(S_REL,NAG*N_C)*jnp.tile(S_AGE,N_S*N_C)*BETA*jnp.tile(import_contact,N_S*N_C)*jnp.repeat(jnp.tile(jnp.array([0,1]+[0]*(N_C-2)),N_S),NAG)*jnp.array([jnp.tile(values[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())/jnp.sum(jnp.repeat(S_REL,NAG*N_C)*jnp.tile(S_AGE,N_S*N_C)*BETA*jnp.tile(infectious_contact,N_S*N_C)*jnp.repeat(jnp.tile(jnp.array([0,1]+[0]*(N_C-2)),N_S),NAG)*jnp.array([jnp.tile(values[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())
+# #     R0s[idx] = BETA*jnp.sum(infectious_contact_equal)/REC_UP[0]
+# #     Rts[idx] = (1/pop_size)*(1/REC_UP[0])*jnp.sum(jnp.repeat(S_REL,NAG*N_C)*jnp.tile(S_AGE,N_S*N_C)*BETA*jnp.tile(infectious_contact_equal,N_S*N_C)*jnp.repeat(jnp.tile(jnp.array([1,0]+[0]*(N_C-2)),N_S),NAG)*jnp.array([jnp.tile(values[(2*i+1)*NAG:(2*i+2)*NAG,idx],N_C) for i in range(N_S)]).flatten())
+# # print("R0:",jnp.median(R0s),"("+str(jnp.min(R0s))+"–"+str(jnp.max(R0s))+")")
+# # print("Rt:",jnp.median(Rts),"("+str(jnp.min(Rts))+"–"+str(jnp.max(Rts))+")")
+# # print("Ratio of import-caused cases to internal transmission:",jnp.median(contact_ratios),"("+str(jnp.min(contact_ratios))+"–"+str(jnp.max(contact_ratios))+")")
 
-# remove "free" from pathogen name for plotting
-if "free" in pathogen:
-    pathogen_name = pathogen.replace("free","")
-else:
-    pathogen_name = pathogen
+# # remove "free" from pathogen name for plotting
+# if "free" in pathogen:
+#     pathogen_name = pathogen.replace("free","")
+# else:
+#     pathogen_name = pathogen
 
-plt.rcParams.update({'font.size':14})
-# text type is palatino
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['font.serif'] = ['Palatino']
-fig = plt.figure(figsize=(13.3,7.5))
-ax1 = fig.add_subplot(3,1,1)
-ax2 = fig.add_subplot(3,1,2, sharex=ax1
-, sharey=ax1
-)
-ax3 = fig.add_subplot(3,1,3, sharex=ax1)
-ax = [ax1,ax2,ax3]
-aggregation = "Month"
-kpsc_proportion_positive_incidence_plot(ax[0], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="ME", factor=10000)
-ax[0].set_xlabel("")
-pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
-# ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
-ax[0].set_ylabel("Monthly incidence per 10k")
-# legend
-ax[0].legend(frameon=False)
+# plt.rcParams.update({'font.size':14})
+# # text type is palatino
+# plt.rcParams['font.family'] = 'serif'
+# plt.rcParams['font.serif'] = ['Palatino']
+# fig = plt.figure(figsize=(13.3,7.5))
+# ax1 = fig.add_subplot(3,1,1)
+# ax2 = fig.add_subplot(3,1,2, sharex=ax1
+# , sharey=ax1
+# )
+# ax3 = fig.add_subplot(3,1,3, sharex=ax1)
+# ax = [ax1,ax2,ax3]
+# aggregation = "Month"
+# kpsc_proportion_positive_incidence_plot(ax[0], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="ME", factor=10000)
+# ax[0].set_xlabel("")
+# pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
+# # ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
+# ax[0].set_ylabel("Monthly incidence per 10k")
+# # legend
+# ax[0].legend(frameon=False)
 
-# fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
-mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
-lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
+# # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
+# mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
+# lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
 
-lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
-ax[2].set_title("Effective susceptibles")
+# lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+# lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
+# ax[2].set_title("Effective susceptibles")
 
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_fulloptax.png",dpi=300)
+# plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
 
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")

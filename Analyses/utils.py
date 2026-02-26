@@ -415,9 +415,9 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
         bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = [0.1,1]
     else:
         bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1,1]
-    if "dynamic" not in option1:
+    if "dynamic" not in option1 and "pp" not in option2:
         if option2 == "flexage":
-            bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0,0.005]
+            upper_bound = 0.005
         else:
             # Extract decimal value from option2 (e.g., "flexagep01" -> 0.01, "flexagep5" -> 0.5)
             match = re.search(r'flexagep(\d+)', option2)
@@ -425,7 +425,18 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
                 upper_bound = int(match.group(1)) / (10 ** len(match.group(1)))
             else:
                 upper_bound = 0.01
-            bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0, upper_bound]
+        bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0, upper_bound]
+    if "pp" in option2:
+        if option2 == "ppflexage":
+            lower_bound = 0.05
+        else:
+            # Extract decimal value from option2 (e.g., "flexagep01" -> 0.01, "flexagep5" -> 0.5)
+            match = re.search(r'ppflexagep(\d+)', option2)
+            if match:
+                lower_bound = int(match.group(1)) / (10 ** len(match.group(1)))
+            else:
+                lower_bound = 0.05
+        bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [lower_bound, 1]
     if "pathogen" not in option1:
         if lockdown == "Mobility":
             bounds_dict["F1"] = [0,2]

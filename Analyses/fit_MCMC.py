@@ -14,7 +14,7 @@ import time
 from functools import partial
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
-from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController, DirectAdjoint
+from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController, DirectAdjoint, RecursiveCheckpointAdjoint
 
 from Parameters.census_population import CENSUS_AGE_POP, AGING_RATE
 from JAX_ODEs import deltas
@@ -25,48 +25,60 @@ from utils import date_to_t, parameters_from_DE, x_to_params, calculate_populati
 from Gemini_vaccination import FluRatePreprocessor
 import time
 
-def run_simulation(params, y0, t1, saveat_ts):
+def run_simulation(params, y0, t1, saveat_ts, hessian=False):
     term = ODETerm(deltas)
     solver = Dopri5()
     saveat = SaveAt(ts=saveat_ts)
     step_controller = PIDController(rtol=1e-5, atol=1e-5)
+    if hessian:
+        adjoint = DirectAdjoint()
+    else:
+        adjoint = RecursiveCheckpointAdjoint()
     solution = diffeqsolve(
                         term, solver,
                         t0=0, t1=t1, dt0=0.1, stepsize_controller=step_controller,
                         saveat=saveat, y0=y0.flatten(), args=params, 
                         max_steps=10000, throw=False,
-                        adjoint=DirectAdjoint(),
+                        adjoint=adjoint,
                         )
     return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
-def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, mask=[3135,3288], solution=None):
+def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, obs_age=None, mask=[3135,3288], solution=None, hessian=False):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
-        values = run_simulation(params, STATE0, t1, POINTS)
+        values = run_simulation(params, STATE0, t1, POINTS, hessian=hessian)
         values = values.ys.T
     else:
         values = solution.ys.T
 
-    # convert into observed cases
-    trajectory = jnp.diff(values[-NAG:,:],axis=1).T
-
-    # convolution of trajectory with probability of detection at each day after infection to get expected observations on each day
-    p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
-    def obs_convolution(x):
-        return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
-    # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
-    expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
-    # cut off the first few days of the trajectory since they are not used in the likelihood (and the roll function is wrapping around)
-    # use softplus to avoid negative expected observations and aid stability
-    expected_obs = jax.nn.softplus(expected_obs[-len(tests):]*100)/100
-
-    # probability of getting a positive test in hospital is expected_obs / population size over time
     population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
-    expected_ratio = jnp.divide(expected_obs, population_size[-len(tests):])
-    # then condition by baseline probabilty of hospitalization
-    expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-len(tests):], 1e-10)))
+
+    if obs_age is not None:
+        # trajectory is total proportion infected over time
+        infectious = jnp.sum(values[1:].reshape((2*N_S+1, NAG, -1))[1:2*N_S:2], axis=0).T
+        expected_infectious = jax.nn.softplus(infectious[-len(tests):]*100)/100
+        expected_ratio = jnp.divide(expected_infectious, population_size[-len(tests):] * obs_age)
+        expected_positivity = jnp.minimum(0.99, expected_ratio)
+    else:
+        # convert into observed cases
+        trajectory = jnp.diff(values[-NAG:,:],axis=1).T
+
+        # convolution of trajectory with probability of detection at each day after infection to get expected observations on each day
+        p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
+        def obs_convolution(x):
+            return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
+        # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
+        expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
+        # cut off the first few days of the trajectory since they are not used in the likelihood (and the roll function is wrapping around)
+        # use softplus to avoid negative expected observations and aid stability
+        expected_obs = jax.nn.softplus(expected_obs[-len(tests):]*100)/100
+
+        # probability of getting a positive test in hospital is expected_obs / population size over time
+        expected_ratio = jnp.divide(expected_obs, population_size[-len(tests):])
+        # then condition by baseline probabilty of hospitalization
+        expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-len(tests):], 1e-10)))
 
     # exclude date range from likelihood calculation
     masked_tests = jnp.ones((len(tests)- (mask[1] - mask[0]),NAG,2))

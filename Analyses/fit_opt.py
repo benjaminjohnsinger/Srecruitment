@@ -62,12 +62,17 @@ STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
 param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
 
+N = jnp.prod(jnp.asarray(daily_hospitalization_rates.shape))
+
+pp_opt = None
+
 def likelihood(x):
     sim_params = x_to_params(x, pathogen, lockdown, option1, option2, rescale=bounds)
-    lh = -SIS_likelihood(tests, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs)
-    lh = lh / jnp.prod(jnp.asarray(daily_hospitalization_rates.shape)) # normalize by number of data points
-    is_invalid = jnp.isnan(lh) | jnp.isinf(lh)
-    return jnp.where(is_invalid, 1e10, lh)
+    if "pp" in option2:
+        pp_opt = sim_params[8]
+    lh = -SIS_likelihood(tests, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, obs_age=pp_opt)
+    lh = lh / N # normalize by number of data points
+    return lh
 
 
 if __name__ == '__main__':
@@ -100,7 +105,7 @@ if __name__ == '__main__':
 
     # if there are opt_states with likelihood over 100, resample those points
     likelihoods = vmap_likelihood(xs)
-    likelihood_threshold = 10
+    likelihood_threshold = 2 # constrain to reasonable initial guesses
     print(f"n initial points with likelihood > {likelihood_threshold}: {jnp.sum(likelihoods > likelihood_threshold)}")
     max_resampling_iterations = 100
     for iteration in range(max_resampling_iterations):
@@ -120,10 +125,19 @@ if __name__ == '__main__':
         print(f"Iteration {iteration + 1}: {jnp.sum(likelihoods > likelihood_threshold)} points still exceed threshold")
     print(f"Resampled points with likelihood > {likelihood_threshold} in {time.time() - sampling_start_time:.2f} seconds.")
 
-    schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=opt_size/5, decay_rate=0.9, staircase=True)
-    solver = optax.chain(
-        optax.clip_by_global_norm(1.0),
-        optax.adabelief(learning_rate=schedule)
+    # save initial points to disk
+    if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
+        os.makedirs("Data/Processed/results"+str(seed)[:6])
+    with open("Data/Processed/results"+str(seed)[:6]+"/optax_initial_points_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
+        pickle.dump(xs,f)
+
+    schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=jnp.max(1000, opt_size/5), decay_rate=0.5, staircase=True)
+    solver = optax.apply_if_finite(
+        optax.chain(
+            optax.clip_by_global_norm(1.0),
+            optax.adabelief(learning_rate=schedule)
+        ),
+        max_consecutive_errors=5,
     )
 
     def single_step(x, opt_state):
@@ -151,8 +165,6 @@ if __name__ == '__main__':
     
     final_xs, neglogL_history = run_optimization(xs)
     # save results to disk
-    if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
-        os.makedirs("Data/Processed/results"+str(seed)[:6])
     results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
     with open(results_file, "wb") as f:
         pickle.dump({"final_xs": final_xs, "neglogL_history": neglogL_history}, f)

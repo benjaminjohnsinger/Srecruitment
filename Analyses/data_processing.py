@@ -16,7 +16,7 @@ from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
 ##### function to calculate proportion positive tests for a given pathogen in a moving window, and multiply by population-proportional incidence of ARI hospitalizations ######
 # daily_hospitalization_rates = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
 
-def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_factor=0.1, aggregation='D', sum_age_groups=False, save_counts=False):
+def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_factor=0.1, aggregation='D', sum_age_groups=False, save_counts=False, pp_only=False):
     pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
     daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index_col=0, parse_dates=True)
     daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_day_pathogen_age_group.csv',index_col=0,parse_dates=True)
@@ -70,6 +70,23 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
                 window=window_size, center=True, min_periods=1
             ).apply(lambda x: np.average(x, weights=weights[:len(x)]) if len(x) > 0 else 0, raw=False)
         
+        if pp_only:
+            if sum_age_groups:
+                # Sum positive and total counts across age groups first
+                positive_counts_summed = positive_counts.sum(axis=1)
+                total_counts_summed = total_counts.sum(axis=1)
+                prop_pos_summed = positive_counts_summed / total_counts_summed.replace(0, np.nan)
+                prop_pos_summed = prop_pos_summed.fillna(0)
+                
+                # Apply smoothing to the summed proportion
+                prop_pos_smoothed_summed = prop_pos_summed.rolling(
+                    window=window_size, center=True, min_periods=1
+                ).apply(lambda x: np.average(x, weights=weights[:len(x)]) if len(x) > 0 else 0, raw=False)
+                
+                return prop_pos_smoothed_summed.to_frame(name='Total')
+            else:
+                return prop_pos_smoothed
+
         # Align with hospitalization rates and calculate incidence
         pop_by_age_group_daily = pop_by_age_group_month.resample('D').ffill()
         pop_by_age_group_daily = pop_by_age_group_daily.reindex(columns=AGE_GROUP_NAMES, fill_value=0)
@@ -84,6 +101,18 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
         # Calculate proportion positive
         prop_pos_agg = positive_counts_agg / total_counts_agg.replace(0, np.nan)
         prop_pos_agg = prop_pos_agg.fillna(0)  # Fill NaN values (from 0/0) with 0
+        
+        if pp_only:
+            if sum_age_groups:
+                # Sum positive and total counts across age groups
+                positive_counts_summed = positive_counts_agg.sum(axis=1)
+                total_counts_summed = total_counts_agg.sum(axis=1)
+                prop_pos_summed = positive_counts_summed / total_counts_summed.replace(0, np.nan)
+                prop_pos_summed = prop_pos_summed.fillna(0)
+                
+                return prop_pos_summed.to_frame(name='Total')
+            else:
+                return prop_pos_agg
                 
         # Calculate incidence
         pop_by_age_group_agg = pop_by_age_group_month.resample(aggregation).ffill()
@@ -115,21 +144,21 @@ if __name__ == "__main__":
     from plotting import hsv_colors
     fig, ax = plt.subplots(3,2,figsize=(13.3,7.5),sharex=True)
     for pi,pathogen in enumerate(["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]):
-        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="ME", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False)
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="W", window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, pp_only=True)
         # incidence.to_csv(f'Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_{pathogen}_incidence_age_daily.csv')
-        for i,age_group in enumerate(AGE_GROUP_NAMES):
-            # incidence[age_group].plot(ax=ax[pi//2, pi%2],color=hsv_colors[i],label=age_group)
-            (incidence[age_group] * 10000).plot(ax=ax[pi//2, pi%2],color=hsv_colors[i],label=age_group)
+        # for i,age_group in enumerate(AGE_GROUP_NAMES):
+        #     # incidence[age_group].plot(ax=ax[pi//2, pi%2],color=hsv_colors[i],label=age_group)
+        #     (incidence[age_group] * 100).plot(ax=ax[pi//2, pi%2],color=hsv_colors[i],label=age_group)
         # # (incidence['Total'] * 10000).plot(ax=ax[pi//2, pi%2],color='k',label='Total')
-        # total_counts.plot(ax=ax[pi//2, pi%2],color='k',label='Total tests')
+        incidence.plot(ax=ax[pi//2, pi%2],color='k',legend=False)
         ax[pi//2, pi%2].set_title(f"{pathogen}")
-        ax[pi//2, 0].set_ylabel('Incidence per 10k members')
+        ax[pi//2, 0].set_ylabel('Percent positive (%)')
     # ax[2,0].set_xlabel('Date')
     # ax[2,1].set_xlabel('Date')
-    ax[0,1].legend(title="Age group", loc = "upper right", ncol=2)
+    # ax[0,1].legend(title="Age group", loc = "upper right", ncol=2)
     plt.tight_layout()
     # plt.savefig("Figures/KPSC_panel_tests_by_age_group_monthly.png",dpi=300)
-    plt.savefig("Figures/KPSC_panel_proportion_positive_ARI_nonCOVID_pathogen_age_monthly.png",dpi=300)
+    plt.savefig("Figures/KPSC_panel_proportion_positive_pathogen_weekly.png",dpi=300)
 # ############### CDC data ###############
 # ### full NREVSS data
 # data = pd.read_excel('Data/Raw/NREVSS_all.xlsx',sheet_name='Final')
