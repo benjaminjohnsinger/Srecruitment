@@ -131,7 +131,7 @@ if __name__ == '__main__':
     with open("Data/Processed/results"+str(seed)[:6]+"/optax_initial_points_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
         pickle.dump(xs,f)
 
-    schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=jnp.max(1000, opt_size/5), decay_rate=0.5, staircase=True)
+    schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=1000, decay_rate=0.5, staircase=True)
     solver = optax.apply_if_finite(
         optax.chain(
             optax.clip_by_global_norm(1.0),
