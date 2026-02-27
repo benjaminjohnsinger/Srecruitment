@@ -103,7 +103,7 @@ for i in range(len(seasons)-1):
     # get the number of infections in each season
     season_start = np.argmax(times>=seasons[i])
     season_end = np.argmax(times>=seasons[i+1])
-    pop_size = np.sum(values[:-NAG,season_start],dtype=np.float64)
+    pop_size = np.sum(values[:-NAG,season_start])
     age_pops = population_size[season_start]
     first_infections[i,:] = np.sum(values[1:1+NAG,season_start:season_end],axis=1)
     season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
@@ -118,7 +118,13 @@ season_infection_by_age = np.sum(season_infection_by_age,axis=2)
 print("Average age of first infection per season:",average_age_of_first_infection/12)
 print("Proportion infected per season (including reinfections):",season_infections)
 # print("Proportion infected per season (by age):",season_infection_by_age)
-
+population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
+# trajectory is total proportion infected over time
+infectious = jnp.sum(values[1:].reshape((2*N_S+1, NAG, -1))[1:2*N_S:2], axis=0).T
+expected_infectious = jax.nn.softplus(infectious[-len(tests):]*100)/100
+expected_prevalence = jnp.divide(expected_infectious, population_size[-len(tests):])
+print("Average prevalence over observed period:",jnp.mean(expected_prevalence, axis=0))
+print("Peak prevalence over observed period:",jnp.max(expected_prevalence, axis=0))
 
 # # get R(t)
 # R0s = jnp.zeros(len(times))
@@ -159,23 +165,37 @@ ax2 = fig.add_subplot(3,1,2, sharex=ax1
 ax3 = fig.add_subplot(3,1,3, sharex=ax1)
 ax = [ax1,ax2,ax3]
 aggregation = "Month"
-kpsc_proportion_positive_incidence_plot(ax[0], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="ME", factor=10000)
+kpsc_proportion_positive_incidence_plot(ax[0], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="ME", factor=1, pp_only=True)
 ax[0].set_xlabel("")
 pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
-# ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
-ax[0].set_ylabel("Monthly incidence per 10k")
+ax[0].set_title("Observed prevalence of "+pnamedict[pathogen_name])
+ax[0].set_ylabel("Prevalence (%)")
 # legend
 ax[0].legend(frameon=False)
 
-# fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
-mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
-lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
+# # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
+# mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
+# lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
+prevalence_plot(ax[1],STATE0,params,POINTS,obs_age=params[8],solution=solution,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+ax[1].set_ylabel("Simulated\nPrevalence (%)")
 
 lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
 lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
 ax[2].set_title("Effective susceptibles")
 
-plt.savefig("Figures/optax_"+pathogen+lockdown+option1+option2+str(seed)+str(optn)+".png",dpi=300)
+plt.savefig("Figures/optax_"+pathogen+lockdown+option1+option2+str(seed)+str(optn)+"_prevalence.png",dpi=300)
+plt.close()
+
+fig, ax = plt.subplots(1,1,figsize=(6,4))
+kpsc_proportion_positive_incidence_plot(ax, pathogen, None, AGE_GROUP_NAMES, aggregation="W", factor=1, pp_only=True, color="#648FFF", label="Data")
+ax.set_title("Observed prevalence of "+pnamedict[pathogen_name])
+ax.set_ylabel("Prevalence (%)")
+ax.set_xlabel("Date")
+prevalence_plot(ax,STATE0,params,POINTS,obs_age=params[8],solution=solution,by_age=False,label="Simulation",color="#DC267F")
+ax.legend(frameon=False)
+plt.tight_layout()
+plt.savefig("Figures/optax_"+pathogen+lockdown+option1+option2+str(seed)+str(optn)+"_prevalence_allage.png",dpi=300)
+plt.close()
 
 # plot likelihood history, with an extra panel for the last 200 iterations
 fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
@@ -189,3 +209,4 @@ ax[1].set_xlabel("Iteration")
 ax[1].set_ylabel("Negative log-likelihood")
 plt.tight_layout()
 plt.savefig("Figures/optax_"+pathogen+lockdown+option1+option2+str(seed)+str(optn)+"_likelihood_history.png",dpi=300)
+plt.close()

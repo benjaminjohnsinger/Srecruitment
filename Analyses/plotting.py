@@ -1,6 +1,7 @@
 ## SIR model with n susceptibility classes, for a single pathogen
 ## BJS September 2024
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 import scipy as sp
@@ -78,6 +79,46 @@ def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,y
     # ax.set_xticks(np.arange(T_LOCKDOWN-year_window*365,T_LOCKDOWN+LOCKDOWN_DURATION+year_window*365+365,365*year_skip),[str(int(x)-year_window-1) for x in np.arange(0,year_window*2+2,year_skip)])
     ax.set_xlabel('Time (years)')
     ax.set_title(title)
+
+def prevalence_plot(ax,state0,params,points,obs_age=None,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,deltas=deltas,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01')):
+    if solution is None:
+        term = ODETerm(deltas)
+        solver = Dopri5()
+        saveat = SaveAt(ts=points)
+        step_controller = PIDController(rtol=1e-5, atol=1e-5)
+        solution = diffeqsolve(
+                            term, solver,
+                            t0=0, t1=int(points[-1]), dt0=None, stepsize_controller=step_controller,
+                            saveat=saveat, y0=state0.flatten(), args=params, 
+                            max_steps=None,  
+                            )
+    if times is None:
+        times = solution.ts
+    values = solution.ys.T
+    dates = [t_to_date(t) for t in times]
+    start_index = np.argmin(times<=start_t)
+    end_index = np.argmin(times<=end_t)
+    if end_index <= start_index:
+        end_index = len(times)
+    
+    if obs_age is None:
+        obs_age = np.ones(NAG)
+
+    population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
+    infectious = jnp.sum(values[1:].reshape((2*N_S+1, NAG, -1))[1:2*N_S:2], axis=0).T
+    if by_age:
+        expected_infectious = jax.nn.softplus(infectious[start_index:end_index]*100)/100
+        expected_prevalence = jnp.divide(expected_infectious, population_size[start_index:end_index] * obs_age)
+        for i_age in range(NAG):
+            ax.plot(dates[start_index:end_index],expected_prevalence[:,i_age], label=AGE_GROUP_NAMES[i_age], color=hsv_colors[i_age],linewidth=linewidth,alpha=alpha)
+        mx = 1.1*np.max(np.max(expected_prevalence,axis=1))
+    else:
+        expected_infectious = jax.nn.softplus((infectious[start_index:end_index] / obs_age).sum(axis=1)*100)/100
+        expected_prevalence = jnp.divide(expected_infectious, population_size[start_index:end_index].sum(axis=1))
+        ax.plot(dates[start_index:end_index], expected_prevalence, label=label,color=color,linewidth=linewidth,alpha=alpha)
+        mx = 1.1*np.max(expected_prevalence)
+    return(mx)
+
 
 def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,solution=None,label='Susceptible_population',color='#648FFF',relative=True,proportion=False,by_age=False,AGE_GROUP_NAMES=None,style='-',delta=deltas):
     NAG = 7
@@ -615,10 +656,12 @@ def kpsc_positive_test_plot(ax, hospitalizations=True, pathogen="RSV", AGE_GROUP
 
 nice_names = {"RSV": "RSV", "InfluenzaA": "Influenza A", "InfluenzaB": "Influenza B", "Metapneumovirus": "Metapneumovirus", "Adenovirus": "Adenovirus", "Parainfluenza3": "Parainfluenza 3", "Rhinovirus": "Rhinovirus", "Pertussis": "Pertussis", "M.pneumoniae": "M. pneumoniae", "C.pneumoniae": "C. pneumoniae", "SARS-CoV-2": "SARS-CoV-2", "Enterovirus": "Enterovirus"}
 from data_processing import calculate_proportion_positive_incidence
-def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, title=None, color=hsv_colors, legend=True, aggregation="D", window_size=28, weighting_factor=0.5, label=None, factor=1000000, annotations=False):
+def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, title=None, color=hsv_colors, legend=True, aggregation="D", window_size=28, weighting_factor=0.5, label=None, factor=1000000, annotations=False, pp_only=False):
     print(pathogen)
-    incidence = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=window_size, weighting_factor=weighting_factor, sum_age_groups=AGE_GROUPS is None, save_counts=False)
+    incidence = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=window_size, weighting_factor=weighting_factor, sum_age_groups=AGE_GROUPS is None, save_counts=False, pp_only=pp_only)
     incidence *= factor
+    if "M" in aggregation:
+        incidence.index = incidence.index.to_period('M')
     if AGE_GROUPS is not None:
         for i in range(len(AGE_GROUP_NAMES)):
             ax.plot(incidence.index, incidence[AGE_GROUP_NAMES[i]], label=AGE_GROUP_NAMES[i], color=color[i])

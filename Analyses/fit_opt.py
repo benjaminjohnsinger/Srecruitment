@@ -1,6 +1,8 @@
 ## BJS Jan 2025
 ## Fitting models to data using out-of-the-box optimisation tools
-
+# set jax to use 64 bit precision
+import jax
+jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import numpy as np
 import scipy as sp
@@ -78,102 +80,102 @@ def likelihood(x):
 if __name__ == '__main__':
     # #scipy version of DE
     vmap_likelihood = jax.jit(jax.vmap(likelihood))
-    # def scipy_objective(x):
-    #     x_transposed = x.T
-    #     return np.asarray(vmap_likelihood(x_transposed))
-    # multiprocessing.set_start_method('spawn', force=True)
-    # opt = sp.optimize.differential_evolution(scipy_objective,bounds,popsize=opt_size,mutation=(0.5,opt_rate1),recombination=opt_rate2,init="halton",seed=seed,updating="deferred",
-    # strategy="currenttobest1bin", vectorized=True)
-    # # if there's no Data/Processed/results<seed> directory, create it
-    # if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
-    #     os.makedirs("Data/Processed/results"+str(seed)[:6])
-    # with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
-    #     pickle.dump(opt,f)
-
-    # optax minimizer
-    import optax
-
-    hypercube_size = int(opt_rate2)
-
-    # generate latin hypercube starting points within bounds
-    sampling_start_time = time.time()
-    from scipy.stats import qmc
-    sampler = qmc.LatinHypercube(d=len(bounds), seed=seed)
-    xs = jnp.array(sampler.random(n=hypercube_size))
-    # xs = jnp.array(bounds[:, 0] + lhs_samples * (bounds[:, 1] - bounds[:, 0]))
-    print(f"Generated {hypercube_size} Latin hypercube samples in {time.time() - sampling_start_time:.2f} seconds.")
-
-    # if there are opt_states with likelihood over 100, resample those points
-    likelihoods = vmap_likelihood(xs)
-    likelihood_threshold = 2 # constrain to reasonable initial guesses
-    print(f"n initial points with likelihood > {likelihood_threshold}: {jnp.sum(likelihoods > likelihood_threshold)}")
-    max_resampling_iterations = 100
-    for iteration in range(max_resampling_iterations):
-        bad_indices = jnp.where(likelihoods > likelihood_threshold)[0]
-        if len(bad_indices) == 0:
-            break
-        
-        # Resample all bad points at once
-        n_bad = len(bad_indices)
-        new_samples = sampler.random(n=n_bad)
-        # scaled_new_samples = jnp.array(bounds[:, 0] + new_samples * (bounds[:, 1] - bounds[:, 0]))
-        
-        # Replace bad samples
-        xs = xs.at[bad_indices].set(new_samples)
-        new_likelihoods = vmap_likelihood(new_samples)
-        likelihoods = likelihoods.at[bad_indices].set(new_likelihoods)
-        print(f"Iteration {iteration + 1}: {jnp.sum(likelihoods > likelihood_threshold)} points still exceed threshold")
-    print(f"Resampled points with likelihood > {likelihood_threshold} in {time.time() - sampling_start_time:.2f} seconds.")
-
-    # save initial points to disk
+    def scipy_objective(x):
+        x_transposed = x.T
+        return np.asarray(vmap_likelihood(x_transposed))
+    multiprocessing.set_start_method('spawn', force=True)
+    opt = sp.optimize.differential_evolution(scipy_objective,bounds,popsize=opt_size,mutation=(0.5,opt_rate1),recombination=opt_rate2,init="halton",seed=seed,updating="deferred",
+    strategy="currenttobest1bin", vectorized=True)
+    # if there's no Data/Processed/results<seed> directory, create it
     if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
         os.makedirs("Data/Processed/results"+str(seed)[:6])
-    with open("Data/Processed/results"+str(seed)[:6]+"/optax_initial_points_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
-        pickle.dump(xs,f)
+    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
+        pickle.dump(opt,f)
 
-    schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=1000, decay_rate=0.5, staircase=True)
-    solver = optax.apply_if_finite(
-        optax.chain(
-            optax.clip_by_global_norm(1.0),
-            optax.adabelief(learning_rate=schedule)
-        ),
-        max_consecutive_errors=5,
-    )
+    # # optax minimizer
+    # import optax
 
-    def single_step(x, opt_state):
-        neglogL, grad = jax.value_and_grad(likelihood)(x)
-        update, opt_state = solver.update(grad, opt_state, x)
-        x = optax.apply_updates(x, update)
-        x = optax.projections.projection_box(x, 0, 1)
-        return x, opt_state, neglogL
-    vmapped_step = jax.jit(jax.vmap(single_step))
+    # hypercube_size = int(opt_rate2)
 
-    def scan_body(carry, step_index):
-        x, opt_state = carry
-        x, opt_state, neglogL = vmapped_step(x, opt_state)
-        return (x, opt_state), neglogL
+    # # generate latin hypercube starting points within bounds
+    # sampling_start_time = time.time()
+    # from scipy.stats import qmc
+    # sampler = qmc.LatinHypercube(d=len(bounds), seed=seed)
+    # xs = jnp.array(sampler.random(n=hypercube_size))
+    # # xs = jnp.array(bounds[:, 0] + lhs_samples * (bounds[:, 1] - bounds[:, 0]))
+    # print(f"Generated {hypercube_size} Latin hypercube samples in {time.time() - sampling_start_time:.2f} seconds.")
+
+    # # if there are opt_states with likelihood over 100, resample those points
+    # likelihoods = vmap_likelihood(xs)
+    # likelihood_threshold = 2 # constrain to reasonable initial guesses
+    # print(f"n initial points with likelihood > {likelihood_threshold}: {jnp.sum(likelihoods > likelihood_threshold)}")
+    # max_resampling_iterations = 100
+    # for iteration in range(max_resampling_iterations):
+    #     bad_indices = jnp.where(likelihoods > likelihood_threshold)[0]
+    #     if len(bad_indices) == 0:
+    #         break
+        
+    #     # Resample all bad points at once
+    #     n_bad = len(bad_indices)
+    #     new_samples = sampler.random(n=n_bad)
+    #     # scaled_new_samples = jnp.array(bounds[:, 0] + new_samples * (bounds[:, 1] - bounds[:, 0]))
+        
+    #     # Replace bad samples
+    #     xs = xs.at[bad_indices].set(new_samples)
+    #     new_likelihoods = vmap_likelihood(new_samples)
+    #     likelihoods = likelihoods.at[bad_indices].set(new_likelihoods)
+    #     print(f"Iteration {iteration + 1}: {jnp.sum(likelihoods > likelihood_threshold)} points still exceed threshold")
+    # print(f"Resampled points with likelihood > {likelihood_threshold} in {time.time() - sampling_start_time:.2f} seconds.")
+
+    # # save initial points to disk
+    # if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
+    #     os.makedirs("Data/Processed/results"+str(seed)[:6])
+    # with open("Data/Processed/results"+str(seed)[:6]+"/optax_initial_points_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
+    #     pickle.dump(xs,f)
+
+    # schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=1000, decay_rate=0.5, staircase=True)
+    # solver = optax.apply_if_finite(
+    #     optax.chain(
+    #         optax.clip_by_global_norm(1.0),
+    #         optax.adabelief(learning_rate=schedule)
+    #     ),
+    #     max_consecutive_errors=5,
+    # )
+
+    # def single_step(x, opt_state):
+    #     neglogL, grad = jax.value_and_grad(likelihood)(x)
+    #     update, opt_state = solver.update(grad, opt_state, x)
+    #     x = optax.apply_updates(x, update)
+    #     x = optax.projections.projection_box(x, 0, 1)
+    #     return x, opt_state, neglogL
+    # vmapped_step = jax.jit(jax.vmap(single_step))
+
+    # def scan_body(carry, step_index):
+    #     x, opt_state = carry
+    #     x, opt_state, neglogL = vmapped_step(x, opt_state)
+    #     return (x, opt_state), neglogL
     
-    @jax.jit
-    def run_optimization(xs):
-        vmapped_init = jax.jit(jax.vmap(solver.init))
-        opt_states = vmapped_init(xs)
+    # @jax.jit
+    # def run_optimization(xs):
+    #     vmapped_init = jax.jit(jax.vmap(solver.init))
+    #     opt_states = vmapped_init(xs)
 
-        initial_carry = (xs, opt_states)
-        final_carry, neglogL_history = jax.lax.scan(scan_body, initial_carry, jnp.arange(opt_size))
-        final_xs, _ = final_carry
-        return final_xs, neglogL_history
+    #     initial_carry = (xs, opt_states)
+    #     final_carry, neglogL_history = jax.lax.scan(scan_body, initial_carry, jnp.arange(opt_size))
+    #     final_xs, _ = final_carry
+    #     return final_xs, neglogL_history
     
-    final_xs, neglogL_history = run_optimization(xs)
-    # save results to disk
-    results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
-    with open(results_file, "wb") as f:
-        pickle.dump({"final_xs": final_xs, "neglogL_history": neglogL_history}, f)
-    # print best parameters and likelihood
-    best_index = jnp.argmin(neglogL_history[-1])
-    best_params = bounds[:,0] + final_xs[best_index] * (bounds[:,1] - bounds[:,0])
-    best_likelihood = jnp.min(neglogL_history[-1])
-    print(f"Best parameters: {best_params}")
-    print(f"Best likelihood: {best_likelihood}")
+    # final_xs, neglogL_history = run_optimization(xs)
+    # # save results to disk
+    # results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+    # with open(results_file, "wb") as f:
+    #     pickle.dump({"final_xs": final_xs, "neglogL_history": neglogL_history}, f)
+    # # print best parameters and likelihood
+    # best_index = jnp.argmin(neglogL_history[-1])
+    # best_params = bounds[:,0] + final_xs[best_index] * (bounds[:,1] - bounds[:,0])
+    # best_likelihood = jnp.min(neglogL_history[-1])
+    # print(f"Best parameters: {best_params}")
+    # print(f"Best likelihood: {best_likelihood}")
 
 
     # vmapped_init = jax.jit(jax.vmap(solver.init))
