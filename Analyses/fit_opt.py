@@ -66,9 +66,7 @@ param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, optio
 
 N = jnp.prod(jnp.asarray(daily_hospitalization_rates.shape))
 
-pp_opt = None
-
-def likelihood(x):
+def likelihood(x, pp_opt=None):
     sim_params = x_to_params(x, pathogen, lockdown, option1, option2, rescale=bounds)
     if "pp" in option2:
         pp_opt = sim_params[8]
