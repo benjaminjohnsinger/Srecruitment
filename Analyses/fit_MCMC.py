@@ -44,7 +44,7 @@ def run_simulation(params, y0, t1, saveat_ts, hessian=False):
     return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
-def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, obs_age=None, mask=[3135,3288], solution=None, hessian=False):
+def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, hessian=False):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
@@ -55,39 +55,56 @@ def SIS_likelihood(tests, daily_hospitalization_rates, params, POINTS, STATE0, p
 
     population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
 
-    if obs_age is not None:
-        # trajectory is total proportion infected over time
-        infectious = jnp.sum(values[1:].reshape((2*N_S+1, NAG, -1))[1:2*N_S:2], axis=0).T
-        expected_infectious = jax.nn.softplus(infectious[-len(tests):]*100)/100
-        expected_ratio = jnp.divide(expected_infectious, population_size[-len(tests):] * obs_age)
-        expected_positivity = jnp.minimum(0.99, expected_ratio)
-    else:
-        # convert into observed cases
+    if incidence_data:
         trajectory = jnp.diff(values[-NAG:,:],axis=1).T
-
         # convolution of trajectory with probability of detection at each day after infection to get expected observations on each day
         p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
         def obs_convolution(x):
             return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
         # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
         expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
-        # cut off the first few days of the trajectory since they are not used in the likelihood (and the roll function is wrapping around)
-        # use softplus to avoid negative expected observations and aid stability
-        expected_obs = jax.nn.softplus(expected_obs[-len(tests):]*100)/100
+        expected_obs = jax.nn.softplus(expected_obs[-len(data):]*100)/100
+        incidence = jnp.round(data*population_size[-len(data):])
 
-        # probability of getting a positive test in hospital is expected_obs / population size over time
-        expected_ratio = jnp.divide(expected_obs, population_size[-len(tests):])
-        # then condition by baseline probabilty of hospitalization
-        expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-len(tests):], 1e-10)))
+        masked_incidence = jnp.ones((len(data) - (mask[1] - mask[0]),NAG))
+        masked_expected_obs = jnp.ones((len(data) - (mask[1] - mask[0]),NAG))
+        masked_incidence = masked_incidence.at[:mask[0]].set(incidence[:mask[0]]).at[mask[0]:].set(incidence[mask[1]:])
+        masked_expected_obs = masked_expected_obs.at[:mask[0]].set(expected_obs[:mask[0]]).at[mask[0]:].set(expected_obs[mask[1]:])
+        likelihood = jsp.stats.poisson.logpmf(masked_incidence, masked_expected_obs).sum()
+    else:
+        if obs_age is not None:
+            # trajectory is total proportion infected over time
+            infectious = jnp.sum(values[1:].reshape((2*N_S+1, NAG, -1))[1:2*N_S:2], axis=0).T
+            expected_infectious = jax.nn.softplus(infectious[-len(data):]*100)/100
+            expected_ratio = jnp.divide(expected_infectious, population_size[-len(data):] * obs_age)
+            expected_positivity = jnp.minimum(0.99, expected_ratio)
+        else:
+            # convert into observed cases
+            trajectory = jnp.diff(values[-NAG:,:],axis=1).T
 
-    # exclude date range from likelihood calculation
-    masked_tests = jnp.ones((len(tests)- (mask[1] - mask[0]),NAG,2))
-    masked_expected_positivity = jnp.ones((len(tests)- (mask[1] - mask[0]),NAG))
-    masked_tests = masked_tests.at[:mask[0]].set(tests[:mask[0]]).at[mask[0]:].set(tests[mask[1]:])
-    masked_expected_positivity = masked_expected_positivity.at[:mask[0]].set(expected_positivity[:mask[0]]).at[mask[0]:].set(expected_positivity[mask[1]:])
-    
-    # calculate binomial likelihood of observed positives given expected proportion positive and total tests
-    likelihood = jsp.stats.binom.logpmf(masked_tests[...,1], masked_tests[...,0], masked_expected_positivity).sum()
+            # convolution of trajectory with probability of detection at each day after infection to get expected observations on each day
+            p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
+            def obs_convolution(x):
+                return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
+            # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
+            expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
+            # cut off the first few days of the trajectory since they are not used in the likelihood (and the roll function is wrapping around)
+            # use softplus to avoid negative expected observations and aid stability
+            expected_obs = jax.nn.softplus(expected_obs[-len(data):]*100)/100
+
+            # probability of getting a positive test in hospital is expected_obs / population size over time
+            expected_ratio = jnp.divide(expected_obs, population_size[-len(data):])
+            # then condition by baseline probabilty of hospitalization
+            expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-len(data):], 1e-10)))
+
+        # exclude date range from likelihood calculation
+        masked_tests = jnp.ones((len(data)- (mask[1] - mask[0]),NAG,2))
+        masked_expected_positivity = jnp.ones((len(data)- (mask[1] - mask[0]),NAG))
+        masked_tests = masked_tests.at[:mask[0]].set(data[:mask[0]]).at[mask[0]:].set(data[mask[1]:])
+        masked_expected_positivity = masked_expected_positivity.at[:mask[0]].set(expected_positivity[:mask[0]]).at[mask[0]:].set(expected_positivity[mask[1]:])
+        
+        # calculate binomial likelihood of observed positives given expected proportion positive and total tests
+        likelihood = jsp.stats.binom.logpmf(masked_tests[...,1], masked_tests[...,0], masked_expected_positivity).sum()
     return likelihood
 
 def fit_transform(target_means, target_cov, bounds):
