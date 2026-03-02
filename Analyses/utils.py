@@ -189,7 +189,7 @@ def params_to_scalars(param_dict,scalar_names):
             scalar_dict[name] = param_dict["P_OBS"][int(name[5:])]
     return scalar_dict
 
-def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, skip_incidence=False):
+def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, smoothed=False, skip_incidence=False):
     ARRIVALS = jnp.asarray(np.genfromtxt('Data/Processed/arrivals_daily.csv', delimiter=','))
     if 'RSV' in pathogen:
         REC_UP = jnp.array([1/4.9,1/4.1,0.0])
@@ -197,7 +197,10 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/RSV_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
-            data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age_daily.csv",index_col=0).values)
+            if smoothed:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+            else:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age_daily.csv",index_col=0).values)
         else:
             positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_RSV_positive_counts.csv', header=None).values)
             total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_RSV_total_counts.csv', header=None).values)
@@ -207,7 +210,10 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/InfluenzaA_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
-            data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age_daily.csv",index_col=0).values)
+            if smoothed:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+            else:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age_daily.csv",index_col=0).values)
         else:
             positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaA_positive_counts.csv', header=None).values)
             total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaA_total_counts.csv', header=None).values)
@@ -217,7 +223,10 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/InfluenzaB_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
-            data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age_daily.csv",index_col=0).values)
+            if smoothed:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+            else:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age_daily.csv",index_col=0).values)
         else:
             positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaB_positive_counts.csv', header=None).values)
             total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaB_total_counts.csv', header=None).values)
@@ -227,7 +236,10 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Parainfluenza3_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
-            data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age_daily.csv",index_col=0).values)
+            if smoothed:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+            else:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age_daily.csv",index_col=0).values)
         else:
             positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Parainfluenza3_positive_counts.csv', header=None).values)
             total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Parainfluenza3_total_counts.csv', header=None).values)
@@ -237,7 +249,10 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Adenovirus_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
-            data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age_daily.csv",index_col=0).values)
+            if smoothed:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+            else:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age_daily.csv",index_col=0).values)
         else:
             positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Adenovirus_positive_counts.csv', header=None).values)
             total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Adenovirus_total_counts.csv', header=None).values)
@@ -247,7 +262,10 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Metapneumovirus_positivity_daily.csv', delimiter=','))
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
-            data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age_daily.csv",index_col=0).values)
+            if smoothed:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+            else:
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age_daily.csv",index_col=0).values)
         else:
             positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_positive_counts.csv', header=None).values)
             total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_total_counts.csv', header=None).values)

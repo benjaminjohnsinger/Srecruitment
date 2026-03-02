@@ -41,8 +41,11 @@ POINTS = np.array(date_to_t(PERIOD))
 FULL_PERIOD = pd.date_range(start=pd.to_datetime('1970-01-01'), end=END, freq='D')
 FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
 
-if option1 == "incidence_data":
-    REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True)
+if "incidence_data" in option1:
+    if "smoothed" in option1:
+        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True)
+    else:
+        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False)
 else:
     REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False)
 N_S, NAG = 3, 7
@@ -52,7 +55,7 @@ start_idx = int(date_to_t(start_date) + 90 - date_to_t('2015-10-01'))
 end_idx = int(date_to_t(end_date) - date_to_t('2015-10-01'))
 data = data_full[start_idx:end_idx]
 
-if option1 != "incidence_data":
+if "incidence_data" not in option1:
     daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
     daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
     daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
@@ -69,7 +72,7 @@ STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
 
 
-if option1 == "incidence_data":
+if "incidence_data" in option1:
     N = jnp.prod(jnp.asarray(data.shape))
     def likelihood(x):
         sim_params = x_to_params(x, pathogen, lockdown, option1, option2, rescale=bounds)
