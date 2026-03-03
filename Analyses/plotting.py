@@ -660,8 +660,9 @@ def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None,
     print(pathogen)
     incidence = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=window_size, weighting_factor=weighting_factor, sum_age_groups=AGE_GROUPS is None, save_counts=False, pp_only=pp_only)
     incidence *= factor
-    if "M" in aggregation:
-        incidence.index = incidence.index.to_period('M')
+    if aggregation == "MS":
+        # add 14 days to the index to get the middle of the month
+        incidence.index = incidence.index + pd.Timedelta(days=14)
     if AGE_GROUPS is not None:
         for i in range(len(AGE_GROUP_NAMES)):
             ax.plot(incidence.index, incidence[AGE_GROUP_NAMES[i]], label=AGE_GROUP_NAMES[i], color=color[i])

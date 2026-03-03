@@ -22,7 +22,8 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
+pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 260301, "FlexStepwise", "NA", "flexage", 1e-9
+# sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
 
 # set seed
 np.random.seed(seed)
@@ -155,41 +156,41 @@ print("Peak prevalence over observed period:",jnp.max(expected_prevalence, axis=
 # # print("Rt:",jnp.median(Rts),"("+str(jnp.min(Rts))+"–"+str(jnp.max(Rts))+")")
 # # print("Ratio of import-caused cases to internal transmission:",jnp.median(contact_ratios),"("+str(jnp.min(contact_ratios))+"–"+str(jnp.max(contact_ratios))+")")
 
-# # remove "free" from pathogen name for plotting
-# if "free" in pathogen:
-#     pathogen_name = pathogen.replace("free","")
-# else:
-#     pathogen_name = pathogen
+# remove "free" from pathogen name for plotting
+if "free" in pathogen:
+    pathogen_name = pathogen.replace("free","")
+else:
+    pathogen_name = pathogen
 
-# plt.rcParams.update({'font.size':14})
-# # text type is palatino
-# plt.rcParams['font.family'] = 'serif'
-# plt.rcParams['font.serif'] = ['Palatino']
-# fig = plt.figure(figsize=(13.3,7.5))
-# ax1 = fig.add_subplot(3,1,1)
-# ax2 = fig.add_subplot(3,1,2, sharex=ax1
-# , sharey=ax1
-# )
-# ax3 = fig.add_subplot(3,1,3, sharex=ax1)
-# ax = [ax1,ax2,ax3]
-# aggregation = "Month"
-# kpsc_proportion_positive_incidence_plot(ax[0], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="ME", factor=10000)
-# ax[0].set_xlabel("")
-# pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
-# # ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
-# ax[0].set_ylabel("Monthly incidence per 10k")
-# # legend
-# ax[0].legend(frameon=False)
+plt.rcParams.update({'font.size':14})
+# text type is palatino
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Palatino']
+fig = plt.figure(figsize=(13.3,7.5))
+ax1 = fig.add_subplot(3,1,1)
+ax2 = fig.add_subplot(3,1,2, sharex=ax1
+, sharey=ax1
+)
+ax3 = fig.add_subplot(3,1,3, sharex=ax1)
+ax = [ax1,ax2,ax3]
+aggregation = "Month"
+kpsc_proportion_positive_incidence_plot(ax[0], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="MS", factor=10000)
+ax[0].set_xlabel("")
+pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
+# ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
+ax[0].set_ylabel("Monthly incidence per 10k")
+# legend
+ax[0].legend(frameon=False)
 
-# # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
-# mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
-# lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
+# fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
+mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
+lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
 
-# lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-# lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
-# ax[2].set_title("Effective susceptibles")
+lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
+ax[2].set_title("Effective susceptibles")
 
-# plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
+plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
 
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")

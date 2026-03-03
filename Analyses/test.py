@@ -31,11 +31,21 @@ import time
 # plt.rcParams['font.serif'] = ['Palatino']
 
 # pickle load Data/Processed/results260217/DE_opt_RSVFlexStepwiseNAflexage260217.pickle
-with open("Data/Processed/results260217/DE_opt_InfluenzaAFlexStepwiseNAflexage260217.pickle","rb") as f:
-    opt = pickle.load(f)
+with open("Data/Processed/results260301/evosax_DE_RSVFlexStepwiseNAflexage260301.pickle","rb") as f:
+    results = pickle.load(f)
+metrics_log = results["metrics_log"]
+generations = [metrics["generation_counter"] for metrics in metrics_log]
+best_fitness = [metrics["best_fitness"] for metrics in metrics_log]
 
-# how many generations did it take to converge?
-print(f"Generations to converge: {opt.nit}")
+plt.figure(figsize=(10, 5))
+plt.plot(generations, best_fitness, label="Best Fitness", marker="o", markersize=3)
+
+plt.title("Best fitness over generations")
+plt.xlabel("Generation")
+plt.ylabel("Fitness")
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
 
 # # # ##### Testing optax ######
 # pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 260224, "FlexStepwise", "NA", "flexagep01", 1e-9
