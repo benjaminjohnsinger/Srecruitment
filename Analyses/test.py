@@ -30,39 +30,45 @@ import time
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Palatino']
 
+# pickle load Data/Processed/results260217/DE_opt_RSVFlexStepwiseNAflexage260217.pickle
+with open("Data/Processed/results260217/DE_opt_InfluenzaAFlexStepwiseNAflexage260217.pickle","rb") as f:
+    opt = pickle.load(f)
 
-# # ##### Testing optax ######
-pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 260224, "FlexStepwise", "NA", "flexagep01", 1e-9
+# how many generations did it take to converge?
+print(f"Generations to converge: {opt.nit}")
 
-for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "Parainfluenza3", "Adenovirus"]:
-    results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
-    with open(results_file, "rb") as f:
-        results = pickle.load(f)
-        final_xs = results["final_xs"]
-        neglogL_history = results["neglogL_history"]
-    print(final_xs)
-    daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
-    N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
-    neglogL_history = jnp.asarray(neglogL_history)*N
-    fig, ax = plt.subplots(3,2,figsize=(8,6), sharex='col')
-    for i in range(3):
-        # Full trajectory
-        ax[i,0].plot(neglogL_history[:,i], color='k')
-        ax[i,0].set_ylabel('Negative log-likelihood')
-        ax[i,0].set_yscale('log')
-        ax[i,0].set_title(f'Optimization trajectory (Run {i+1})')
-        if i == 2:
-            ax[i,0].set_xlabel('Iteration')
+# # # ##### Testing optax ######
+# pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 260224, "FlexStepwise", "NA", "flexagep01", 1e-9
+
+# for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "Parainfluenza3", "Adenovirus"]:
+#     results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+#     with open(results_file, "rb") as f:
+#         results = pickle.load(f)
+#         final_xs = results["final_xs"]
+#         neglogL_history = results["neglogL_history"]
+#     print(final_xs)
+#     daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+#     N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
+#     neglogL_history = jnp.asarray(neglogL_history)*N
+#     fig, ax = plt.subplots(3,2,figsize=(8,6), sharex='col')
+#     for i in range(3):
+#         # Full trajectory
+#         ax[i,0].plot(neglogL_history[:,i], color='k')
+#         ax[i,0].set_ylabel('Negative log-likelihood')
+#         ax[i,0].set_yscale('log')
+#         ax[i,0].set_title(f'Optimization trajectory (Run {i+1})')
+#         if i == 2:
+#             ax[i,0].set_xlabel('Iteration')
         
-        # Zoomed in on last 200 iterations
-        ax[i,1].plot(neglogL_history[-200:,i], color='k')
-        ax[i,1].set_yscale('log')
-        ax[i,1].set_title(f'Last 200 iterations (Run {i+1})')
-        if i == 2:
-            ax[i,1].set_xlabel('Iteration')
+#         # Zoomed in on last 200 iterations
+#         ax[i,1].plot(neglogL_history[-200:,i], color='k')
+#         ax[i,1].set_yscale('log')
+#         ax[i,1].set_title(f'Last 200 iterations (Run {i+1})')
+#         if i == 2:
+#             ax[i,1].set_xlabel('Iteration')
 
-    plt.tight_layout()
-    plt.savefig(f"Figures/{pathogen}{seed}_optax_optimization_trajectory.png", dpi=300)
+#     plt.tight_layout()
+#     plt.savefig(f"Figures/{pathogen}{seed}_optax_optimization_trajectory.png", dpi=300)
 
 # import sys
 # sys.argv = [sys.argv[0], pathogen, str(seed), lockdown, option1, option2, str(import_multiplier), "20", "1", "0.7"]
