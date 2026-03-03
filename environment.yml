@@ -5,9 +5,6 @@ channels:
 dependencies:
   - python=3.11
   - libmamba
-  # Core JAX + GPU
-  - jax
-  - jaxlib=*=*cuda*
   - cuda-nvcc
   # Scientific Stack (Let Conda pick the best versions for the cluster)
   - h5py
@@ -21,6 +18,7 @@ dependencies:
   - optax
   - pip
   - pip:
+    - "jax[cuda12]"
     - absl-py==2.4.0
     - aiofiles==25.1.0
     - asttokens==3.0.0
