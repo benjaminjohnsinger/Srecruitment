@@ -26,4 +26,4 @@
 module purge
 source activate /global/scratch/users/bjsinger/jax_env
 
-python -u Analyses/fit_opt.py RSV 260302 FlexStepwise NA flexagep01 1e-9 400 0.7 400
+python -u Analyses/fit_opt.py RSV 260302 FlexStepwise NA flexagep01 1e-9 20 0.7 400
