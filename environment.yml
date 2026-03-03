@@ -15,10 +15,10 @@ dependencies:
   - scikit-learn
   - scipy
   - tqdm
-  - optax
   - pip
   - pip:
     - "jax[cuda12]"
+    - optax==0.2.6
     - absl-py==2.4.0
     - aiofiles==25.1.0
     - asttokens==3.0.0
