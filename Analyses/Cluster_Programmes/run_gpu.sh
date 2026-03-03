@@ -24,6 +24,7 @@
 #SBATCH --time=01:00:00
 
 module purge
+module load python/3.11.6-gcc-11.4.0
 source activate /global/scratch/users/bjsinger/jax_env
 
 python -u Analyses/fit_opt.py RSV 260302 FlexStepwise NA flexagep01 1e-9 20 0.7 400
