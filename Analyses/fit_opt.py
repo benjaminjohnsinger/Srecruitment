@@ -6,20 +6,23 @@ import jax
 print(f"Devices found: {jax.devices()}")
 import jax.numpy as jnp
 import numpy as np
-import scipy as sp
 import pandas as pd
 import time
 import pickle
 import sys
 import os
-import multiprocessing
+print(f"My PID is: {os.getpid()}")
+if "Cuda" in str(jax.devices()):
+    print(f"Physical GPU assigned by Slurm: {os.environ.get('CUDA_VISIBLE_DEVICES')}")
 
 from Parameters.census_population import *
 from Parameters.times_and_contacts import *
 
 from utils import *
 from fit_MCMC import SIS_likelihood
-import traceback
+
+# import scipy as sp
+# import multiprocessing
 
 pathogen, seed, lockdown, option1, option2, import_multiplier, opt_size, opt_rate1, opt_rate2 = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
 
@@ -107,7 +110,7 @@ def latin_hypercube_sample(key, n_samples, n_dims):
     samples = jax.vmap(sample_dim)(keys)
     return samples.T
 
-likelihood_threshold = 2
+likelihood_threshold = 10.0
 max_resampling_iterations = 100
 def apply_condition(state):
     _, likelihoods, _, iteration = state
@@ -137,7 +140,7 @@ def run_resampling(xs, likelihoods, key):
 
 if __name__ == '__main__':
     # # #scipy version of DE
-    vmap_likelihood = jax.jit(jax.vmap(likelihood))
+    # vmap_likelihood = jax.jit(jax.vmap(likelihood))
     # def scipy_objective(x):
     #     x_transposed = x.T
     #     return jnp.asarray(vmap_likelihood(x_transposed))
@@ -162,10 +165,9 @@ if __name__ == '__main__':
     print(f"Generated {hypercube_size} Latin hypercube samples with JAX in {time.time() - sampling_start_time:.2f} seconds.")
 
     # if there are opt_states with likelihood over 100, resample those points
-    likelihoods = vmap_likelihood(xs)
-     # constrain to reasonable initial guesses
-    print(f"n initial points with likelihood > {likelihood_threshold} or NaN: {jnp.sum((likelihoods > likelihood_threshold) | jnp.isnan(likelihoods))}")
-    
+    vmap_likelihood = jax.vmap(likelihood)
+    likelihoods = jax.jit(vmap_likelihood)(xs)
+
     key, subkey = jax.random.split(key)
     print("Starting resampling of bad initial points...")
     start_time = time.time()
@@ -178,8 +180,8 @@ if __name__ == '__main__':
 
     de = DifferentialEvolution(population_size=hypercube_size, solution=xs[0])
     params = de.default_params
-    # set crossover_rate to opt_rate1
-    params = params.replace(crossover_rate=opt_rate1)
+    # set crossover_rate to opt_rate2
+    params = params.replace(crossover_rate=opt_rate2)
 
     key, subkey = jax.random.split(key)
     state = de.init(subkey, xs, likelihoods, params)
@@ -197,14 +199,14 @@ if __name__ == '__main__':
     @jax.jit
     def run_de_optimization(key, state):
         initial_carry = (key, state)
-        (_, final_state), metrics_log = jax.lax.scan(de_step, initial_carry, jnp.arange(opt_rate2))
+        (_, final_state), metrics_log = jax.lax.scan(de_step, initial_carry, jnp.arange(opt_rate1))
         return final_state, metrics_log
 
     print("Starting DE optimization...")
     start_time = time.time()
     state, metrics_log = run_de_optimization(key, state)
     state.fitness.block_until_ready()
-    print(f"{opt_rate2} DE iterations completed in {time.time() - start_time:.2f} seconds.")
+    print(f"{opt_rate1} DE iterations completed in {time.time() - start_time:.2f} seconds.")
 
     if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
         os.makedirs("Data/Processed/results"+str(seed)[:6])

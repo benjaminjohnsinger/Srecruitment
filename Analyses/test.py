@@ -31,19 +31,40 @@ import time
 # plt.rcParams['font.serif'] = ['Palatino']
 
 # pickle load Data/Processed/results260217/DE_opt_RSVFlexStepwiseNAflexage260217.pickle
-with open("Data/Processed/results260301/evosax_DE_RSVFlexStepwiseNAflexage260301.pickle","rb") as f:
-    results = pickle.load(f)
-metrics_log = results["metrics_log"]
-generations = [metrics["generation_counter"] for metrics in metrics_log]
-best_fitness = [metrics["best_fitness"] for metrics in metrics_log]
+# with open("Data/Processed/results260302/evosax_DE_RSVFlexStepwiseNAflexagep01260302.pickle","rb") as f:
+#     results = pickle.load(f)
+# metrics_log = results["metrics_log"]
+# generations = metrics_log["generation_counter"]
+# best_fitness = metrics_log["best_fitness"]
 
-plt.figure(figsize=(10, 5))
-plt.plot(generations, best_fitness, label="Best Fitness", marker="o", markersize=3)
+# plt.figure(figsize=(10, 5))
+# plt.plot(generations, best_fitness, label="Best Fitness", marker="o", markersize=3)
 
-plt.title("Best fitness over generations")
-plt.xlabel("Generation")
-plt.ylabel("Fitness")
-plt.grid(True, alpha=0.3)
+# plt.title("Best fitness over generations")
+# plt.xlabel("Generation")
+# plt.ylabel("Fitness")
+# plt.grid(True, alpha=0.3)
+# plt.tight_layout()
+# plt.show()
+
+# there are four evosax outputs in Data/Processed/results260303, load and plot a 2x2 grid of best fitness over genaration
+fig, axes = plt.subplots(3, 2, figsize=(12.5/2,5.7), sharex=True)
+for i, seed in enumerate(["260303", "2603032", "2603033"]):
+    for j, option1 in enumerate(["incidence_data", "smoothedincidence_data"]):
+        with open(f"Data/Processed/results260303/evosax_DE_RSVFlexStepwise{option1}flexagep01{seed}.pickle","rb") as f:
+            results = pickle.load(f)
+        # print(results["final_population"])
+        # print(results["final_fitness"])
+        # print(results["final_population"][np.argmin(results["final_fitness"])])
+        print(np.min(results["final_fitness"]))
+        metrics_log = results["metrics_log"]
+        generations = metrics_log["generation_counter"]
+        best_fitness = metrics_log["best_fitness"]
+        axes[i,j].plot(generations, best_fitness, label="Best Fitness", marker="o", markersize=3)
+        axes[i,j].set_title(f"{option1} (Seed: {seed})")
+        axes[i,j].set_xlabel("Generation")
+        axes[i,j].set_ylabel("Fitness")
+        axes[i,j].grid(True, alpha=0.3)
 plt.tight_layout()
 plt.show()
 
