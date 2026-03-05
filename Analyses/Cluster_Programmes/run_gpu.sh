@@ -21,11 +21,10 @@
 #SBATCH --mail-user=bjsinger@berkeley.edu
 
 # Wall clock limit:
-#SBATCH --time=04:00:00
+#SBATCH --time=01:00:00
 
 module purge
 module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
-python -u Analyses/fit_opt.py RSV 260302 FlexStepwise NA flexagep01 1e-9 200 400 0.7
-python -u Analyses/fit_opt.py InfluenzaA 260302 FlexStepwise NA flexagep01 1e-9 200 400 0.7
+python -u Analyses/fit_opt.py RSV 260304 FlexStepwise NA flexagep01 1e-9 20 400 0.7
