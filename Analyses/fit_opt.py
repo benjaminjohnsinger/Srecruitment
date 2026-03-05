@@ -46,6 +46,10 @@ POINTS = np.array(date_to_t(PERIOD))
 FULL_PERIOD = pd.date_range(start=pd.to_datetime('1970-01-01'), end=END, freq='D')
 FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
 
+N_S, NAG = 3, 7
+from Parameters.census_population import AGING_RATE
+CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
+BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
 if "incidence_data" in option1:
     if "smoothed" in option1:
         REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True)
@@ -53,7 +57,7 @@ if "incidence_data" in option1:
         REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False)
 else:
     REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False)
-N_S, NAG = 3, 7
+fixed_params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, REC_UP, REC_SAME, IMPORT_STRENGTH)
 
 # # trim incidence so that Date is between START and END
 start_idx = int(date_to_t(start_date) + 90 - date_to_t('2015-10-01'))
@@ -80,7 +84,7 @@ param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, optio
 if "incidence_data" in option1:
     N = jnp.prod(jnp.asarray(data.shape))
     def likelihood(x):
-        sim_params = x_to_params(x, pathogen, lockdown, option1, option2
+        sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
                                 #  , rescale=bounds
                                  )
         lh = -SIS_likelihood(data, 0, sim_params, POINTS, STATE0, p_time_to_obs, incidence_data=True)
@@ -89,7 +93,7 @@ if "incidence_data" in option1:
 else:
     N = jnp.prod(jnp.asarray(daily_hospitalization_rates.shape))
     def likelihood(x, pp_opt=None):
-        sim_params = x_to_params(x, pathogen, lockdown, option1, option2
+        sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
                                  #  , rescale=bounds
                                  )
         if "pp" in option2:
@@ -169,7 +173,7 @@ if __name__ == '__main__':
     likelihoods = jax.jit(vmap_likelihood)(xs)
 
     key, subkey = jax.random.split(key)
-    print("Starting resampling of bad initial points...")
+    print(f"Starting resampling of {jnp.sum((likelihoods > likelihood_threshold) | jnp.isnan(likelihoods))} bad initial points...")
     start_time = time.time()
     xs, likelihoods, iterations = run_resampling(xs, likelihoods, subkey)
     likelihoods.block_until_ready()

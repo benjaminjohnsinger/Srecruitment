@@ -74,7 +74,6 @@ RSV_VAX_EFF = 0.73 # CDC website
 # nirsevimab rates
 NIRSEVIMAB_RATE_IDX, NIRSEVIMAB_RATE_NP = get_jax_arrays_from_vax_csv('Data/Processed/Nirsevimab_rates_by_month_and_age_group.csv')
 NIRSEVIMAB_EFF = 0.98 # Hsiao et al., Pediatrics 2025
-@jax.jit
 def rsv_eff_vax_rate(t_arr, max_eff0, max_eff1):
     # RSV vaccination rate
     vax_indices = jnp.searchsorted(RSV_VAX_RATE_IDX, t_arr, side='right')
@@ -94,7 +93,6 @@ def rsv_eff_vax_rate(t_arr, max_eff0, max_eff1):
 #### RSV maternal immunity rates #####
 MATERNAL_PVAX_IDX, MATERNAL_PVAX_NP = get_jax_arrays_from_vax_csv('Data/Processed/RSV_pregnant_vaccination_by_month.csv', age_group_names=None)
 MATERNAL_VAX_EFF = 0.82 # Kampmann et al., NEJM 2023
-@jax.jit
 def rsv_maternal_immunity(t_arr):
     vax_indices = jnp.searchsorted(MATERNAL_PVAX_IDX, t_arr, side='right')
     p = MATERNAL_PVAX_NP[vax_indices].squeeze()

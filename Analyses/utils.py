@@ -290,6 +290,8 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
 from Parameters.times_and_contacts import TT as defaultTT
 from Parameters.times_and_contacts import FF as defaultFF
 from new_vax import rsv_eff_vax_rate
+from new_vax import rsv_maternal_immunity
+from new_vax import flu_eff_vax_rate
 def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None):
     if fixed_params is None:
         from Parameters.census_population import AGING_RATE
@@ -346,7 +348,6 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     else:
         P_OBS = pobsrel
     if "RSV" in pathogen:
-        from new_vax import rsv_maternal_immunity
         MATERNAL_IMMUNITY = rsv_maternal_immunity(FULL_POINTS)
     if 'pathogen' not in option1:
         if lockdown == 'Default':
@@ -409,7 +410,6 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     elif 'dynamic' in option1:
         OBS_AGE = fixed_params[7]
     if ("Influenza" in pathogen):
-        from new_vax import flu_eff_vax_rate
         protection_param = S_REL*P_OBS
         max_eff = (protection_param[-2]-protection_param[-1])/protection_param[-2]
         VAX_RATE = flu_eff_vax_rate(FULL_POINTS, max_eff)
