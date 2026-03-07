@@ -31,42 +31,52 @@ import time
 # plt.rcParams['font.serif'] = ['Palatino']
 
 # pickle load Data/Processed/results260217/DE_opt_RSVFlexStepwiseNAflexage260217.pickle
-# with open("Data/Processed/results260302/evosax_DE_RSVFlexStepwiseNAflexagep01260302.pickle","rb") as f:
-#     results = pickle.load(f)
-# metrics_log = results["metrics_log"]
-# generations = metrics_log["generation_counter"]
-# best_fitness = metrics_log["best_fitness"]
+with open("Data/Processed/results260303/evosax_DE_InfluenzaAFlexStepwiseNAflexagep01260303.pickle","rb") as f:
+    results = pickle.load(f)
+metrics_log = results["metrics_log"]
+generations = metrics_log["generation_counter"]
+best_fitness = metrics_log["best_fitness"]
+final_fitness = results["final_fitness"]
 
-# plt.figure(figsize=(10, 5))
-# plt.plot(generations, best_fitness, label="Best Fitness", marker="o", markersize=3)
+daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
+best_fitness = jnp.asarray(best_fitness)*N
+final_fitness = jnp.asarray(final_fitness)*N
 
-# plt.title("Best fitness over generations")
-# plt.xlabel("Generation")
-# plt.ylabel("Fitness")
-# plt.grid(True, alpha=0.3)
-# plt.tight_layout()
-# plt.show()
+print(final_fitness)
+print(np.std(final_fitness))
+print(np.abs(np.mean(final_fitness)))
 
-# there are four evosax outputs in Data/Processed/results260303, load and plot a 2x2 grid of best fitness over genaration
-fig, axes = plt.subplots(3, 2, figsize=(12.5/2,5.7), sharex=True)
-for i, seed in enumerate(["260303", "2603032", "2603033"]):
-    for j, option1 in enumerate(["incidence_data", "smoothedincidence_data"]):
-        with open(f"Data/Processed/results260303/evosax_DE_RSVFlexStepwise{option1}flexagep01{seed}.pickle","rb") as f:
-            results = pickle.load(f)
-        # print(results["final_population"])
-        # print(results["final_fitness"])
-        # print(results["final_population"][np.argmin(results["final_fitness"])])
-        print(np.min(results["final_fitness"]))
-        metrics_log = results["metrics_log"]
-        generations = metrics_log["generation_counter"]
-        best_fitness = metrics_log["best_fitness"]
-        axes[i,j].plot(generations, best_fitness, label="Best Fitness", marker="o", markersize=3)
-        axes[i,j].set_title(f"{option1} (Seed: {seed})")
-        axes[i,j].set_xlabel("Generation")
-        axes[i,j].set_ylabel("Fitness")
-        axes[i,j].grid(True, alpha=0.3)
+plt.figure(figsize=(10, 5))
+plt.plot(generations, best_fitness, label="Best Fitness", marker="o", markersize=3)
+plt.axhline(y=best_fitness[-1]+2, color='r')
+plt.title("Best fitness over generations")
+plt.xlabel("Generation")
+plt.ylabel("Fitness")
+plt.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.show()
+
+# # there are four evosax outputs in Data/Processed/results260303, load and plot a 2x2 grid of best fitness over genaration
+# fig, axes = plt.subplots(3, 2, figsize=(12.5/2,5.7), sharex=True)
+# for i, seed in enumerate(["260303", "2603032", "2603033"]):
+#     for j, option1 in enumerate(["incidence_data", "smoothedincidence_data"]):
+#         with open(f"Data/Processed/results260303/evosax_DE_RSVFlexStepwise{option1}flexagep01{seed}.pickle","rb") as f:
+#             results = pickle.load(f)
+#         # print(results["final_population"])
+#         # print(results["final_fitness"])
+#         # print(results["final_population"][np.argmin(results["final_fitness"])])
+#         print(np.min(results["final_fitness"]))
+#         metrics_log = results["metrics_log"]
+#         generations = metrics_log["generation_counter"]
+#         best_fitness = metrics_log["best_fitness"]
+#         axes[i,j].plot(generations, best_fitness, label="Best Fitness", marker="o", markersize=3)
+#         axes[i,j].set_title(f"{option1} (Seed: {seed})")
+#         axes[i,j].set_xlabel("Generation")
+#         axes[i,j].set_ylabel("Fitness")
+#         axes[i,j].grid(True, alpha=0.3)
+# plt.tight_layout()
+# plt.show()
 
 # # # ##### Testing optax ######
 # pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 260224, "FlexStepwise", "NA", "flexagep01", 1e-9
