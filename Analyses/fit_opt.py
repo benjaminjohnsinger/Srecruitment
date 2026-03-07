@@ -242,7 +242,7 @@ if __name__ == '__main__':
         neglogL, grad = jax.value_and_grad(likelihood)(x)
         update, opt_state = solver.update(grad, opt_state, x)
         x = optax.apply_updates(x, update)
-        x = optax.projections.projection_box(x, 0, 1)
+        x = optax.projections.projection_box(x, bounds[:,0], bounds[:,1])
         return x, opt_state, neglogL
     vmapped_step = jax.jit(jax.vmap(single_step))
 
@@ -261,7 +261,11 @@ if __name__ == '__main__':
         final_xs, _ = final_carry
         return final_xs, neglogL_history
     
+    print("Starting optax optimization...")
+    start_time = time.time()
     final_xs, neglogL_history = run_optimization(xs)
+    final_xs.block_until_ready()
+    print(f"Optax optimization completed in {time.time() - start_time:.2f} seconds.")
     # save results to disk
     results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
     with open(results_file, "wb") as f:
