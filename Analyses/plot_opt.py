@@ -22,7 +22,7 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 260301, "FlexStepwise", "NA", "flexage", 1e-9
+pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 2603033, "FlexStepwise", "smoothedincidence_data", "flexagep01", 1e-9
 # sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
 
 # set seed
@@ -36,26 +36,48 @@ if re.match(r'\d{4}-\d{2}-\d{2}',option2):
 
 print(pathogen, seed)
 if re.search(r'\d{6}',lockdown):
-    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
-        opt = pickle.load(f)
+    lockdown_search = "FlexStepwise"
 else:
+    lockdown_search = lockdown
+
+base_path = "Data/Processed/results"+str(seed)[:6]+"/"
+filename_pattern = pathogen+lockdown_search+option1+option2+str(seed)+".pickle"
+
+# Try both DE_opt and evosax_DE prefixes
+opt = None
+prefix = ""
+for test_prefix in ["DE_opt_", "evosax_DE_"]:
+    filepath = base_path + test_prefix + filename_pattern
     try:
-        with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+        with open(filepath, "rb") as f:
             opt = pickle.load(f)
+        print(f"Loaded: {test_prefix}{filename_pattern}")
+        prefix = test_prefix
+        break
     except FileNotFoundError:
-        print('File not found:',"Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
-        sys.exit()
-if opt.success:
-    print("Optimization converged")
-else:
-    print("Optimization did not converge")
-    print(opt.message)
-    print(opt.x)
+        continue
+
+if opt is None:
+    print('File not found with either prefix (DE_opt_ or evosax_DE_)')
     sys.exit()
-x = opt.x
-print(x)
-# print likelihood
-print("Log-Likelihood:",-1*opt.fun)
+
+# Detect file type and extract results accordingly
+if prefix == "evosax_DE_":
+    print(opt.keys())
+    # evosax_DE format
+    x = opt["final_population"][np.argmax(opt["final_fitness"])]
+    log_likelihood = -1 * np.max(opt["final_fitness"])
+else:
+    # scipy.optimize.differential_evolution format
+    if opt.success:
+        print("Optimization converged")
+    else:
+        print("Optimization did not converge")
+        print(opt.message)
+        print(opt.x)
+        sys.exit()
+    x = opt.x
+    log_likelihood = -1 * opt.fun
 
 REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
 daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
@@ -85,6 +107,11 @@ daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
 daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
 daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
 
+N = np.prod(daily_hospitalization_rates.shape)
+
+print(x)
+print("Log-Likelihood:", log_likelihood*N)
+
 ## Initial conditions
 STATE0 = jnp.zeros((2*N_S+1,NAG))
 STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
@@ -111,7 +138,7 @@ for i in range(len(seasons)-1):
     # get the number of infections in each season
     season_start = np.argmax(times>=seasons[i])
     season_end = np.argmax(times>=seasons[i+1])
-    pop_size = np.sum(values[:-NAG,season_start],dtype=np.float64)
+    pop_size = np.sum(values[:-NAG,season_start])
     age_pops = population_size[season_start]
     first_infections[i,:] = np.sum(values[1:1+NAG,season_start:season_end],axis=1)
     season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
@@ -190,7 +217,7 @@ lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-0
 lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
 ax[2].set_title("Effective susceptibles")
 
-plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
+plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
 
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")
