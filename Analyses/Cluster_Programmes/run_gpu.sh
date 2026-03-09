@@ -27,4 +27,4 @@ module purge
 module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
-python -u Analyses/fit_opt.py RSV 260306 FlexStepwise NA flexagep01 1e-9 500 2000 0.7
+python -u Analyses/fit_opt.py RSV 260309 FlexStepwise NA flexagep01 1e-9 100 2000 0.7
