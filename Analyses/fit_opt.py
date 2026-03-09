@@ -191,24 +191,26 @@ if __name__ == '__main__':
     state = de.init(subkey, xs, likelihoods, params)
 
     def de_step(carry, _):
-        key, state = carry
+        key, state, params = carry
         key, subkey = jax.random.split(key)
-        key_ask, key_tell = jax.random.split(subkey)
+        key_dither, key_ask, key_tell = jax.random.split(subkey, 3)
+        differential_weight = jax.random.uniform(key_dither, minval=0.5, maxval=1.0)
+        params = params.replace(differential_weight=differential_weight)
         population, state = de.ask(key_ask, state, params)
         population = jnp.clip(population, bounds[:,0], bounds[:,1])
         fitness = vmap_likelihood(population)
         state, metrics = de.tell(key_tell, population, fitness, state, params)
-        return (key, state), metrics
+        return (key, state, params), metrics
     
     @jax.jit
-    def run_de_optimization(key, state):
-        initial_carry = (key, state)
-        (_, final_state), metrics_log = jax.lax.scan(de_step, initial_carry, jnp.arange(opt_rate1))
+    def run_de_optimization(key, state, params):
+        initial_carry = (key, state, params)
+        (_, final_state, _), metrics_log = jax.lax.scan(de_step, initial_carry, jnp.arange(opt_rate1))
         return final_state, metrics_log
 
     print("Starting DE optimization...")
     start_time = time.time()
-    state, metrics_log = run_de_optimization(key, state)
+    state, metrics_log = run_de_optimization(key, state, params)
     state.fitness.block_until_ready()
     print(f"{opt_rate1} DE iterations completed in {time.time() - start_time:.2f} seconds.")
 
