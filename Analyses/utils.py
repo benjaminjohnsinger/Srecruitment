@@ -292,7 +292,7 @@ from Parameters.times_and_contacts import FF as defaultFF
 from new_vax import rsv_eff_vax_rate
 from new_vax import rsv_maternal_immunity
 from new_vax import flu_eff_vax_rate
-def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=True):
+def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=False):
     if fixed_params is None:
         from Parameters.census_population import AGING_RATE
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
