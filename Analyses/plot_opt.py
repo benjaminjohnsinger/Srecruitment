@@ -76,7 +76,14 @@ else:
         sys.exit()
     x = opt.x
     log_likelihood = -1 * opt.fun
-
+# if pathogen == "RSV":
+#     n = 6
+# elif pathogen == "InfluenzaA" or pathogen == "InfluenzaB":
+#     n = 7
+# else:
+#     n = 8
+# x = x.at[n].set(0.6)
+# x = x.at[n+1].set(0.0026)
 REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
 daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
 daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
@@ -107,7 +114,7 @@ daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx
 
 N = np.prod(daily_hospitalization_rates.shape)
 
-print(x)
+# print(x)
 print("Log-Likelihood:", log_likelihood*N)
 
 ## Initial conditions
@@ -118,7 +125,7 @@ STATE0 = STATE0.at[1,:].set(1)
 STATE0 = STATE0.flatten()
 STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-params = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True)
+params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True)
 
 solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS)
 values = solution.ys.T
@@ -210,6 +217,7 @@ ax[0].legend(frameon=False)
 # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
 mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
 lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
+ax[1].plot(POINTS, cntct[-len(POINTS):]*mx, label="Relative contact rate", color="black", linestyle="dashed") 
 
 lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
 lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)

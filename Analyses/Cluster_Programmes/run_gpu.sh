@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=optax
+#SBATCH --job-name=RSVevo
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -27,4 +27,5 @@ module purge
 module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
-python -u Analyses/fit_opt.py RSV 260312 FlexStepwise NA flexagep01 1e-9 100 2000 0.5 optax
+python -u Analyses/fit_opt.py RSV 260312 Exponential NA flexagep01 1e-9 200 1000 0.7 evosax
+python -u Analyses/fit_opt.py RSV 260312 Exponential NA flexagep01 1e-9 200 1000 0.7 evosax

@@ -292,7 +292,7 @@ from Parameters.times_and_contacts import FF as defaultFF
 from new_vax import rsv_eff_vax_rate
 from new_vax import rsv_maternal_immunity
 from new_vax import flu_eff_vax_rate
-def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None):
+def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=True):
     if fixed_params is None:
         from Parameters.census_population import AGING_RATE
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
@@ -451,7 +451,17 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             else:
                 print(param_names[i]+": "+eval(param_names[i]).__str__())
     
-    return params
+    if return_contact:
+        if 'Exponential' in lockdown:
+            return params, EXPONENTIAL_CONTACT
+        elif 'Mobility' in lockdown:
+            return params, MOBILITY_CONTACT
+        elif 'Taube' in lockdown:
+            return params, MOBILITY_CONTACT
+        elif 'FlexStepwise' in lockdown:
+            return params, PIECEWISE_CONTACT
+    else:
+        return params
 
 def parameters_names_bounds(pathogen, lockdown, option1, option2):
     bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
@@ -499,11 +509,11 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = [0,2]
         elif lockdown == "Exponential":
             bounds_dict["F1"] = [0,1]
-            bounds_dict["R1"] = [0,0.01]
+            bounds_dict["R1"] = [0.002,0.01]
         elif lockdown == "Exponential2":
             bounds_dict["F1"] = bounds_dict["F2"] = [0,1]
             bounds_dict["DT1"] = [0,2]
-            bounds_dict["R1"] = bounds_dict["R2"] = [0,0.05]
+            bounds_dict["R1"] = bounds_dict["R2"] = [0.002,0.05]
         elif lockdown != "Taube":
             bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
 
