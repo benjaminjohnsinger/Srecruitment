@@ -26,6 +26,11 @@ from fit_MCMC import SIS_likelihood
 
 pathogen, seed, lockdown, option1, option2, import_multiplier, opt_size, opt_rate1, opt_rate2 = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
 
+if len(sys.argv) > 10:
+    algorithm = sys.argv[10]
+else:
+    algorithm = "evosax" # default to evosax if not specified
+
 # set seed
 np.random.seed(seed)
 
@@ -179,102 +184,102 @@ if __name__ == '__main__':
     likelihoods.block_until_ready()
     print(f"Resampling completed in {time.time() - start_time:.2f} seconds after {iterations} iterations.")
 
-    ################ evosax ##################
-    from evosax.algorithms import DifferentialEvolution
+    if algorithm == "evosax":
+        ################ evosax ##################
+        from evosax.algorithms import DifferentialEvolution
 
-    de = DifferentialEvolution(population_size=hypercube_size, solution=xs[0])
-    params = de.default_params
-    # set crossover_rate to opt_rate2
-    params = params.replace(crossover_rate=opt_rate2)
+        de = DifferentialEvolution(population_size=hypercube_size, solution=xs[0])
+        params = de.default_params
+        # set crossover_rate to opt_rate2
+        params = params.replace(crossover_rate=opt_rate2)
 
-    key, subkey = jax.random.split(key)
-    state = de.init(subkey, xs, likelihoods, params)
-
-    def de_step(carry, _):
-        key, state, params = carry
         key, subkey = jax.random.split(key)
-        key_dither, key_ask, key_tell = jax.random.split(subkey, 3)
-        differential_weight = jax.random.uniform(key_dither, minval=0.5, maxval=1.0)
-        params = params.replace(differential_weight=differential_weight)
-        population, state = de.ask(key_ask, state, params)
-        population = jnp.clip(population, bounds[:,0], bounds[:,1])
-        fitness = vmap_likelihood(population)
-        state, metrics = de.tell(key_tell, population, fitness, state, params)
-        return (key, state, params), metrics
-    
-    @jax.jit
-    def run_de_optimization(key, state, params):
-        initial_carry = (key, state, params)
-        (_, final_state, _), metrics_log = jax.lax.scan(de_step, initial_carry, jnp.arange(opt_rate1))
-        return final_state, metrics_log
+        state = de.init(subkey, xs, likelihoods, params)
 
-    print("Starting DE optimization...")
-    start_time = time.time()
-    state, metrics_log = run_de_optimization(key, state, params)
-    state.fitness.block_until_ready()
-    print(f"{opt_rate1} DE iterations completed in {time.time() - start_time:.2f} seconds.")
+        def de_step(carry, _):
+            key, state, params = carry
+            key, subkey = jax.random.split(key)
+            key_dither, key_ask, key_tell = jax.random.split(subkey, 3)
+            differential_weight = jax.random.uniform(key_dither, minval=0.5, maxval=1.0)
+            params = params.replace(differential_weight=differential_weight)
+            population, state = de.ask(key_ask, state, params)
+            population = jnp.clip(population, bounds[:,0], bounds[:,1])
+            fitness = vmap_likelihood(population)
+            state, metrics = de.tell(key_tell, population, fitness, state, params)
+            return (key, state, params), metrics
+        
+        @jax.jit
+        def run_de_optimization(key, state, params):
+            initial_carry = (key, state, params)
+            (_, final_state, _), metrics_log = jax.lax.scan(de_step, initial_carry, jnp.arange(opt_rate1))
+            return final_state, metrics_log
 
-    if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
-        os.makedirs("Data/Processed/results"+str(seed)[:6])
-    # save results to disk
-    results_file = "Data/Processed/results"+str(seed)[:6]+"/evosax_DE_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
-    with open(results_file, "wb") as f:
-        pickle.dump({"final_population": state.population, "final_fitness": state.fitness, "metrics_log": metrics_log}, f)
+        print("Starting DE optimization...")
+        start_time = time.time()
+        state, metrics_log = run_de_optimization(key, state, params)
+        state.fitness.block_until_ready()
+        print(f"{opt_rate1} DE iterations completed in {time.time() - start_time:.2f} seconds.")
 
+        if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
+            os.makedirs("Data/Processed/results"+str(seed)[:6])
+        # save results to disk
+        results_file = "Data/Processed/results"+str(seed)[:6]+"/evosax_DE_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+        with open(results_file, "wb") as f:
+            pickle.dump({"final_population": state.population, "final_fitness": state.fitness, "metrics_log": metrics_log}, f)
+    elif algorithm == "optax":
+        # ################## optax ##################
+        import optax
 
-    # ################## optax ##################
-    # import optax
+        # save initial points to disk
+        if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
+            os.makedirs("Data/Processed/results"+str(seed)[:6])
+        with open("Data/Processed/results"+str(seed)[:6]+"/optax_initial_points_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
+            pickle.dump(xs,f)
 
-    # # save initial points to disk
-    # if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
-    #     os.makedirs("Data/Processed/results"+str(seed)[:6])
-    # with open("Data/Processed/results"+str(seed)[:6]+"/optax_initial_points_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
-    #     pickle.dump(xs,f)
+        schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=1000, decay_rate=0.5, staircase=True)
+        solver = optax.apply_if_finite(
+            optax.chain(
+                optax.clip_by_global_norm(1.0),
+                optax.adabelief(learning_rate=schedule)
+            ),
+            max_consecutive_errors=5,
+        )
 
-    # schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=1000, decay_rate=0.5, staircase=True)
-    # solver = optax.apply_if_finite(
-    #     optax.chain(
-    #         optax.clip_by_global_norm(1.0),
-    #         optax.adabelief(learning_rate=schedule)
-    #     ),
-    #     max_consecutive_errors=5,
-    # )
+        def single_step(x, opt_state):
+            neglogL, grad = jax.value_and_grad(likelihood)(x)
+            update, opt_state = solver.update(grad, opt_state, x)
+            x = optax.apply_updates(x, update)
+            x = optax.projections.projection_box(x, bounds[:,0], bounds[:,1])
+            return x, opt_state, neglogL
+        vmapped_step = jax.jit(jax.vmap(single_step))
 
-    # def single_step(x, opt_state):
-    #     neglogL, grad = jax.value_and_grad(likelihood)(x)
-    #     update, opt_state = solver.update(grad, opt_state, x)
-    #     x = optax.apply_updates(x, update)
-    #     x = optax.projections.projection_box(x, bounds[:,0], bounds[:,1])
-    #     return x, opt_state, neglogL
-    # vmapped_step = jax.jit(jax.vmap(single_step))
+        def scan_body(carry, step_index):
+            x, opt_state = carry
+            x, opt_state, neglogL = vmapped_step(x, opt_state)
+            return (x, opt_state), neglogL
+        
+        @jax.jit
+        def run_optimization(xs):
+            vmapped_init = jax.jit(jax.vmap(solver.init))
+            opt_states = vmapped_init(xs)
 
-    # def scan_body(carry, step_index):
-    #     x, opt_state = carry
-    #     x, opt_state, neglogL = vmapped_step(x, opt_state)
-    #     return (x, opt_state), neglogL
-    
-    # @jax.jit
-    # def run_optimization(xs):
-    #     vmapped_init = jax.jit(jax.vmap(solver.init))
-    #     opt_states = vmapped_init(xs)
-
-    #     initial_carry = (xs, opt_states)
-    #     final_carry, neglogL_history = jax.lax.scan(scan_body, initial_carry, jnp.arange(opt_size))
-    #     final_xs, _ = final_carry
-    #     return final_xs, neglogL_history
-    
-    # print("Starting optax optimization...")
-    # start_time = time.time()
-    # final_xs, neglogL_history = run_optimization(xs)
-    # final_xs.block_until_ready()
-    # print(f"Optax optimization completed in {time.time() - start_time:.2f} seconds.")
-    # # save results to disk
-    # results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
-    # with open(results_file, "wb") as f:
-    #     pickle.dump({"final_xs": final_xs, "neglogL_history": neglogL_history}, f)
-    # # print best parameters and likelihood
-    # best_index = jnp.argmin(neglogL_history[-1])
-    # best_params = bounds[:,0] + final_xs[best_index] * (bounds[:,1] - bounds[:,0])
-    # best_likelihood = jnp.min(neglogL_history[-1])
-    # print(f"Best parameters: {best_params}")
-    # print(f"Best likelihood: {best_likelihood}")
+            initial_carry = (xs, opt_states)
+            final_carry, neglogL_history = jax.lax.scan(scan_body, initial_carry, jnp.arange(opt_size))
+            final_xs, _ = final_carry
+            return final_xs, neglogL_history
+        
+        print("Starting optax optimization...")
+        start_time = time.time()
+        final_xs, neglogL_history = run_optimization(xs)
+        final_xs.block_until_ready()
+        print(f"Optax optimization completed in {time.time() - start_time:.2f} seconds.")
+        # save results to disk
+        results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+        with open(results_file, "wb") as f:
+            pickle.dump({"final_xs": final_xs, "neglogL_history": neglogL_history}, f)
+        # print best parameters and likelihood
+        best_index = jnp.argmin(neglogL_history[-1])
+        best_params = bounds[:,0] + final_xs[best_index] * (bounds[:,1] - bounds[:,0])
+        best_likelihood = jnp.min(neglogL_history[-1])
+        print(f"Best parameters: {best_params}")
+        print(f"Best likelihood: {best_likelihood}")

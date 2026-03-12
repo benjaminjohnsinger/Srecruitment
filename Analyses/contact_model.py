@@ -50,6 +50,18 @@ def piecewise(t, ts, fs, steepness=0.2):
         result = result * (1 - transition) + fs[i] * transition
     return result
 
+def exponential_recovery(t, ts, fs, rs, steepness=0.2):
+    """Sudden tanh reduction at ts[i] with exponential recovery to fs[0]"""
+    result = fs[0]
+    for i in range(1, len(ts)):
+        # Sudden tanh reduction at ts[i]
+        reduction = 0.5 * (1 + jnp.tanh(steepness * (t - ts[i])))
+        # Exponential recovery back to fs[0]
+        recovery = jnp.exp(-rs[i-1] * jnp.maximum(0, t - ts[i]))
+        # Combine: reduce to fs[i], then recover toward fs[0]
+        transition = fs[i] + (fs[0] - fs[i]) * (1 - recovery)
+        result = result * (1 - reduction) + transition * reduction
+    return result
 
 MOBILITY2020 = pd.read_csv('Data/Raw/Google_mobility_reports/2020_US_Region_Mobility_Report.csv', delimiter=',')
 MOBILITY2021 = pd.read_csv('Data/Raw/Google_mobility_reports/2021_US_Region_Mobility_Report.csv', delimiter=',')
@@ -65,6 +77,21 @@ MOBILITY_END = MOBILITY_CHANGE_NONRESIDENTIAL.index[-1] + date_to_t('1970-01-01'
 MOBILITY_CHANGE_JAX = jnp.array(MOBILITY_CHANGE_NONRESIDENTIAL)
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    TT = [0, 18340]
+    FF = [1, 0.5]
+    RR = [0.007,]
+    EPOCH = pd.to_datetime('1970-01-01')
+    END = pd.to_datetime("2025-05-01")
+    FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
+    FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
+    ec = exponential_recovery(FULL_POINTS, TT, FF, RR)
+    SEASONALITY = 0.9
+    OFFSET = 0.3
+    rc = ec*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+    plt.plot(FULL_POINTS, rc)
+    plt.show()
+
     # print(date_to_t('2020-01-01'))
     # print(MOBILITY_START, MOBILITY_END)
     # import matplotlib.pyplot as plt
@@ -75,7 +102,7 @@ if __name__ == "__main__":
     # plt.plot(FULL_POINTS, MOBILITY_CONTACT)
     # plt.show()
 
-    SC_COUNTIES = ['Kern County', 'Ventura County', 'Los Angeles County', 'Orange County', 'Riverside County', 'San Bernardino County', 'San Diego County'] # https://southerncalifornia.permanente.org/
+    # SC_COUNTIES = ['Kern County', 'Ventura County', 'Los Angeles County', 'Orange County', 'Riverside County', 'San Bernardino County', 'San Diego County'] # https://southerncalifornia.permanente.org/
 
     # TAUBE_CONTACTS = pd.read_csv('Data/Raw/baseline_contact_by_county_week.csv', delimiter=',', encoding='latin1')
     # # TAUBE_CONTACTS = TAUBE_CONTACTS.loc[TAUBE_CONTACTS['name'].isin(SC_COUNTIES)]

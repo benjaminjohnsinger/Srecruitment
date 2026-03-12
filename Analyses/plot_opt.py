@@ -22,8 +22,7 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 2603033, "FlexStepwise", "smoothedincidence_data", "flexagep01", 1e-9
-# sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
+pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
 
 # set seed
 np.random.seed(seed)
@@ -63,7 +62,6 @@ if opt is None:
 
 # Detect file type and extract results accordingly
 if prefix == "evosax_DE_":
-    print(opt.keys())
     # evosax_DE format
     x = opt["final_population"][np.argmax(opt["final_fitness"])]
     log_likelihood = -1 * np.max(opt["final_fitness"])

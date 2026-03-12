@@ -4,6 +4,7 @@
 
 import jax.numpy as jnp
 import jax
+import jax.scipy as jsp
 import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
@@ -24,38 +25,212 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 
 from fit_MCMC import SIS_likelihood, run_simulation
 import time
+import pickle
 
 # plt.rcParams.update({'font.size':14})
 # # text type is palatino
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Palatino']
 
-# pickle load Data/Processed/results260217/DE_opt_RSVFlexStepwiseNAflexage260217.pickle
-with open("Data/Processed/results260303/evosax_DE_InfluenzaAFlexStepwiseNAflexagep01260303.pickle","rb") as f:
-    results = pickle.load(f)
-metrics_log = results["metrics_log"]
-generations = metrics_log["generation_counter"]
-best_fitness = metrics_log["best_fitness"]
-final_fitness = results["final_fitness"]
+x = [3.5079324e-01,9.2625266e-01,3.0883846e-01,3.4970476e-03,1.8479303e-01
+,7.3802614e-01,5.0886363e-01,6.9782953e-03,5.9318957e-03,6.8373731e-03
+,1.5135665e-03,5.8066510e-03,6.5340928e-04,7.9057124e-03,5.1796804e-03]
 
-daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
-N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
-best_fitness = jnp.asarray(best_fitness)*N
-final_fitness = jnp.asarray(final_fitness)*N
-
-print(final_fitness)
-print(np.std(final_fitness))
-print(np.abs(np.mean(final_fitness)))
-
-plt.figure(figsize=(10, 5))
-plt.plot(generations, best_fitness, label="Best Fitness", marker="o", markersize=3)
-plt.axhline(y=best_fitness[-1]+2, color='r')
-plt.title("Best fitness over generations")
-plt.xlabel("Generation")
-plt.ylabel("Fitness")
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
+params = x_to_params(x, option1="NA", option2="flexagep01", lockdown="Exponential", pathogen="RSV")
+plt.plot(params[9])
 plt.show()
+
+# ##### plotting likelihood functions
+
+# n_p = 10
+# n = 30
+# H = 70
+# N = 8e5
+
+# inc = 3e-5
+
+# print(np.round((n_p / n) * H))
+
+
+# def poisson_probability(n_p, n, H, inc):
+#     k = np.round((n_p / n) * H)
+#     l = inc * N
+#     return jsp.stats.poisson.pmf(k, l)
+
+# def binomial_probability(n_p, n, H, inc):
+#     p = inc * N / H
+#     return jsp.stats.binom.pmf(n_p, n, p)
+
+# # four-panel comparison: vary n_p, n, H, and l
+# fig, axes = plt.subplots(2, 2, figsize=(8, 7))
+# ax1, ax2, ax3, ax4 = axes.flatten()
+
+# # Panel 1: vary n_p
+# n_p_values = np.arange(0, 49)
+# poisson_probs = [poisson_probability(npi, n, H, inc) for npi in n_p_values]
+# binomial_probs = [binomial_probability(npi, n, H, inc) for npi in n_p_values]
+# poisson_probs = np.array(poisson_probs) / np.sum(poisson_probs)  # Normalize to sum to 1
+# binomial_probs = np.array(binomial_probs) / np.sum(binomial_probs)  # Normalize to sum to 1
+# ax1.plot(n_p_values, poisson_probs, label="Poisson", color="blue")
+# ax1.plot(n_p_values, binomial_probs, label="Binomial", color="orange")
+# ax1.axvline(n_p_values[np.argmax(poisson_probs)], color="blue", linestyle="--", alpha=0.7)
+# ax1.axvline(n_p_values[np.argmax(binomial_probs)], color="orange", linestyle="--", alpha=0.7)
+# ax1.set_title("Vary n_p")
+# ax1.set_xlabel("n_p")
+# ax1.set_ylabel("Probability")
+# ax1.legend(frameon=False)
+
+# # Panel 2: vary n (fix n_p)
+# n_fixed_values = np.arange(20, H, 5)
+# poisson_n = [poisson_probability(n_p, ni, H, inc) for ni in n_fixed_values]
+# binomial_n = [binomial_probability(n_p, ni, H, inc) for ni in n_fixed_values]
+# poisson_n = np.array(poisson_n) / np.sum(poisson_n)  # Normalize to sum to 1
+# binomial_n = np.array(binomial_n) / np.sum(binomial_n)  # Normalize to sum to 1
+# ax2.plot(n_fixed_values, poisson_n, color="blue")
+# ax2.plot(n_fixed_values, binomial_n, color="orange")
+# ax2.axvline(n_fixed_values[np.argmax(poisson_n)], color="blue", linestyle="--", alpha=0.7)
+# ax2.axvline(n_fixed_values[np.argmax(binomial_n)], color="orange", linestyle="--", alpha=0.7)
+# ax2.set_title(f"Vary n")
+# ax2.set_xlabel("n")
+# ax2.set_ylabel("Probability")
+
+# # Panel 3: vary H (fix n_p)
+# H_values = np.arange(50, 150, 10)
+# poisson_H = [poisson_probability(n_p, n, Hi, inc) for Hi in H_values]
+# binomial_H = [binomial_probability(n_p, n, Hi, inc) for Hi in H_values]
+# poisson_H = np.array(poisson_H) / np.sum(poisson_H)  # Normalize to sum to 1
+# binomial_H = np.array(binomial_H) / np.sum(binomial_H)  # Normalize to sum to 1
+# ax3.plot(H_values, poisson_H, color="blue")
+# ax3.plot(H_values, binomial_H, color="orange")
+# ax3.axvline(H_values[np.argmax(poisson_H)], color="blue", linestyle="--", alpha=0.7)
+# ax3.axvline(H_values[np.argmax(binomial_H)], color="orange", linestyle="--", alpha=0.7)
+# ax3.set_title(f"Vary H")
+# ax3.set_xlabel("H")
+# ax3.set_ylabel("Probability")
+
+# # Panel 4: vary l (fix n_p)
+# inc_values = np.logspace(-6.5, np.log10(H/N), 120)
+# poisson_l = [poisson_probability(n_p, n, H, inci) for inci in inc_values]
+# binomial_l = [binomial_probability(n_p, n, H, inci) for inci in inc_values]
+# poisson_l = np.array(poisson_l) / np.sum(poisson_l)  # Normalize to sum to 1
+# binomial_l = np.array(binomial_l) / np.sum(binomial_l)  # Normalize to sum to 1
+# ax4.plot(inc_values, poisson_l, color="blue")
+# ax4.plot(inc_values, binomial_l, color="orange")
+# ax4.axvline(inc_values[np.argmax(poisson_l)], color="blue", linestyle="--", alpha=0.7)
+# ax4.axvline(inc_values[np.argmax(binomial_l)], color="orange", linestyle="--", alpha=0.7)
+# ax4.set_xscale("log")
+# ax4.set_title(f"Vary inc")
+# ax4.set_xlabel("inc")
+# ax4.set_ylabel("Probability")
+
+# # give fixed values in overall title
+# fig.suptitle(f"Poisson vs Binomial Probability Comparison\n(n_p={n_p}, n={n}, H={H}, inc={inc})", fontsize=16)
+
+# plt.tight_layout()
+# plt.savefig("Figures/poisson_binomial_four_panel_comparison_high_incidence.png", dpi=300)
+
+# #### plotting contact funcitons
+# EPOCH = pd.to_datetime('1970-01-01')
+# END = pd.to_datetime("2025-05-01")
+# FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
+# FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
+# data_start = date_to_t('2015-10-01')
+
+# x=[0.8,0.6,0.5,0.02,0.02]
+# n=0
+# FF = [1, x[n],x[n+1]]
+# TT = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+x[n+2]*365]
+# RR = [x[n+3],x[n+4]]
+# def exponential_recovery(t, ts, fs, rs, steepness=0.2):
+#     """Sudden tanh reduction at ts[i] with exponential recovery to fs[0]"""
+#     result = fs[0]
+#     for i in range(1, len(ts)):
+#         # Sudden tanh reduction at ts[i]
+#         reduction = 0.5 * (1 + jnp.tanh(steepness * (t - ts[i])))
+#         # Exponential recovery back to fs[0]
+#         recovery = jnp.exp(-rs[i-1] * jnp.maximum(0, t - ts[i]))
+#         # Combine: reduce to fs[i], then recover toward fs[0]
+#         transition = fs[i] + (fs[0] - fs[i]) * (1 - recovery)
+#         result = result * (1 - reduction) + transition * reduction
+#     return result
+# MOBILITY_CONTACT = exponential_recovery(FULL_POINTS, TT, FF, RR)
+# plt.plot(FULL_PERIOD[data_start:], MOBILITY_CONTACT[data_start:], color='k')
+# plt.show()
+
+# ### plotting functions for optimization results
+# daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+# N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
+
+# plt.figure(figsize=(10, 5))
+
+# # Iterate over different seeds
+# seed_suffixes = ['03', '032', '033', '034', '035', '036', '037', '038', '039']
+# populations = ["20*20", "20*20", "20*20", "10*20", "10*20", "10*20", "20*20", "100*20", "100*20"]
+# population_colors = {
+#     "10*20": "#648FFF", 
+#     "20*20": "#DC267F",
+#     "100*20": "#FF832B", 
+#     "200*20": "#FFB000"
+# }
+
+# for i, seed_suffix in enumerate(seed_suffixes):
+#     filepath = f"Data/Processed/results260303/evosax_DE_InfluenzaAFlexStepwiseNAflexagep012603{seed_suffix}.pickle"
+#     try:
+#         with open(filepath, "rb") as f:
+#             results = pickle.load(f)
+#         metrics_log = results["metrics_log"]
+#         generations = metrics_log["generation_counter"]
+#         best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+#         color = population_colors[populations[i]]
+#         plt.plot(generations, best_fitness, label=f"Pop: {populations[i]}", marker="o", markersize=3, alpha=0.7, color=color)
+#     except FileNotFoundError:
+#         print(f"File not found for seed 2603{seed_suffix}")
+
+# for i, seed_suffix in enumerate(seed_suffixes):
+#     filepath = f"Data/Processed/results260303/evosax_DE_InfluenzaAFlexStepwiseincidence_dataflexagep012603{seed_suffix}.pickle"
+#     try:
+#         with open(filepath, "rb") as f:
+#             results = pickle.load(f)
+#         metrics_log = results["metrics_log"]
+#         generations = metrics_log["generation_counter"]
+#         best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+#         color = population_colors[populations[i]]
+#         plt.plot(generations, best_fitness, label=f"Pop: {populations[i]}, inc.", marker=".", markersize=3, alpha=0.7, color=color)
+#     except FileNotFoundError:
+#         print(f"File not found for seed 2603{seed_suffix}")
+
+# for i, seed_suffix in enumerate(seed_suffixes):
+#     filepath = f"Data/Processed/results260303/evosax_DE_InfluenzaAFlexStepwisesmoothedincidence_dataflexagep012603{seed_suffix}.pickle"
+#     try:
+#         with open(filepath, "rb") as f:
+#             results = pickle.load(f)
+#         metrics_log = results["metrics_log"]
+#         generations = metrics_log["generation_counter"]
+#         best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+#         color = population_colors[populations[i]]
+#         plt.plot(generations, best_fitness, label=f"Pop: {populations[i]}, sm. inc.", marker="+", markersize=3, alpha=0.7, color=color)
+#     except FileNotFoundError:
+#         print(f"File not found for seed 2603{seed_suffix}")
+
+# filepath = f"Data/Processed/results260302/evosax_DE_InfluenzaAFlexStepwiseNAflexagep01260302.pickle"
+# with open(filepath, "rb") as f:
+#     results = pickle.load(f)
+# metrics_log = results["metrics_log"]
+# generations = metrics_log["generation_counter"]
+# best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+# color = population_colors["200*20"]
+# plt.plot(generations, best_fitness, label=f"Pop: {"200*20"}", marker="o", markersize=3, alpha=0.7, color=color)
+
+
+# plt.title("Best Fitness over generations")
+# plt.xlabel("Generation")
+# plt.ylabel("Fitness")
+# plt.grid(True, alpha=0.3)
+# plt.yscale('log')
+# plt.xscale('log')
+# plt.legend()
+# plt.tight_layout()
+# plt.savefig("Figures/evosax_DE_InfluenzaAFlexStepwiseflexagep01_all_seeds_fitness_comparison.png", dpi=300)
 
 # # there are four evosax outputs in Data/Processed/results260303, load and plot a 2x2 grid of best fitness over genaration
 # fig, axes = plt.subplots(3, 2, figsize=(12.5/2,5.7), sharex=True)

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=evosax
+#SBATCH --job-name=optax
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -21,21 +21,10 @@
 #SBATCH --mail-user=bjsinger@berkeley.edu
 
 # Wall clock limit:
-#SBATCH --time=50:00:00
+#SBATCH --time=24:00:00
 
 module purge
 module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
-python -u Analyses/fit_opt.py RSV 260309 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Metapneumovirus 260309 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Adenovirus 260309 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Parainfluenza3 260309 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py InfluenzaA 260309 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py InfluenzaB 260309 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py RSV 2603092 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Metapneumovirus 2603092 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Adenovirus 2603092 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Parainfluenza3 2603092 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py InfluenzaA 2603092 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py InfluenzaB 2603092 FlexStepwise NA flexagep01 1e-9 200 1000 0.7
+python -u Analyses/fit_opt.py RSV 260312 FlexStepwise NA flexagep01 1e-9 100 2000 0.5 optax
