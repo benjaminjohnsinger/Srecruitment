@@ -241,7 +241,7 @@ lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-0
 lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
 ax[2].set_title("Effective susceptibles")
 
-plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_test.png",dpi=300)
+plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
 plt.close()
 
 fig, ax = plt.subplots(figsize=(4,4))
@@ -249,7 +249,7 @@ kpsc_proportion_positive_incidence_plot(ax, pathogen, None, AGE_GROUP_NAMES, agg
 mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=7*10000,p_time_to_obs=p_time_to_obs, color="silver", label="Simulation")
 lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
 plt.tight_layout()
-plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_weekly_noage_test.png",dpi=300)
+plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_weekly_noage.png",dpi=300)
 plt.close()
 
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
