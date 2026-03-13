@@ -44,7 +44,7 @@ def run_simulation(params, y0, t1, saveat_ts, hessian=False):
     return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
-def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, hessian=False):
+def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, hessian=False, return_sum=True):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
@@ -64,7 +64,7 @@ def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_
         masked_incidence = masked_incidence.at[:mask[0]].set(incidence[:mask[0]]).at[mask[0]:].set(incidence[mask[1]:])
         masked_expected_obs = masked_expected_obs.at[:mask[0]].set(expected_obs[:mask[0]]).at[mask[0]:].set(expected_obs[mask[1]:])
         # calculate Poisson likelihood of observed incidence given expected incidence
-        likelihood = jsp.stats.poisson.logpmf(masked_incidence, masked_expected_obs).sum()
+        likelihood = jsp.stats.poisson.logpmf(masked_incidence, masked_expected_obs)
     else:
         if obs_age is not None:
             # trajectory is total proportion infected over time
@@ -84,8 +84,11 @@ def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_
         masked_tests = masked_tests.at[:mask[0]].set(data[:mask[0]]).at[mask[0]:].set(data[mask[1]:])
         masked_expected_positivity = masked_expected_positivity.at[:mask[0]].set(expected_positivity[:mask[0]]).at[mask[0]:].set(expected_positivity[mask[1]:])
         # calculate binomial likelihood of observed positives given expected proportion positive and total tests
-        likelihood = jsp.stats.binom.logpmf(masked_tests[...,1], masked_tests[...,0], masked_expected_positivity).sum()
-    return likelihood
+        likelihood = jsp.stats.binom.logpmf(masked_tests[...,1], masked_tests[...,0], masked_expected_positivity)
+    if return_sum:
+        return jnp.sum(likelihood)
+    else:
+        return likelihood
 
 def calculate_expected_obs(values, p_time_to_obs, length):
     trajectory = jnp.diff(values[-NAG:,:],axis=1).T

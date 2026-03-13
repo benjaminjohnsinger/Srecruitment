@@ -177,21 +177,22 @@ if __name__ == '__main__':
     vmap_likelihood = jax.vmap(likelihood)
     likelihoods = jax.jit(vmap_likelihood)(xs)
 
-    key, subkey = jax.random.split(key)
-    print(f"Starting resampling of {jnp.sum((likelihoods > likelihood_threshold) | jnp.isnan(likelihoods))} bad initial points...")
-    start_time = time.time()
-    xs, likelihoods, iterations = run_resampling(xs, likelihoods, subkey)
-    likelihoods.block_until_ready()
-    print(f"Resampling completed in {time.time() - start_time:.2f} seconds after {iterations} iterations.")
+    if not ("skip_resampling" in algorithm):
+        key, subkey = jax.random.split(key)
+        print(f"Starting resampling of {jnp.sum((likelihoods > likelihood_threshold) | jnp.isnan(likelihoods))} bad initial points...")
+        start_time = time.time()
+        xs, likelihoods, iterations = run_resampling(xs, likelihoods, subkey)
+        likelihoods.block_until_ready()
+        print(f"Resampling completed in {time.time() - start_time:.2f} seconds after {iterations} iterations.")
 
-    if algorithm == "evosax":
+    if "evosax" in algorithm:
         ################ evosax ##################
         from evosax.algorithms import DifferentialEvolution
 
         de = DifferentialEvolution(population_size=hypercube_size, solution=xs[0])
         params = de.default_params
         # set crossover_rate to opt_rate2
-        params = params.replace(crossover_rate=opt_rate2)
+        params = params.replace(elitism=False,crossover_rate=opt_rate2)
 
         key, subkey = jax.random.split(key)
         state = de.init(subkey, xs, likelihoods, params)
@@ -226,7 +227,7 @@ if __name__ == '__main__':
         results_file = "Data/Processed/results"+str(seed)[:6]+"/evosax_DE_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
         with open(results_file, "wb") as f:
             pickle.dump({"final_population": state.population, "final_fitness": state.fitness, "metrics_log": metrics_log}, f)
-    elif algorithm == "optax":
+    elif "optax" in algorithm:
         # ################## optax ##################
         import optax
 

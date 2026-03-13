@@ -32,14 +32,6 @@ import pickle
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Palatino']
 
-x = [3.5079324e-01,9.2625266e-01,3.0883846e-01,3.4970476e-03,1.8479303e-01
-,7.3802614e-01,5.0886363e-01,6.9782953e-03,5.9318957e-03,6.8373731e-03
-,1.5135665e-03,5.8066510e-03,6.5340928e-04,7.9057124e-03,5.1796804e-03]
-
-params = x_to_params(x, option1="NA", option2="flexagep01", lockdown="Exponential", pathogen="RSV")
-plt.plot(params[9])
-plt.show()
-
 # ##### plotting likelihood functions
 
 # n_p = 10
@@ -158,36 +150,36 @@ plt.show()
 # plt.show()
 
 # ### plotting functions for optimization results
-# daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
-# N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
+daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
 
-# plt.figure(figsize=(10, 5))
+plt.figure(figsize=(10, 5))
 
-# # Iterate over different seeds
-# seed_suffixes = ['03', '032', '033', '034', '035', '036', '037', '038', '039']
-# populations = ["20*20", "20*20", "20*20", "10*20", "10*20", "10*20", "20*20", "100*20", "100*20"]
-# population_colors = {
-#     "10*20": "#648FFF", 
-#     "20*20": "#DC267F",
-#     "100*20": "#FF832B", 
-#     "200*20": "#FFB000"
-# }
+# Iterate over different seeds
+seed_suffixes = ['03', '032', '033', '034', '035', '036', '037', '038', '039']
+populations = ["20*20", "20*20", "20*20", "10*20", "10*20", "10*20", "20*20", "100*20", "100*20"]
+population_colors = {
+    "10*20": "#648FFF", 
+    "20*20": "#DC267F",
+    "100*20": "#FF832B", 
+    "200*20": "#FFB000"
+}
+
+for i, seed_suffix in enumerate(seed_suffixes):
+    filepath = f"Data/Processed/results260303/evosax_DE_Parainfluenzavirus3FlexStepwiseNAflexagep012603{seed_suffix}.pickle"
+    try:
+        with open(filepath, "rb") as f:
+            results = pickle.load(f)
+        metrics_log = results["metrics_log"]
+        generations = metrics_log["generation_counter"]
+        best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+        color = population_colors[populations[i]]
+        plt.plot(generations, best_fitness, label=f"Pop: {populations[i]}", marker="o", markersize=3, alpha=0.7, color=color)
+    except FileNotFoundError:
+        print(f"File not found for seed 2603{seed_suffix}")
 
 # for i, seed_suffix in enumerate(seed_suffixes):
-#     filepath = f"Data/Processed/results260303/evosax_DE_InfluenzaAFlexStepwiseNAflexagep012603{seed_suffix}.pickle"
-#     try:
-#         with open(filepath, "rb") as f:
-#             results = pickle.load(f)
-#         metrics_log = results["metrics_log"]
-#         generations = metrics_log["generation_counter"]
-#         best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
-#         color = population_colors[populations[i]]
-#         plt.plot(generations, best_fitness, label=f"Pop: {populations[i]}", marker="o", markersize=3, alpha=0.7, color=color)
-#     except FileNotFoundError:
-#         print(f"File not found for seed 2603{seed_suffix}")
-
-# for i, seed_suffix in enumerate(seed_suffixes):
-#     filepath = f"Data/Processed/results260303/evosax_DE_InfluenzaAFlexStepwiseincidence_dataflexagep012603{seed_suffix}.pickle"
+#     filepath = f"Data/Processed/results260303/evosax_DE_Parainfluenzavirus3FlexStepwiseincidence_dataflexagep012603{seed_suffix}.pickle"
 #     try:
 #         with open(filepath, "rb") as f:
 #             results = pickle.load(f)
@@ -200,7 +192,7 @@ plt.show()
 #         print(f"File not found for seed 2603{seed_suffix}")
 
 # for i, seed_suffix in enumerate(seed_suffixes):
-#     filepath = f"Data/Processed/results260303/evosax_DE_InfluenzaAFlexStepwisesmoothedincidence_dataflexagep012603{seed_suffix}.pickle"
+#     filepath = f"Data/Processed/results260303/evosax_DE_Parainfluenzavirus3FlexStepwisesmoothedincidence_dataflexagep012603{seed_suffix}.pickle"
 #     try:
 #         with open(filepath, "rb") as f:
 #             results = pickle.load(f)
@@ -212,7 +204,16 @@ plt.show()
 #     except FileNotFoundError:
 #         print(f"File not found for seed 2603{seed_suffix}")
 
-# filepath = f"Data/Processed/results260302/evosax_DE_InfluenzaAFlexStepwiseNAflexagep01260302.pickle"
+filepath = f"Data/Processed/results260309/evosax_DE_Parainfluenzavirus3FlexStepwiseNAflexagep01260309.pickle"
+with open(filepath, "rb") as f:
+    results = pickle.load(f)
+metrics_log = results["metrics_log"]
+generations = metrics_log["generation_counter"]
+best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+color = population_colors["200*20"]
+plt.plot(generations, best_fitness, label=f"Pop: {"200*20"}", marker="o", markersize=3, alpha=0.7, color=color)
+
+# filepath = f"Data/Processed/results260309/evosax_DE_Parainfluenzavirus3FlexStepwiseNAflexagep012603092.pickle"
 # with open(filepath, "rb") as f:
 #     results = pickle.load(f)
 # metrics_log = results["metrics_log"]
@@ -222,36 +223,15 @@ plt.show()
 # plt.plot(generations, best_fitness, label=f"Pop: {"200*20"}", marker="o", markersize=3, alpha=0.7, color=color)
 
 
-# plt.title("Best Fitness over generations")
-# plt.xlabel("Generation")
-# plt.ylabel("Fitness")
-# plt.grid(True, alpha=0.3)
-# plt.yscale('log')
-# plt.xscale('log')
-# plt.legend()
-# plt.tight_layout()
-# plt.savefig("Figures/evosax_DE_InfluenzaAFlexStepwiseflexagep01_all_seeds_fitness_comparison.png", dpi=300)
-
-# # there are four evosax outputs in Data/Processed/results260303, load and plot a 2x2 grid of best fitness over genaration
-# fig, axes = plt.subplots(3, 2, figsize=(12.5/2,5.7), sharex=True)
-# for i, seed in enumerate(["260303", "2603032", "2603033"]):
-#     for j, option1 in enumerate(["incidence_data", "smoothedincidence_data"]):
-#         with open(f"Data/Processed/results260303/evosax_DE_RSVFlexStepwise{option1}flexagep01{seed}.pickle","rb") as f:
-#             results = pickle.load(f)
-#         # print(results["final_population"])
-#         # print(results["final_fitness"])
-#         # print(results["final_population"][np.argmin(results["final_fitness"])])
-#         print(np.min(results["final_fitness"]))
-#         metrics_log = results["metrics_log"]
-#         generations = metrics_log["generation_counter"]
-#         best_fitness = metrics_log["best_fitness"]
-#         axes[i,j].plot(generations, best_fitness, label="Best Fitness", marker="o", markersize=3)
-#         axes[i,j].set_title(f"{option1} (Seed: {seed})")
-#         axes[i,j].set_xlabel("Generation")
-#         axes[i,j].set_ylabel("Fitness")
-#         axes[i,j].grid(True, alpha=0.3)
-# plt.tight_layout()
-# plt.show()
+plt.title("Best Fitness over generations")
+plt.xlabel("Generation")
+plt.ylabel("Fitness")
+plt.grid(True, alpha=0.3)
+plt.yscale('log')
+plt.xscale('log')
+plt.legend()
+plt.tight_layout()
+plt.savefig("Figures/evosax_DE_Parainfluenzavirus3FlexStepwiseflexagep01_all_seeds_fitness_comparison.png", dpi=300)
 
 # # # ##### Testing optax ######
 # pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 260224, "FlexStepwise", "NA", "flexagep01", 1e-9
