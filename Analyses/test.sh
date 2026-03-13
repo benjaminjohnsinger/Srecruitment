@@ -1,17 +1,27 @@
 combinations=(
-# "RSV 2603124 Exponential NA flexagep01 1e-9 20 400 0.7 evosax_skip_resampling"
-# "Metapneumovirus 2603124 Exponential NA flexagep01 1e-9 20 400 0.1"
-"Metapneumovirus 2603125 Exponential NA flexagep01 1e-9 20 400 0.9"
-"Metapneumovirus 2603124 Exponential NA flexagep01 1e-9 20 400 0.1 evosax_skip_resampling"
-"Metapneumovirus 2603125 Exponential NA flexagep01 1e-9 20 400 0.9 evosax_skip_resampling"
-"RSV 2603126 Exponential NA flexagep01 1e-9 20 1000 0.7 evosax_skip_resampling"
-"RSV 2603127 Exponential NA flexagep01 1e-9 100 1000 0.7 evosax_skip_resampling"
-"RSV 2603128 Exponential NA flexagep01 1e-9 20 1000 0.9 evosax_skip_resampling"
-"RSV 2603129 Exponential NA flexagep01 1e-9 100 1000 0.9 evosax_skip_resampling"
-"RSV 26031210 Exponential NA flexagep01 1e-9 20 1000 0.5 evosax_skip_resampling"
-"RSV 26031211 Exponential NA flexagep01 1e-9 100 1000 0.5 evosax_skip_resampling"
+"RSV 260313 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"RSV 2603132 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"RSV 260313 FlexStepwise maternal flexagep01 1e-9 20 1000 0.7"
+"RSV 2603132 FlexStepwise maternal flexagep01 1e-9 20 1000 0.7"
+"InfluenzaA 260313 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"InfluenzaA 2603132 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"Metapneumovirus 260313 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"Metapneumovirus 2603132 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"Parainfluenza3 260313 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"Parainfluenza3 2603132 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"Adenovirus 260313 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"Adenovirus 2603132 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"InfluenzaB 260313 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"InfluenzaB 2603132 Exponential maternal flexagep01 1e-9 20 1000 0.7"
+"Metapneumovirus 2603134 Exponential NA flexagep01 1e-9 20 1000 0.1"
+"Metapneumovirus 2603135 Exponential NA flexagep01 1e-9 20 1000 0.1"
+"Metapneumovirus 2603136 Exponential NA flexagep01 1e-9 20 1000 0.9"
+"Metapneumovirus 2603137 Exponential NA flexagep01 1e-9 20 1000 0.9"
 )
 
 for combination in "${combinations[@]}"; do
     /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
+done
+for combination in "${combinations[@]}"; do
+    /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_opt.py $combination
 done
