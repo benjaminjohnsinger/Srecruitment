@@ -234,7 +234,7 @@ ax[0].legend(frameon=False)
 # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
 mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
 lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
-# ax[1].plot(POINTS, cntct[-len(POINTS):]*mx, label="Relative contact rate", color="black", linestyle="dashed") 
+ax[1].plot(POINTS, cntct[-len(POINTS):]*mx, label="Relative contact rate", color="black", linestyle="dashed") 
 # ax[1].plot(POINTS, mx*full_likelihood, label="Normalized likelihood", color="black", alpha=0.5)
 
 lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)

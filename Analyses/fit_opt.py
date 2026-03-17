@@ -83,8 +83,6 @@ STATE0 = STATE0.at[1,:].set(1)
 STATE0 = STATE0.flatten()
 STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
-
 #### Define likelihood function for optimization
 if "incidence_data" in option1:
     N = jnp.prod(jnp.asarray(data.shape))
@@ -162,19 +160,27 @@ if __name__ == '__main__':
     # with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
     #     pickle.dump(opt,f)
 
+
+    _, unlogged_bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
+    bounds = jnp.zeros(unlogged_bounds.shape)
+    bounds = bounds.at[:, 1].set(jnp.log(unlogged_bounds[:, 1] - unlogged_bounds[:, 0]))
+    bounds = bounds.at[:, 0].set(-10)
+    def new_likelihood(x):
+        return likelihood(unlogged_bounds[:, 0] + jnp.exp(x))
+    vmap_likelihood = jax.vmap(new_likelihood)
+
     ## starting population for optax or DE
     key = jax.random.PRNGKey(seed)
 
-    hypercube_size = int(opt_size) * len(bounds)
+    hypercube_size = int(opt_size) * len(unlogged_bounds)
 
     key, subkey = jax.random.split(key)
     sampling_start_time = time.time()
-    lhs_samples = latin_hypercube_sample(subkey, hypercube_size, len(bounds))
+    lhs_samples = latin_hypercube_sample(subkey, hypercube_size, len(unlogged_bounds))
     xs = jnp.array(bounds[:, 0] + lhs_samples * (bounds[:, 1] - bounds[:, 0]))
     print(f"Generated {hypercube_size} Latin hypercube samples with JAX in {time.time() - sampling_start_time:.2f} seconds.")
 
     # if there are opt_states with likelihood over 100, resample those points
-    vmap_likelihood = jax.vmap(likelihood)
     likelihoods = jax.jit(vmap_likelihood)(xs)
 
     if not ("skip_resampling" in algorithm):
@@ -204,8 +210,8 @@ if __name__ == '__main__':
             differential_weight = jax.random.uniform(key_dither, minval=0.5, maxval=1.0)
             params = params.replace(differential_weight=differential_weight)
             population, state = de.ask(key_ask, state, params)
-            population = jnp.clip(population, bounds[:,0], bounds[:,1])
             fitness = vmap_likelihood(population)
+            fitness = jnp.where(jnp.isnan(fitness), likelihood_threshold*10, fitness) # nan fitnesses ruin best solution tracking
             state, metrics = de.tell(key_tell, population, fitness, state, params)
             return (key, state, params), metrics
         
@@ -221,12 +227,17 @@ if __name__ == '__main__':
         state.fitness.block_until_ready()
         print(f"{opt_rate1} DE iterations completed in {time.time() - start_time:.2f} seconds.")
 
+        # scale final_population, metrics_log["best_solution"], and metrics_log["best_solution_in_generation"] by bounds[:, 0] + exp(x) transformation
+        final_population = unlogged_bounds[:, 0] + jnp.exp(state.population)
+        metrics_log["best_solution"] = unlogged_bounds[:, 0] + jnp.exp(metrics_log["best_solution"])
+        metrics_log["best_solution_in_generation"] = unlogged_bounds[:, 0] + jnp.exp(metrics_log["best_solution_in_generation"])
+
         if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
             os.makedirs("Data/Processed/results"+str(seed)[:6])
         # save results to disk
         results_file = "Data/Processed/results"+str(seed)[:6]+"/evosax_DE_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
         with open(results_file, "wb") as f:
-            pickle.dump({"final_population": state.population, "final_fitness": state.fitness, "metrics_log": metrics_log}, f)
+            pickle.dump({"final_population": final_population, "final_fitness": state.fitness, "metrics_log": metrics_log}, f)
     elif "optax" in algorithm:
         # ################## optax ##################
         import optax
@@ -247,10 +258,9 @@ if __name__ == '__main__':
         )
 
         def single_step(x, opt_state):
-            neglogL, grad = jax.value_and_grad(likelihood)(x)
+            neglogL, grad = jax.value_and_grad(new_likelihood)(x)
             update, opt_state = solver.update(grad, opt_state, x)
             x = optax.apply_updates(x, update)
-            x = optax.projections.projection_box(x, bounds[:,0], bounds[:,1])
             return x, opt_state, neglogL
         vmapped_step = jax.jit(jax.vmap(single_step))
 
@@ -274,13 +284,14 @@ if __name__ == '__main__':
         final_xs, neglogL_history = run_optimization(xs)
         final_xs.block_until_ready()
         print(f"Optax optimization completed in {time.time() - start_time:.2f} seconds.")
-        # save results to disk
-        results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
-        with open(results_file, "wb") as f:
-            pickle.dump({"final_xs": final_xs, "neglogL_history": neglogL_history}, f)
         # print best parameters and likelihood
         best_index = jnp.argmin(neglogL_history[-1])
-        best_params = bounds[:,0] + final_xs[best_index] * (bounds[:,1] - bounds[:,0])
+        best_params = unlogged_bounds[:,0] + jnp.exp(final_xs[best_index])
         best_likelihood = jnp.min(neglogL_history[-1])
         print(f"Best parameters: {best_params}")
         print(f"Best likelihood: {best_likelihood}")
+        final_params = unlogged_bounds[:,0] + jnp.exp(final_xs)
+        # save results to disk
+        results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+        with open(results_file, "wb") as f:
+            pickle.dump({"best_params": best_params, "final_params": final_params, "neglogL_history": neglogL_history}, f)
