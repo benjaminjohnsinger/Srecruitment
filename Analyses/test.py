@@ -32,6 +32,37 @@ import pickle
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Palatino']
 
+# spectrum analysis
+N = date_to_t("2020-03-19")-date_to_t('2015-10-01')
+# N = date_to_t("2025-05-01")-date_to_t('2015-10-01')
+
+fig, axes = plt.subplots(3, 2, figsize=(13.3, 7.5), sharex=True)
+pathogens = ["InfluenzaA", "InfluenzaB", "RSV", "Metapneumovirus",  "Parainfluenza3", "Adenovirus"]
+
+for ax, pathogen in zip(axes.flatten(), pathogens):
+    data = pd.read_csv(f"Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_{pathogen}_incidence_age_daily.csv", index_col=0, parse_dates=True)
+    for i, age_group in enumerate(AGE_GROUP_NAMES):
+        age_data = data[age_group].values
+        ft = sp.fft.fft(age_data[:N])
+        ft = ft / np.mean(np.abs(ft))  # Normalize the FFT
+        xf = sp.fft.fftfreq(N, d=1/365)[:N//2]
+        # plot the power spectrum
+        ax.plot(xf,2.0/N * np.abs(ft[:N//2])**2, color=hsv_colors[i], label=age_group)
+    age_summed_data = data[AGE_GROUP_NAMES].sum(axis=1)
+    ft = sp.fft.fft(age_summed_data[:N])
+    ft = ft / np.mean(np.abs(ft))  # Normalize the FFT
+    xf = sp.fft.fftfreq(N, d=1/365)[:N//2]
+    ax.plot(xf,2.0/N * np.abs(ft[:N//2])**2, color='k', label='All ages')
+    ax.set_title(pathogen)
+    ax.set_xlabel("Frequency")
+    ax.set_ylabel("Power")
+    ax.set_xlim(0,5)
+axes[0,0].legend(frameon=False)
+fig.suptitle("Power spectrum of observed incidence by age group", fontsize=16)
+plt.tight_layout()
+plt.savefig("Figures/power_spectrum_of_observed_incidence_age_normalized_pre2020.png", dpi=300)
+
+
 # ##### plotting likelihood functions
 
 # n_p = 10
@@ -150,20 +181,20 @@ import pickle
 # plt.show()
 
 # ### plotting functions for optimization results
-daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
-N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
+# daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+# N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
 
-# plot for just one result
-filepath = f"Data/Processed/results260316/evosax_DE_RSVExponentialNAflexagep01260316.pickle"
-with open(filepath, "rb") as f:
-    results = pickle.load(f)
-print(results)
-metrics_log = results["metrics_log"]
-generations = metrics_log["generation_counter"]
-best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
-color = "k"
-plt.plot(generations, best_fitness, marker="o", markersize=3, alpha=0.7, color=color)
-plt.show()
+# # plot for just one result
+# filepath = f"Data/Processed/results260316/evosax_DE_RSVExponentialNAflexagep01260316.pickle"
+# with open(filepath, "rb") as f:
+#     results = pickle.load(f)
+# print(results)
+# metrics_log = results["metrics_log"]
+# generations = metrics_log["generation_counter"]
+# best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+# color = "k"
+# plt.plot(generations, best_fitness, marker="o", markersize=3, alpha=0.7, color=color)
+# plt.show()
 
 # # plot for a bunch of results
 # plt.figure(figsize=(10, 5))

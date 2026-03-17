@@ -163,10 +163,15 @@ if __name__ == '__main__':
 
     _, unlogged_bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
     bounds = jnp.zeros(unlogged_bounds.shape)
-    bounds = bounds.at[:, 1].set(jnp.log(unlogged_bounds[:, 1] - unlogged_bounds[:, 0]))
+    bounds = bounds.at[:, 1].set(10)
     bounds = bounds.at[:, 0].set(-10)
+    def logistic_transform(x):
+        return unlogged_bounds[:, 0] + 1 / (1 + jnp.exp(-x)) * (unlogged_bounds[:, 1] - unlogged_bounds[:, 0])
     def new_likelihood(x):
-        return likelihood(unlogged_bounds[:, 0] + jnp.exp(x))
+        lik =  likelihood(logistic_transform(x))
+        # remove nas
+        lik = jnp.where(jnp.isnan(lik), likelihood_threshold*10, lik)
+        return lik
     vmap_likelihood = jax.vmap(new_likelihood)
 
     ## starting population for optax or DE
@@ -211,7 +216,6 @@ if __name__ == '__main__':
             params = params.replace(differential_weight=differential_weight)
             population, state = de.ask(key_ask, state, params)
             fitness = vmap_likelihood(population)
-            fitness = jnp.where(jnp.isnan(fitness), likelihood_threshold*10, fitness) # nan fitnesses ruin best solution tracking
             state, metrics = de.tell(key_tell, population, fitness, state, params)
             return (key, state, params), metrics
         
@@ -227,10 +231,10 @@ if __name__ == '__main__':
         state.fitness.block_until_ready()
         print(f"{opt_rate1} DE iterations completed in {time.time() - start_time:.2f} seconds.")
 
-        # scale final_population, metrics_log["best_solution"], and metrics_log["best_solution_in_generation"] by bounds[:, 0] + exp(x) transformation
-        final_population = unlogged_bounds[:, 0] + jnp.exp(state.population)
-        metrics_log["best_solution"] = unlogged_bounds[:, 0] + jnp.exp(metrics_log["best_solution"])
-        metrics_log["best_solution_in_generation"] = unlogged_bounds[:, 0] + jnp.exp(metrics_log["best_solution_in_generation"])
+        # scale final_population, metrics_log["best_solution"], and metrics_log["best_solution_in_generation"] by bounds[:, 0] + 1 / (1 + exp(-x)) * (bounds[:, 1] - bounds[:, 0]) transformation
+        final_population = logistic_transform(state.population)
+        metrics_log["best_solution"] = logistic_transform(metrics_log["best_solution"])
+        metrics_log["best_solution_in_generation"] = logistic_transform(metrics_log["best_solution_in_generation"])
 
         if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
             os.makedirs("Data/Processed/results"+str(seed)[:6])
@@ -248,7 +252,7 @@ if __name__ == '__main__':
         with open("Data/Processed/results"+str(seed)[:6]+"/optax_initial_points_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
             pickle.dump(xs,f)
 
-        schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=1000, decay_rate=0.5, staircase=True)
+        schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=1000, decay_rate=opt_rate2, staircase=True)
         solver = optax.apply_if_finite(
             optax.chain(
                 optax.clip_by_global_norm(1.0),
@@ -286,11 +290,11 @@ if __name__ == '__main__':
         print(f"Optax optimization completed in {time.time() - start_time:.2f} seconds.")
         # print best parameters and likelihood
         best_index = jnp.argmin(neglogL_history[-1])
-        best_params = unlogged_bounds[:,0] + jnp.exp(final_xs[best_index])
+        best_params = logistic_transform(final_xs[best_index])
         best_likelihood = jnp.min(neglogL_history[-1])
         print(f"Best parameters: {best_params}")
         print(f"Best likelihood: {best_likelihood}")
-        final_params = unlogged_bounds[:,0] + jnp.exp(final_xs)
+        final_params = logistic_transform(final_xs)
         # save results to disk
         results_file = "Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
         with open(results_file, "wb") as f:
