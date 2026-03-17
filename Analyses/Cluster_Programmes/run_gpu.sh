@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=evosax
+#SBATCH --job-name=bbounds
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -28,9 +28,9 @@ module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
 
-python -u Analyses/fit_opt.py RSV 260317 Exponential NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Metapneumovirus 260317 Exponential NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Adenovirus 260317 Exponential NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Parainfluenza3 260317 Exponential NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py InfluenzaA 260317 Exponential NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py InfluenzaB 260317 Exponential NA flexagep01 1e-9 200 1000 0.7
+python -u Analyses/fit_opt.py RSV 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
+python -u Analyses/fit_opt.py Metapneumovirus 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
+python -u Analyses/fit_opt.py Adenovirus 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
+python -u Analyses/fit_opt.py Parainfluenza3 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
+python -u Analyses/fit_opt.py InfluenzaA 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
+python -u Analyses/fit_opt.py InfluenzaB 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
