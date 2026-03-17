@@ -71,13 +71,14 @@ def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_
             infectious = jnp.sum(values[1:].reshape((2*N_S+1, NAG, -1))[1:2*N_S:2], axis=0).T
             expected_infectious = jax.nn.softplus(infectious[-len(data):]*100)/100
             expected_ratio = jnp.divide(expected_infectious, population_size[-len(data):] * obs_age)
-            expected_positivity = jnp.minimum(0.99, expected_ratio)
+            expected_positivity = jnp.clip(expected_ratio, 1e-10, 0.99)
         else:
             expected_obs = calculate_expected_obs(values, p_time_to_obs, len(data))
             # probability of getting a positive test in hospital is expected_obs / population size over time
             expected_ratio = jnp.divide(expected_obs, population_size[-len(data):])
             # then condition by baseline probabilty of hospitalization
-            expected_positivity = jnp.minimum(0.99, jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-len(data):], 1e-10)))
+            expected_positivity = jnp.clip(jnp.divide(expected_ratio, jnp.maximum(daily_hospitalization_rates[-len(data):], 1e-10)),
+                                           1e-10,0.99)
         # exclude date range from likelihood calculation
         masked_tests = jnp.ones((len(data)- (mask[1] - mask[0]),NAG,2))
         masked_expected_positivity = jnp.ones((len(data)- (mask[1] - mask[0]),NAG))

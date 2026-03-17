@@ -161,14 +161,12 @@ if __name__ == '__main__':
     #     pickle.dump(opt,f)
 
 
-    _, unlogged_bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
-    bounds = jnp.zeros(unlogged_bounds.shape)
-    bounds = bounds.at[:, 1].set(10)
-    bounds = bounds.at[:, 0].set(-10)
-    def logistic_transform(x):
-        return unlogged_bounds[:, 0] + 1 / (1 + jnp.exp(-x)) * (unlogged_bounds[:, 1] - unlogged_bounds[:, 0])
+    _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
+    # bounds = jnp.zeros(unlogged_bounds.shape)
+    # bounds = bounds.at[:, 1].set(10)
+    # bounds = bounds.at[:, 0].set(-10)
     def new_likelihood(x):
-        lik =  likelihood(logistic_transform(x))
+        lik =  likelihood(x)
         # remove nas
         lik = jnp.where(jnp.isnan(lik), likelihood_threshold*10, lik)
         return lik
@@ -177,11 +175,11 @@ if __name__ == '__main__':
     ## starting population for optax or DE
     key = jax.random.PRNGKey(seed)
 
-    hypercube_size = int(opt_size) * len(unlogged_bounds)
+    hypercube_size = int(opt_size) * len(bounds)
 
     key, subkey = jax.random.split(key)
     sampling_start_time = time.time()
-    lhs_samples = latin_hypercube_sample(subkey, hypercube_size, len(unlogged_bounds))
+    lhs_samples = latin_hypercube_sample(subkey, hypercube_size, len(bounds))
     xs = jnp.array(bounds[:, 0] + lhs_samples * (bounds[:, 1] - bounds[:, 0]))
     print(f"Generated {hypercube_size} Latin hypercube samples with JAX in {time.time() - sampling_start_time:.2f} seconds.")
 
@@ -210,11 +208,28 @@ if __name__ == '__main__':
 
         def de_step(carry, _):
             key, state, params = carry
+            # split keys for dithering, ask, tell, and boundary corrections
             key, subkey = jax.random.split(key)
-            key_dither, key_ask, key_tell = jax.random.split(subkey, 3)
+            key_dither, key_ask, key_tell, key_b_low, key_b_up = jax.random.split(subkey, 5)
+            # dither the mutation rate
             differential_weight = jax.random.uniform(key_dither, minval=0.5, maxval=1.0)
             params = params.replace(differential_weight=differential_weight)
+            # generate a population
             population, state = de.ask(key_ask, state, params)
+            # scipy-style boundary correction: - if any parameter is out of bounds, resample it uniformly between current value and bound in the direction of the bound
+            mask_lower = population < bounds[:, 0]
+            mask_upper = population > bounds[:, 1]
+            bounce_lower = jax.random.uniform(
+                key_b_low, population.shape,
+                minval=bounds[:, 0], maxval=state.population
+            )
+            bounce_upper = jax.random.uniform(
+                key_b_up, population.shape,
+                minval=state.population, maxval=bounds[:, 1]
+            )
+            population = jnp.where(mask_lower, bounce_lower, population)
+            population = jnp.where(mask_upper, bounce_upper, population)
+            # calculate fitness and update the population
             fitness = vmap_likelihood(population)
             state, metrics = de.tell(key_tell, population, fitness, state, params)
             return (key, state, params), metrics
@@ -231,17 +246,17 @@ if __name__ == '__main__':
         state.fitness.block_until_ready()
         print(f"{opt_rate1} DE iterations completed in {time.time() - start_time:.2f} seconds.")
 
-        # scale final_population, metrics_log["best_solution"], and metrics_log["best_solution_in_generation"] by bounds[:, 0] + 1 / (1 + exp(-x)) * (bounds[:, 1] - bounds[:, 0]) transformation
-        final_population = logistic_transform(state.population)
-        metrics_log["best_solution"] = logistic_transform(metrics_log["best_solution"])
-        metrics_log["best_solution_in_generation"] = logistic_transform(metrics_log["best_solution_in_generation"])
+        # # scale final_population, metrics_log["best_solution"], and metrics_log["best_solution_in_generation"] by bounds[:, 0] + 1 / (1 + exp(-x)) * (bounds[:, 1] - bounds[:, 0]) transformation
+        # final_population = logistic_transform(state.population)
+        # metrics_log["best_solution"] = logistic_transform(metrics_log["best_solution"])
+        # metrics_log["best_solution_in_generation"] = logistic_transform(metrics_log["best_solution_in_generation"])
 
         if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
             os.makedirs("Data/Processed/results"+str(seed)[:6])
         # save results to disk
         results_file = "Data/Processed/results"+str(seed)[:6]+"/evosax_DE_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
         with open(results_file, "wb") as f:
-            pickle.dump({"final_population": final_population, "final_fitness": state.fitness, "metrics_log": metrics_log}, f)
+            pickle.dump({"final_population": state.population, "final_fitness": state.fitness, "metrics_log": metrics_log}, f)
     elif "optax" in algorithm:
         # ################## optax ##################
         import optax
@@ -251,6 +266,19 @@ if __name__ == '__main__':
             os.makedirs("Data/Processed/results"+str(seed)[:6])
         with open("Data/Processed/results"+str(seed)[:6]+"/optax_initial_points_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
             pickle.dump(xs,f)
+
+        # work in logistic-transformed space to stay within bounds
+        def logistic_transform(x):
+            return bounds[:, 0] + 1 / (1 + jnp.exp(-x)) * (bounds[:, 1] - bounds[:, 0])
+        def inverse_logistic_transform(y):
+            return -jnp.log((bounds[:, 1] - bounds[:, 0]) / (y - bounds[:, 0]) - 1)
+        def new_likelihood(x):
+            x_transformed = logistic_transform(x)
+            lik =  likelihood(x_transformed)
+            # remove nas
+            lik = jnp.where(jnp.isnan(lik), likelihood_threshold*10, lik)
+            return lik
+        xs = inverse_logistic_transform(xs)
 
         schedule = optax.exponential_decay(init_value=opt_rate1, transition_steps=1000, decay_rate=opt_rate2, staircase=True)
         solver = optax.apply_if_finite(
@@ -282,7 +310,7 @@ if __name__ == '__main__':
             final_carry, neglogL_history = jax.lax.scan(scan_body, initial_carry, jnp.arange(opt_size))
             final_xs, _ = final_carry
             return final_xs, neglogL_history
-        
+
         print("Starting optax optimization...")
         start_time = time.time()
         final_xs, neglogL_history = run_optimization(xs)
