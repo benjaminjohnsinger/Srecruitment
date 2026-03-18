@@ -19,7 +19,7 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-pathogen, seed, lockdown, option1, option2, optn = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], int(sys.argv[9])
+pathogen, seed, lockdown, option1, option2, optn = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], int(sys.argv[8])
 
 # set seed
 np.random.seed(seed)
@@ -41,7 +41,7 @@ else:
     except FileNotFoundError:
         print('File not found:',"Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
         sys.exit()
-xs = opt["final_xs"]
+xs = opt["final_params"]
 neglogLs = opt["neglogL_history"]
 rescaled_x = xs[optn]
 neglogLs = neglogLs[:,optn]

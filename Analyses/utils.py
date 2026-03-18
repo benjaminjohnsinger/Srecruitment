@@ -348,7 +348,8 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     else:
         P_OBS = pobsrel
     if "mimm" in option1:
-        MATERNAL_IMMUNITY = x[n]*jnp.ones(FULL_POINTS.shape)
+        MIMM = x[n]
+        MATERNAL_IMMUNITY = MIMM*jnp.ones(FULL_POINTS.shape)
     elif "maxmimm" in option1:
         MATERNAL_IMMUNITY = jnp.ones(FULL_POINTS.shape)
     if "RSV" in pathogen:
@@ -454,6 +455,8 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
                 print("TT: " + [t_to_date(t).strftime('%Y-%m-%d') for t in eval(param_names[i])].__str__())
             else:
                 print(param_names[i]+": "+eval(param_names[i]).__str__())
+        if "mimm" in option1 or "maxmimm" in option1:
+            print("MATERNAL_IMMUNITY: "+MIMM.__str__())
     
     if return_contact:
         if 'Exponential' in lockdown:
@@ -569,7 +572,7 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
 def consistent_x_from_DE(pathogen, option1, seed, NAG=7):
     with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+"flexage"+str(seed)+".pickle","rb") as f:
         opt = pickle.load(f)
-    REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
+    REC_UP, _, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
     x_DE = opt.x
     x_consistent = jnp.zeros(19)
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC

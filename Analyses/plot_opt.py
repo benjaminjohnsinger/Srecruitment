@@ -135,6 +135,10 @@ STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
 params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True)
 
+# names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
+# for i in range(len(names)):
+#     print(names[i]+ " (bounds: "+str(bounds[i])+")")
+
 solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS)
 values = solution.ys.T
 times = solution.ts

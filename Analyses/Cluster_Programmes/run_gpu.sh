@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=bbounds
+#SBATCH --job-name=mimmRSV
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -20,7 +20,7 @@ module purge
 module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
-PATHOGENS=("RSV" "Metapneumovirus" "Adenovirus" "Parainfluenza3" "InfluenzaA" "InfluenzaB")
-CURRENT_PATHOGEN=${PATHOGENS[$SLURM_ARRAY_TASK_ID]}
-echo "Starting optimization for: $CURRENT_PATHOGEN (Task ID: $SLURM_ARRAY_TASK_ID)"
-python -u Analyses/fit_opt.py $CURRENT_PATHOGEN 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
+SEEDS=(260318 2603182 2603183 2603184 2603185 2603186)
+CURRENT_SEED=${SEEDS[$SLURM_ARRAY_TASK_ID]}
+echo "Starting optimization for: $CURRENT_SEED (Task ID: $SLURM_ARRAY_TASK_ID)"
+python -u Analyses/fit_opt.py RSV $CURRENT_SEED Exponential mimm flexagep01 1e-9 200 1000 0.7
