@@ -347,8 +347,12 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         n += 1
     else:
         P_OBS = pobsrel
+    if "mimm" in option1:
+        MATERNAL_IMMUNITY = x[n]*jnp.ones(FULL_POINTS.shape)
+    elif "maxmimm" in option1:
+        MATERNAL_IMMUNITY = jnp.ones(FULL_POINTS.shape)
     if "RSV" in pathogen:
-        MATERNAL_IMMUNITY = rsv_maternal_immunity(FULL_POINTS)
+        MATERNAL_IMMUNITY = jnp.minimum(1, MATERNAL_IMMUNITY + rsv_maternal_immunity(FULL_POINTS))
     if 'pathogen' not in option1:
         if lockdown == 'Default':
             PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, defaultTT, defaultFF, steepness=0.2))(FULL_POINTS)
