@@ -9,12 +9,10 @@
 #SBATCH --qos=a5k_gpu4_normal
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=bjsinger@berkeley.edu
-#SBATCH --time=30:00:00
+#SBATCH --time=10:00:00
 
 # Array job specifications:
-# Run 6 jobs, indexed 0 through 5
 #SBATCH --array=0-5
-# Output files now include both the overall Job ID (%A) and the Array Task ID (%a)
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 
