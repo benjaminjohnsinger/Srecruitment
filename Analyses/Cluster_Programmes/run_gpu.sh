@@ -3,34 +3,26 @@
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
-#
-# Number of tasks (one for each GPU desired for use case) (example):
 #SBATCH --ntasks=1
-#
-# Processors per task:
-# Four times the number of GPUs for A500 in savio4_gpu
 #SBATCH --cpus-per-task=4
-#
-#Number and type of GPUs
 #SBATCH --gres=gpu:A5000:1
 #SBATCH --qos=a5k_gpu4_normal
-
-#SBATCH --output=%x_%A.out
-#SBATCH --error=%x_%A.err
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=bjsinger@berkeley.edu
-
-# Wall clock limit:
 #SBATCH --time=30:00:00
+
+# Array job specifications:
+# Run 6 jobs, indexed 0 through 5
+#SBATCH --array=0-5
+# Output files now include both the overall Job ID (%A) and the Array Task ID (%a)
+#SBATCH --output=%x_%A_%a.out
+#SBATCH --error=%x_%A_%a.err
 
 module purge
 module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
-
-python -u Analyses/fit_opt.py RSV 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Metapneumovirus 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Adenovirus 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py Parainfluenza3 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py InfluenzaA 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
-python -u Analyses/fit_opt.py InfluenzaB 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
+PATHOGENS=("RSV" "Metapneumovirus" "Adenovirus" "Parainfluenza3" "InfluenzaA" "InfluenzaB")
+CURRENT_PATHOGEN=${PATHOGENS[$SLURM_ARRAY_TASK_ID]}
+echo "Starting optimization for: $CURRENT_PATHOGEN (Task ID: $SLURM_ARRAY_TASK_ID)"
+python -u Analyses/fit_opt.py $CURRENT_PATHOGEN 2603172 Exponential NA flexagep01 1e-9 200 1000 0.7
