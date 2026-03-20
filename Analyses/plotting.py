@@ -717,6 +717,7 @@ def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None,
         # size_rebound_time = peak_times.iloc[size_rebound]
         # ax.annotate(f"{rebound_size/repr_pre_covid_obs:.0%}", xy=(size_rebound_time, incidence.loc[size_rebound_time, "Total"]), xytext=(0,0), textcoords='offset points', ha='left', va='top', color="black", 
         #             path_effects=[pe.Stroke(linewidth=1, foreground='white'), pe.Normal()])
+    return np.max(incidence)
 
 def calculate_observations_per_season(incidence, age_groups=False):
     if age_groups:

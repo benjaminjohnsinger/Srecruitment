@@ -269,15 +269,13 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         else:
             positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_positive_counts.csv', header=None).values)
             total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_total_counts.csv', header=None).values)
-    # elif "test" in pathogen:
-    #     REC_UP = jnp.array([1/3.0,1/3.0,0.0])
-    #     REC_SAME = jnp.array([0.0,0.0,1/3.0])
-    #     IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Metapneumovirus_positivity_daily.csv', delimiter=','))
-    #     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
-    #     if not skip_incidence:
-    #         incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_incidence_age_daily.csv",index_col=0))
-    # if skip_incidence:
-    #     return REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs
+    elif "test" in pathogen:
+        REC_UP = jnp.array([1/3.0,1/3.0,0.0])
+        REC_SAME = jnp.array([0.0,0.0,1/3.0])
+        IMPORT_STRENGTH = import_multiplier*ARRIVALS*jnp.asarray(np.genfromtxt('Data/Processed/Metapneumovirus_positivity_daily.csv', delimiter=','))
+        p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
+    if skip_incidence:
+        return REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs
     # join positives and total_tests into a single array with shape (time, age_group, 2)
     if not incidence_data:
         data = jnp.stack((total_tests, positives), axis=-1)
@@ -298,9 +296,9 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
         BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
         if pathogen == "sim":
-            _, _, IMPORT_STRENGTH, _, _ = pathogen_parameters("test", import_multiplier=import_multiplier, skip_incidence=True)
+            _, _, IMPORT_STRENGTH, _ = pathogen_parameters("test", import_multiplier=import_multiplier, skip_incidence=True)
         else:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, _, _ = pathogen_parameters(pathogen, import_multiplier=import_multiplier, skip_incidence=True)
+            REC_UP, REC_SAME, IMPORT_STRENGTH, _ = pathogen_parameters(pathogen, import_multiplier=import_multiplier, skip_incidence=True)
     else:
         FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX = fixed_params[:4]
         REC_UP, REC_SAME, IMPORT_STRENGTH = fixed_params[-3:]
@@ -322,7 +320,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     BETA = x[n]
     SEASONALITY = x[n+1]
     OFFSET = x[n+2]
-    MATERNAL_IMMUNITY = jnp.zeros(FULL_POINTS.shape)
+    MATERNAL_IMMUNITY = jnp.zeros((len(FULL_POINTS), N_S))
     n += 3
     if "wane" in option1:
         WANE = jnp.array([0.0,x[n],x[n+1]])
@@ -347,13 +345,15 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         n += 1
     else:
         P_OBS = pobsrel
-    if "mimm" in option1:
+    if "maxmimm" in option1:
+        MIMM = 1
+        MATERNAL_IMMUNITY = MATERNAL_IMMUNITY.at[:,2].set(MIMM)
+    elif "mimm" in option1:
         MIMM = x[n]
-        MATERNAL_IMMUNITY = MIMM*jnp.ones(FULL_POINTS.shape)
-    elif "maxmimm" in option1:
-        MATERNAL_IMMUNITY = jnp.ones(FULL_POINTS.shape)
+        MATERNAL_IMMUNITY = MATERNAL_IMMUNITY.at[:,2].set(MIMM)
+        n += 1
     if "RSV" in pathogen:
-        MATERNAL_IMMUNITY = jnp.minimum(1, MATERNAL_IMMUNITY + rsv_maternal_immunity(FULL_POINTS))
+        MATERNAL_IMMUNITY = jnp.minimum(1, MATERNAL_IMMUNITY + rsv_maternal_immunity(FULL_POINTS).reshape(-1,1))
     if 'pathogen' not in option1:
         if lockdown == 'Default':
             PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, defaultTT, defaultFF, steepness=0.2))(FULL_POINTS)
@@ -569,11 +569,25 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
     return params, param_names, bounds, tests, p_time_to_obs
 
 # unified x from DE, i.e. x is same length regardless of model options. assume option2=flexage, lockdown=FlexStepwise
-def consistent_x_from_DE(pathogen, option1, seed, NAG=7):
-    with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+"flexage"+str(seed)+".pickle","rb") as f:
-        opt = pickle.load(f)
-    REC_UP, _, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
-    x_DE = opt.x
+def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
+    base_path = "Data/Processed/results"+str(seed)[:6]+"/"
+    filename_pattern = pathogen+lockdown+option1+option2+str(seed)+".pickle"
+    opt = None
+    prefix = ""
+    for test_prefix in ["DE_opt_", "evosax_DE_"]:
+        filepath = base_path + test_prefix + filename_pattern
+        try:
+            with open(filepath, "rb") as f:
+                opt = pickle.load(f)
+            prefix = test_prefix
+            break
+        except FileNotFoundError:
+            continue
+    if prefix == "evosax_DE_":
+        x_DE = opt["final_population"][np.argmax(opt["final_fitness"])]
+    else:
+        x_DE = opt.x
+    REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
     x_consistent = jnp.zeros(19)
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC
     x_consistent = x_consistent.at[2:5].set(x_DE[0:3]) # BETA, SEASONALITY, OFFSET
