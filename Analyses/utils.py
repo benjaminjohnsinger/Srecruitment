@@ -588,10 +588,11 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
     else:
         x_DE = opt.x
     REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
-    x_consistent = jnp.zeros(19)
+    x_consistent = jnp.zeros(19 + 2*(lockdown=="Exponential"))
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC
     x_consistent = x_consistent.at[2:5].set(x_DE[0:3]) # BETA, SEASONALITY, OFFSET
     n = 3
+    obs_age_start = 12
     if "wane" in option1:
         x_consistent = x_consistent.at[5:7].set(x_DE[3:5]) # WANE1, WANE2
         n += 2
@@ -618,7 +619,11 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
     elif "mimm" in option1:
         x_consistent = x_consistent.at[11].set(x_DE[n]) # maternal immunity
         n += 1
-    x_consistent = x_consistent.at[12:19].set(x_DE[-NAG:]) # AGE_OBS_1 to AGE_OBS_7
+    if lockdown == "Exponential":
+        x_consistent = x_consistent.at[12:14].set(x_DE[n:n+2]) # F1, R1
+        n += 2
+        obs_age_start = 14
+    x_consistent = x_consistent.at[obs_age_start:obs_age_start+NAG].set(x_DE[-NAG:]) # AGE_OBS_1 to AGE_OBS_7
     return x_consistent
 
 ####### Generating interesting quantities from ODE results #######
