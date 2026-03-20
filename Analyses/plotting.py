@@ -838,7 +838,8 @@ if __name__ == "__main__":
 
     # figB, axB = plt.subplots(3, 2, figsize=(4.5,4), sharex = True)
     data_color = "#648FFF"
-    aggregation = "W"
+    aggregation = "MS"
+    agg_factor = {"D":1, "W-MON":7, "MS":30.44}[aggregation]
     factor = 100000
     if factor >= 1000000:
         factor_label = f"{factor // 1000000}M"
@@ -867,10 +868,10 @@ if __name__ == "__main__":
 
     # now include plots of simulations on top of data
     
-    lockdown = "FlexStepwise"
+    lockdown = "Exponential"
     option1 = "NA"
     option2 = "flexagep01"
-    seeds = [260223, 260223, 260223, 260223, 260223, 260223]
+    seeds = [2603172, 2603172, 2603172, 2603172, 2603172, 2603172]
     ## Initial conditions
     from Parameters.census_population import CENSUS_AGE_POP
     STATE0 = jnp.zeros((2*N_S+1,NAG))
@@ -892,7 +893,7 @@ if __name__ == "__main__":
             continue
         lockdown_incidence_plot(axB[pi//2,pi%2], STATE0, params, POINTS, T_LOCKDOWN,
                                 p_time_to_obs=p_time_to_obs,
-                                color="#DC267F", factor=factor*7, label="Simulation")
+                                color="#DC267F", factor=factor*agg_factor, label="Simulation")
     axB[0,1].legend(loc="upper right")
     
     # plt.tight_layout()
@@ -901,4 +902,4 @@ if __name__ == "__main__":
     subfigs[0].suptitle("A", x=0.01, fontweight='bold')
     subfigs[1].suptitle("B", x=0.01, fontweight='bold')
 
-    plt.savefig("Figures/Figure1_currentto.png",dpi=300)
+    plt.savefig("Figures/Figure1_test.png",dpi=300)

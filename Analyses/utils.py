@@ -1,4 +1,6 @@
 # import jax.numpy as np
+from random import seed
+
 import numpy as np
 import pandas as pd
 import re
@@ -533,18 +535,39 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
     return param_names, bounds
 
 def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=None, import_multiplier=1e-9):
-    if re.match(r'\d{6}',lockdown):
-        with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+"FlexStepwise"+option1+option2+str(seed)+".pickle","rb") as f:
-            opt = pickle.load(f)
-    else:
+    base_path = "Data/Processed/results"+str(seed)[:6]+"/"
+    filename_pattern = pathogen+lockdown+option1+option2+str(seed)+".pickle"
+    opt = None
+    prefix = ""
+    for test_prefix in ["DE_opt_", "evosax_DE_"]:
+        filepath = base_path + test_prefix + filename_pattern
         try:
-            with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","rb") as f:
+            with open(filepath, "rb") as f:
                 opt = pickle.load(f)
+            print(f"Loaded: {test_prefix}{filename_pattern}")
+            prefix = test_prefix
+            break
         except FileNotFoundError:
-            print("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
-            print('No file found')
-            raise FileNotFoundError("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
-    x = opt.x
+            continue
+
+    if opt is None:
+        print('File not found with either prefix (DE_opt_ or evosax_DE_)')
+        sys.exit()
+
+    # Detect file type and extract results accordingly
+    if prefix == "evosax_DE_":
+        # evosax_DE format
+        x = opt["final_population"][np.argmax(opt["final_fitness"])]
+    else:
+        # scipy.optimize.differential_evolution format
+        if opt.success:
+            print("Optimization converged")
+        else:
+            print("Optimization did not converge")
+            print(opt.message)
+            print(opt.x)
+            sys.exit()
+        x = opt.x
     
     from Parameters.census_population import AGING_RATE
     REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests = pathogen_parameters(pathogen, import_multiplier=import_multiplier)

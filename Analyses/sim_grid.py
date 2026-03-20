@@ -620,7 +620,7 @@ if __name__ == "__main__":
 
     fig, ax = plt.subplots(figsize=(10, 8))
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
-                                            seed=seed, n_samples=2000, dimension=2, chunk_size=503)
+                                            seed=seed, n_samples=80000, dimension=2, chunk_size=40000)
     generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=0, p2=8, outcome="time_to_rebound")
     plt.tight_layout()
     plt.savefig("Figures/heatmap_time_to_rebound_test.png", dpi=300)
