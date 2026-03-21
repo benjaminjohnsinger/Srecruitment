@@ -42,8 +42,12 @@ else:
         print('File not found:',"Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
         sys.exit()
 xs = opt["final_params"]
+# extend print size for xs
+for i in range(738):
+    print("x"+str(i)+":",xs[i])
+# which xs is not nan at the end of the optimization?
+
 neglogLs = opt["neglogL_history"]
-rescaled_x = xs[optn]
 neglogLs = neglogLs[:,optn]
 
 param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)

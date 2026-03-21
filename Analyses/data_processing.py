@@ -137,31 +137,31 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
     
     return incidence
 
-if __name__ == "__main__":
-    # test function
-    # incidence = calculate_proportion_positive_incidence(["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"], aggregation="ME", window_size=28, weighting_factor=np.log(2))
-    # plot
-    from plotting import hsv_colors
-    fig, ax = plt.subplots(2,3,figsize=(13.3,6),sharex=True)
-    for pi,pathogen in enumerate(["InfluenzaA","RSV","Adenovirus","InfluenzaB","Metapneumovirus","Parainfluenza3"]):
-        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="W", window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, pp_only=False)
-        # incidence.index = incidence.index.to_period('M').to_timestamp() + pd.offsets.Day(14) # shift to middle of month
-        # incidence.to_csv(f'Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_{pathogen}_incidence_age_weekly.csv')
-        # for i,age_group in enumerate(AGE_GROUP_NAMES):
-        #     # incidence[age_group].plot(ax=ax[pi//2, pi%2],color=hsv_colors[i],label=age_group)/
-        #     ax[pi//2, pi%2].plot(incidence.index, incidence[age_group] * 1000,color=hsv_colors[i],label=age_group)
-        # (incidence['Total'] * 10000).plot(ax=ax[pi//2, pi%2],color='k',label='Total')
-        ax[pi//3, pi%3].plot(incidence.index, incidence['Total'] * 10000, color='k', label='Total')
-        ax[pi//3, pi%3].set_title(f"{pathogen}")
-        ax[pi//3, 0].set_ylabel('Incidence per 10k')
-        ax[1,pi%3].set_xticks(incidence.index[::52], [str(year) for year in incidence.index.year[::52]], rotation=45)
-    # ax[2,0].set_xlabel('Date')
-    # ax[2,1].set_xlabel('Date')
-    # ax[0,1].legend(title="Age group", loc = "upper right", ncol=2)
-    # only include every other x tick and label with year at 45 degree angle
-    plt.tight_layout()
-    # plt.savefig("Figures/KPSC_panel_tests_by_age_group_monthly.png",dpi=300)
-    plt.savefig("Figures/KPSC_panel_proportion_positive_incidence_pathogen_age_weekly_slide.png",dpi=300)
+# if __name__ == "__main__":
+#     # test function
+#     # incidence = calculate_proportion_positive_incidence(["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"], aggregation="ME", window_size=28, weighting_factor=np.log(2))
+#     # plot
+#     from plotting import hsv_colors
+#     fig, ax = plt.subplots(2,3,figsize=(13.3,6),sharex=True)
+#     for pi,pathogen in enumerate(["InfluenzaA","RSV","Adenovirus","InfluenzaB","Metapneumovirus","Parainfluenza3"]):
+#         incidence = calculate_proportion_positive_incidence(pathogen, aggregation="W", window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, pp_only=False)
+#         # incidence.index = incidence.index.to_period('M').to_timestamp() + pd.offsets.Day(14) # shift to middle of month
+#         # incidence.to_csv(f'Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_{pathogen}_incidence_age_weekly.csv')
+#         # for i,age_group in enumerate(AGE_GROUP_NAMES):
+#         #     # incidence[age_group].plot(ax=ax[pi//2, pi%2],color=hsv_colors[i],label=age_group)/
+#         #     ax[pi//2, pi%2].plot(incidence.index, incidence[age_group] * 1000,color=hsv_colors[i],label=age_group)
+#         # (incidence['Total'] * 10000).plot(ax=ax[pi//2, pi%2],color='k',label='Total')
+#         ax[pi//3, pi%3].plot(incidence.index, incidence['Total'] * 10000, color='k', label='Total')
+#         ax[pi//3, pi%3].set_title(f"{pathogen}")
+#         ax[pi//3, 0].set_ylabel('Incidence per 10k')
+#         ax[1,pi%3].set_xticks(incidence.index[::52], [str(year) for year in incidence.index.year[::52]], rotation=45)
+#     # ax[2,0].set_xlabel('Date')
+#     # ax[2,1].set_xlabel('Date')
+#     # ax[0,1].legend(title="Age group", loc = "upper right", ncol=2)
+#     # only include every other x tick and label with year at 45 degree angle
+#     plt.tight_layout()
+#     # plt.savefig("Figures/KPSC_panel_tests_by_age_group_monthly.png",dpi=300)
+#     plt.savefig("Figures/KPSC_panel_proportion_positive_incidence_pathogen_age_weekly_slide.png",dpi=300)
 # ############### CDC data ###############
 # ### full NREVSS data
 # data = pd.read_excel('Data/Raw/NREVSS_all.xlsx',sheet_name='Final')
@@ -405,6 +405,10 @@ if __name__ == "__main__":
 # # # save to file
 # # newbies.to_csv('Data/Processed/KPSC_clinical_newborns.csv',index=False)
 
+# ari_data = clinical_data[clinical_data["dxgroup"] == "ARI"]
+# codes = ari_data["CODE"].unique()
+# codes.sort()
+# print(", ".join(codes))
 
 # # #### Plot number of RSV tests and proportion of respiratory clinical cases with RSV tests over time
 # # #age filter
