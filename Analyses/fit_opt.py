@@ -196,26 +196,34 @@ if __name__ == '__main__':
 
     if "evosax" in algorithm:
         ################ evosax ##################
-        from evosax.algorithms import DifferentialEvolution
-
-        de = DifferentialEvolution(population_size=hypercube_size, solution=xs[0])
-        params = de.default_params
-        # set crossover_rate to opt_rate2
-        params = params.replace(elitism=False,crossover_rate=opt_rate2)
+        
+        if "diffusion" in algorithm:
+            from evosax.algorithms import DiffusionEvolution
+            es = DiffusionEvolution(population_size=hypercube_size, solution=xs[0])
+            params = es.default_params
+            name = "DiffusionEvolution"
+        else:
+            from evosax.algorithms import DifferentialEvolution
+            es = DifferentialEvolution(population_size=hypercube_size, solution=xs[0])
+            params = es.default_params
+            # set crossover_rate to opt_rate2
+            params = params.replace(elitism=False,crossover_rate=opt_rate2)
+            name = "DE"
 
         key, subkey = jax.random.split(key)
-        state = de.init(subkey, xs, likelihoods, params)
+        state = es.init(subkey, xs, likelihoods, params)
 
-        def de_step(carry, _):
+        def es_step(carry, _):
             key, state, params = carry
             # split keys for dithering, ask, tell, and boundary corrections
             key, subkey = jax.random.split(key)
             key_dither, key_ask, key_tell, key_b_low, key_b_up = jax.random.split(subkey, 5)
             # dither the mutation rate
-            differential_weight = jax.random.uniform(key_dither, minval=0.5, maxval=1.0)
-            params = params.replace(differential_weight=differential_weight)
+            if name == "DE":
+                differential_weight = jax.random.uniform(key_dither, minval=0.5, maxval=1.0)
+                params = params.replace(differential_weight=differential_weight)
             # generate a population
-            population, state = de.ask(key_ask, state, params)
+            population, state = es.ask(key_ask, state, params)
             # scipy-style boundary correction: - if any parameter is out of bounds, resample it uniformly between current value and bound in the direction of the bound
             mask_lower = population < bounds[:, 0]
             mask_upper = population > bounds[:, 1]
@@ -231,20 +239,20 @@ if __name__ == '__main__':
             population = jnp.where(mask_upper, bounce_upper, population)
             # calculate fitness and update the population
             fitness = vmap_likelihood(population)
-            state, metrics = de.tell(key_tell, population, fitness, state, params)
+            state, metrics = es.tell(key_tell, population, fitness, state, params)
             return (key, state, params), metrics
         
         @jax.jit
-        def run_de_optimization(key, state, params):
+        def run_es_optimization(key, state, params):
             initial_carry = (key, state, params)
-            (_, final_state, _), metrics_log = jax.lax.scan(de_step, initial_carry, jnp.arange(opt_rate1))
+            (_, final_state, _), metrics_log = jax.lax.scan(es_step, initial_carry, jnp.arange(opt_rate1))
             return final_state, metrics_log
 
-        print("Starting DE optimization...")
+        print(f"Starting {name} optimization...")
         start_time = time.time()
-        state, metrics_log = run_de_optimization(key, state, params)
+        state, metrics_log = run_es_optimization(key, state, params)
         state.fitness.block_until_ready()
-        print(f"{opt_rate1} DE iterations completed in {time.time() - start_time:.2f} seconds.")
+        print(f"{opt_rate1} {name} iterations completed in {time.time() - start_time:.2f} seconds.")
 
         # # scale final_population, metrics_log["best_solution"], and metrics_log["best_solution_in_generation"] by bounds[:, 0] + 1 / (1 + exp(-x)) * (bounds[:, 1] - bounds[:, 0]) transformation
         # final_population = logistic_transform(state.population)
@@ -254,7 +262,7 @@ if __name__ == '__main__':
         if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
             os.makedirs("Data/Processed/results"+str(seed)[:6])
         # save results to disk
-        results_file = "Data/Processed/results"+str(seed)[:6]+"/evosax_DE_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+        results_file = "Data/Processed/results"+str(seed)[:6]+"/evosax_"+name+"_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
         with open(results_file, "wb") as f:
             pickle.dump({"final_population": state.population, "final_fitness": state.fitness, "metrics_log": metrics_log}, f)
     elif "optax" in algorithm:

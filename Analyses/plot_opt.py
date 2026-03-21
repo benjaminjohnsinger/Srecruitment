@@ -45,7 +45,7 @@ filename_pattern = pathogen+lockdown_search+option1+option2+str(seed)+".pickle"
 # Try both DE_opt and evosax_DE prefixes
 opt = None
 prefix = ""
-for test_prefix in ["DE_opt_", "evosax_DE_"]:
+for test_prefix in ["DE_opt_", "evosax_DE_", "evosax_DiffusionEvolution_"]:
     filepath = base_path + test_prefix + filename_pattern
     try:
         with open(filepath, "rb") as f:
@@ -61,7 +61,7 @@ if opt is None:
     sys.exit()
 
 # Detect file type and extract results accordingly
-if prefix == "evosax_DE_":
+if "evosax" in prefix:
     # evosax_DE format
     x = opt["final_population"][np.argmax(opt["final_fitness"])]
     log_likelihood = -1 * np.max(opt["final_fitness"])
