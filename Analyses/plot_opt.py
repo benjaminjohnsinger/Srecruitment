@@ -24,6 +24,11 @@ from fit_MCMC import *
 
 pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
 
+if len(sys.argv) > 10:
+    prefix = sys.argv[10]
+else:
+    prefix = ""
+
 # set seed
 np.random.seed(seed)
 
@@ -44,17 +49,25 @@ filename_pattern = pathogen+lockdown_search+option1+option2+str(seed)+".pickle"
 
 # Try both DE_opt and evosax_DE prefixes
 opt = None
-prefix = ""
-for test_prefix in ["DE_opt_", "evosax_DE_", "evosax_DiffusionEvolution_"]:
-    filepath = base_path + test_prefix + filename_pattern
+if prefix == "":
+    for test_prefix in ["DE_opt_", "evosax_DE_", "evosax_DiffusionEvolution_"]:
+        filepath = base_path + test_prefix + filename_pattern
+        try:
+            with open(filepath, "rb") as f:
+                opt = pickle.load(f)
+            print(f"Loaded: {test_prefix}{filename_pattern}")
+            prefix = test_prefix
+            break
+        except FileNotFoundError:
+            continue
+else:
+    filepath = base_path + prefix + filename_pattern
     try:
         with open(filepath, "rb") as f:
             opt = pickle.load(f)
-        print(f"Loaded: {test_prefix}{filename_pattern}")
-        prefix = test_prefix
-        break
+        print(f"Loaded: {prefix}{filename_pattern}")
     except FileNotFoundError:
-        continue
+        print(f"File not found: {prefix}{filename_pattern}")
 
 if opt is None:
     print('File not found with either prefix (DE_opt_ or evosax_DE_)')
@@ -63,8 +76,8 @@ if opt is None:
 # Detect file type and extract results accordingly
 if "evosax" in prefix:
     # evosax_DE format
-    x = opt["final_population"][np.argmax(opt["final_fitness"])]
-    log_likelihood = -1 * np.max(opt["final_fitness"])
+    x = opt["final_population"][np.argmin(opt["final_fitness"])]
+    log_likelihood = -1 * np.min(opt["final_fitness"])
 else:
     # scipy.optimize.differential_evolution format
     if opt.success:
@@ -248,13 +261,14 @@ ax[2].set_title("Effective susceptibles")
 plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_test.png",dpi=300)
 plt.close()
 
-# fig, ax = plt.subplots(figsize=(4,4))
-# kpsc_proportion_positive_incidence_plot(ax, pathogen, None, AGE_GROUP_NAMES, aggregation="W", factor=10000, color="black", label="Data")
-# mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=7*10000,p_time_to_obs=p_time_to_obs, color="silver", label="Simulation")
-# lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
-# plt.tight_layout()
-# plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_weekly_noage.png",dpi=300)
-# plt.close()
+fig, ax = plt.subplots(figsize=(4,4))
+aggregation = "MS"
+kpsc_proportion_positive_incidence_plot(ax, pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data")
+mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="silver", label="Simulation")
+lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
+plt.tight_layout()
+plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_monthly_noage.png",dpi=300)
+plt.close()
 
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")

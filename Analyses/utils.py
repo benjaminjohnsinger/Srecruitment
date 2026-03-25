@@ -407,6 +407,13 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 5
+        elif lockdown == "Sigmoid":
+            FF = [1, x[n]]
+            TT = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+x[n+1]*365]
+            RR = [x[n+2],]
+            SIGMOID_CONTACT = cm.sigmoid_recovery(FULL_POINTS, TT, FF, RR)
+            RELATIVE_CONTACT = SIGMOID_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+            n += 3
     if re.search(r'\d{6}',lockdown):
         with open("Data/Processed/DE_cm_opt_"+str(lockdown)+".pickle","rb") as f:
             opt = pickle.load(f)
@@ -450,7 +457,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             param_names += ["FF"]
             if "Mobility" not in lockdown:
                 param_names += ["TT"]
-            if "Exponential" in lockdown:
+            if "Exponential" in lockdown or "Sigmoid" in lockdown:
                 param_names += ["RR"]
         for i in range(len(param_names)):
             if param_names[i] == "TT" and "Mobility" not in lockdown:
@@ -463,6 +470,8 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     if return_contact:
         if 'Exponential' in lockdown:
             return params, EXPONENTIAL_CONTACT
+        if 'Sigmoid' in lockdown:
+            return params, SIGMOID_CONTACT
         elif 'Mobility' in lockdown:
             return params, MOBILITY_CONTACT
         elif 'Taube' in lockdown:
@@ -523,6 +532,10 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
             bounds_dict["F1"] = bounds_dict["F2"] = [0,1]
             bounds_dict["DT1"] = [0,2]
             bounds_dict["R1"] = bounds_dict["R2"] = [0.002,0.05]
+        elif lockdown == "Sigmoid":
+            bounds_dict["F1"] = [0,1]
+            bounds_dict["DT1"] = [0,3]
+            bounds_dict["R1"] = [0.002,0.01]
         elif lockdown != "Taube":
             bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
 

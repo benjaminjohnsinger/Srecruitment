@@ -63,6 +63,18 @@ def exponential_recovery(t, ts, fs, rs, steepness=0.2):
         result = result * (1 - reduction) + transition * reduction
     return result
 
+def sigmoid_recovery(t, ts, fs, rs, steepness=0.2):
+    """Sudden tanh reduction at ts[i] with sigmoidal recovery to fs[0]"""
+    result = fs[0]
+    # Sudden tanh reduction at ts[i]
+    reduction = (1 + jnp.tanh(steepness * (t - ts[1])))
+    # Sigmoidal recovery back to fs[0]
+    recovery = (1 + jnp.exp(-rs[0]*(ts[2]-ts[1]))) / (1 + jnp.exp(rs[0] * (t - ts[2])))
+    # Combine: reduce to fs[i], then recover toward fs[0]
+    transition = fs[1] + (fs[0] - fs[1]) * (1-recovery)
+    result = result * (1 - reduction) + transition * reduction
+    return result
+
 MOBILITY2020 = pd.read_csv('Data/Raw/Google_mobility_reports/2020_US_Region_Mobility_Report.csv', delimiter=',')
 MOBILITY2021 = pd.read_csv('Data/Raw/Google_mobility_reports/2021_US_Region_Mobility_Report.csv', delimiter=',')
 MOBILITY2022 = pd.read_csv('Data/Raw/Google_mobility_reports/2022_US_Region_Mobility_Report.csv', delimiter=',')

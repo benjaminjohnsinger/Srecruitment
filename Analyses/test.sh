@@ -1,13 +1,10 @@
 combinations=(
-"RSV 260320 Exponential mimm flexagep01 1e-9 20 400 0.7"
-# "RSV 2603182 Exponential mimm flexagep01 1e-9 20 400 0.7"
-# "RSV 260318 Exponential maxmimm flexagep01 1e-9 20 400 0.7"
-# "InfluenzaA 260318 Exponential mimm flexagep01 1e-9 20 400 0.7"
-# "Metapneumovirus 260318 Exponential mimm flexagep01 1e-9 20 400 0.7"
-# "Parainfluenza3 260318 Exponential mimm flexagep01 1e-9 20 400 0.7"
-# "Adenovirus 260318 Exponential mimm flexagep01 1e-9 20 400 0.7"
-# "InfluenzaB 260318 Exponential mimm flexagep01 1e-9 20 400 0.7"
-# "RSV 2603183 Exponential mimm flexagep01 1e-9 200 1000 0.7"
+"RSV 260320 Sigmoid NA flexagep01 1e-9 20 400 0.7"
+# "InfluenzaA 260320 Exponential mimm flexagep01 1e-9 20 400 0.7"
+# "InfluenzaB 260320 Exponential mimm flexagep01 1e-9 20 400 0.7"
+# "Metapneumovirus 260320 Exponential mimm flexagep01 1e-9 20 400 0.7"
+# "Parainfluenza3 260320 Exponential mimm flexagep01 1e-9 20 400 0.7"
+# "Adenovirus 260320 Exponential mimm flexagep01 1e-9 20 400 0.7"
 )
 
 for combination in "${combinations[@]}"; do
