@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=fssax
+#SBATCH --job-name=incsax
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -23,4 +23,4 @@ source activate /global/scratch/users/bjsinger/jax_env
 PATHOGENS=("RSV" "Metapneumovirus" "Adenovirus" "Parainfluenza3" "InfluenzaA" "InfluenzaB")
 CURRENT_PATHOGEN=${PATHOGENS[$SLURM_ARRAY_TASK_ID]}
 echo "Starting optimization for: $CURRENT_PATHOGEN (Task ID: $SLURM_ARRAY_TASK_ID)"
-python -u Analyses/fit_opt.py $CURRENT_PATHOGEN 260403 FlexStepwise NA flexagep01 1e-9 200 2000 0.7
+python -u Analyses/fit_opt.py $CURRENT_PATHOGEN 260403 Exponential incidence_data flexagep01 1e-9 200 1000 0.7
