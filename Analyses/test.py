@@ -152,161 +152,163 @@ import pickle
 # plt.tight_layout()
 # plt.savefig("Figures/poisson_binomial_four_panel_comparison_high_incidence.png", dpi=300)
 
-#### plotting contact funcitons
-EPOCH = pd.to_datetime('1970-01-01')
-END = pd.to_datetime("2025-05-01")
-FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
-FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
-data_start = date_to_t('2015-10-01')
+# #### plotting contact funcitons
+# EPOCH = pd.to_datetime('1970-01-01')
+# END = pd.to_datetime("2025-05-01")
+# FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
+# FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
+# data_start = date_to_t('2015-10-01')
 
-# x=[0.8,0.6,0.5,0.02,0.02]
+# # x=[0.8,0.6,0.5,0.02,0.02]
+# # n=0
+# # FF = [1, x[n],x[n+1]]
+# # TT = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+x[n+2]*365]
+# # RR = [x[n+3],x[n+4]]
+
+# x=[0.8,1,0.005]
 # n=0
-# FF = [1, x[n],x[n+1]]
-# TT = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+x[n+2]*365]
-# RR = [x[n+3],x[n+4]]
+# FF = [1, x[n]]
+# TT1 = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+x[n+1]*365]
+# TT2 = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+0.01*365]
+# TT3 = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+2*365]
+# RR = [x[n+2],]
 
-x=[0.8,1,0.005]
-n=0
-FF = [1, x[n]]
-TT1 = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+x[n+1]*365]
-TT2 = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+0.01*365]
-TT3 = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+2*365]
-RR = [x[n+2],]
+# def exponential_recovery(t, ts, fs, rs, steepness=0.2):
+#     """Sudden tanh reduction at ts[i] with exponential recovery to fs[0]"""
+#     result = fs[0]
+#     for i in range(1, len(ts)):
+#         # Sudden tanh reduction at ts[i]
+#         reduction = 0.5 * (1 + jnp.tanh(steepness * (t - ts[i])))
+#         # Exponential recovery back to fs[0]
+#         recovery = jnp.exp(-rs[i-1] * jnp.maximum(0, t - ts[i]))
+#         # Combine: reduce to fs[i], then recover toward fs[0]
+#         transition = fs[i] + (fs[0] - fs[i]) * (1 - recovery)
+#         result = result * (1 - reduction) + transition * reduction
+#     return result
+# def sigmoidal_recovery(t, ts, fs, rs, steepness=0.2):
+#     """Sudden tanh reduction at ts[i] with sigmoidal recovery to fs[0]"""
+#     result = fs[0]
+#     # Sudden tanh reduction at ts[i]
+#     reduction = (1 + jnp.tanh(steepness * (t - ts[1])))
+#     # Sigmoidal recovery back to fs[0]
+#     recovery = (1 + jnp.exp(-rs[0]*(ts[2]-ts[1]))) / (1 + jnp.exp(rs[0] * (t - ts[2])))
+#     # Combine: reduce to fs[i], then recover toward fs[0]
+#     transition = fs[1] + (fs[0] - fs[1]) * (1-recovery)
+#     result = result * (1 - reduction) + transition * reduction
+#     return result
+# # MOBILITY_CONTACT = exponential_recovery(FULL_POINTS, TT, FF, RR)
+# SIGMOIDAL_CONTACT = sigmoidal_recovery(FULL_POINTS, TT2, FF, [0.002,])
+# SIGMOIDAL_CONTACT2 = sigmoidal_recovery(FULL_POINTS, TT2, FF, [0.01,])
+# SIGMOIDAL_CONTACT3 = sigmoidal_recovery(FULL_POINTS, TT2, FF, [0.005,])
+# # plt.plot(FULL_PERIOD[data_start:], MOBILITY_CONTACT[data_start:], color='k')
+# plt.plot(FULL_PERIOD[data_start:], SIGMOIDAL_CONTACT[data_start:], color='r')
+# plt.plot(FULL_PERIOD[data_start:], SIGMOIDAL_CONTACT2[data_start:], color='g')
+# plt.plot(FULL_PERIOD[data_start:], SIGMOIDAL_CONTACT3[data_start:], color='b')
+# plt.plot()
+# plt.show()
 
-def exponential_recovery(t, ts, fs, rs, steepness=0.2):
-    """Sudden tanh reduction at ts[i] with exponential recovery to fs[0]"""
-    result = fs[0]
-    for i in range(1, len(ts)):
-        # Sudden tanh reduction at ts[i]
-        reduction = 0.5 * (1 + jnp.tanh(steepness * (t - ts[i])))
-        # Exponential recovery back to fs[0]
-        recovery = jnp.exp(-rs[i-1] * jnp.maximum(0, t - ts[i]))
-        # Combine: reduce to fs[i], then recover toward fs[0]
-        transition = fs[i] + (fs[0] - fs[i]) * (1 - recovery)
-        result = result * (1 - reduction) + transition * reduction
-    return result
-def sigmoidal_recovery(t, ts, fs, rs, steepness=0.2):
-    """Sudden tanh reduction at ts[i] with sigmoidal recovery to fs[0]"""
-    result = fs[0]
-    # Sudden tanh reduction at ts[i]
-    reduction = (1 + jnp.tanh(steepness * (t - ts[1])))
-    # Sigmoidal recovery back to fs[0]
-    recovery = (1 + jnp.exp(-rs[0]*(ts[2]-ts[1]))) / (1 + jnp.exp(rs[0] * (t - ts[2])))
-    # Combine: reduce to fs[i], then recover toward fs[0]
-    transition = fs[1] + (fs[0] - fs[1]) * (1-recovery)
-    result = result * (1 - reduction) + transition * reduction
-    return result
-# MOBILITY_CONTACT = exponential_recovery(FULL_POINTS, TT, FF, RR)
-SIGMOIDAL_CONTACT = sigmoidal_recovery(FULL_POINTS, TT2, FF, [0.002,])
-SIGMOIDAL_CONTACT2 = sigmoidal_recovery(FULL_POINTS, TT2, FF, [0.01,])
-SIGMOIDAL_CONTACT3 = sigmoidal_recovery(FULL_POINTS, TT2, FF, [0.005,])
-# plt.plot(FULL_PERIOD[data_start:], MOBILITY_CONTACT[data_start:], color='k')
-plt.plot(FULL_PERIOD[data_start:], SIGMOIDAL_CONTACT[data_start:], color='r')
-plt.plot(FULL_PERIOD[data_start:], SIGMOIDAL_CONTACT2[data_start:], color='g')
-plt.plot(FULL_PERIOD[data_start:], SIGMOIDAL_CONTACT3[data_start:], color='b')
-plt.plot()
-plt.show()
+### plotting functions for optimization results
+daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
 
-# ### plotting functions for optimization results
-# daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
-# N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
+# # plot for just one result
+# filepath = f"Data/Processed/results260316/evosax_DE_RSVExponentialNAflexagep01260316.pickle"
+# with open(filepath, "rb") as f:
+#     results = pickle.load(f)
+# print(results)
+# metrics_log = results["metrics_log"]
+# generations = metrics_log["generation_counter"]
+# best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+# color = "k"
+# plt.plot(generations, best_fitness, marker="o", markersize=3, alpha=0.7, color=color)
+# plt.show()
 
-# # # plot for just one result
-# # filepath = f"Data/Processed/results260316/evosax_DE_RSVExponentialNAflexagep01260316.pickle"
-# # with open(filepath, "rb") as f:
-# #     results = pickle.load(f)
-# # print(results)
-# # metrics_log = results["metrics_log"]
-# # generations = metrics_log["generation_counter"]
-# # best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
-# # color = "k"
-# # plt.plot(generations, best_fitness, marker="o", markersize=3, alpha=0.7, color=color)
-# # plt.show()
+# plot for a bunch of results
+plt.figure(figsize=(10, 5))
 
-# # plot for a bunch of results
-# plt.figure(figsize=(10, 5))
+# Iterate over different seeds
+# seed_suffixes = ['24', '242', '243', '244', '245', '246']
+# populations = ["20*20", "20*20", "20*20", "10*20", "10*20", "10*20", "20*20", "100*20", "100*20"]
+populations = ["200*20", "200*20", "200*20", "200*20", "200*20", "200*20"]
+pathogens = ["RSV", "Metapneumovirus", "InfluenzaA", "Parainfluenza3", "Adenovirus", "InfluenzaB"]
+population_colors = {
+    "10*20": "#648FFF", 
+    "20*20": "#DC267F",
+    "100*20": "#FF832B", 
+    "200*20": "#FFB000"
+}
+colors = ["#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000", "#000000"]
 
-# # Iterate over different seeds
-# seed_suffixes = ['20', '202', '203', '204', '205', '206']
-# # populations = ["20*20", "20*20", "20*20", "10*20", "10*20", "10*20", "20*20", "100*20", "100*20"]
-# populations = ["200*20", "200*20", "200*20", "200*20", "200*20", "200*20"]
-# population_colors = {
-#     "10*20": "#648FFF", 
-#     "20*20": "#DC267F",
-#     "100*20": "#FF832B", 
-#     "200*20": "#FFB000"
-# }
-# colors = ["#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000", "#000000"]
+for i, seed_suffix in enumerate(pathogens):
+    pathogen = pathogens[i]
+    filepath = f"Data/Processed/results260324/evosax_DE_{pathogen}SigmoidNAflexagep01260324.pickle"
+    try:
+        with open(filepath, "rb") as f:
+            results = pickle.load(f)
+        metrics_log = results["metrics_log"]
+        generations = metrics_log["generation_counter"]
+        best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+        # color = population_colors[populations[i]]
+        plt.plot(generations, best_fitness, label=pathogen, alpha=0.7, color=colors[i])
+    except FileNotFoundError:
+        print(f"File not found for {pathogen} seed 260324")
 
 # for i, seed_suffix in enumerate(seed_suffixes):
-#     filepath = f"Data/Processed/results260320/evosax_DE_RSVExponentialmimmflexagep012603{seed_suffix}.pickle"
+#     filepath = f"Data/Processed/results260303/evosax_DE_RSVFlexStepwiseincidence_dataflexagep012603{seed_suffix}.pickle"
 #     try:
 #         with open(filepath, "rb") as f:
 #             results = pickle.load(f)
 #         metrics_log = results["metrics_log"]
 #         generations = metrics_log["generation_counter"]
 #         best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
-#         # color = population_colors[populations[i]]
-#         plt.plot(generations, best_fitness, label=f"Pop: {seed_suffixes[i]}", alpha=0.7, color=colors[i])
+#         color = population_colors[populations[i]]
+#         plt.plot(generations, best_fitness, label=f"Pop: {populations[i]}, inc.", marker=".", markersize=3, alpha=0.7, color=color)
 #     except FileNotFoundError:
 #         print(f"File not found for seed 2603{seed_suffix}")
 
-# # for i, seed_suffix in enumerate(seed_suffixes):
-# #     filepath = f"Data/Processed/results260303/evosax_DE_RSVFlexStepwiseincidence_dataflexagep012603{seed_suffix}.pickle"
-# #     try:
-# #         with open(filepath, "rb") as f:
-# #             results = pickle.load(f)
-# #         metrics_log = results["metrics_log"]
-# #         generations = metrics_log["generation_counter"]
-# #         best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
-# #         color = population_colors[populations[i]]
-# #         plt.plot(generations, best_fitness, label=f"Pop: {populations[i]}, inc.", marker=".", markersize=3, alpha=0.7, color=color)
-# #     except FileNotFoundError:
-# #         print(f"File not found for seed 2603{seed_suffix}")
+# for i, seed_suffix in enumerate(seed_suffixes):
+#     filepath = f"Data/Processed/results260303/evosax_DE_RSVFlexStepwisesmoothedincidence_dataflexagep012603{seed_suffix}.pickle"
+#     try:
+#         with open(filepath, "rb") as f:
+#             results = pickle.load(f)
+#         metrics_log = results["metrics_log"]
+#         generations = metrics_log["generation_counter"]
+#         best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+#         color = population_colors[populations[i]]
+#         plt.plot(generations, best_fitness, label=f"Pop: {populations[i]}, sm. inc.", marker="+", markersize=3, alpha=0.7, color=color)
+#     except FileNotFoundError:
+#         print(f"File not found for seed 2603{seed_suffix}")
 
-# # for i, seed_suffix in enumerate(seed_suffixes):
-# #     filepath = f"Data/Processed/results260303/evosax_DE_RSVFlexStepwisesmoothedincidence_dataflexagep012603{seed_suffix}.pickle"
-# #     try:
-# #         with open(filepath, "rb") as f:
-# #             results = pickle.load(f)
-# #         metrics_log = results["metrics_log"]
-# #         generations = metrics_log["generation_counter"]
-# #         best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
-# #         color = population_colors[populations[i]]
-# #         plt.plot(generations, best_fitness, label=f"Pop: {populations[i]}, sm. inc.", marker="+", markersize=3, alpha=0.7, color=color)
-# #     except FileNotFoundError:
-# #         print(f"File not found for seed 2603{seed_suffix}")
+# filepath = f"Data/Processed/results260309/evosax_DE_RSVFlexStepwiseNAflexagep01260309.pickle"
+# with open(filepath, "rb") as f:
+#     results = pickle.load(f)
+# metrics_log = results["metrics_log"]
+# generations = metrics_log["generation_counter"]
+# best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+# color = population_colors["200*20"]
+# plt.plot(generations, best_fitness, label=f"Pop: {"200*20"}", marker="o", markersize=3, alpha=0.7, color=color)
 
-# # filepath = f"Data/Processed/results260309/evosax_DE_RSVFlexStepwiseNAflexagep01260309.pickle"
-# # with open(filepath, "rb") as f:
-# #     results = pickle.load(f)
-# # metrics_log = results["metrics_log"]
-# # generations = metrics_log["generation_counter"]
-# # best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
-# # color = population_colors["200*20"]
-# # plt.plot(generations, best_fitness, label=f"Pop: {"200*20"}", marker="o", markersize=3, alpha=0.7, color=color)
-
-# # filepath = f"Data/Processed/results260309/evosax_DE_RSVFlexStepwiseNAflexagep012603092.pickle"
-# # with open(filepath, "rb") as f:
-# #     results = pickle.load(f)
-# # metrics_log = results["metrics_log"]
-# # generations = metrics_log["generation_counter"]
-# # best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
-# # color = population_colors["200*20"]
-# # plt.plot(generations, best_fitness, label=f"Pop: {"200*20"}", marker="o", markersize=3, alpha=0.7, color=color)
+# filepath = f"Data/Processed/results260309/evosax_DE_RSVFlexStepwiseNAflexagep012603092.pickle"
+# with open(filepath, "rb") as f:
+#     results = pickle.load(f)
+# metrics_log = results["metrics_log"]
+# generations = metrics_log["generation_counter"]
+# best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
+# color = population_colors["200*20"]
+# plt.plot(generations, best_fitness, label=f"Pop: {"200*20"}", marker="o", markersize=3, alpha=0.7, color=color)
 
 
-# plt.title("Best Fitness over generations")
-# plt.xlabel("Generation")
-# plt.ylabel("Fitness")
-# plt.grid(True, alpha=0.3)
-# # plt.yscale('log')
-# # plt.xscale('log')
+plt.title("Best Fitness over generations")
+plt.xlabel("Generation")
+plt.ylabel("Fitness")
+plt.grid(True, alpha=0.3)
+# plt.yscale('log')
+# plt.xscale('log')
 # plt.xlim(500,1000)
 # plt.ylim(10800,11000)
-# plt.legend()
-# plt.tight_layout()
-# plt.savefig("Figures/evosax_DE_RSVExponentialmimmflexagep01_all_seeds_fitness_comparison260320.png", dpi=300)
+plt.legend()
+plt.tight_layout()
+plt.savefig("Figures/evosax_DE_RSVSigmoidmimmflexagep01_all_seeds_fitness_comparison260324.png", dpi=300)
 
 # # # ##### Testing optax ######
 # pathogen, seed, lockdown, option1, option2, import_multiplier = "RSV", 260224, "FlexStepwise", "NA", "flexagep01", 1e-9
