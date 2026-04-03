@@ -89,6 +89,7 @@ else:
         sys.exit()
     x = opt.x
     log_likelihood = -1 * opt.fun
+# x = x.at[6].set(0.88)
 # if pathogen == "RSV":
 #     n = 6
 # elif pathogen == "InfluenzaA" or pathogen == "InfluenzaB":
@@ -156,16 +157,16 @@ solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS)
 values = solution.ys.T
 times = solution.ts
 
-likelihood = SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, solution=solution, incidence_data=("incidence_data" in option1))
-print(likelihood)
+likelihood = SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, solution=solution, incidence_data=("incidence_data" in option1), return_sum=False)
+# print(likelihood)
 # print(likelihood.shape)
-# age_summed_likelihood = jnp.sum(likelihood, axis=1)
+age_summed_likelihood = jnp.sum(likelihood, axis=1)
 # print(jnp.min(age_summed_likelihood))
-# normalized_likelihood = age_summed_likelihood/jnp.min(age_summed_likelihood)
+normalized_likelihood = age_summed_likelihood/jnp.min(age_summed_likelihood)
 # print(jnp.max(normalized_likelihood))
-# mask = [3135,3288]
-# full_likelihood = jnp.zeros(len(POINTS))
-# full_likelihood = full_likelihood.at[90:90+mask[0]].set(normalized_likelihood[:mask[0]]).at[90+mask[1]:90+mask[1]+(len(normalized_likelihood)-mask[0])].set(normalized_likelihood[mask[0]:])
+mask = [3135,3288]
+full_likelihood = jnp.zeros(len(POINTS))
+full_likelihood = full_likelihood.at[90:90+mask[0]].set(normalized_likelihood[:mask[0]]).at[90+mask[1]:90+mask[1]+(len(normalized_likelihood)-mask[0])].set(normalized_likelihood[mask[0]:])
 # print(full_likelihood)
 # # for each season from the 2015/16 season onwards, sum the total number of infections
 seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
@@ -251,24 +252,24 @@ ax[0].legend(frameon=False)
 # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
 mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
 lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
-ax[1].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed") 
-# ax[1].plot(POINTS, mx*full_likelihood, label="Normalized likelihood", color="black", alpha=0.5)
+# ax[1].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed") 
+ax[1].plot(POINTS, mx*full_likelihood, label="Normalized likelihood", color="black", alpha=0.5)
 
 lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
 lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
 ax[2].set_title("Effective susceptibles")
 
-plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_test.png",dpi=300)
+plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
 plt.close()
 
-fig, ax = plt.subplots(figsize=(4,4))
-aggregation = "MS"
-kpsc_proportion_positive_incidence_plot(ax, pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data")
-mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="silver", label="Simulation")
-lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
-plt.tight_layout()
-plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_monthly_noage.png",dpi=300)
-plt.close()
+# fig, ax = plt.subplots(figsize=(4,4))
+# aggregation = "MS"
+# kpsc_proportion_positive_incidence_plot(ax, pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data")
+# mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="silver", label="Simulation")
+# lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
+# plt.tight_layout()
+# plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_monthly_noage.png",dpi=300)
+# plt.close()
 
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")

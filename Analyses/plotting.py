@@ -868,10 +868,10 @@ if __name__ == "__main__":
 
     # now include plots of simulations on top of data
     
-    lockdown = "Exponential"
+    lockdown = "Sigmoid"
     option1 = "NA"
     option2 = "flexagep01"
-    seeds = [2603172, 2603172, 2603172, 2603172, 2603172, 2603172]
+    seeds = [260324, 260324, 260324, 260324, 260324, 260324]
     ## Initial conditions
     from Parameters.census_population import CENSUS_AGE_POP
     STATE0 = jnp.zeros((2*N_S+1,NAG))
@@ -902,4 +902,4 @@ if __name__ == "__main__":
     subfigs[0].suptitle("A", x=0.01, fontweight='bold')
     subfigs[1].suptitle("B", x=0.01, fontweight='bold')
 
-    plt.savefig("Figures/Figure1_test.png",dpi=300)
+    plt.savefig("Figures/Figure1_sigmoid.png",dpi=300)
