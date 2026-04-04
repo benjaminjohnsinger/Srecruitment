@@ -19,7 +19,9 @@ from Parameters.census_population import *
 from Parameters.times_and_contacts import *
 
 from utils import *
-from fit_MCMC import SIS_likelihood
+from fit_MCMC import SIS_likelihood, peaks_and_times_likelihood
+from plotting import calculate_observations_per_season, get_season_start
+from data_processing import calculate_proportion_positive_incidence
 
 # import scipy as sp
 # import multiprocessing
@@ -69,11 +71,17 @@ start_idx = int(date_to_t(start_date) + 90 - date_to_t('2015-10-01'))
 end_idx = int(date_to_t(end_date) - date_to_t('2015-10-01'))
 data = data_full[start_idx:end_idx]
 
-if "incidence_data" not in option1:
+if "incidence_data" not in option1 and "peaks_and_times" not in option1:
     daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
     daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
     daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
     daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
+if "peaks_and_times" in option1:
+    incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False)
+    incidence = incidence.fillna(0)
+    obs_per_season = jnp.asarray(calculate_observations_per_season(incidence, age_groups=True))
+    peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()
+    peak_times = jnp.asarray(np.array([date_to_t(t) for t in peak_times.values]))
 
 ## Initial conditions
 STATE0 = jnp.zeros((2*N_S+1,NAG))
@@ -92,6 +100,26 @@ if "incidence_data" in option1:
                                  )
         lh = -SIS_likelihood(data, 0, sim_params, POINTS, STATE0, p_time_to_obs, incidence_data=True)
         lh = lh / N # normalize by number of data points
+        return lh
+elif "peaks_and_times" in option1:
+    N = 20 # number of data points is number of peaks + number of peak times
+    def likelihood(x):
+        sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
+                                 #  , rescale=bounds
+                                 )
+        lh = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs)
+        lh = lh / N # normalize by number of data points
+        return lh
+elif "combo" in option1:
+    N1 = jnp.prod(jnp.asarray(data.shape)) # number of data points is number of peaks + number of peak times + number of incidence data points
+    N2 = 20
+    def likelihood(x):
+        sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
+                                 #  , rescale=bounds
+                                 )
+        lh_base = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs)
+        lh_peaks_times = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs)
+        lh = lh_base / N1 + lh_peaks_times / N2 # normalize by number of data points to make comparable
         return lh
 else:
     N = jnp.prod(jnp.asarray(daily_hospitalization_rates.shape))

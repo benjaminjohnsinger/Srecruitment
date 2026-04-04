@@ -1,6 +1,8 @@
 ## SIR model with n susceptibility classes, for a single pathogen
 ## BJS September 2024
 
+from datetime import date
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -688,16 +690,12 @@ def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None,
             incidence = incidence.resample("D").interpolate()
         # take only first 9*365 values of incidence
         obs_per_season = calculate_observations_per_season(incidence)
-        # Define seasons starting October 1st
-        def get_season_start(date):
-            if date.month >= 10:
-                return pd.to_datetime(f'{date.year}-10-01')
-            else:
-                return pd.to_datetime(f'{date.year-1}-10-01')
+        print(obs_per_season)
         peak_times = incidence["Total"].groupby(incidence.index.map(get_season_start)).idxmax()
         last_peak_time = peak_times[peak_times.index < pd.to_datetime("2020-03-19")].max()
         # find the rebound season - the first season after 2020-03-19 to read 50% of the total number of observations in the median season before 2020-03-19
-        rebound_season = calculate_rebound_season(obs_per_season)
+        rebound_season = calculate_rebound_season(obs_per_season, definition="40% median")
+        print(rebound_season)
         if rebound_season is None:
             # plot a line at 2020-03-19 and annotate that there was no rebound season by the end of the data, then quit
             ax.plot([last_peak_time, pd.to_datetime("2025-05-01")], [incidence.loc[last_peak_time, "Total"], incidence.loc[last_peak_time, "Total"]], color="black", linestyle="--")
@@ -706,6 +704,7 @@ def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None,
                     path_effects=[pe.Stroke(linewidth=1, foreground='white'), pe.Normal()])
             return
         rebound_peak_time = peak_times.iloc[rebound_season]
+        print(rebound_peak_time)
         # draw a line from the last peak before 2020-03-19 to the peak of the rebound season, and annotate the time between them
         time_diff = rebound_peak_time - last_peak_time
         ax.plot([last_peak_time, rebound_peak_time], [incidence.loc[rebound_peak_time, "Total"], incidence.loc[rebound_peak_time, "Total"]], color="black")
@@ -719,24 +718,68 @@ def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None,
         #             path_effects=[pe.Stroke(linewidth=1, foreground='white'), pe.Normal()])
     return np.max(incidence)
 
+def get_season_start(date):
+    # two weeks buffer because of strange behaviour in rebound
+    if isinstance(date, pd.Timestamp):
+        if date >= pd.to_datetime(f'{date.year}-09-17'):
+            return pd.to_datetime(f'{date.year}-09-17')
+        else:
+            return pd.to_datetime(f'{date.year-1}-09-17')
+
+def get_season_start_jax(date):
+    threshold = (date//365)*365 + 259
+    return threshold + jnp.where(date >= threshold, 0, -365)
+
 def calculate_observations_per_season(incidence, age_groups=False):
+    # pad with two weeks's worth of zeros at the start
+    incidence = pd.concat([pd.DataFrame(0, index=pd.date_range(end=incidence.index[0]-pd.Timedelta(days=1), periods=14, freq='D'), columns=incidence.columns), incidence])
     if age_groups:
         obs_per_season = incidence.values[:9*365].reshape((9,365,-1)).sum(axis=1)
         # include last incomplete season (2024/25) up to 2025-05-01
-        last_season_start = pd.to_datetime('2024-10-01')
+        last_season_start = pd.to_datetime('2024-09-17')
         last_season_data = incidence[last_season_start:].values.sum(axis=0)
         obs_per_season = np.vstack([obs_per_season, last_season_data])
     else:
         obs_per_season = incidence.values[:9*365].reshape((9,365,-1)).sum(axis=1).sum(axis=1)
         # include last incomplete season (2024/25) up to 2025-05-01
-        last_season_start = pd.to_datetime('2024-10-01')
+        last_season_start = pd.to_datetime('2024-09-17')
         last_season_data = incidence[last_season_start:].values.sum()
         obs_per_season = np.append(obs_per_season, last_season_data)
     return obs_per_season
 
+
+def calculate_observations_per_season_jax(incidence, age_groups=False, pad_days=14, n_full_seasons=9, season_len=365):
+    """
+    JAX-compatible version for traced arrays.
+    Expects daily incidence starting at 2015-10-01 (or equivalent offset).
+    Uses fixed-size seasonal blocks and appends one final incomplete season.
+    """
+    x = jnp.asarray(incidence)
+
+    if x.ndim == 1:
+        x = x[:, None]
+    elif x.ndim != 2:
+        raise ValueError("incidence must have shape (time,) or (time, n_age_groups).")
+
+    # pad = jnp.zeros((pad_days, n_age), dtype=x.dtype)
+    # x = jnp.concatenate([pad, x], axis=0)
+
+    full_days = n_full_seasons * season_len
+    full = x[:full_days].reshape(n_full_seasons, season_len, 7).sum(axis=1)   # (n_full_seasons, n_age)
+    last = x[full_days:].sum(axis=0, keepdims=True)                                # (1, n_age)
+    out = jnp.concatenate([full, last], axis=0)                                    # (n_full_seasons+1, n_age)
+
+    if age_groups:
+        return out
+    return out.sum(axis=1)
+
 def calculate_rebound_season(obs_per_season, definition = "40% median"):
     if definition == "40% median":
         repr_pre_covid_obs = np.median(obs_per_season[:5]) * 0.4
+    elif definition == "50% median":
+        repr_pre_covid_obs = np.median(obs_per_season[:5]) * 0.5
+    elif definition == "third median":
+        repr_pre_covid_obs = np.median(obs_per_season[:5]) * (1/3)
     elif definition == "min":
         repr_pre_covid_obs = np.min(obs_per_season[:5])
     elif definition == "second min":
@@ -868,10 +911,10 @@ if __name__ == "__main__":
 
     # now include plots of simulations on top of data
     
-    lockdown = "Sigmoid"
+    lockdown = "Exponential"
     option1 = "NA"
     option2 = "flexagep01"
-    seeds = [260324, 260324, 260324, 260324, 260324, 260324]
+    seeds = [2603172, 2603172, 2603172, 2603172, 2603172, 2603172]
     ## Initial conditions
     from Parameters.census_population import CENSUS_AGE_POP
     STATE0 = jnp.zeros((2*N_S+1,NAG))
@@ -902,4 +945,4 @@ if __name__ == "__main__":
     subfigs[0].suptitle("A", x=0.01, fontweight='bold')
     subfigs[1].suptitle("B", x=0.01, fontweight='bold')
 
-    plt.savefig("Figures/Figure1_sigmoid.png",dpi=300)
+    plt.savefig("Figures/Figure1_thirdmedian.png",dpi=300)

@@ -24,6 +24,7 @@ N_S = 3
 from utils import date_to_t, parameters_from_DE, x_to_params, calculate_population_size
 from Gemini_vaccination import FluRatePreprocessor
 import time
+from plotting import calculate_observations_per_season_jax, get_season_start_jax
 
 def run_simulation(params, y0, t1, saveat_ts, hessian=False):
     term = ODETerm(deltas)
@@ -90,7 +91,7 @@ def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_
         return jnp.sum(likelihood)
     else:
         return likelihood
-
+    
 def calculate_expected_obs(values, p_time_to_obs, length):
     trajectory = jnp.diff(values[-NAG:,:],axis=1).T
         # convolution of trajectory with probability of detection at each day after infection to get expected observations on each day
@@ -101,6 +102,39 @@ def calculate_expected_obs(values, p_time_to_obs, length):
     expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
     expected_obs = jax.nn.softplus(expected_obs[-length:]*100)/100
     return expected_obs
+
+def peaks_and_times_likelihood(obs_per_season, peak_times, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, hessian=False, return_sum=True):
+    # run simulation
+    if solution is None:
+        t1 = int(POINTS[-1])
+        solution = run_simulation(params, STATE0, t1, POINTS, hessian=hessian)
+    values = solution.ys.T
+    times = solution.ts
+
+    population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
+    obs_per_season = obs_per_season * population_size[-1]
+
+    expected_obs = calculate_expected_obs(values, p_time_to_obs, len(times))
+    cut_times = times[:-1]
+    expected_obs_per_season = calculate_observations_per_season_jax(expected_obs, age_groups=True)
+    # Assign each time point to a season (numeric season id/start)
+    season_ids = jax.vmap(get_season_start_jax)(cut_times)
+    unique_seasons = 16684 + 365 * jnp.arange(10)  # Assuming seasons start on day 259 of each year
+    # For each season, find the time index of the peak expected observation (per age group)
+    def season_peak_times(season_id):
+        season_mask = season_ids == season_id                           # (T,)
+        masked_obs = jnp.where(season_mask[:, None], expected_obs, -jnp.inf)  # (T, NAG)
+        peak_idx = jnp.argmax(masked_obs, axis=0)                      # (NAG,)
+        return times[peak_idx]                                          # (NAG,)
+    expected_peak_times = jax.vmap(season_peak_times)(unique_seasons)   # (n_seasons, NAG)
+    # calculate likelihood based on how close expected_obs_per_season is to obs_per_season and how close expected_peak_times is to peak_times
+    season_likelihood = -jnp.sum((expected_obs_per_season - obs_per_season)**2)
+    peak_time_likelihood = -jnp.sum((expected_peak_times - peak_times)**2)
+    total_likelihood = season_likelihood / jnp.sum(obs_per_season**2) + peak_time_likelihood / jnp.sum(peak_times**2)
+    if return_sum:
+        return total_likelihood
+    else:
+        return season_likelihood, peak_time_likelihood
 
 def fit_transform(target_means, target_cov, bounds):
     n_params = target_means.shape[0]
