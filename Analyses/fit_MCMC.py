@@ -130,7 +130,7 @@ def peaks_and_times_likelihood(obs_per_season, peak_times, params, POINTS, STATE
     # calculate likelihood based on how close expected_obs_per_season is to obs_per_season and how close expected_peak_times is to peak_times
     season_likelihood = -jnp.sum((expected_obs_per_season - obs_per_season)**2)
     peak_time_likelihood = -jnp.sum((expected_peak_times - peak_times)**2)
-    total_likelihood = season_likelihood / jnp.sum(obs_per_season**2) + peak_time_likelihood / jnp.sum(peak_times**2)
+    total_likelihood = season_likelihood / jnp.sum(obs_per_season**2) + peak_time_likelihood / (365**2 * 10)
     if return_sum:
         return total_likelihood
     else:
