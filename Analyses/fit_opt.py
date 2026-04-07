@@ -26,112 +26,111 @@ from data_processing import calculate_proportion_positive_incidence
 # import scipy as sp
 # import multiprocessing
 
-pathogen, seed, lockdown, option1, option2, import_multiplier, opt_size, opt_rate1, opt_rate2 = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
+def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=True, hosp=True, hessian=False):
+    ### load data and parameters
+    start_date = '2015-07-04'
+    end_date = '2025-05-01'
+    # check if option1 is in date format with regex
+    if re.match(r'\d{4}-\d{2}-\d{2}',option1):
+        start_date = option1
+    if re.match(r'\d{4}-\d{2}-\d{2}',option2):
+        end_date = option2
+        option2 = "flexage" #this is super hacky sorry
 
-if len(sys.argv) > 10:
-    algorithm = sys.argv[10]
-else:
-    algorithm = "evosax" # default to evosax if not specified
+    START = pd.to_datetime(start_date) 
+    END = pd.to_datetime(end_date)
+    PERIOD = pd.date_range(start=START, end=END, freq='D')
+    POINTS = np.array(date_to_t(PERIOD))
+    FULL_PERIOD = pd.date_range(start=pd.to_datetime('1970-01-01'), end=END, freq='D')
+    FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
 
-# set seed
-np.random.seed(seed)
-
-### load data and parameters
-start_date = '2015-07-04'
-end_date = '2025-05-01'
-# check if option1 is in date format with regex
-if re.match(r'\d{4}-\d{2}-\d{2}',option1):
-    start_date = option1
-if re.match(r'\d{4}-\d{2}-\d{2}',option2):
-    end_date = option2
-    option2 = "flexage" #this is super hacky sorry
-
-START = pd.to_datetime(start_date) 
-END = pd.to_datetime(end_date)
-PERIOD = pd.date_range(start=START, end=END, freq='D')
-POINTS = np.array(date_to_t(PERIOD))
-FULL_PERIOD = pd.date_range(start=pd.to_datetime('1970-01-01'), end=END, freq='D')
-FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
-
-N_S, NAG = 3, 7
-from Parameters.census_population import AGING_RATE
-CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
-BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
-if "incidence_data" in option1:
-    if "smoothed" in option1:
-        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True, hosp=True)
+    N_S, NAG = 3, 7
+    from Parameters.census_population import AGING_RATE
+    CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
+    BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
+    if "incidence_data" in option1:
+        if "smoothed" in option1:
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True, hosp=hosp)
+        else:
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False, hosp=hosp)
     else:
-        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False, hosp=True)
-else:
-    REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False, hosp=True)
-fixed_params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, REC_UP, REC_SAME, IMPORT_STRENGTH)
+        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False, hosp=hosp)
+    fixed_params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, REC_UP, REC_SAME, IMPORT_STRENGTH)
 
-# # trim incidence so that Date is between START and END
-start_idx = int(date_to_t(start_date) + 90 - date_to_t('2015-10-01'))
-end_idx = int(date_to_t(end_date) - date_to_t('2015-10-01'))
-data = data_full[start_idx:end_idx]
+    # # trim incidence so that Date is between START and END
+    start_idx = int(date_to_t(start_date) + 90 - date_to_t('2015-10-01'))
+    end_idx = int(date_to_t(end_date) - date_to_t('2015-10-01'))
+    data = data_full[start_idx:end_idx]
 
-if "incidence_data" not in option1 and "peaks_and_times" not in option1:
-    daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
-    daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
-    daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
-    daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
-if ("peaks_and_times" in option1) or ("combo" in option1):
-    incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False)
-    incidence = incidence.fillna(0)
-    obs_per_season = jnp.asarray(calculate_observations_per_season(incidence, age_groups=True))
-    peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()
-    peak_times = jnp.asarray(np.array([date_to_t(t) for t in peak_times.values]))
+    if "incidence_data" not in option1 and "peaks_and_times" not in option1:
+        daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+        daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
+        daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
+        daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
+    if ("peaks_and_times" in option1) or ("combo" in option1):
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False)
+        incidence = incidence.fillna(0)
+        obs_per_season = jnp.asarray(calculate_observations_per_season(incidence, age_groups=True))
+        peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()
+        peak_times = jnp.asarray(np.array([date_to_t(t) for t in peak_times.values]))
 
-## Initial conditions
-STATE0 = jnp.zeros((2*N_S+1,NAG))
-STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
-STATE0 = STATE0.at[1,:].set(1)
-# # flatten initial state and add maternal immunity compartment
-STATE0 = STATE0.flatten()
-STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+    ## Initial conditions
+    STATE0 = jnp.zeros((2*N_S+1,NAG))
+    STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
+    STATE0 = STATE0.at[1,:].set(1)
+    # # flatten initial state and add maternal immunity compartment
+    STATE0 = STATE0.flatten()
+    STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-#### Define likelihood function for optimization
-if "incidence_data" in option1:
-    N = jnp.prod(jnp.asarray(data.shape))
-    def likelihood(x):
-        sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
-                                #  , rescale=bounds
-                                 )
-        lh = -SIS_likelihood(data, 0, sim_params, POINTS, STATE0, p_time_to_obs, incidence_data=True)
-        lh = lh / N # normalize by number of data points
-        return lh
-elif "peaks_and_times" in option1:
-    N = 20 # number of data points is number of peaks + number of peak times
-    def likelihood(x):
-        sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
-                                 #  , rescale=bounds
-                                 )
-        lh = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs)
-        lh = lh / N # normalize by number of data points
-        return lh
-elif "combo" in option1:
-    N1 = jnp.prod(jnp.asarray(data.shape)) # number of data points is number of peaks + number of peak times + number of incidence data points
-    N2 = 20
-    def likelihood(x):
-        sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
-                                 #  , rescale=bounds
-                                 )
-        lh_base = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs)
-        lh_peaks_times = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs)
-        lh = (lh_base / N1 + lh_peaks_times / N2)/2 # normalize by number of data points to make comparable
-        return lh
-else:
-    N = jnp.prod(jnp.asarray(daily_hospitalization_rates.shape))
-    def likelihood(x, pp_opt=None):
-        sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
-                                 #  , rescale=bounds
-                                 )
-        if "pp" in option2:
-            pp_opt = sim_params[8]
-        lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, obs_age=pp_opt)
-        lh = lh / N # normalize by number of data points
-        return lh
+    #### Define likelihood function for optimization
+    if "incidence_data" in option1:
+        N = jnp.prod(jnp.asarray(data.shape))
+        def likelihood(x):
+            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
+                                    #  , rescale=bounds
+                                    )
+            lh = -SIS_likelihood(data, 0, sim_params, POINTS, STATE0, p_time_to_obs, incidence_data=True, hessian=hessian)
+            if normalize:
+                lh = lh / N # normalize by number of data points
+            return lh
+    elif "peaks_and_times" in option1:
+        N = 20 # number of data points is number of peaks + number of peak times
+        def likelihood(x):
+            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
+                                    #  , rescale=bounds
+                                    )
+            lh = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, hessian=hessian)
+            if normalize:
+                lh = lh / N # normalize by number of data points
+            return lh
+    elif "combo" in option1:
+        N1 = jnp.prod(jnp.asarray(data.shape)) # number of data points is number of peaks + number of peak times + number of incidence data points
+        N2 = 20
+        N = (N1 + N2) / 2 # average number of data points to make comparable to other likelihoods
+        def likelihood(x):
+            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
+                                    #  , rescale=bounds
+                                    )
+            lh_base = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, hessian=hessian)
+            lh_peaks_times = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, hessian=hessian)
+            if normalize:
+                lh = (lh_base / N1 + lh_peaks_times / N2)/2 # normalize by number of data points to make comparable
+            else:
+                lh = (lh_base + lh_peaks_times)/2
+            return lh
+    else:
+        N = jnp.prod(jnp.asarray(daily_hospitalization_rates.shape))
+        def likelihood(x, pp_opt=None):
+            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
+                                    #  , rescale=bounds
+                                    )
+            if "pp" in option2:
+                pp_opt = sim_params[8]
+            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, obs_age=pp_opt, hessian=hessian)
+            if normalize:
+                lh = lh / N # normalize by number of data points
+            return lh
+    return likelihood, N
 
 #### Define functions for sampling initial points and resampling bad points
 def latin_hypercube_sample(key, n_samples, n_dims):
@@ -174,6 +173,16 @@ def run_resampling(xs, likelihoods, key):
     return final_state[0], final_state[1], final_state[3]
 
 if __name__ == '__main__':
+    pathogen, seed, lockdown, option1, option2, import_multiplier, opt_size, opt_rate1, opt_rate2 = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
+
+    if len(sys.argv) > 10:
+        algorithm = sys.argv[10]
+    else:
+        algorithm = "evosax" # default to evosax if not specified
+
+    # set seed
+    np.random.seed(seed)
+
     # # #scipy version of DE
     # vmap_likelihood = jax.jit(jax.vmap(likelihood))
     # def scipy_objective(x):
@@ -193,9 +202,10 @@ if __name__ == '__main__':
     # bounds = jnp.zeros(unlogged_bounds.shape)
     # bounds = bounds.at[:, 1].set(10)
     # bounds = bounds.at[:, 0].set(-10)
+    likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier)
     def new_likelihood(x):
         lik =  likelihood(x)
-        # remove nas
+        # remove nans
         lik = jnp.where(jnp.isnan(lik), likelihood_threshold*10, lik)
         return lik
     vmap_likelihood = jax.vmap(new_likelihood)
