@@ -191,7 +191,7 @@ def params_to_scalars(param_dict,scalar_names):
             scalar_dict[name] = param_dict["P_OBS"][int(name[5:])]
     return scalar_dict
 
-def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, smoothed=False, skip_incidence=False):
+def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, smoothed=False, skip_incidence=False, hosp=True):
     ARRIVALS = jnp.asarray(np.genfromtxt('Data/Processed/arrivals_daily.csv', delimiter=','))
     if 'RSV' in pathogen:
         REC_UP = jnp.array([1/4.9,1/4.1,0.0])
@@ -200,12 +200,12 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
             if smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age_daily.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_RSV_positive_counts.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_RSV_total_counts.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_RSV_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_RSV_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
     elif 'InfluenzaA' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
@@ -213,12 +213,12 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
             if smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age_daily.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaA_positive_counts.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaA_total_counts.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaA_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaA_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
     elif 'InfluenzaB' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
@@ -226,12 +226,12 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_B_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
             if smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age_daily.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaB_positive_counts.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaB_total_counts.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaB_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaB_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
     elif 'Parainfluenza3' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
@@ -239,12 +239,12 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
             if smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age_daily.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Parainfluenza3_positive_counts.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Parainfluenza3_total_counts.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Parainfluenza3_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Parainfluenza3_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
     elif 'Adenovirus' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
@@ -252,12 +252,12 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
             if smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age_daily.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Adenovirus_positive_counts.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Adenovirus_total_counts.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Adenovirus_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Adenovirus_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
     elif 'Metapneumovirus' in pathogen:
         REC_UP = np.array([1/4.9,1/4.1,0.0]) # based on RSV - Okiro 2010
         REC_SAME = np.array([0.0,0.0,1/4.1]) # based on RSV - Okiro 2010
@@ -265,12 +265,12 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv",delimiter=',', header=None).values)
         if incidence_data:
             if smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age_daily.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_positive_counts.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_total_counts.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
     elif "test" in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
@@ -490,11 +490,11 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
         bounds_dict["OVERDISPERSION"] = [-5,10]
     elif ("mimm" in option1) & ("maxmimm" not in option1):
         bounds_dict["MATERNAL_IMMUNITY"] = [0,1]
-    if ("Influenza" in pathogen) and ("free" not in pathogen) and (option2 != "nr"):
+    if ("Influenza" in pathogen) and ("free" not in pathogen) and ("nr" not in option2):
         bounds_dict["EXTRA_IMMUNITY"] = [0,1]
         bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
         bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
-    elif pathogen == "RSV":
+    elif ("RSV" in pathogen) and ("nr" not in option2):
         bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = [0.1,1]
     else:
         bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1,1]
@@ -570,7 +570,7 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
     # Detect file type and extract results accordingly
     if prefix == "evosax_DE_":
         # evosax_DE format
-        x = opt["final_population"][np.argmax(opt["final_fitness"])]
+        x = opt["final_population"][np.argmin(opt["final_fitness"])]
     else:
         # scipy.optimize.differential_evolution format
         if opt.success:
@@ -624,7 +624,7 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
     else:
         x_DE = opt.x
     REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
-    x_consistent = jnp.zeros(19 + 2*(lockdown=="Exponential"))
+    x_consistent = jnp.zeros(19 + 2*(lockdown=="Exponential") + 3*(lockdown=="Sigmoid"))
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC
     x_consistent = x_consistent.at[2:5].set(x_DE[0:3]) # BETA, SEASONALITY, OFFSET
     n = 3
@@ -635,7 +635,7 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
     else:
         x_consistent = x_consistent.at[6].set(x_DE[3]) # WANE2
         n += 1
-    if ("Influenza" in pathogen) and ("free" not in pathogen):
+    if ("Influenza" in pathogen) and ("free" not in pathogen) and ('nr' not in option2):
         srel, pobsrel = constrained_immunity(x_DE[n],x_DE[n+1],x_DE[n+2])
         S_REL1 = srel[1]
         S_REL2 = srel[2]/srel[1]
@@ -643,7 +643,7 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
         D_REL2 = pobsrel[2]/pobsrel[1]
         x_consistent = x_consistent.at[7:11].set(jnp.array([S_REL1,S_REL2,D_REL1,D_REL2]))
         n += 3
-    elif pathogen == "RSV":
+    elif ("RSV" in pathogen) and ("nr" not in option2):
         x_consistent = x_consistent.at[7:9].set(x_DE[n:n+2]) # S_REL1, S_REL2
         x_consistent = x_consistent.at[9:11].set(jnp.array([0.46,0.31/0.46])) # D_REL1, D_REL2
         n += 2
@@ -659,6 +659,10 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
         x_consistent = x_consistent.at[12:14].set(x_DE[n:n+2]) # F1, R1
         n += 2
         obs_age_start = 14
+    elif lockdown == "Sigmoid":
+        x_consistent = x_consistent.at[12:15].set(x_DE[n:n+3]) # F1, DT1, R1
+        n += 3
+        obs_age_start = 15
     x_consistent = x_consistent.at[obs_age_start:obs_age_start+NAG].set(x_DE[-NAG:]) # AGE_OBS_1 to AGE_OBS_7
     return x_consistent
 

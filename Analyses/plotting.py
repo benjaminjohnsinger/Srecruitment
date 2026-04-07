@@ -658,9 +658,9 @@ def kpsc_positive_test_plot(ax, hospitalizations=True, pathogen="RSV", AGE_GROUP
 
 nice_names = {"RSV": "RSV", "InfluenzaA": "Influenza A", "InfluenzaB": "Influenza B", "Metapneumovirus": "Metapneumovirus", "Adenovirus": "Adenovirus", "Parainfluenza3": "Parainfluenza 3", "Rhinovirus": "Rhinovirus", "Pertussis": "Pertussis", "M.pneumoniae": "M. pneumoniae", "C.pneumoniae": "C. pneumoniae", "SARS-CoV-2": "SARS-CoV-2", "Enterovirus": "Enterovirus"}
 from data_processing import calculate_proportion_positive_incidence
-def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, title=None, color=hsv_colors, legend=True, aggregation="D", window_size=28, weighting_factor=0.5, label=None, factor=1000000, annotations=False, pp_only=False):
+def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, title=None, color=hsv_colors, legend=True, aggregation="D", window_size=28, weighting_factor=0.5, label=None, factor=1000000, annotations=False, pp_only=False, hosp=False):
     print(pathogen)
-    incidence = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=window_size, weighting_factor=weighting_factor, sum_age_groups=AGE_GROUPS is None, save_counts=False, pp_only=pp_only)
+    incidence = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=window_size, weighting_factor=weighting_factor, sum_age_groups=AGE_GROUPS is None, save_counts=False, pp_only=pp_only, hosp=hosp)
     incidence *= factor
     if aggregation == "MS":
         # add 14 days to the index to get the middle of the month
@@ -858,30 +858,30 @@ if __name__ == "__main__":
 
     fig = plt.figure(layout="constrained", figsize=(7,4))
 
-    pathogens = ["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Parainfluenza3","Adenovirus"]
+    pathogens = ["Metapneumovirus","Parainfluenza3","Adenovirus","RSV","InfluenzaA","InfluenzaB",]
 
-    subfigs = fig.subfigures(1, 2, wspace=0.05, width_ratios=[7, 3])
-    axA = subfigs[1].subplots(len(pathogens), 1, sharex = True)
-    axB = subfigs[0].subplots((len(pathogens) + 1)//2, 2, sharex = True)
+    # subfigs = fig.subfigures(1, 2, wspace=0.05, width_ratios=[7, 3])
+    # axA = subfigs[1].subplots(len(pathogens), 1, sharex = True)
+    # axB = subfigs[0].subplots((len(pathogens) + 1)//2, 2, sharex = True)
 
     
-    # figA, axA = plt.subplots(6, 1, figsize=(2.5,4), sharex = True)
-    for pi,pathogen in enumerate(pathogens):
-        print(pathogen)
-        age_group_incidence_plot(axA[pi],pathogen,color="k",season="pre_median", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Pre-COVID-19")
-        age_group_incidence_plot(axA[pi],pathogen,color="silver",season="rebound", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Re-emergence")
-        axA[pi].set_title(nice_names.get(pathogen, pathogen))
-    # set singe x label for all subplots
-    axA[-1].set_xlabel("Age group")
-    axA[0].legend(loc="upper right", fontsize=6)
-    # set single y label for all subplots
-    subfigs[1].text(-0.05, 0.5, 'Incidence per 100k members', va='center', rotation='vertical')
-    # plt.tight_layout()
-    # plt.savefig("Figures/KPSC_age_group_incidence_pre_median_rebound.png",dpi=300)
+    # # figA, axA = plt.subplots(6, 1, figsize=(2.5,4), sharex = True)
+    # for pi,pathogen in enumerate(pathogens):
+    #     print(pathogen)
+    #     age_group_incidence_plot(axA[pi],pathogen,color="k",season="pre_median", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Pre-COVID-19")
+    #     age_group_incidence_plot(axA[pi],pathogen,color="silver",season="rebound", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Re-emergence")
+    #     axA[pi].set_title(nice_names.get(pathogen, pathogen))
+    # # set singe x label for all subplots
+    # axA[-1].set_xlabel("Age group")
+    # axA[0].legend(loc="upper right", fontsize=6)
+    # # set single y label for all subplots
+    # subfigs[1].text(-0.05, 0.5, 'Incidence per 100k members', va='center', rotation='vertical')
+    # # plt.tight_layout()
+    # # plt.savefig("Figures/KPSC_age_group_incidence_pre_median_rebound.png",dpi=300)
 
-    # figB, axB = plt.subplots(3, 2, figsize=(4.5,4), sharex = True)
+    figB, axB = plt.subplots(3, 2, figsize=(6.5,4), sharex = True)
     data_color = "#648FFF"
-    aggregation = "MS"
+    aggregation = "W-MON"
     agg_factor = {"D":1, "W-MON":7, "MS":30.44}[aggregation]
     factor = 100000
     if factor >= 1000000:
@@ -894,7 +894,7 @@ if __name__ == "__main__":
         kpsc_proportion_positive_incidence_plot(
             axB[pi//2, pi%2], pathogen=pathogen, title=nice_names.get(pathogen, pathogen),
             color=data_color, aggregation=aggregation, factor=factor,
-            annotations=True, label="Data")
+            annotations=False, label="Data", hosp=False)
     # suppress all y labels and replace with single label on left
     for i in range(len(pathogens)//2):
         for j in range(2):
@@ -914,7 +914,7 @@ if __name__ == "__main__":
     lockdown = "Exponential"
     option1 = "NA"
     option2 = "flexagep01"
-    seeds = [2603172, 2603172, 2603172, 2603172, 2603172, 2603172]
+    seeds = [2603172,]*6
     ## Initial conditions
     from Parameters.census_population import CENSUS_AGE_POP
     STATE0 = jnp.zeros((2*N_S+1,NAG))
@@ -939,10 +939,10 @@ if __name__ == "__main__":
                                 color="#DC267F", factor=factor*agg_factor, label="Simulation")
     axB[0,1].legend(loc="upper right")
     
-    # plt.tight_layout()
-    # plt.savefig("Figures/KPSC_proportion_positive_incidence_monthly_with_sims_annotated_newfits3.png",dpi=300)
+    plt.tight_layout()
+    plt.savefig("Figures/ReportOverallIncidenceWeeklyExponential2604172.png",dpi=300)
 
-    subfigs[0].suptitle("A", x=0.01, fontweight='bold')
-    subfigs[1].suptitle("B", x=0.01, fontweight='bold')
+    # subfigs[0].suptitle("A", x=0.01, fontweight='bold')
+    # subfigs[1].suptitle("B", x=0.01, fontweight='bold')
 
-    plt.savefig("Figures/Figure1_thirdmedian.png",dpi=300)
+    # plt.savefig("Figures/Figure1_thirdmedian.png",dpi=300)

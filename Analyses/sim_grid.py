@@ -604,10 +604,10 @@ def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8):
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 18, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 2603172
+    seed = 260324
     option1 = "NA"
     option2 = "flexagep01"
-    lockdown = "Exponential"
+    lockdown = "Sigmoid"
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     good_simulations = [
         ["RSV", seed, option1, option2], ["Metapneumovirus", seed, option1, option2], 
@@ -616,14 +616,14 @@ if __name__ == "__main__":
     ]
 
     # Parameter scaling factors used in the model
-    PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
+    PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
 
     fig, ax = plt.subplots(figsize=(10, 8))
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
                                             seed=seed, n_samples=80000, dimension=2, chunk_size=40000)
     generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=0, p2=8, outcome="time_to_rebound")
     plt.tight_layout()
-    plt.savefig("Figures/heatmap_time_to_rebound_test.png", dpi=300)
+    plt.savefig("Figures/heatmap_time_to_rebound_Sigmoid.png", dpi=300)
 
     # fig, ax = plt.subplots(figsize=(10, 8))
     # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)

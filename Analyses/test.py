@@ -29,10 +29,16 @@ import pickle
 
 print(date_to_t("1970-09-17"))
 
-# plt.rcParams.update({'font.size':14})
-# # text type is palatino
-# plt.rcParams['font.family'] = 'serif'
-# plt.rcParams['font.serif'] = ['Palatino']
+x = [4.8515820e-05, 1.4551926e-03, 7.9544476e-04, 1.1450225e-03, 3.2359516e-04,
+     9.7215286e-04, 9.8846694e-03]
+x = jnp.array(x)
+print(jnp.max(x))
+print(x/jnp.max(x))
+
+plt.rcParams.update({'font.size':8})
+# text type is palatino
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Palatino']
 
 ###### spectrum analysis
 # N = date_to_t("2020-03-19")-date_to_t('2015-10-01')
@@ -446,7 +452,39 @@ print(date_to_t("1970-09-17"))
 # plt.close()
 
 
-##### Lockdowns plot ####
+##### updated lockdowns plot #####
+fig, axes = plt.subplots(6, 1, figsize=(6.5, 5), sharex=True)
+pathogens = ["RSV", "Metapneumovirus","InfluenzaA", "InfluenzaB","Adenovirus",  "Parainfluenza3", ]
+seed = 2603172
+option1 = "NA"
+option2 = "flexagep01"
+lockdown = "Exponential"
+prefix = "evosax_DE_"
+colors = ["#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000", "#000000", "#00BB00", "#648FFF", "#785EF0", "#DC267F"]
+for ax, pathogen, color in zip(axes.flatten(), pathogens, colors):
+    base_path = "Data/Processed/results"+str(seed)[:6]+"/"
+    filename_pattern = pathogen+lockdown+option1+option2+str(seed)+".pickle"
+    filepath = base_path + prefix + filename_pattern
+    with open(filepath, "rb") as f:
+        opt = pickle.load(f)
+    print(f"Loaded: {prefix}{filename_pattern}")
+    x = opt["final_population"][np.argmin(opt["final_fitness"])]
+    params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True)
+    time_range = np.arange(len(cntct))
+    date_range = [t_to_date(t) for t in time_range]
+    ax.plot(date_range, cntct, color=color, linewidth=2)
+    ax.set_title(pathogen)
+    ax.set_ylim(0, 1.1)
+    ax.set_ylabel("")
+axes[-1].set_xlabel("Time")
+# axes[0].set_ylabel("Relative Contact Rate")
+# limit x to 2020-01-01 to 2023-01-01
+axes[-1].set_xlim(pd.to_datetime('2020-01-01'), pd.to_datetime('2023-01-01'))
+# fig.suptitle("Inferred Contact Reductions Over Time", fontsize=14)
+plt.tight_layout()
+plt.savefig("Figures/exponential_lockdown_all_pathogens_stacked2603172.png", dpi=300)
+
+# ##### Lockdowns plot ####
 # class FakeOpt:
 #     def __init__(self, x):
 #         self.x = x

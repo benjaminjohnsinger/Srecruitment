@@ -229,47 +229,69 @@ if "free" in pathogen:
 else:
     pathogen_name = pathogen
 
-plt.rcParams.update({'font.size':14})
+plt.rcParams.update({'font.size':8})
 # text type is palatino
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
-fig = plt.figure(figsize=(13.3,7.5))
-ax1 = fig.add_subplot(3,1,1)
-ax2 = fig.add_subplot(3,1,2, sharex=ax1
-, sharey=ax1
+fig = plt.figure(figsize=(6.5,2.8))
+# ax1 = fig.add_subplot(3,1,1)
+ax2 = fig.add_subplot(2,1,1
 )
-ax3 = fig.add_subplot(3,1,3, sharex=ax1)
-ax = [ax1,ax2,ax3]
+ax3 = fig.add_subplot(2,1,2
+, sharey=ax2)
+ax = [0, ax2,ax3]
 aggregation = "Month"
-dmx = kpsc_proportion_positive_incidence_plot(ax[0], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="MS", factor=10000)
-ax[0].set_xlabel("")
+dmx = kpsc_proportion_positive_incidence_plot(ax[1], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="MS", factor=10000, hosp=True)
+ax[1].set_xlabel("")
 pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
 # ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
-ax[0].set_ylabel("Monthly incidence per 10k")
+ax[1].set_ylabel("Monthly incidence per 10k")
 # legend
-ax[0].legend(frameon=False)
+ax[1].legend(frameon=False, fontsize=6, ncol=3)
 
 # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
-mx = lockdown_incidence_plot(ax[1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
-lockdown_incidence_format(ax[1],date_to_t('2020-03-19'),365,mx,year_window=2)
-# ax[1].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed") 
-ax[1].plot(POINTS, mx*full_likelihood, label="Normalized likelihood", color="black", alpha=0.5)
+mx = lockdown_incidence_plot(ax[2],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,30.44][[None,"Month"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
+lockdown_incidence_format(ax[2],date_to_t('2020-03-19'),365,mx,year_window=2)
+# ax[2].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed") 
+# ax[2].plot(POINTS, mx*full_likelihood, label="Normalized likelihood", color="black", alpha=0.5)
 
-lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
-ax[2].set_title("Effective susceptibles")
+# lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+# lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
+# ax[2].set_title("Effective susceptibles")
 
-plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
-plt.close()
+# aggregation = "MS"
+# kpsc_proportion_positive_incidence_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data")
+# mx = lockdown_incidence_plot(ax[0],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
+# lockdown_incidence_format(ax[0],date_to_t('2020-03-19'),365,mx,year_window=2)
+# ax[0].legend(frameon=False, fontsize=6)
 
-fig, ax = plt.subplots(figsize=(4,4))
-aggregation = "W"
-kpsc_proportion_positive_incidence_plot(ax, pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data")
-mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="silver", label="Simulation")
-lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
+# ax[0].set_title("")
+# ax[0].set_xlabel("")
+# ax[0].set_xticklabels("")
+# ax[0].set_ylabel("Incidence\nper 10k")
+ax[1].set_title("")
+ax[1].set_xlabel("")
+ax[1].set_xticklabels("")
+ax[1].set_ylabel("Age-structured\ndata")
+ax[2].set_title("")
+ax[2].set_xlabel("Date")
+ax[2].set_ylabel("Age-structured\nsimulation")
+
+# pathogen as title
+fig.suptitle(pnamedict[pathogen_name], fontsize=10)
+
 plt.tight_layout()
-plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_monthly_noage.png",dpi=300)
+plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_reportage.png",dpi=300)
 plt.close()
+
+# fig, ax = plt.subplots(figsize=(4,4))
+# aggregation = "W"
+# kpsc_proportion_positive_incidence_plot(ax, pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data")
+# mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="silver", label="Simulation")
+# lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
+# plt.tight_layout()
+# plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_monthly_noage.png",dpi=300)
+# plt.close()
 
 # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
 # ax[1].set_xlabel("")
