@@ -1,5 +1,5 @@
 combinations=(
-"RSV 260408 Exponential NA flexagep017 1e-9 20 400 0.7"
+# "RSV 260408 Exponential NA flexagep017 1e-9 20 400 0.7"
 "RSV 260408 Exponential NA 2023-05-01flexagep028 1e-9 20 400 0.7"
 "RSV 260408 FlexStepwise old_incidence_data flexagep005 1e-9 20 400 0.7"
 "RSV 260408 Exponential old_incidence_data flexagep005 1e-9 20 400 0.7"

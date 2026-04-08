@@ -34,8 +34,13 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     if re.match(r'\d{4}-\d{2}-\d{2}',option1):
         start_date = option1
     if re.match(r'\d{4}-\d{2}-\d{2}',option2):
-        end_date = option2
-        option2 = "flexage" #this is super hacky sorry
+        end_date = option2[0:10]
+        option2 = option2[10:]
+    
+    if end_date < '2024-10-01':
+        mask = [0,0]
+    else:
+        mask = [3135,3288]
 
     START = pd.to_datetime(start_date) 
     END = pd.to_datetime(end_date)
@@ -91,7 +96,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
             sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
                                     #  , rescale=bounds
                                     )
-            lh = -SIS_likelihood(data, 0, sim_params, POINTS, STATE0, p_time_to_obs, incidence_data=True, hessian=hessian)
+            lh = -SIS_likelihood(data, 0, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, incidence_data=True, hessian=hessian)
             if normalize:
                 lh = lh / N # normalize by number of data points
             return lh
@@ -101,7 +106,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
             sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
                                     #  , rescale=bounds
                                     )
-            lh = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, hessian=hessian)
+            lh = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian)
             if normalize:
                 lh = lh / N # normalize by number of data points
             return lh
@@ -113,8 +118,8 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
             sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
                                     #  , rescale=bounds
                                     )
-            lh_base = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, hessian=hessian)
-            lh_peaks_times = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, hessian=hessian)
+            lh_base = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian)
+            lh_peaks_times = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian)
             if normalize:
                 lh = (lh_base / N1 + lh_peaks_times / N2)/2 # normalize by number of data points to make comparable
             else:
@@ -128,7 +133,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
                                     )
             if "pp" in option2:
                 pp_opt = sim_params[8]
-            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, obs_age=pp_opt, hessian=hessian)
+            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, obs_age=pp_opt, hessian=hessian)
             if normalize:
                 lh = lh / N # normalize by number of data points
             return lh

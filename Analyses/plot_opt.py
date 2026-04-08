@@ -54,6 +54,7 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
             print(f"File not found: {prefix}{filename_pattern}")
 
     if opt is None:
+        print(base_path+filename_pattern)
         print('File not found with either prefix (DE_opt_ or evosax_DE_)')
         sys.exit()
 
@@ -86,15 +87,28 @@ if __name__ == "__main__":
     else:
         hosp = True
 
-    if re.match(r'\d{4}-\d{2}-\d{2}',option1):
-        start_date = option1
-    if re.match(r'\d{4}-\d{2}-\d{2}',option2):
-        end_date = option2
-        option2 = "flexage" #this is super hacky sorry
+    start_date = '2015-07-04'
+    end_date = '2025-05-01'
+    option2_label = option2
+    option2 = option2[10:]
+    # if re.match(r'\d{4}-\d{2}-\d{2}',option1):
+    #     start_date = option1
+    # if re.match(r'\d{4}-\d{2}-\d{2}',option2):
+    #     option2_label = option2
+    #     end_date = option2[0:10]
+    #     option2 = option2[10:]
+    # else:
+    #     option2_label = option2
+    
+    # if end_date < '2024-10-01':
+    #     mask = [0,0]
+    # else:
+    mask = [3135,3288]
+
     print(pathogen, seed)
     # set seed
     np.random.seed(seed)
-    prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
+    prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2_label)
     # prefix = "evosax_DE_"
     # x = jnp.array([1.1706531e-01, 7.3374316e-02, 2.2380880e-01, 9.8890215e-03, 4.5175752e-01,
     #     2.7518633e-01, 9.3584144e-01, 5.9982330e-01, 2.3880145e-01, 9.4480757e-03,
@@ -127,8 +141,6 @@ if __name__ == "__main__":
     BIRTH_RATE = np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=',')
     age_pops = np.genfromtxt('Data/Processed/age_pops_daily.csv', delimiter=',')
 
-    start_date = '2015-07-04'
-    end_date = '2025-05-01'
     EPOCH = pd.to_datetime('1970-01-01')
     START = pd.to_datetime(start_date) 
     END = pd.to_datetime(end_date)
@@ -169,7 +181,7 @@ if __name__ == "__main__":
     values = solution.ys.T
     times = solution.ts
 
-    likelihood = SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, solution=solution, incidence_data=("incidence_data" in option1), return_sum=True)
+    likelihood = SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, solution=solution, mask=mask, incidence_data=("incidence_data" in option1), return_sum=True)
     print(likelihood)
     # # print(likelihood.shape)
     # age_summed_likelihood = jnp.sum(likelihood, axis=1)
@@ -246,13 +258,14 @@ if __name__ == "__main__":
     # text type is palatino
     plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.serif'] = ['Palatino']
-    fig = plt.figure(figsize=(6.5,4))
-    ax1 = fig.add_subplot(3,1,1)
-    ax2 = fig.add_subplot(3,1,2
+    fig = plt.figure(figsize=(5,5))
+    ax1 = fig.add_subplot(4,1,1)
+    ax2 = fig.add_subplot(4,1,2
     )
-    ax3 = fig.add_subplot(3,1,3
+    ax3 = fig.add_subplot(4,1,3
     , sharey=ax2)
-    ax = [ax1, ax2,ax3]
+    ax4 = fig.add_subplot(4,1,4)
+    ax = [ax1, ax2, ax3, ax4]
     aggregation = "MS"
     if option1 == "old_incidence_data":
         dmx = kpsc_positive_test_plot(ax[1], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, color=hsv_colors, legend=False, aggregation=aggregation, factor=10000)
@@ -268,12 +281,12 @@ if __name__ == "__main__":
     # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
     mx = lockdown_incidence_plot(ax[2],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
     lockdown_incidence_format(ax[2],date_to_t('2020-03-19'),365,mx,year_window=2)
-    # ax[2].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed") 
+    ax[2].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed") 
     # ax[2].plot(POINTS, mx*full_likelihood, label="Normalized likelihood", color="black", alpha=0.5)
 
-    # lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-    # lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
-    # ax[2].set_title("Effective susceptibles")
+    lockdown_susceptibility_plot(ax[3],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+    lockdown_susceptibility_format(ax[3],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
+    # ax[3].set_title("Effective susceptibles")
 
     if option1 == "old_incidence_data":
         kpsc_positive_test_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data")
@@ -292,14 +305,18 @@ if __name__ == "__main__":
     ax[1].set_xticklabels("")
     ax[1].set_ylabel("Age-structured\ndata")
     ax[2].set_title("")
-    ax[2].set_xlabel("Date")
+    ax[2].set_xlabel("")
+    ax[2].set_xticklabels("")
     ax[2].set_ylabel("Age-structured\nsimulation")
+    ax[3].set_title("")
+    ax[3].set_xlabel("Date")
+    ax[3].set_ylabel("Effective susceptibility")
 
     # pathogen as title
     fig.suptitle(pnamedict[pathogen_name], fontsize=10)
 
     plt.tight_layout()
-    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+".png",dpi=300)
+    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+".png",dpi=300)
     plt.close()
 
     # fig, ax = plt.subplots(figsize=(4,4))
@@ -308,7 +325,7 @@ if __name__ == "__main__":
     # mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="silver", label="Simulation")
     # lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
     # plt.tight_layout()
-    # plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2+str(seed)+"_monthly_noage.png",dpi=300)
+    # plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_monthly_noage.png",dpi=300)
     # plt.close()
 
     # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
