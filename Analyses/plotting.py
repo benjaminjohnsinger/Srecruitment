@@ -462,199 +462,45 @@ def mcmc_corner_plot(trajectory,param_names,burn_in):
     fig = corner.corner(trajectory[burn_in:,:],labels=param_names,quantiles=[0.16,0.5,0.84],show_titles=True)
 
 ##### KPSC data plots #####
-pathogen_names = {"RSV": ["RESPIRATORY SYNCYTIAL VIRUS","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A","RESPIRATORY SYNCYTIAL VIRUS SUBTYPE B"],
-"InfluenzaA": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B"],
-# "InfluenzaAH1": ["INFLUENZA A H1N1 2009","INFLUENZA A VIRUS SUBTYPE H1"],
-# "InfluenzaAH3": ["INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3"],
-"InfluenzaB": ["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"],
-# "Influenza": ["INFLUENZA A","INFLUENZA A H1N1 2009","INFLUENZA A VIRUS","INFLUENZA A VIRUS SUBTYPE H1","INFLUENZA A VIRUS SUBTYPE/HEMAGGLUTININ H3","INFLUENZA VIRUS A","INFLUENZA VIRUS A+B","INFLUENZA B","INFLUENZA VIRUS B"],
-"Metapneumovirus": ["HUMAN METAPNEUMOVIRUS VIRUS",],
-# "HMPV" : ["HUMAN METAPNEUMOVIRUS VIRUS",],
-"Adenovirus": ["ADENOVIRUS",],
-# "Parainfluenza": ["PARAINFLUENZA VIRUS 1","PARAINFLUENZA VIRUS 2","PARAINFLUENZA VIRUS 3","PARAINFLUENZA VIRUS 4"],
-"Parainfluenza3": ["PARAINFLUENZA VIRUS 3"],
-"Rhinovirus": ["ENTEROVIRUS/RHINOVIRUS"],
-"Pertussis": ["BORDETELLA PERTUSSIS"],
-"M.pneumoniae": ["MYCOPLASMA PNEUMONIAE"],
-"C.pneumoniae": ["CHLAMYDOPHILA PNEUMONIAE"],
-"SARS-CoV-2": ["SARS-COV-2 (COVID-19)"],
-"Enterovirus": ["ENTEROVIRUS/RHINOVIRUS"],
-}
-reverse_names = [{v:k for v in values} for k,values in pathogen_names.items()]
-reverse_names =  {k:v for d in reverse_names for k,v in d.items()}
 import numpy as np
-def kpsc_positive_test_plot(ax, hospitalizations=True, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, NDI_GROUPS=None, NDI_GROUP_NAMES=None, incidence=False, color=hsv_colors, title=None, legend=True, aggregation=None, save_data=False, load_data=False):
-    print(pathogen)
-    if load_data:
-        if pathogen == "test":
-            cases = pd.read_csv(f'Data/Processed/KPSC_ARI_test_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_{["daily","weekly","monthly"][[None,"Week","Month"].index(aggregation)]}.csv',index_col=0,parse_dates=True)
-        else:
-            cases = pd.read_csv(f'Data/Processed/KPSC_ARI_{pathogen}_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_{["daily","weekly","monthly"][[None,"Week","Month"].index(aggregation)]}.csv',index_col=0,parse_dates=True)
-    else:
-        if incidence:
-            # load age population data
-            age_by_month = pd.read_csv("Data/Processed/KPSC_population_by_age_group_monthly.csv")
-            age_by_month['month_start'] = pd.to_datetime(age_by_month['month_start'])
-            age_by_month = age_by_month.set_index("month_start")
-            
-            # # load ndi population data
-            # ndi_by_year = pd.read_csv("Data/Processed/KPSC_population_by_ndi.csv")
-            # ndi_by_year.columns = NDI_GROUP_NAMES
-            # ndi_by_year.loc[:,"Year"] = np.arange(2015,2023)
-            # ndi_by_year = ndi_by_year.set_index("Year")
-            # for year in range(2023,2026):
-            #     ndi_by_year.loc[year] = ndi_by_year.loc[2022]
-        
-        if hospitalizations:
-            positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_hospitalizations.csv')
-        else:
-            positive_tests = pd.read_csv('Data/Processed/KPSC_positive_matched_all_clinical_cleaned.csv')
-
-        positive_tests.loc[:,"pathogen_class"] = positive_tests["pathogen"].map(reverse_names)
-        cases = positive_tests[(positive_tests['pathogen_class'] == pathogen) & (positive_tests['dxgroup']=="ARI")]
-        cases = cases.drop_duplicates(subset=cases.columns.difference(['CODE','dxgroup','pathogen']))
-        if hospitalizations:
-            cases.loc[:,"Date"] = pd.to_datetime(cases["Hospitalization date"])
-        else:
-            cases.loc[:,"Date"] = pd.to_datetime(cases["Clinical date"])
-        print(cases.columns)
-        print(cases["Date"].max())
-        print(cases["ndi"].min(),cases["ndi"].max())
-        print(cases["NDI"].min(),cases["NDI"].max())
-        if aggregation is not None:
-            cases.loc[:,"Year"] = cases["Date"].dt.year
-            if aggregation == "Month":
-                cases.loc[:,"Month"] = cases["Date"].dt.month
-            elif aggregation == "Week":
-                cases.loc[:,"Week"] = cases["Date"].dt.isocalendar().week
-        if AGE_GROUPS is not None:
-            for i in range(len(AGE_GROUPS)):
-                cases.loc[cases["age_in_mo"].isin(AGE_GROUPS[i]),"age_group"] = AGE_GROUP_NAMES[i]
-            if aggregation is None:
-                cases = cases.groupby(["Date","age_group"]).size().reset_index(name='Count')
-            else:
-                cases = cases.groupby(["Year",aggregation,"age_group"]).size().reset_index(name='Count')
-            print(cases["Count"].sum())
-        elif NDI_GROUPS is not None:
-            for i in range(len(NDI_GROUPS)):
-                cases.loc[(cases["ndi"] >= NDI_GROUPS[i][0]) & (cases["ndi"] < NDI_GROUPS[i][-1]),"NDI_group"] = NDI_GROUP_NAMES[i]
-            if aggregation is None:
-                cases = cases.groupby(["Date","NDI_group"]).size().reset_index(name='Count')
-            else:
-                cases = cases.groupby(["Year",aggregation,"NDI_group"]).size().reset_index(name='Count')
-        else:
-            if aggregation is None:
-                cases = cases.groupby(["Date"]).size().reset_index(name='Count')
-            else:
-                cases = cases.groupby(["Year",aggregation]).size().reset_index(name='Count')
-        if aggregation is None:
-            frequency = "D"
-        elif aggregation == "Month":
-            frequency = "MS"
-        elif aggregation == "Week":
-            frequency = "W-MON"
-
-        for date in pd.date_range(start='2015-10-01',end='2025-05-01',freq=frequency):
-            year = date.year
-            if aggregation=="Month":
-                agg = date.month
-            elif aggregation=="Week":
-                agg = date.isocalendar().week
-            if AGE_GROUPS is not None:
-                for age_group in AGE_GROUP_NAMES:
-                    if aggregation is None:
-                        if not ((cases["Date"]==date) & (cases["age_group"]==age_group)).any():
-                            cases = pd.concat([cases,pd.DataFrame({"Date":[date],"age_group":[age_group],"Count":[0]})])
-                    else:
-                        if not (((cases["Year"]==year) & (cases[aggregation]==agg)) & (cases["age_group"]==age_group)).any():
-                            cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"age_group":[age_group],"Count":[0]})])
-            elif NDI_GROUPS is not None:
-                for ndi_group in NDI_GROUP_NAMES:
-                    if aggregation is None:
-                        if not ((cases["Date"]==date) & (cases["NDI_group"]==ndi_group)).any():
-                            cases = pd.concat([cases,pd.DataFrame({"Date":[date],"NDI_group":[ndi_group],"Count":[0]})])
-                    else:
-                        if not (((cases["Year"]==year) & (cases[aggregation]==agg)) & (cases["NDI_group"]==ndi_group)).any():
-                            cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"NDI_group":[ndi_group],"Count":[0]})])
-            if aggregation is None:
-                if not (cases["Date"]==date).any():
-                    cases = pd.concat([cases,pd.DataFrame({"Date":[date],"Count":[0]})])
-            else:
-                if not ((cases["Year"]==year) & (cases[aggregation]==agg)).any():
-                    cases = pd.concat([cases,pd.DataFrame({"Year":[year],aggregation:[agg],"Count":[0]})])
-        if aggregation is not None:
-            if aggregation == "Month":
-                cases.loc[:,"Date"] = pd.to_datetime(cases["Year"].astype(str) + '-' + cases["Month"].astype(str) + '-01')
-            elif aggregation == "Week":
-                cases.loc[:,"Date"] = cases["Year"].astype(str) + '-' + cases["Week"].astype(str)
-                cases.loc[:,"Date"] = pd.to_datetime(cases["Date"].add('-1').astype(str),format='%Y-%W-%w')
-        cases = cases.sort_values(by="Date")
-        cases = cases.set_index("Date")
-
-        if aggregation is not None:
-            cases = cases.drop(columns=["Year",aggregation])
-        if AGE_GROUPS is not None:
-            cases = cases.pivot(columns="age_group",values="Count")
-            cases = cases[AGE_GROUP_NAMES]
-            if incidence:
-                # Align population data with case dates
-                cases_with_pop = cases.copy()
-                for date_idx in cases.index:
-                    # Find the closest month_start date in age_by_month
-                    closest_month = age_by_month.index[age_by_month.index <= date_idx].max()
-                    if pd.notna(closest_month):
-                        cases_with_pop.loc[date_idx] = cases.loc[date_idx] / age_by_month.loc[closest_month].values
-                cases = cases_with_pop
-        elif NDI_GROUPS is not None:
-            cases = cases.pivot(columns="NDI_group",values="Count")
-            cases = cases[NDI_GROUP_NAMES]
-            if incidence:
-                cases = cases.div(ndi_by_year.loc[cases.index.year].values)
-        elif incidence:
-            # For non-age-group cases, sum all age groups from monthly data
-            cases_with_pop = cases.copy()
-            for date_idx in cases.index:
-                closest_month = age_by_month.index[age_by_month.index <= date_idx].max()
-                if pd.notna(closest_month):
-                    total_pop = age_by_month.loc[closest_month].sum()
-                    cases_with_pop.loc[date_idx, "Count"] = cases.loc[date_idx, "Count"] / total_pop
-            cases = cases_with_pop
-
-        if save_data:
-            filename = f'Data/Processed/KPSC_ARI_{pathogen}_{["cases","incidence"][incidence]}_{["all","age"][AGE_GROUPS is not None]}_{["daily","weekly","monthly"][["D","W-MON","MS"].index(frequency)]}.csv'
-            cases.to_csv(filename)
-
-    if incidence:
-        cases *= 10000
-    if title is None:
-        if incidence:
-            title = f"{pathogen} incidence"
-        else:
-            title = f"{pathogen} positive cases"
+def kpsc_positive_test_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, color=hsv_colors, legend=True, aggregation=None, factor=10000, label=None):
+    pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
+    pop_by_age_group_month = pop_by_age_group_month.reindex(columns=AGE_GROUP_NAMES)
+    pop_by_age_group_daily = pop_by_age_group_month.resample('D').ffill()
+    
+    pathogen_data = pd.read_csv(f'Data/Processed/KPSC_unsalvage_panel_positive_{pathogen}_matched_noncovid_ARI_hospitalizations.csv', parse_dates=["Hospitalization date"])
+    pathogen_data["Hospitalization date"] = pd.to_datetime(pathogen_data["Hospitalization date"])
+    pathogen_data = pathogen_data.set_index("Hospitalization date")
+    
+    # Calculate daily incidence per population
+    daily_pop = pop_by_age_group_daily.reindex(pathogen_data.index).fillna(method='ffill')
+    
+    # Set aggregation frequency
+    if aggregation is None:
+        aggregation = 'D'
+    agg_freq_map = {'D': 'D', 'W': 'W', 'M': 'MS'}
+    agg_freq = agg_freq_map.get(aggregation[0], 'D')
+    
     if AGE_GROUPS is not None:
-        # cases.plot(ax=ax,legend=legend,color=color,label=AGE_GROUP_NAMES,title=f"{pathogen} positive tests")
-        for i in range(len(AGE_GROUP_NAMES)):
-            ax.plot(cases.index, cases[AGE_GROUP_NAMES[i]], label=AGE_GROUP_NAMES[i], color=color[i])
-            # ax.set_xticks(cases.index)
-            # ax.set_xticklabels([year if year % 2 == 0 else '' for year in cases.index.year], rotation=45)
-    elif NDI_GROUPS is not None:
-        for i in range(len(NDI_GROUP_NAMES)):
-            ax.plot(cases.index, cases[NDI_GROUP_NAMES[i]], label=NDI_GROUP_NAMES[i], color=color[i])
+        # Plot separately by age group
+        mx = 0
+        for i, age_group in enumerate(AGE_GROUP_NAMES):
+            if age_group in pathogen_data.columns:
+                daily_incidence = (pathogen_data[age_group] / daily_pop[age_group]) * factor
+                agg_incidence = daily_incidence.resample(agg_freq).sum()
+                ax.plot(agg_incidence.index, agg_incidence.values, color=color[i], label=age_group)
+                mx = max(mx, np.max(agg_incidence.values))
+        if legend:
+            ax.legend()
+        return mx
     else:
-        # cases.plot(ax=ax,legend=False,color=color,title=f"{pathogen} positive tests")
-        ax.plot(cases.index,cases["Count"],color=color)
-    ax.set_title(title)
-    if incidence:
-        ax.set_ylabel("Incidence per 10k members")
-    else:
-        ax.set_ylabel("Cases")
-    if legend:
-        # two column legend
-        if AGE_GROUPS is not None:
-            ax.legend(ncol=2,title="Age groups")
-        elif NDI_GROUPS is not None:
-            ax.legend(ncol=2,title="NDI groups")
-    # ax.set_xlabel("Date")
+        # Plot total across all age groups
+        daily_incidence = (pathogen_data[AGE_GROUP_NAMES].sum(axis=1) / daily_pop[AGE_GROUP_NAMES].sum(axis=1)) * factor
+        agg_incidence = daily_incidence.resample(agg_freq).sum()
+        if label is None:
+            label = "Total"
+        ax.plot(agg_incidence.index, agg_incidence.values, color=color, label=label)
+        return np.max(agg_incidence.values)
 
 nice_names = {"RSV": "RSV", "InfluenzaA": "Influenza A", "InfluenzaB": "Influenza B", "Metapneumovirus": "Metapneumovirus", "Adenovirus": "Adenovirus", "Parainfluenza3": "Parainfluenza 3", "Rhinovirus": "Rhinovirus", "Pertussis": "Pertussis", "M.pneumoniae": "M. pneumoniae", "C.pneumoniae": "C. pneumoniae", "SARS-CoV-2": "SARS-CoV-2", "Enterovirus": "Enterovirus"}
 from data_processing import calculate_proportion_positive_incidence
@@ -856,93 +702,114 @@ if __name__ == "__main__":
     plt.rcParams['font.sans-serif'] = ['Helvetica']
     from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
 
-    fig = plt.figure(layout="constrained", figsize=(7,4))
+    fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
+    
+    # Plot proportion positive on left y-axis
+    color1 = "red"
+    kpsc_proportion_positive_incidence_plot(ax1, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=AGE_GROUP_NAMES, title=None, color=color1, legend=False, aggregation="W", window_size=1, weighting_factor=0, label="Proportion positive", factor=10000, annotations=False, pp_only=False, hosp=True)
+    ax1.tick_params(axis='y', labelcolor=color1)
+    for line in ax1.get_lines():
+        line.set_alpha(0.7)
+    ax1.set_ylabel('Proportion positive incidence per 10k', color=color1)
+    
+    # Create second y-axis for positive tests
+    ax2 = ax1.twinx()
+    color2 = "blue"
+    ax2.set_ylabel('Positive tests incidence per 10k', color=color2)
+    kpsc_positive_test_plot(ax2, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=AGE_GROUP_NAMES, color=color2, legend=False, aggregation="W", factor=10000, label="Positive tests")
+    ax2.tick_params(axis='y', labelcolor=color2)
+    for line in ax2.get_lines():
+        line.set_alpha(0.7)
+    fig.tight_layout()
+    plt.savefig("Figures/KPSC_RSV_proportion_positive_vs_positive_test_incidence_weekly.png", dpi=300)
 
-    pathogens = ["Metapneumovirus","Parainfluenza3","Adenovirus","RSV","InfluenzaA","InfluenzaB",]
+    # fig = plt.figure(layout="constrained", figsize=(7,4))
 
-    # subfigs = fig.subfigures(1, 2, wspace=0.05, width_ratios=[7, 3])
-    # axA = subfigs[1].subplots(len(pathogens), 1, sharex = True)
-    # axB = subfigs[0].subplots((len(pathogens) + 1)//2, 2, sharex = True)
+    # pathogens = ["Metapneumovirus","Parainfluenza3","Adenovirus","RSV","InfluenzaA","InfluenzaB",]
+
+    # # subfigs = fig.subfigures(1, 2, wspace=0.05, width_ratios=[7, 3])
+    # # axA = subfigs[1].subplots(len(pathogens), 1, sharex = True)
+    # # axB = subfigs[0].subplots((len(pathogens) + 1)//2, 2, sharex = True)
 
     
-    # # figA, axA = plt.subplots(6, 1, figsize=(2.5,4), sharex = True)
-    # for pi,pathogen in enumerate(pathogens):
-    #     print(pathogen)
-    #     age_group_incidence_plot(axA[pi],pathogen,color="k",season="pre_median", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Pre-COVID-19")
-    #     age_group_incidence_plot(axA[pi],pathogen,color="silver",season="rebound", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Re-emergence")
-    #     axA[pi].set_title(nice_names.get(pathogen, pathogen))
-    # # set singe x label for all subplots
-    # axA[-1].set_xlabel("Age group")
-    # axA[0].legend(loc="upper right", fontsize=6)
-    # # set single y label for all subplots
-    # subfigs[1].text(-0.05, 0.5, 'Incidence per 100k members', va='center', rotation='vertical')
+    # # # figA, axA = plt.subplots(6, 1, figsize=(2.5,4), sharex = True)
+    # # for pi,pathogen in enumerate(pathogens):
+    # #     print(pathogen)
+    # #     age_group_incidence_plot(axA[pi],pathogen,color="k",season="pre_median", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Pre-COVID-19")
+    # #     age_group_incidence_plot(axA[pi],pathogen,color="silver",season="rebound", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Re-emergence")
+    # #     axA[pi].set_title(nice_names.get(pathogen, pathogen))
+    # # # set singe x label for all subplots
+    # # axA[-1].set_xlabel("Age group")
+    # # axA[0].legend(loc="upper right", fontsize=6)
+    # # # set single y label for all subplots
+    # # subfigs[1].text(-0.05, 0.5, 'Incidence per 100k members', va='center', rotation='vertical')
+    # # # plt.tight_layout()
+    # # # plt.savefig("Figures/KPSC_age_group_incidence_pre_median_rebound.png",dpi=300)
+
+    # figB, axB = plt.subplots(3, 2, figsize=(6.5,4), sharex = True)
+    # data_color = "#648FFF"
+    # aggregation = "W-MON"
+    # agg_factor = {"D":1, "W-MON":7, "MS":30.44}[aggregation]
+    # factor = 100000
+    # if factor >= 1000000:
+    #     factor_label = f"{factor // 1000000}M"
+    # elif factor >= 1000:
+    #     factor_label = f"{factor // 1000}k"
+    # else:
+    #     factor_label = str(factor)
+    # for pi, pathogen in enumerate(pathogens):
+    #     kpsc_proportion_positive_incidence_plot(
+    #         axB[pi//2, pi%2], pathogen=pathogen, title=nice_names.get(pathogen, pathogen),
+    #         color=data_color, aggregation=aggregation, factor=factor,
+    #         annotations=False, label="Data", hosp=True)
+    # # suppress all y labels and replace with single label on left
+    # for i in range(len(pathogens)//2):
+    #     for j in range(2):
+    #         axB[i,j].set_ylabel("")
+    # axB[len(pathogens)//4,0].set_ylabel(f"Incidence per {factor_label} members")
+    # # only icnlude every other year label
+    # for axB_i in axB.flatten():
+    #     axB_i.set_xticks(pd.date_range(start='2016-01-01',end='2025-01-01',freq='2YS'))
+    #     axB_i.set_xticklabels([str(year) for year in range(2016,2026,2)])
+    #     axB_i.set_xticks(pd.date_range(start='2016-01-01',end='2025-01-01',freq='YS'), minor=True)
+
     # # plt.tight_layout()
-    # # plt.savefig("Figures/KPSC_age_group_incidence_pre_median_rebound.png",dpi=300)
+    # # plt.savefig("Figures/KPSC_proportion_positive_incidence_weekly_annotated.png",dpi=300)
 
-    figB, axB = plt.subplots(3, 2, figsize=(6.5,4), sharex = True)
-    data_color = "#648FFF"
-    aggregation = "W-MON"
-    agg_factor = {"D":1, "W-MON":7, "MS":30.44}[aggregation]
-    factor = 100000
-    if factor >= 1000000:
-        factor_label = f"{factor // 1000000}M"
-    elif factor >= 1000:
-        factor_label = f"{factor // 1000}k"
-    else:
-        factor_label = str(factor)
-    for pi, pathogen in enumerate(pathogens):
-        kpsc_proportion_positive_incidence_plot(
-            axB[pi//2, pi%2], pathogen=pathogen, title=nice_names.get(pathogen, pathogen),
-            color=data_color, aggregation=aggregation, factor=factor,
-            annotations=False, label="Data", hosp=True)
-    # suppress all y labels and replace with single label on left
-    for i in range(len(pathogens)//2):
-        for j in range(2):
-            axB[i,j].set_ylabel("")
-    axB[len(pathogens)//4,0].set_ylabel(f"Incidence per {factor_label} members")
-    # only icnlude every other year label
-    for axB_i in axB.flatten():
-        axB_i.set_xticks(pd.date_range(start='2016-01-01',end='2025-01-01',freq='2YS'))
-        axB_i.set_xticklabels([str(year) for year in range(2016,2026,2)])
-        axB_i.set_xticks(pd.date_range(start='2016-01-01',end='2025-01-01',freq='YS'), minor=True)
-
+    # # now include plots of simulations on top of data
+    
+    # lockdown = "Exponential"
+    # option1 = "NA"
+    # option2 = "flexagep01"
+    # seeds = [2603172,]*6
+    # ## Initial conditions
+    # from Parameters.census_population import CENSUS_AGE_POP
+    # STATE0 = jnp.zeros((2*N_S+1,NAG))
+    # STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
+    # STATE0 = STATE0.at[1,:].set(1)
+    # # # flatten initial state and add maternal immunity compartment
+    # STATE0 = STATE0.flatten()
+    # STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+    # from Parameters.times_and_contacts import PERIOD
+    # POINTS = jnp.array(date_to_t(PERIOD))
+    # T_LOCKDOWN = date_to_t(pd.to_datetime("2020-03-20"))
+    # for pi, pathogen in enumerate(pathogens):
+    #     print(pathogen)
+    #     print(f"Plotting simulations for {pathogen}...")
+    #     try:
+    #         params, _, _, _, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seeds[pi])
+    #     except Exception as e:
+    #         print(f"Pathogen {pathogen} not found")
+    #         continue
+    #     lockdown_incidence_plot(axB[pi//2,pi%2], STATE0, params, POINTS, T_LOCKDOWN,
+    #                             p_time_to_obs=p_time_to_obs,
+    #                             color="#DC267F", factor=factor*agg_factor, label="Simulation")
+    # axB[0,1].legend(loc="upper right")
+    
     # plt.tight_layout()
-    # plt.savefig("Figures/KPSC_proportion_positive_incidence_weekly_annotated.png",dpi=300)
+    # plt.savefig("Figures/ReportOverallIncidenceWeeklyExponential2604172.png",dpi=300)
 
-    # now include plots of simulations on top of data
-    
-    lockdown = "Exponential"
-    option1 = "NA"
-    option2 = "flexagep01"
-    seeds = [2603172,]*6
-    ## Initial conditions
-    from Parameters.census_population import CENSUS_AGE_POP
-    STATE0 = jnp.zeros((2*N_S+1,NAG))
-    STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
-    STATE0 = STATE0.at[1,:].set(1)
-    # # flatten initial state and add maternal immunity compartment
-    STATE0 = STATE0.flatten()
-    STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-    from Parameters.times_and_contacts import PERIOD
-    POINTS = jnp.array(date_to_t(PERIOD))
-    T_LOCKDOWN = date_to_t(pd.to_datetime("2020-03-20"))
-    for pi, pathogen in enumerate(pathogens):
-        print(pathogen)
-        print(f"Plotting simulations for {pathogen}...")
-        try:
-            params, _, _, _, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seeds[pi])
-        except Exception as e:
-            print(f"Pathogen {pathogen} not found")
-            continue
-        lockdown_incidence_plot(axB[pi//2,pi%2], STATE0, params, POINTS, T_LOCKDOWN,
-                                p_time_to_obs=p_time_to_obs,
-                                color="#DC267F", factor=factor*agg_factor, label="Simulation")
-    axB[0,1].legend(loc="upper right")
-    
-    plt.tight_layout()
-    plt.savefig("Figures/ReportOverallIncidenceWeeklyExponential2604172.png",dpi=300)
+    # # subfigs[0].suptitle("A", x=0.01, fontweight='bold')
+    # # subfigs[1].suptitle("B", x=0.01, fontweight='bold')
 
-    # subfigs[0].suptitle("A", x=0.01, fontweight='bold')
-    # subfigs[1].suptitle("B", x=0.01, fontweight='bold')
-
-    # plt.savefig("Figures/Figure1_thirdmedian.png",dpi=300)
+    # # plt.savefig("Figures/Figure1_thirdmedian.png",dpi=300)
