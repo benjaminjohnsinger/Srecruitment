@@ -63,6 +63,34 @@ def exponential_recovery(t, ts, fs, rs, steepness=0.2):
         result = result * (1 - reduction) + transition * reduction
     return result
 
+def exponential_recovery_byage(t, ts, fs, rs, age_partition, steepness=0.2):
+    """Exponential recovery with different rates for two age groups"""
+    n_ages = 7
+    result = jnp.ones((len(t), n_ages)) * fs[0]
+    
+    for i in range(1, len(ts)):
+        # Sudden tanh reduction at ts[i]
+        reduction = 0.5 * (1 + jnp.tanh(steepness * (t - ts[i])))
+        
+        # Exponential recovery for first age group
+        recovery_1 = jnp.exp(-rs[i-1, 0] * jnp.maximum(0, t - ts[i]))
+        transition_1 = fs[i] + (fs[0] - fs[i]) * (1 - recovery_1)
+        
+        # Exponential recovery for second age group
+        recovery_2 = jnp.exp(-rs[i-1, 1] * jnp.maximum(0, t - ts[i]))
+        transition_2 = fs[i] + (fs[0] - fs[i]) * (1 - recovery_2)
+        
+        # Apply to respective age groups
+        reduction_expanded = jnp.expand_dims(reduction, axis=1)
+        result = result.at[:, :age_partition].set(
+            result[:, :age_partition] * (1 - reduction_expanded) + jnp.expand_dims(transition_1, axis=1) * reduction_expanded
+        )
+        result = result.at[:, age_partition:].set(
+            result[:, age_partition:] * (1 - reduction_expanded) + jnp.expand_dims(transition_2, axis=1) * reduction_expanded
+        )
+    
+    return result
+
 def sigmoid_recovery(t, ts, fs, rs, steepness=0.2):
     """Sudden tanh reduction at ts[i] with sigmoidal recovery to fs[0]"""
     result = fs[0]

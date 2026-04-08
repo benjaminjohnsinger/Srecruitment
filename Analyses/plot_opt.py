@@ -89,21 +89,20 @@ if __name__ == "__main__":
 
     start_date = '2015-07-04'
     end_date = '2025-05-01'
-    option2_label = option2
-    option2 = option2[10:]
-    # if re.match(r'\d{4}-\d{2}-\d{2}',option1):
-    #     start_date = option1
-    # if re.match(r'\d{4}-\d{2}-\d{2}',option2):
-    #     option2_label = option2
-    #     end_date = option2[0:10]
-    #     option2 = option2[10:]
-    # else:
-    #     option2_label = option2
+
+    if re.match(r'\d{4}-\d{2}-\d{2}',option1):
+        start_date = option1
+    if re.match(r'\d{4}-\d{2}-\d{2}',option2):
+        option2_label = option2
+        end_date = option2[0:10]
+        option2 = option2[10:]
+    else:
+        option2_label = option2
     
-    # if end_date < '2024-10-01':
-    #     mask = [0,0]
-    # else:
-    mask = [3135,3288]
+    if end_date < '2024-10-01':
+        mask = [0,0]
+    else:
+        mask = [3135,3288]
 
     print(pathogen, seed)
     # set seed

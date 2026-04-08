@@ -412,6 +412,13 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 2
+        elif lockdown == "ExponentialByAge":
+            FF = [1,x[n]]
+            TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
+            RR = jnp.array([[x[n+1],],[x[n+2],]])
+            EXPONENTIAL_CONTACT = cm.exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=5)
+            RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS.reshape(-1,1)-274)/365-OFFSET)))
+            n += 3
         elif lockdown == "Exponential2":
             FF = [1,x[n],x[n+1]]
             TT = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+x[n+2]*365]
@@ -540,6 +547,9 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
         elif lockdown == "Exponential":
             bounds_dict["F1"] = [0,1]
             bounds_dict["R1"] = [0.002,0.01]
+        elif lockdown == "ExponentialByAge":
+            bounds_dict["F1"] = [0,1]
+            bounds_dict["R1"] = bounds_dict["R2"] = [0.001,0.01]
         elif lockdown == "Exponential2":
             bounds_dict["F1"] = bounds_dict["F2"] = [0,1]
             bounds_dict["DT1"] = [0,2]
@@ -671,6 +681,10 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
         x_consistent = x_consistent.at[12:14].set(x_DE[n:n+2]) # F1, R1
         n += 2
         obs_age_start = 14
+    elif lockdown == "ExponentialByAge":
+        x_consistent = x_consistent.at[12:15].set(x_DE[n:n+3]) # F1, R1, R2
+        n += 3
+        obs_age_start = 15
     elif lockdown == "Sigmoid":
         x_consistent = x_consistent.at[12:15].set(x_DE[n:n+3]) # F1, DT1, R1
         n += 3

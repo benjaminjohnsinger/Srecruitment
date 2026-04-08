@@ -27,7 +27,7 @@ def deltas(t, state, args):
     delta_maternal = delta_maternal + maternal_immunity*birth_rate*pop_size
     delta = delta.at[0,0].add((1-maternal_immunity)*birth_rate*pop_size)
     # infections - calculate force of infection
-    relative_contact = jnp.interp(t, FULL_POINTS, RELATIVE_CONTACT)
+    relative_contact = interp_fn(t, FULL_POINTS, RELATIVE_CONTACT)
     import_strength = jnp.interp(t, FULL_POINTS, IMPORT_STRENGTH)
     CONTACT_t = relative_contact*CONTACT_MATRIX
     infectious_by_age = jnp.sum(infectious, axis=0)
