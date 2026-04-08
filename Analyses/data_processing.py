@@ -19,7 +19,7 @@ from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
 def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_factor=0.1, aggregation='D', sum_age_groups=False, save_counts=False, pp_only=False, hosp=False):
     pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
     daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index_col=0, parse_dates=True)
-    daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group.csv',index_col=0,parse_dates=True)
+    daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen_unsalvage_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group.csv',index_col=0,parse_dates=True)
 
     # Filter for specified pathogens
     pathogen_data = daily_test_counts_complete[daily_test_counts_complete['pathogen']==pathogen]
@@ -138,31 +138,31 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
     
     return incidence
 
-# if __name__ == "__main__":
-#     # test function
-#     # incidence = calculate_proportion_positive_incidence(["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"], aggregation="ME", window_size=28, weighting_factor=np.log(2))
-#     # plot
-#     from plotting import hsv_colors
-#     fig, ax = plt.subplots(3,2,figsize=(13.3,7.5),sharex=True)
-#     for pi,pathogen in enumerate(["InfluenzaA","RSV","Adenovirus","InfluenzaB","Metapneumovirus","Parainfluenza3"]):
-#         incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=14, weighting_factor=0.1, sum_age_groups=False, save_counts=False, pp_only=False, hosp=True)
-#         # incidence.index = incidence.index.to_period('M').to_timestamp() + pd.offsets.Day(14) # shift to middle of month
-#         incidence.to_csv(f'Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_{pathogen}_incidence_age_hosp_daily_smootheds14fp1.csv')
-#         for i,age_group in enumerate(AGE_GROUP_NAMES):
-#             # incidence[age_group].plot(ax=ax[pi//2, pi%2],color=hsv_colors[i],label=age_group)/
-#             ax[pi//2, pi%2].plot(incidence.index, incidence[age_group] * 1000,color=hsv_colors[i],label=age_group)
-#         # (incidence['Total'] * 10000).plot(ax=ax[pi//2, pi%2],color='k',label='Total')
-#         # ax[pi//3, pi%3].plot(incidence.index, incidence['Total'] * 10000, color='k', label='Total')
-#         ax[pi//2, pi%2].set_title(f"{pathogen}")
-#         ax[pi//2, 0].set_ylabel('Incidence per 10k')
-#         ax[1,pi%2].set_xticks(incidence.index[::52], [str(year) for year in incidence.index.year[::52]], rotation=45)
-#     # ax[2,0].set_xlabel('Date')
-#     # ax[2,1].set_xlabel('Date')
-#     # ax[0,1].legend(title="Age group", loc = "upper right", ncol=2)
-#     # only include every other x tick and label with year at 45 degree angle
-#     plt.tight_layout()
-#     # plt.savefig("Figures/KPSC_panel_tests_by_age_group_monthly.png",dpi=300)
-#     plt.savefig("Figures/KPSC_panel_proportion_positive_incidence_pathogen_age_hosp_daily_smootheds14fp1_slide.png",dpi=300)
+if __name__ == "__main__":
+    # test function
+    # incidence = calculate_proportion_positive_incidence(["INFLUENZA B","INFLUENZA VIRUS B","INFLUENZA VIRUS A+B"], aggregation="ME", window_size=28, weighting_factor=np.log(2))
+    # plot
+    from plotting import hsv_colors
+    fig, ax = plt.subplots(3,2,figsize=(13.3,7.5),sharex=True)
+    for pi,pathogen in enumerate(["InfluenzaA","RSV","Adenovirus","InfluenzaB","Metapneumovirus","Parainfluenza3"]):
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=True, pp_only=False, hosp=True)
+        # incidence.index = incidence.index.to_period('M').to_timestamp() + pd.offsets.Day(14) # shift to middle of month
+        incidence.to_csv(f'Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_{pathogen}_incidence_age_hosp_daily.csv')
+        for i,age_group in enumerate(AGE_GROUP_NAMES):
+            # incidence[age_group].plot(ax=ax[pi//2, pi%2],color=hsv_colors[i],label=age_group)/
+            ax[pi//2, pi%2].plot(incidence.index, incidence[age_group] * 1000,color=hsv_colors[i],label=age_group)
+        # (incidence['Total'] * 10000).plot(ax=ax[pi//2, pi%2],color='k',label='Total')
+        # ax[pi//3, pi%3].plot(incidence.index, incidence['Total'] * 10000, color='k', label='Total')
+        ax[pi//2, pi%2].set_title(f"{pathogen}")
+        ax[pi//2, 0].set_ylabel('Incidence per 10k')
+        ax[1,pi%2].set_xticks(incidence.index[::52], [str(year) for year in incidence.index.year[::52]], rotation=45)
+    # ax[2,0].set_xlabel('Date')
+    # ax[2,1].set_xlabel('Date')
+    # ax[0,1].legend(title="Age group", loc = "upper right", ncol=2)
+    # only include every other x tick and label with year at 45 degree angle
+    plt.tight_layout()
+    # plt.savefig("Figures/KPSC_panel_tests_by_age_group_monthly.png",dpi=300)
+    plt.savefig("Figures/KPSC_unsalvage_panel_proportion_positive_incidence_pathogen_age_hosp_daily_slide.png",dpi=300)
 # ############### CDC data ###############
 # ### full NREVSS data
 # data = pd.read_excel('Data/Raw/NREVSS_all.xlsx',sheet_name='Final')
@@ -580,6 +580,66 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
 # test_data2 = pd.read_sas('Data/Raw/KPSC/testing_20250818.sas7bdat', format='sas7bdat', encoding='utf-8')
 # test_data = pd.concat([test_data1,test_data2],ignore_index=True)
 # print("Time to load test data: ",time.time()-time_start)
+# print(test_data.shape)
+# len_test_data = test_data.shape[0]
+# # load RSV salvage test data from Data/Raw/KPSC/Viral_Transmission_RSV_TestResults_20250623.xlsx
+# rsv_salvage_data = pd.read_excel('Data/Raw/KPSC/Viral_Transmission_RSV_TestResults_20250623.xlsx')
+# # the column names in rsv_salvage_data are adenovirus	chlamydia	coronavirus	covid	enterovirus	fluA	fluA_H1	fluA_H3	fluA_h1n1	fluB	hmpv	mycoplasma	paraflu1	paraflu2	paraflu3	paraflu4	rsvA	rsvB, map these to match the pathogen names in test_data
+# rsv_salvage_data = rsv_salvage_data.rename(columns={
+# "adenovirus":"ADENOVIRUS",
+# "chlamydia":"CHLAMYDOPHILA PNEUMONIAE",
+# "coronavirus":"CORONAVIRUS",
+# "covid":"SARS-COV-2 (COVID-19)",
+# "enterovirus":"ENTEROVIRUS/RHINOVIRUS",
+# "fluA":"INFLUENZA A",
+# "fluA_H1":"INFLUENZA A H1N1 2009",
+# "fluA_H3":"INFLUENZA A VIRUS SUBTYPE H3",
+# "fluA_h1n1":"INFLUENZA A VIRUS SUBTYPE H1",
+# "fluB":"INFLUENZA B",
+# "hmpv":"HUMAN METAPNEUMOVIRUS VIRUS",
+# "mycoplasma":"MYCOPLASMA PNEUMONIAE",
+# "paraflu1":"PARAINFLUENZA VIRUS 1",
+# "paraflu2":"PARAINFLUENZA VIRUS 2",
+# "paraflu3":"PARAINFLUENZA VIRUS 3",
+# "paraflu4":"PARAINFLUENZA VIRUS 4",
+# "rsvA":"RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A",
+# "rsvB":"RESPIRATORY SYNCYTIAL VIRUS SUBTYPE B"})
+# # reshape rsv_salvage_data to long format with columns StudyID, Test date, Pathogen, Result, lab_type
+# rsv_salvage_data = rsv_salvage_data.melt(id_vars=["StudyID","collect_date","lab_type"], var_name="pathogen", value_name="result_val")
+# print(rsv_salvage_data.head())
+# print(rsv_salvage_data.shape)
+# # for each row in rsv_salvage_data, remove a corresponding row in test_data with the same StudyID, date, pathogen, test result, and lab_type
+# i = 0
+# time_start = time.time()
+# # Create a date column in test_data for efficient matching
+# test_data['test_date'] = pd.to_datetime(test_data["YEAR"].astype(int).astype(str) + '-10-01') + pd.to_timedelta(test_data["lab_days"].astype(int), unit='D')
+
+# # Ensure rsv_salvage_data has consistent date format
+# rsv_salvage_data['collect_date'] = pd.to_datetime(rsv_salvage_data['collect_date']).dt.normalize()
+# test_data['test_date'] = test_data['test_date'].dt.normalize()
+
+# # Merge to find matching rows
+# merge_cols = ['StudyID', 'test_date', 'pathogen', 'result_val', 'lab_type']
+# rsv_salvage_renamed = rsv_salvage_data.rename(columns={'collect_date': 'test_date'})
+
+# # Use merge with indicator to find rows in test_data that match rsv_salvage_data
+# merged = test_data.merge(
+#     rsv_salvage_renamed[['StudyID', 'test_date', 'pathogen', 'result_val', 'lab_type']],
+#     on=merge_cols,
+#     how='left',
+#     indicator=True
+# )
+
+# # Keep only rows that didn't match (ones not in rsv_salvage_data)
+# test_data = merged[merged['_merge'] == 'left_only'].drop(columns=['_merge']).copy()
+
+# # Drop the temporary test_date column if not needed later
+# test_data = test_data.drop(columns=['test_date'])
+
+# print(f"Removed {len_test_data - len(test_data)} matching rows from test_data in {time.time() - time_start:.2f} seconds")
+# print(test_data.head())
+# print(test_data.shape)
+
 # hospitalizations = pd.read_csv('Data/Processed/KPSC_clinical_hospitalizations.csv')
 # resp_hospitalizations = hospitalizations[hospitalizations["dxgroup"] == "ARI"]
 
@@ -662,10 +722,10 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
 #                                                         how='left')
 # daily_test_counts_complete.loc[:,'count'] = daily_test_counts_complete['count'].fillna(0).astype(int)
 
-# daily_test_counts_complete.to_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group.csv', index=False)
+# daily_test_counts_complete.to_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen_unsalvage_panel_test_counts_by_hosp_day_pathogen_age_group.csv', index=False)
 
 # #load test counts
-# daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group.csv')
+# daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen_unsalvage_panel_test_counts_by_hosp_day_pathogen_age_group.csv')
 
 # # Filter to only include pathogens that are in our mapping and sum by group
 # grouped_data = daily_test_counts_complete.groupby(['Hospitalization date', 'pathogen', 'age_group', 'result_type'])['count'].sum().reset_index()
@@ -695,7 +755,7 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
 
 # plt.suptitle("Weekly total hospitalized panel test counts for ARI by age group")
 # plt.tight_layout()
-# plt.savefig('Figures/KPSC_ARI_hospitalized_pathogen_panel_test_weekly_counts_by_age_group_panels.png', dpi=300)
+# plt.savefig('Figures/KPSC_ARI_hospitalized_pathogen_unsalvage_panel_test_weekly_counts_by_age_group_panels.png', dpi=300)
 # plt.close()
 
 # ###### Total number of ARI hospitalizations each day ########

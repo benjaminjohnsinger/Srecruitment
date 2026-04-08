@@ -26,14 +26,9 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 from fit_MCMC import SIS_likelihood, run_simulation
 import time
 import pickle
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 print(date_to_t("1970-09-17"))
-
-x = [4.8515820e-05, 1.4551926e-03, 7.9544476e-04, 1.1450225e-03, 3.2359516e-04,
-     9.7215286e-04, 9.8846694e-03]
-x = jnp.array(x)
-print(jnp.max(x))
-print(x/jnp.max(x))
 
 plt.rcParams.update({'font.size':8})
 # text type is palatino
@@ -216,20 +211,94 @@ plt.rcParams['font.serif'] = ['Palatino']
 # plt.show()
 
 # ### plotting functions for optimization results
-# daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
-# N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
+daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
 
-# # # plot for just one result
-# # filepath = f"Data/Processed/results260316/evosax_DE_RSVExponentialNAflexagep01260316.pickle"
-# # with open(filepath, "rb") as f:
-# #     results = pickle.load(f)
-# # print(results)
-# # metrics_log = results["metrics_log"]
-# # generations = metrics_log["generation_counter"]
-# # best_fitness = jnp.asarray(metrics_log["best_fitness"]) * N
-# # color = "k"
-# # plt.plot(generations, best_fitness, marker="o", markersize=3, alpha=0.7, color=color)
-# # plt.show()
+for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "Parainfluenza3", "Adenovirus", "InfluenzaB"]:
+    # plot for just one result
+    filepath = f"Data/Processed/results260403/evosax_DE_{pathogen}ExponentialNAflexagep01260403.pickle"
+    with open(filepath, "rb") as f:
+        results = pickle.load(f)
+    print(results)
+    metrics_log = results["metrics_log"]
+    generations = metrics_log["generation_counter"]
+    best_solution = jnp.asarray(metrics_log["best_solution_in_generation"])
+    n_params = best_solution.shape[1]
+
+    param_names, bounds = parameters_names_bounds(pathogen, "Exponential", "NA", "flexagep01")
+
+    # Create subplots
+    n_cols = 5
+    n_rows = (n_params + n_cols - 1) // n_cols
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2*n_rows))
+    axes = axes.flatten()
+
+    # Plot each parameter trajectory
+    for i in range(n_params):
+        axes[i].plot(generations, best_solution[:, i], color='k', alpha=0.7)
+        axes[i].set_xlabel('')
+        axes[i].set_ylabel('')
+        axes[i].set_title(f'{param_names[i]} Trajectory')
+        axes[i].set_ylim(bounds[i])
+        axes[i].grid(True, alpha=0.3)
+
+    # Hide unused subplots
+    for i in range(n_params, len(axes)):
+        axes[i].set_visible(False)
+
+    plt.tight_layout()
+    plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_parameter_trajectories.png"), dpi=300)
+
+    # plot range of population fitness over genrations
+    for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "Parainfluenza3", "Adenovirus", "InfluenzaB"]:
+        filepath = f"Data/Processed/results260403/evosax_DE_{pathogen}ExponentialNAflexagep01260403.pickle"
+        with open(filepath, "rb") as f:
+            results = pickle.load(f)
+        print(results)
+        metrics_log = results["metrics_log"]
+        generations = metrics_log["generation_counter"]
+        best_fitness = jnp.asarray(metrics_log["best_fitness_in_generation"]) * N
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(generations, best_fitness, label="Best Fitness", color='k')
+        ax.set_title(f"{pathogen} Fitness over Generations")
+        ax.set_xlabel("Generation")
+        ax.set_ylabel("Negative Log Likelihood")
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        
+        # Add inset zooming in on last 500 generations
+        axins = inset_axes(ax, width="40%", height="40%", loc="upper right")
+        last_500_idx = max(0, len(generations) - 500)
+        axins.plot(generations[last_500_idx:], best_fitness[last_500_idx:], color='k', linewidth=1.5)
+        axins.set_title("Last 500 Gen", fontsize=8)
+        axins.grid(True, alpha=0.3)
+        axins.tick_params(labelsize=8)
+        
+        plt.tight_layout()
+        plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_fitness_over_generations.png"), dpi=300)
+        # plot rolling standard deviation of fitness over last 100 generations
+        rolling_std = pd.Series(best_fitness).rolling(window=100).std()
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(generations, rolling_std, label="Rolling Std Dev (100 gen)", color='r')
+        ax.set_title(f"{pathogen} Log Likelihood Rolling Std Dev over Generations")
+        ax.set_xlabel("Generation")
+        ax.set_ylabel("Rolling Std Dev")
+        ax.grid(True, alpha=0.3)
+        
+        # Add inset zooming in on last 500 generations
+        axins = inset_axes(ax, width="40%", height="40%", loc="upper right")
+        last_500_idx = max(0, len(generations) - 500)
+        axins.plot(generations[last_500_idx:], rolling_std[last_500_idx:], color='r', linewidth=1.5)
+        axins.set_title("Last 500 Gen", fontsize=8)
+        axins.grid(True, alpha=0.3)
+        axins.tick_params(labelsize=8)
+        
+        ax.legend()
+        plt.tight_layout()
+        plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_rolling_std_dev.png"), dpi=300)
+        plt.close()
+
 
 # # plot for a bunch of results
 # plt.figure(figsize=(10, 5))
@@ -452,37 +521,37 @@ plt.rcParams['font.serif'] = ['Palatino']
 # plt.close()
 
 
-##### updated lockdowns plot #####
-fig, axes = plt.subplots(6, 1, figsize=(6.5, 5), sharex=True)
-pathogens = ["RSV", "Metapneumovirus","InfluenzaA", "InfluenzaB","Adenovirus",  "Parainfluenza3", ]
-seed = 2603172
-option1 = "NA"
-option2 = "flexagep01"
-lockdown = "Exponential"
-prefix = "evosax_DE_"
-colors = ["#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000", "#000000", "#00BB00", "#648FFF", "#785EF0", "#DC267F"]
-for ax, pathogen, color in zip(axes.flatten(), pathogens, colors):
-    base_path = "Data/Processed/results"+str(seed)[:6]+"/"
-    filename_pattern = pathogen+lockdown+option1+option2+str(seed)+".pickle"
-    filepath = base_path + prefix + filename_pattern
-    with open(filepath, "rb") as f:
-        opt = pickle.load(f)
-    print(f"Loaded: {prefix}{filename_pattern}")
-    x = opt["final_population"][np.argmin(opt["final_fitness"])]
-    params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True)
-    time_range = np.arange(len(cntct))
-    date_range = [t_to_date(t) for t in time_range]
-    ax.plot(date_range, cntct, color=color, linewidth=2)
-    ax.set_title(pathogen)
-    ax.set_ylim(0, 1.1)
-    ax.set_ylabel("")
-axes[-1].set_xlabel("Time")
-# axes[0].set_ylabel("Relative Contact Rate")
-# limit x to 2020-01-01 to 2023-01-01
-axes[-1].set_xlim(pd.to_datetime('2020-01-01'), pd.to_datetime('2023-01-01'))
-# fig.suptitle("Inferred Contact Reductions Over Time", fontsize=14)
-plt.tight_layout()
-plt.savefig("Figures/exponential_lockdown_all_pathogens_stacked2603172.png", dpi=300)
+# ##### updated lockdowns plot #####
+# fig, axes = plt.subplots(6, 1, figsize=(6.5, 5), sharex=True)
+# pathogens = ["RSV", "Metapneumovirus","InfluenzaA", "InfluenzaB","Adenovirus",  "Parainfluenza3", ]
+# seed = 2603172
+# option1 = "NA"
+# option2 = "flexagep01"
+# lockdown = "Exponential"
+# prefix = "evosax_DE_"
+# colors = ["#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000", "#000000", "#00BB00", "#648FFF", "#785EF0", "#DC267F"]
+# for ax, pathogen, color in zip(axes.flatten(), pathogens, colors):
+#     base_path = "Data/Processed/results"+str(seed)[:6]+"/"
+#     filename_pattern = pathogen+lockdown+option1+option2+str(seed)+".pickle"
+#     filepath = base_path + prefix + filename_pattern
+#     with open(filepath, "rb") as f:
+#         opt = pickle.load(f)
+#     print(f"Loaded: {prefix}{filename_pattern}")
+#     x = opt["final_population"][np.argmin(opt["final_fitness"])]
+#     params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True)
+#     time_range = np.arange(len(cntct))
+#     date_range = [t_to_date(t) for t in time_range]
+#     ax.plot(date_range, cntct, color=color, linewidth=2)
+#     ax.set_title(pathogen)
+#     ax.set_ylim(0, 1.1)
+#     ax.set_ylabel("")
+# axes[-1].set_xlabel("Time")
+# # axes[0].set_ylabel("Relative Contact Rate")
+# # limit x to 2020-01-01 to 2023-01-01
+# axes[-1].set_xlim(pd.to_datetime('2020-01-01'), pd.to_datetime('2023-01-01'))
+# # fig.suptitle("Inferred Contact Reductions Over Time", fontsize=14)
+# plt.tight_layout()
+# plt.savefig("Figures/exponential_lockdown_all_pathogens_stacked2603172.png", dpi=300)
 
 # ##### Lockdowns plot ####
 # class FakeOpt:

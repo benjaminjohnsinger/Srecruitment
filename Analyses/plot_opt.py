@@ -81,6 +81,10 @@ if __name__ == "__main__":
         prefix = sys.argv[10]
     else:
         prefix = ""
+    if int(str(seed)[:6]) < 260406:
+        hosp = False
+    else:
+        hosp = True
 
     if re.match(r'\d{4}-\d{2}-\d{2}',option1):
         start_date = option1
@@ -250,7 +254,7 @@ if __name__ == "__main__":
     , sharey=ax2)
     ax = [ax1, ax2,ax3]
     aggregation = "Month"
-    dmx = kpsc_proportion_positive_incidence_plot(ax[1], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="MS", factor=10000, hosp=True)
+    dmx = kpsc_proportion_positive_incidence_plot(ax[1], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation="MS", factor=10000, hosp=hosp)
     ax[1].set_xlabel("")
     pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
     # ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
@@ -269,7 +273,7 @@ if __name__ == "__main__":
     # ax[2].set_title("Effective susceptibles")
 
     aggregation = "MS"
-    kpsc_proportion_positive_incidence_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data")
+    kpsc_proportion_positive_incidence_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data", hosp=hosp)
     mx = lockdown_incidence_plot(ax[0],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
     lockdown_incidence_format(ax[0],date_to_t('2020-03-19'),365,mx,year_window=2)
     ax[0].legend(frameon=False, fontsize=6)

@@ -1,10 +1,14 @@
 combinations=(
-"RSV 260403 FlexStepwise NA flexagep01 1e-9 20 400 0.7"
-"InfluenzaA 260403 FlexStepwise NA flexagep01 1e-9 20 400 0.7"
-"InfluenzaB 260403 FlexStepwise NA flexagep01 1e-9 20 400 0.7"
-"Metapneumovirus 260403 FlexStepwise NA flexagep01 1e-9 20 400 0.7"
-"Parainfluenza3 260403 FlexStepwise NA flexagep01 1e-9 20 400 0.7"
-"Adenovirus 260403 FlexStepwise NA flexagep01 1e-9 20 400 0.7"
+"RSV 260408 Exponential NA flexagep028 1e-9 20 400 0.7"
+"RSV 260408 Exponential combo flexagep028 1e-9 20 400 0.7"
+"RSV 260408 Exponential incidence_data nrflexagep028 1e-9 20 400 0.7"
+"RSV 260408 Exponential combo nrflexagep028 1e-9 20 400 0.7"
+"RSV 260408 Exponential NA flexagep03 1e-9 20 1e-3 0.5 optax 400"
+"InfluenzaA 260408 Exponential NA flexagep03 1e-9 20 1e-3 0.5 optax 400"
+"InfluenzaB 260408 Exponential NA flexagep03 1e-9 20 1e-3 0.5 optax 400"
+"Metapneumovirus 260408 Exponential NA flexagep03 1e-9 20 1e-3 0.5 optax 400"
+"Parainfluenza3 260408 Exponential NA flexagep03 1e-9 20 1e-3 0.5 optax 400"
+"Adenovirus 260408 Exponential NA flexagep03 1e-9 20 1e-3 0.5 optax 400"
 # "RSV 260407 Exponential combo flexagep01 1e-9 20 400 0.7"
 # "RSV 260407 Exponential peaks_and_times nrflexagep01 1e-9 20 400 0.7"
 # "RSV 260407 Exponential combo nrflexagep01 1e-9 20 400 0.7"
@@ -25,7 +29,7 @@ combinations=(
 )
 
 for combination in "${combinations[@]}"; do
-    # /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
+    /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
     if [[ $combination == *"optax" ]]; then
         /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_optax.py $combination
     else

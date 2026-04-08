@@ -894,7 +894,7 @@ if __name__ == "__main__":
         kpsc_proportion_positive_incidence_plot(
             axB[pi//2, pi%2], pathogen=pathogen, title=nice_names.get(pathogen, pathogen),
             color=data_color, aggregation=aggregation, factor=factor,
-            annotations=False, label="Data", hosp=False)
+            annotations=False, label="Data", hosp=True)
     # suppress all y labels and replace with single label on left
     for i in range(len(pathogens)//2):
         for j in range(2):

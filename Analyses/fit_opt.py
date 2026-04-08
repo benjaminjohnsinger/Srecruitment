@@ -68,7 +68,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
         daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
         daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
     if ("peaks_and_times" in option1) or ("combo" in option1):
-        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False)
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp)
         incidence = incidence.fillna(0)
         obs_per_season = jnp.asarray(calculate_observations_per_season(incidence, age_groups=True))
         peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()
@@ -177,6 +177,8 @@ if __name__ == '__main__':
 
     if len(sys.argv) > 10:
         algorithm = sys.argv[10]
+        if len(sys.argv) > 11:
+            optax_length = int(sys.argv[11])
     else:
         algorithm = "evosax" # default to evosax if not specified
 
@@ -353,7 +355,7 @@ if __name__ == '__main__':
             opt_states = vmapped_init(xs)
 
             initial_carry = (xs, opt_states)
-            final_carry, neglogL_history = jax.lax.scan(scan_body, initial_carry, jnp.arange(opt_size))
+            final_carry, neglogL_history = jax.lax.scan(scan_body, initial_carry, jnp.arange(optax_length))
             final_xs, _ = final_carry
             return final_xs, neglogL_history
 
