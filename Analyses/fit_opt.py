@@ -1,6 +1,7 @@
 ## BJS Jan 2025
 ## Fitting models to data using out-of-the-box optimisation tools
 # set jax to use 64 bit precision
+
 import jax
 # jax.config.update("jax_enable_x64", True)
 print(f"Devices found: {jax.devices()}")
@@ -218,6 +219,23 @@ if __name__ == '__main__':
         lik = jnp.where(jnp.isnan(lik), likelihood_threshold*10, lik)
         return lik
     vmap_likelihood = jax.vmap(new_likelihood)
+
+    if algorithm == "scipy_DE":
+        import scipy as sp
+        import multiprocessing 
+        def scipy_objective(x):
+            x_transposed = x.T
+            return jnp.asarray(vmap_likelihood(x_transposed))
+        multiprocessing.set_start_method('spawn', force=True)
+        opt = sp.optimize.differential_evolution(scipy_objective,bounds,popsize=opt_size,mutation=(0.5,opt_rate1),recombination=opt_rate2,init="halton",seed=seed,updating="deferred",
+        strategy="currenttobest1bin", vectorized=True)
+        # if there's no Data/Processed/results<seed> directory, create it
+        if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
+            os.makedirs("Data/Processed/results"+str(seed)[:6])
+        with open("Data/Processed/results"+str(seed)[:6]+"/scipy_DE_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
+            pickle.dump(opt,f)
+        # exit after scipy optimization
+        sys.exit(0)
 
     ## starting population for optax or DE
     key = jax.random.PRNGKey(seed)

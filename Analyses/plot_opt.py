@@ -34,7 +34,7 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
     # Try both DE_opt and evosax_DE prefixes
     opt = None
     if prefix == "":
-        for test_prefix in ["DE_opt_", "evosax_DE_", "evosax_DiffusionEvolution_"]:
+        for test_prefix in ["DE_opt_", "scipy_DE_", "evosax_DE_", "evosax_DiffusionEvolution_"]:
             filepath = base_path + test_prefix + filename_pattern
             try:
                 with open(filepath, "rb") as f:
@@ -55,7 +55,7 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
 
     if opt is None:
         print(base_path+filename_pattern)
-        print('File not found with either prefix (DE_opt_ or evosax_DE_)')
+        print('File not found with any of the tested prefixes (DE_opt_, scipy_DE_, evosax_DE_, evosax_DiffusionEvolution_)')
         sys.exit()
 
     # Detect file type and extract results accordingly
@@ -90,15 +90,13 @@ if __name__ == "__main__":
     start_date = '2015-07-04'
     end_date = '2025-05-01'
 
+    option2_label = option2
     if re.match(r'\d{4}-\d{2}-\d{2}',option1):
         start_date = option1
     if re.match(r'\d{4}-\d{2}-\d{2}',option2):
-        option2_label = option2
         end_date = option2[0:10]
         option2 = option2[10:]
-    else:
-        option2_label = option2
-    
+
     if end_date < '2024-10-01':
         mask = [0,0]
     else:
@@ -129,12 +127,15 @@ if __name__ == "__main__":
     # x = x.at[n+5].set(1)
     # option1 = "incidence_data"
     if "incidence_data" in option1:
-        if "smoothed" in option1:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True)
+        if "old" in option1:
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data="Old", smoothed=False, hosp=hosp)
+        elif "smoothed" in option1:
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True, hosp=hosp)
         else:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False)
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False, hosp=hosp)
     else:
-        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False)
+        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False, hosp=hosp)
+    print(data_full.shape)
     N_S, NAG = 3, 7
     CONTACT_MATRIX = np.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
     BIRTH_RATE = np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=',')
@@ -171,6 +172,7 @@ if __name__ == "__main__":
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
     params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True)
+    print(cntct.shape)
 
     # names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
     # for i in range(len(names)):
@@ -258,33 +260,62 @@ if __name__ == "__main__":
     plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.serif'] = ['Palatino']
     fig = plt.figure(figsize=(5,5))
-    ax1 = fig.add_subplot(4,1,1)
-    ax2 = fig.add_subplot(4,1,2
-    )
-    ax3 = fig.add_subplot(4,1,3
-    , sharey=ax2)
-    ax4 = fig.add_subplot(4,1,4)
-    ax = [ax1, ax2, ax3, ax4]
+    ax1 = fig.add_subplot(3,1,1)
+    
+    # Create a grid of 2 rows x 4 columns in the middle
+    gs = fig.add_gridspec(2, 4, top=0.65, bottom=0.35)
+
+    ax_grid = [[fig.add_subplot(gs[i, j]) for j in range(4)] for i in range(2)]
+    
+    ax4 = fig.add_subplot(3,1,3)
+    ax = [ax1, ax_grid, ax4]
     aggregation = "MS"
-    if option1 == "old_incidence_data":
-        dmx = kpsc_positive_test_plot(ax[1], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, color=hsv_colors, legend=False, aggregation=aggregation, factor=10000)
-    else:
-        dmx = kpsc_proportion_positive_incidence_plot(ax[1], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, hosp=hosp)
-    ax[1].set_xlabel("")
+
+    # if option1 == "old_incidence_data":
+    #     dmx = kpsc_positive_test_plot(ax[1], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, color=hsv_colors, legend=False, aggregation=aggregation, factor=10000)
+    # else:
+    #     dmx = kpsc_proportion_positive_incidence_plot(ax[1], pathogen, AGE_GROUPS, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, hosp=hosp)
+    # ax[1].set_xlabel("")
     pnamedict = {"RSV":"RSV","InfluenzaA":"Influenza A","InfluenzaB":"Influenza B","Parainfluenza3":"Parainfluenza 3","Adenovirus":"Adenovirus","Metapneumovirus":"Metapneumovirus", "test":"test"}
-    # ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
-    ax[1].set_ylabel("Monthly incidence per 10k")
-    # legend
-    ax[1].legend(frameon=False, fontsize=6, ncol=3)
+    # # ax.set_title("Observed incidence of "+pnamedict[pathogen_name])
+    # ax[1].set_ylabel("Monthly incidence per 10k")
+    # # legend
+    # ax[1].legend(frameon=False, fontsize=6, ncol=3)
 
-    # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
-    mx = lockdown_incidence_plot(ax[2],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
-    lockdown_incidence_format(ax[2],date_to_t('2020-03-19'),365,mx,year_window=2)
-    ax[2].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed") 
-    # ax[2].plot(POINTS, mx*full_likelihood, label="Normalized likelihood", color="black", alpha=0.5)
+    # # fig, ax = plt.subplots(1,2,figsize=(14.5,2.8))
+    # mx = lockdown_incidence_plot(ax[2],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
+    # lockdown_incidence_format(ax[2],date_to_t('2020-03-19'),365,mx,year_window=2)
+    # if lockdown == "ExponentialByAge":
+    #     ax[2].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):,0], label="Relative contact rate", color="black", linestyle="dashed")
+    #     ax[2].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):,-1], label="Relative contact rate", color="silver", linestyle="dashed")
+    # else:
+    #     ax[2].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed")
+    # # ax[2].plot(POINTS, mx*full_likelihood, label="Normalized likelihood", color="black", alpha=0.5)
 
-    lockdown_susceptibility_plot(ax[3],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-    lockdown_susceptibility_format(ax[3],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
+    for i_age in range(NAG):
+        age_ax = ax_grid[i_age // 4][i_age % 4]
+        dmx = kpsc_proportion_positive_incidence_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, select_age_group=i_age, aggregation=aggregation, factor=10000, color="black", label="Data", hosp=hosp, linewidth=0.5)
+        mx = lockdown_incidence_plot(age_ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label=None,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, select_age_group=i_age, color=hsv_colors[i_age], linewidth=0.5)
+        lockdown_incidence_format(age_ax,date_to_t('2020-03-19'),365,mx,year_window=2)
+        age_ax.legend(frameon=False, fontsize=6)
+        # strip of title, x and y labels, ticks etc.
+        age_ax.set_title("")
+        age_ax.set_xlabel("")
+        age_ax.set_ylabel("")
+        age_ax.set_xticklabels("")
+        age_ax.set_yticklabels("")
+        age_ax.set_yticks([])
+        age_ax.set_xticks([])
+    if lockdown == "ExponentialByAge":
+        ax_grid[-1][-1].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):,0], label="<40y contacts", color="black", linestyle="dashed")
+        ax_grid[-1][-1].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):,-1], label=">40y contacts", color="silver", linestyle="dashed")
+        ax_grid[-1][-1].legend(frameon=False, fontsize=6)
+    else:
+        ax_grid[-1][-1].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed")
+        ax_grid[-1][-1].legend(frameon=False, fontsize=6)
+
+    lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+    lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
     # ax[3].set_title("Effective susceptibles")
 
     if option1 == "old_incidence_data":
@@ -299,23 +330,23 @@ if __name__ == "__main__":
     ax[0].set_xlabel("")
     ax[0].set_xticklabels("")
     ax[0].set_ylabel("Incidence\nper 10k")
-    ax[1].set_title("")
-    ax[1].set_xlabel("")
-    ax[1].set_xticklabels("")
-    ax[1].set_ylabel("Age-structured\ndata")
+    # ax[1].set_title("")
+    # ax[1].set_xlabel("")
+    # ax[1].set_xticklabels("")
+    # ax[1].set_ylabel("Age-structured\ndata")
+    # ax[2].set_title("")
+    # ax[2].set_xlabel("")
+    # ax[2].set_xticklabels("")
+    # ax[2].set_ylabel("Age-structured\nsimulation")
     ax[2].set_title("")
-    ax[2].set_xlabel("")
-    ax[2].set_xticklabels("")
-    ax[2].set_ylabel("Age-structured\nsimulation")
-    ax[3].set_title("")
-    ax[3].set_xlabel("Date")
-    ax[3].set_ylabel("Effective susceptibility")
+    ax[2].set_xlabel("Date")
+    ax[2].set_ylabel("Effective susceptibility")
 
     # pathogen as title
     fig.suptitle(pnamedict[pathogen_name], fontsize=10)
 
-    plt.tight_layout()
-    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+".png",dpi=300)
+    # plt.tight_layout()
+    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_test.png",dpi=300)
     plt.close()
 
     # fig, ax = plt.subplots(figsize=(4,4))

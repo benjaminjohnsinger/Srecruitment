@@ -415,7 +415,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         elif lockdown == "ExponentialByAge":
             FF = [1,x[n]]
             TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
-            RR = jnp.array([[x[n+1],],[x[n+2],]])
+            RR = jnp.array([[x[n+1],x[n+2],],])
             EXPONENTIAL_CONTACT = cm.exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=5)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS.reshape(-1,1)-274)/365-OFFSET)))
             n += 3
@@ -458,13 +458,17 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         protection_param = S_REL*P_OBS
         max_eff = (protection_param[-2]-protection_param[-1])/protection_param[-2]
         VAX_RATE = flu_eff_vax_rate(FULL_POINTS, max_eff)
-    elif ("RSV" in pathogen):
+    elif ("RSV" in pathogen) and ("nvax" not in option1):
         protection_param = S_REL*P_OBS
         max_eff0 = 1 - protection_param[-1]
         max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
         VAX_RATE = rsv_eff_vax_rate(FULL_POINTS, max_eff0, max_eff1)
     else:
         VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
+
+    # if relative contact is 1-dimensional, copy it across all age groups
+    if RELATIVE_CONTACT.ndim == 1:
+        RELATIVE_CONTACT = jnp.tile(RELATIVE_CONTACT.reshape(-1,1), (1,NAG))
 
     params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
                 BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
