@@ -29,7 +29,7 @@ def deltas(t, state, args):
     # infections - calculate force of infection
     relative_contact = interp_fn(t, FULL_POINTS, RELATIVE_CONTACT)
     import_strength = jnp.interp(t, FULL_POINTS, IMPORT_STRENGTH)
-    CONTACT_t = relative_contact*CONTACT_MATRIX
+    CONTACT_t = relative_contact[:, None] * relative_contact[None, :] * CONTACT_MATRIX
     infectious_by_age = jnp.sum(infectious, axis=0)
     infectious_contact = jnp.dot(CONTACT_t,infectious_by_age)/pop_size
     import_contact = import_strength*jnp.dot(CONTACT_t,age_pops)/pop_size

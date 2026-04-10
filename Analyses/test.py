@@ -35,6 +35,19 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
+seed = 260409
+base_path = f"Data/Processed/results{seed}/"
+test_prefix = "scipy_DE_"
+# test_prefix = "evosax_DE_"
+filename_pattern = f"RSVExponentialincidence_dataflexagep028{seed}.pickle"
+filepath = base_path + test_prefix + filename_pattern
+with open(filepath, "rb") as f:
+    opt = pickle.load(f)
+print(f"Loaded: {filepath}")
+# print what attributes opt has
+print("Attributes of loaded optimization result:")
+print(opt.nfev)
+print(opt.nit)
 
 ###### spectrum analysis
 # N = date_to_t("2020-03-19")-date_to_t('2015-10-01')
@@ -156,29 +169,29 @@ plt.rcParams['font.serif'] = ['Palatino']
 # plt.tight_layout()
 # plt.savefig("Figures/poisson_binomial_four_panel_comparison_high_incidence.png", dpi=300)
 
-#### plotting contact funcitons
-EPOCH = pd.to_datetime('1970-01-01')
-END = pd.to_datetime("2025-05-01")
-FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
-FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
-data_start = date_to_t('2015-10-01')
+# #### plotting contact funcitons
+# EPOCH = pd.to_datetime('1970-01-01')
+# END = pd.to_datetime("2025-05-01")
+# FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
+# FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
+# data_start = date_to_t('2015-10-01')
 
-from contact_model import exponential_recovery_byage
-x = [0.109, 0.001, 0.1]
-n=0
-FF = [1,x[n]]
-TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
-RR = jnp.array([[x[n+1],x[n+2],]],)
-EXPONENTIAL_CONTACT = exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=5)
+# from contact_model import exponential_recovery_byage
+# x = [0.109, 0.001, 0.1]
+# n=0
+# FF = [1,x[n]]
+# TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
+# RR = jnp.array([[x[n+1],x[n+2],]],)
+# EXPONENTIAL_CONTACT = exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=5)
 
-for age_group in AGE_GROUP_NAMES:
-    plt.plot(FULL_POINTS, EXPONENTIAL_CONTACT[:,AGE_GROUP_NAMES.index(age_group)], label=age_group, color=hsv_colors[AGE_GROUP_NAMES.index(age_group)])
-plt.legend()
-plt.xlim(date_to_t('2020-01-01'), date_to_t('2025-05-01'))
-plt.xlabel("Time (days since 1970-01-01)")
-plt.ylabel("Relative contact rate")
-plt.title("Exponential recovery contact function by age group")
-plt.show()
+# for age_group in AGE_GROUP_NAMES:
+#     plt.plot(FULL_POINTS, EXPONENTIAL_CONTACT[:,AGE_GROUP_NAMES.index(age_group)], label=age_group, color=hsv_colors[AGE_GROUP_NAMES.index(age_group)])
+# plt.legend()
+# plt.xlim(date_to_t('2020-01-01'), date_to_t('2025-05-01'))
+# plt.xlabel("Time (days since 1970-01-01)")
+# plt.ylabel("Relative contact rate")
+# plt.title("Exponential recovery contact function by age group")
+# plt.show()
 
 # # x=[0.8,0.6,0.5,0.02,0.02]
 # # n=0

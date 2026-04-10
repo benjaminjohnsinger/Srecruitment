@@ -57,6 +57,8 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     if "incidence_data" in option1:
         if "old" in option1:
             REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data="Old", smoothed=False, hosp=hosp)
+        elif "orig" in option1:
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data="orig", smoothed=False, hosp=hosp)
         elif "smoothed" in option1:
             REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True, hosp=hosp)
         else:
@@ -222,13 +224,13 @@ if __name__ == '__main__':
 
     if algorithm == "scipy_DE":
         import scipy as sp
-        import multiprocessing 
         def scipy_objective(x):
             x_transposed = x.T
             return jnp.asarray(vmap_likelihood(x_transposed))
-        multiprocessing.set_start_method('spawn', force=True)
+        start_time = time.time()
         opt = sp.optimize.differential_evolution(scipy_objective,bounds,popsize=opt_size,mutation=(0.5,opt_rate1),recombination=opt_rate2,init="halton",seed=seed,updating="deferred",
         strategy="currenttobest1bin", vectorized=True)
+        print(f"Scipy DE optimization completed in {opt.nit} iterations, {time.time() - start_time:.2f} seconds.")
         # if there's no Data/Processed/results<seed> directory, create it
         if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
             os.makedirs("Data/Processed/results"+str(seed)[:6])
@@ -269,10 +271,10 @@ if __name__ == '__main__':
             name = "DiffusionEvolution"
         else:
             from evosax.algorithms import DifferentialEvolution
-            es = DifferentialEvolution(population_size=hypercube_size, solution=xs[0])
+            es = DifferentialEvolution(population_size=hypercube_size, solution=xs[0], num_diff=2)
             params = es.default_params
             # set crossover_rate to opt_rate2
-            params = params.replace(elitism=False,crossover_rate=opt_rate2)
+            params = params.replace(elitism=False, crossover_rate=opt_rate2)
             name = "DE"
 
         key, subkey = jax.random.split(key)

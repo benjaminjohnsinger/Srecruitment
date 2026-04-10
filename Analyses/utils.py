@@ -12,6 +12,10 @@ import sys
 import time
 from functools import partial
 
+class FakeOpt:
+    def __init__(self, x):
+        self.x = x
+
 
 ####### Utility functions #######
 
@@ -201,7 +205,9 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         if incidence_data:
             if incidence_data=="Old":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_unsalvage_panel_positive_RSV_matched_noncovid_ARI_hospitalizations_proportional_incidence.csv",index_col=0).values)
-            if smoothed:
+            elif incidence_data=="orig":
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_RSV_incidence_age_daily.csv",index_col=0))
+            elif smoothed:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
@@ -216,7 +222,9 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         if incidence_data:
             if incidence_data=="Old":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_unsalvage_panel_positive_InfluenzaA_matched_noncovid_ARI_hospitalizations_proportional_incidence.csv",index_col=0).values)
-            if smoothed:
+            elif incidence_data=="orig":
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_InfluenzaA_incidence_age_daily.csv",index_col=0))
+            elif smoothed:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
@@ -231,7 +239,9 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         if incidence_data:
             if incidence_data=="Old":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_unsalvage_panel_positive_InfluenzaB_matched_noncovid_ARI_hospitalizations_proportional_incidence.csv",index_col=0).values)
-            if smoothed:
+            elif incidence_data=="orig":
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_InfluenzaB_incidence_age_daily.csv",index_col=0))
+            elif smoothed:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
@@ -246,7 +256,9 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         if incidence_data:
             if incidence_data=="Old":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_unsalvage_panel_positive_Parainfluenza3_matched_noncovid_ARI_hospitalizations_proportional_incidence.csv",index_col=0).values)
-            if smoothed:
+            elif incidence_data=="orig":
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Parainfluenza3_incidence_age_daily.csv",index_col=0))
+            elif smoothed:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
@@ -261,7 +273,9 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         if incidence_data:
             if incidence_data=="Old":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_unsalvage_panel_positive_Adenovirus_matched_noncovid_ARI_hospitalizations_proportional_incidence.csv",index_col=0).values)
-            if smoothed:
+            elif incidence_data=="orig":
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Adenovirus_incidence_age_daily.csv",index_col=0))
+            elif smoothed:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
@@ -276,7 +290,9 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
         if incidence_data:
             if incidence_data=="Old":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_unsalvage_panel_positive_Metapneumovirus_matched_noncovid_ARI_hospitalizations_proportional_incidence.csv",index_col=0).values)
-            if smoothed:
+            elif incidence_data=="orig":
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Metapneumovirus_incidence_age_daily.csv",index_col=0))
+            elif smoothed:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
@@ -416,7 +432,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             FF = [1,x[n]]
             TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
             RR = jnp.array([[x[n+1],x[n+2],],])
-            EXPONENTIAL_CONTACT = cm.exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=5)
+            EXPONENTIAL_CONTACT = cm.exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=6)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS.reshape(-1,1)-274)/365-OFFSET)))
             n += 3
         elif lockdown == "Exponential2":
@@ -434,8 +450,12 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             RELATIVE_CONTACT = SIGMOID_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 3
     if re.search(r'\d{6}',lockdown):
-        with open("Data/Processed/DE_cm_opt_"+str(lockdown)+".pickle","rb") as f:
-            opt = pickle.load(f)
+        try:
+            with open("Data/Processed/DE_cm_opt_"+str(lockdown)+".pickle","rb") as f:
+                opt = pickle.load(f)
+        except:
+            with open("Data/Processed/DE_cm_opt_"+str(lockdown)+"intermediate.pickle","rb") as f:
+                opt = pickle.load(f)
         x_lockdown = opt.x
         TT = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x_lockdown[0]*365,date_to_t('2020-03-19')+(x_lockdown[0]+x_lockdown[1])*365,date_to_t('2020-03-19')+(x_lockdown[0]+x_lockdown[1]+x_lockdown[2])*365])
         # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
@@ -468,7 +488,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
 
     # if relative contact is 1-dimensional, copy it across all age groups
     if RELATIVE_CONTACT.ndim == 1:
-        RELATIVE_CONTACT = jnp.tile(RELATIVE_CONTACT.reshape(-1,1), (1,NAG))
+        RELATIVE_CONTACT = jnp.sqrt(jnp.tile(RELATIVE_CONTACT.reshape(-1,1), (1,NAG)))
 
     params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
                 BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
@@ -499,7 +519,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             return params, MOBILITY_CONTACT
         elif 'Taube' in lockdown:
             return params, MOBILITY_CONTACT
-        elif 'FlexStepwise' in lockdown:
+        else:
             return params, PIECEWISE_CONTACT
     else:
         return params

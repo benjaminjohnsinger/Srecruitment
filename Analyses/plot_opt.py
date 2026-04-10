@@ -29,12 +29,12 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
         lockdown_search = lockdown
 
     base_path = "Data/Processed/results"+str(seed)[:6]+"/"
-    filename_pattern = pathogen+lockdown_search+option1+option2+str(seed)+".pickle"
+    filename_pattern = "_"+pathogen+lockdown_search+option1+option2+str(seed)+".pickle"
 
     # Try both DE_opt and evosax_DE prefixes
     opt = None
     if prefix == "":
-        for test_prefix in ["DE_opt_", "scipy_DE_", "evosax_DE_", "evosax_DiffusionEvolution_"]:
+        for test_prefix in ["DE_opt", "evosax_DE", "scipy_DE", "evosax_DiffusionEvolution"]:
             filepath = base_path + test_prefix + filename_pattern
             try:
                 with open(filepath, "rb") as f:
@@ -63,8 +63,12 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
     # evosax_DE format
         x = opt["final_population"][np.argmin(opt["final_fitness"])]
         neg_log_likelihood = np.min(opt["final_fitness"])
-    else:
+        if jnp.std(opt["final_fitness"]) <= 0.01 * jnp.abs(jnp.mean(opt["final_fitness"])):
+            print("evosax converged according to scipy criteria")
+        else:
+            print("evosax did not converge according to scipy criteria")
     # scipy.optimize.differential_evolution format
+    elif ("scipy_DE" in prefix) or ("DE_opt" in prefix):
         if opt.success:
             print("Optimization converged")
         else:
@@ -82,6 +86,10 @@ if __name__ == "__main__":
         prefix = sys.argv[10]
     else:
         prefix = ""
+
+    option1_label = option1
+    if int(str(seed)[:6]) < 260203:
+        option1 = "orig_incidence_data" + option1
     if int(str(seed)[:6]) < 260406:
         hosp = False
     else:
@@ -105,7 +113,8 @@ if __name__ == "__main__":
     print(pathogen, seed)
     # set seed
     np.random.seed(seed)
-    prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2_label)
+    prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
+
     # prefix = "evosax_DE_"
     # x = jnp.array([1.1706531e-01, 7.3374316e-02, 2.2380880e-01, 9.8890215e-03, 4.5175752e-01,
     #     2.7518633e-01, 9.3584144e-01, 5.9982330e-01, 2.3880145e-01, 9.4480757e-03,
@@ -220,6 +229,39 @@ if __name__ == "__main__":
     print("Proportion infected per season (including reinfections):",season_infections)
     print("Proportion infected in last season (by age):",season_infection_by_age[-1,:])
 
+    incidence = calculate_proportion_positive_incidence(pathogen, aggregation="W", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp)
+    incidence = incidence.fillna(0)
+    obs_per_season = jnp.asarray(calculate_observations_per_season(incidence, age_groups=True, aggregation="W"))
+    peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()
+    # print("Peak time of each season:\n", peak_times)
+    # difference between 2017/18 and 2022/23 seasons
+    peak_time_diff = (peak_times.iloc[7] - peak_times.iloc[2]).dt.days - 365*5
+    # this pritns in vertical format, just printa s a list
+    print("Difference in peak times between 2017/18 and 2022/23 seasons (in days):", peak_time_diff.tolist())
+
+    population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
+    expected_obs = calculate_expected_obs(values, p_time_to_obs, len(times))
+    cut_times = times[:-1]
+    expected_obs_per_season = calculate_observations_per_season_jax(expected_obs, age_groups=True)
+    # Assign each time point to a season (numeric season id/start)
+    season_ids = jax.vmap(get_season_start_jax)(cut_times)
+    unique_seasons = 16684 + 365 * jnp.arange(10)  # Assuming seasons start on day 259 of each year
+    # For each season, find the time index of the peak expected observation (per age group)
+    def season_peak_times(season_id):
+        season_mask = season_ids == season_id                           # (T,)
+        masked_obs = jnp.where(season_mask[:, None], expected_obs, -jnp.inf)  # (T, NAG)
+        peak_idx = jnp.argmax(masked_obs, axis=0)                      # (NAG,)
+        return times[peak_idx]                                          # (NAG,)
+    expected_peak_times = jax.vmap(season_peak_times)(unique_seasons) 
+    # Convert peak times to dates and display in a nice table format
+    peak_dates = [[t_to_date(t).strftime('%Y-%m-%d') for t in season] for season in expected_peak_times]
+    peak_df = pd.DataFrame(peak_dates, columns=[age_name for age_name in AGE_GROUP_NAMES], index=[f"Season {i+1}" for i in range(len(unique_seasons))])
+    peak_df.index.name = "Season"
+    # print(peak_df.to_string())
+    # difference in peak times between 2017/18 and 2022/23 seasons
+    expected_peak_time_diff = (expected_peak_times[7] - expected_peak_times[2]) - 365*5
+    print("Difference in expected peak times between 2017/18 and 2022/23 seasons (in days):", expected_peak_time_diff)
+
     # population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
     # # trajectory is total proportion infected over time
     # infectious = jnp.sum(values[1:].reshape((2*N_S+1, NAG, -1))[1:2*N_S:2], axis=0).T
@@ -294,25 +336,33 @@ if __name__ == "__main__":
 
     for i_age in range(NAG):
         age_ax = ax_grid[i_age // 4][i_age % 4]
-        dmx = kpsc_proportion_positive_incidence_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, select_age_group=i_age, aggregation=aggregation, factor=10000, color="black", label="Data", hosp=hosp, linewidth=0.5)
+        if "orig_incidence_data" in option1:
+            dmx = kpsc_positive_test_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, color="k", legend=False, aggregation=aggregation, factor=10000, select_age_group=i_age, orig=True, linewidth=0.5)
+        elif option1 == "old_incidence_data":
+            dmx = kpsc_positive_test_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, color="k", legend=False, aggregation=aggregation, factor=10000, select_age_group=i_age, linewidth=0.5)
+        else:
+            dmx = kpsc_proportion_positive_incidence_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, select_age_group=i_age, aggregation=aggregation, factor=10000, color="black", hosp=hosp, linewidth=0.5)
         mx = lockdown_incidence_plot(age_ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label=None,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, select_age_group=i_age, color=hsv_colors[i_age], linewidth=0.5)
         lockdown_incidence_format(age_ax,date_to_t('2020-03-19'),365,mx,year_window=2)
         age_ax.legend(frameon=False, fontsize=6)
-        # strip of title, x and y labels, ticks etc.
-        age_ax.set_title("")
-        age_ax.set_xlabel("")
-        age_ax.set_ylabel("")
-        age_ax.set_xticklabels("")
-        age_ax.set_yticklabels("")
-        age_ax.set_yticks([])
-        age_ax.set_xticks([])
+    omx = lockdown_incidence_plot(ax_grid[-1][-1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="grey", linewidth=0.5)
     if lockdown == "ExponentialByAge":
-        ax_grid[-1][-1].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):,0], label="<40y contacts", color="black", linestyle="dashed")
-        ax_grid[-1][-1].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):,-1], label=">40y contacts", color="silver", linestyle="dashed")
-        ax_grid[-1][-1].legend(frameon=False, fontsize=6)
+        ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,0]**2, label="<40y contacts", color="black", linestyle="dashed")
+        ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,-1]**2, label=">40y contacts", color="silver", linestyle="dashed")
     else:
-        ax_grid[-1][-1].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed")
-        ax_grid[-1][-1].legend(frameon=False, fontsize=6)
+        ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed")
+    # ax_grid[-1][-1].legend(frameon=False, fontsize=6)
+   
+    for ax_row in ax_grid:
+        for gridax in ax_row:
+            # strip of title, x and y labels, ticks etc.
+            gridax.set_title("")
+            gridax.set_xlabel("")
+            gridax.set_ylabel("")
+            gridax.set_xticklabels("")
+            gridax.set_yticklabels("")
+            gridax.set_yticks([])
+            gridax.set_xticks([])
 
     lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
     lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
@@ -320,6 +370,8 @@ if __name__ == "__main__":
 
     if option1 == "old_incidence_data":
         kpsc_positive_test_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data")
+    elif "orig_incidence_data" in option1:
+        kpsc_positive_test_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data", orig=True)
     else:
         kpsc_proportion_positive_incidence_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data", hosp=hosp)
     mx = lockdown_incidence_plot(ax[0],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
@@ -346,7 +398,7 @@ if __name__ == "__main__":
     fig.suptitle(pnamedict[pathogen_name], fontsize=10)
 
     # plt.tight_layout()
-    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_test.png",dpi=300)
+    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+".png",dpi=300)
     plt.close()
 
     # fig, ax = plt.subplots(figsize=(4,4))
