@@ -449,6 +449,30 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             SIGMOID_CONTACT = cm.sigmoid_recovery(FULL_POINTS, TT, FF, RR)
             RELATIVE_CONTACT = SIGMOID_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 3
+        elif lockdown == "RSV0409":
+            TT = jnp.array([date_to_t('1970-01-01'), date_to_t('2020-03-19'), date_to_t('2021-01-04'), date_to_t('2021-07-09'), date_to_t('2022-06-22')])
+            F1 = x[n] # value between 0 and 1 (first lockdown)
+            F2 = F1 + x[n+1] - F1*x[n+1] # value between F1 and 1 (inter-lockdown)
+            F3 = F2*x[n+2] # value less than F2 (second lockdown)
+            F4 = F2 + x[n+3] - F2*x[n+3] # value between F2 and 1 (post-lockdown)
+            FF = jnp.array([1,F1,F2,F3,F4])
+            PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(FULL_POINTS)
+            RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+            n += 4
+        elif lockdown == "PolicyDates":
+            TT = np.array([date_to_t(EPOCH),
+                date_to_t('2020-03-19'), # Newsom announces stay-at-home order
+                date_to_t('2021-04-27'), # CDC amends mask guidance to allow vaccinated individuals to go maskless
+                date_to_t('2021-12-15'), # CDC reinstates mask guidance
+                date_to_t('2022-03-01')]) # End of mask mandate in California
+            F1 = x[n] # value between 0 and 1 (first lockdown)
+            F2 = F1 + x[n+1] - F1*x[n+1] # value between F1 and 1 (inter-lockdown)
+            F3 = F2*x[n+2] # value less than F2 (second lockdown)
+            F4 = F2 + x[n+3] - F2*x[n+3] # value between F2 and 1 (post-lockdown)
+            FF = jnp.array([1,F1,F2,F3,F4])
+            PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(FULL_POINTS)
+            RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+            n += 4
     if re.search(r'\d{6}',lockdown):
         try:
             with open("Data/Processed/DE_cm_opt_"+str(lockdown)+".pickle","rb") as f:
@@ -460,7 +484,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         TT = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x_lockdown[0]*365,date_to_t('2020-03-19')+(x_lockdown[0]+x_lockdown[1])*365,date_to_t('2020-03-19')+(x_lockdown[0]+x_lockdown[1]+x_lockdown[2])*365])
         # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
         F1 = x_lockdown[3] # value between 0 and 1 (first lockdown)
-        F2 = F1 + x_lockdown[4] - F1*x_lockdown[4] # value between x_lockdown[3] and 1 (inter-lockdown)
+        F2 = F1 + x_lockdown[4] - F1*x_lockdown[4] # value between F1 and 1 (inter-lockdown)
         F3 = F2*x_lockdown[5] # value less than F2 (second lockdown)
         F4 = F2 + x_lockdown[6] - F2*x_lockdown[6] # value between F2 and 1 (post-lockdown)
         FF = jnp.array([1,F1,F2,F3,F4])
@@ -582,6 +606,8 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
             bounds_dict["F1"] = [0,1]
             bounds_dict["DT1"] = [0,3]
             bounds_dict["R1"] = [0.002,0.01]
+        elif lockdown == "RSV0409":
+            bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
         elif lockdown != "Taube":
             bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
 

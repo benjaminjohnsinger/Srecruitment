@@ -242,24 +242,40 @@ if __name__ == '__main__':
     ## starting population for optax or DE
     key = jax.random.PRNGKey(seed)
 
-    hypercube_size = int(opt_size) * len(bounds)
+    # see if there's already an output file to start from
+    xs = None
+    if ("evosax" in algorithm) and ("diffusion" not in algorithm):
+        results_file = "Data/Processed/results"+str(seed)[:6]+"/evosax_DE_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+        if os.path.exists(results_file):
+            print(f"Found existing results file for {algorithm} optimization. Loading initial points from disk.")
+            with open(results_file, "rb") as f:
+                data = pickle.load(f)
+                if "final_population" in data:
+                    xs = data["final_population"]
+                elif "final_params" in data:
+                    xs = data["final_params"]
+                else:
+                    print("No suitable initial points found in results file. Generating new initial points.")
+                    xs = None
+    if xs is None:
+        hypercube_size = int(opt_size) * len(bounds)
 
-    key, subkey = jax.random.split(key)
-    sampling_start_time = time.time()
-    lhs_samples = latin_hypercube_sample(subkey, hypercube_size, len(bounds))
-    xs = jnp.array(bounds[:, 0] + lhs_samples * (bounds[:, 1] - bounds[:, 0]))
-    print(f"Generated {hypercube_size} Latin hypercube samples with JAX in {time.time() - sampling_start_time:.2f} seconds.")
-
-    # if there are opt_states with likelihood over 100, resample those points
-    likelihoods = jax.jit(vmap_likelihood)(xs)
-
-    if not ("skip_resampling" in algorithm):
         key, subkey = jax.random.split(key)
-        print(f"Starting resampling of {jnp.sum((likelihoods > likelihood_threshold) | jnp.isnan(likelihoods))} bad initial points...")
-        start_time = time.time()
-        xs, likelihoods, iterations = run_resampling(xs, likelihoods, subkey)
-        likelihoods.block_until_ready()
-        print(f"Resampling completed in {time.time() - start_time:.2f} seconds after {iterations} iterations.")
+        sampling_start_time = time.time()
+        lhs_samples = latin_hypercube_sample(subkey, hypercube_size, len(bounds))
+        xs = jnp.array(bounds[:, 0] + lhs_samples * (bounds[:, 1] - bounds[:, 0]))
+        print(f"Generated {hypercube_size} Latin hypercube samples with JAX in {time.time() - sampling_start_time:.2f} seconds.")
+
+        # if there are opt_states with likelihood over 100, resample those points
+        likelihoods = jax.jit(vmap_likelihood)(xs)
+
+        if not ("skip_resampling" in algorithm):
+            key, subkey = jax.random.split(key)
+            print(f"Starting resampling of {jnp.sum((likelihoods > likelihood_threshold) | jnp.isnan(likelihoods))} bad initial points...")
+            start_time = time.time()
+            xs, likelihoods, iterations = run_resampling(xs, likelihoods, subkey)
+            likelihoods.block_until_ready()
+            print(f"Resampling completed in {time.time() - start_time:.2f} seconds after {iterations} iterations.")
 
     if "evosax" in algorithm:
         ################ evosax ##################
@@ -274,7 +290,7 @@ if __name__ == '__main__':
             es = DifferentialEvolution(population_size=hypercube_size, solution=xs[0], num_diff=2)
             params = es.default_params
             # set crossover_rate to opt_rate2
-            params = params.replace(elitism=False, crossover_rate=opt_rate2)
+            params = params.replace(elitism="best" in algorithm, crossover_rate=opt_rate2)
             name = "DE"
 
         key, subkey = jax.random.split(key)
