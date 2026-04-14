@@ -102,23 +102,24 @@ def rsv_maternal_immunity(t_arr):
 if __name__ == "__main__":
     # # Test the function and plot results
     FULL_POINTS = jnp.arange(0, 22000)  # Example time points
-    # S_REL = jnp.array([1, 0.3, 0.3*0.25])
-    # P_OBS = jnp.array([1, 0.46, 0.31])
-    # protection_param = S_REL * P_OBS
-    # max_eff0 = 1-protection_param[-1]
-    # max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
-    # rates = rsv_eff_vax_rate(FULL_POINTS, max_eff0, max_eff1)
-    mat_imm = rsv_maternal_immunity(FULL_POINTS)
-    fig, ax = plt.subplots(figsize=(10, 6))
-    # Convert time points to dates
-    dates = pd.to_datetime(FULL_POINTS, unit='D', origin='1970-01-01')
-    ax.plot(dates, mat_imm)
-    ax.set_title("RSV Maternal Immunity")
-    ax.set_ylabel("Proportion with Maternal Immunity")
-    ax.set_xlabel("Date")
-    ax.set_xlim(pd.to_datetime('2015-01-01'), pd.to_datetime('2026-01-01'))
-    plt.tight_layout()
-    plt.savefig("Figures/RSV_effective_maternal_immunity.png")
+    print(flu_eff_vax_rate(FULL_POINTS, max_eff=0.5).shape)
+    # # S_REL = jnp.array([1, 0.3, 0.3*0.25])
+    # # P_OBS = jnp.array([1, 0.46, 0.31])
+    # # protection_param = S_REL * P_OBS
+    # # max_eff0 = 1-protection_param[-1]
+    # # max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
+    # # rates = rsv_eff_vax_rate(FULL_POINTS, max_eff0, max_eff1)
+    # mat_imm = rsv_maternal_immunity(FULL_POINTS)
+    # fig, ax = plt.subplots(figsize=(10, 6))
+    # # Convert time points to dates
+    # dates = pd.to_datetime(FULL_POINTS, unit='D', origin='1970-01-01')
+    # ax.plot(dates, mat_imm)
+    # ax.set_title("RSV Maternal Immunity")
+    # ax.set_ylabel("Proportion with Maternal Immunity")
+    # ax.set_xlabel("Date")
+    # ax.set_xlim(pd.to_datetime('2015-01-01'), pd.to_datetime('2026-01-01'))
+    # plt.tight_layout()
+    # plt.savefig("Figures/RSV_effective_maternal_immunity.png")
 
     # S_REL = jnp.array([1, 0.51, 0.21])
     # P_OBS = jnp.array([1, 0.51, 0.21])

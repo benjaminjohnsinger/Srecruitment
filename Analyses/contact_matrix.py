@@ -17,7 +17,7 @@ AGE_POP_norm = AGE_POP/np.sum(AGE_POP)
 PREM_AGE_GROUPS = [range(i*5*12,(i+1)*5*12) for i in range(15)]
 PREM_AGE_GROUPS.append(range(75*12,100*12))
 # KP_AGE_GROUPS = [np.arange(0,3),np.arange(3,12),np.arange(12,5*12),np.arange(5*12,8*12),np.arange(8*12,40*12),np.arange(40*12,65*12),np.arange(65*12,100*12)]
-from Parameters.census_population import AGE_GROUPS as KP_AGE_GROUPS
+from Parameters.census_population import AGE_GROUPS_split as KP_AGE_GROUPS
 PITZER_AGE_GROUPS = [range(0,6),range(6,12),range(12,2*12),range(2*12,3*12),range(3*12,4*12),range(4*12,5*12),range(5*12,10*12),range(10*12,15*12),range(15*12,20*12),range(20*12,25*12),range(25*12,30*12),range(30*12,35*12),range(35*12,40*12),range(40*12,45*12),range(45*12,50*12),range(50*12,55*12),range(55*12,60*12),range(60*12,65*12),range(65*12,70*12),range(70*12,75*12),range(75*12,80*12),range(80*12,85*12),range(85*12,90*12),range(90*12,95*12),range(95*12,120*12)]
 MIKE_AGE_GROUPS = [range(0,4*12),range(4*12,6*12),range(6*12,18*12),range(18*12,120*12)]
 NAG = len(KP_AGE_GROUPS)
@@ -69,8 +69,8 @@ print(f'Average number of contacts per person per day (Prem et al. 2021, USA, KP
 # plt.show()
 
 # Save contact matrices
-np.savetxt('Data/Processed/contact_matrices/KP_contact_home_US_Census.csv',KP_HOME,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/KP_contact_work_US_Census.csv',KP_WORK,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/KP_contact_school_US_Census.csv',KP_SCHOOL,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/KP_contact_others_US_Census.csv',KP_OTHERS,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv',KP_ALL,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_split_contact_home_US_Census.csv',KP_HOME,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_split_contact_work_US_Census.csv',KP_WORK,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_split_contact_school_US_Census.csv',KP_SCHOOL,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_split_contact_others_US_Census.csv',KP_OTHERS,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_split_contact_all_US_Census.csv',KP_ALL,delimiter=',')

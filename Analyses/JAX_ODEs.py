@@ -10,8 +10,7 @@ interp_fn = jax.vmap(jnp.interp, in_axes=(None, None, 1), out_axes=0)
 def deltas(t, state, args):
     (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, # population parameters
     BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY, # fit parameters
-    REC_UP, REC_SAME, IMPORT_STRENGTH) = args # pathogen parameters
-    NAG = 7
+    REC_UP, REC_SAME, IMPORT_STRENGTH, NAG) = args # pathogen parameters
     N_S = 3
     delta = jnp.zeros((2*N_S+1,NAG))
     maternal = state[0]

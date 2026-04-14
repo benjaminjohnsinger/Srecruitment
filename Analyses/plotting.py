@@ -18,7 +18,7 @@ import pickle
 import colorsys
 from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 
-from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, infections_by_age, parameters_from_DE, observations
+from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, infections_by_age, observations
 
 N_C = 2
 N_S = 3

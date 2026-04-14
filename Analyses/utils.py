@@ -195,7 +195,7 @@ def params_to_scalars(param_dict,scalar_names):
             scalar_dict[name] = param_dict["P_OBS"][int(name[5:])]
     return scalar_dict
 
-def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, smoothed=False, skip_incidence=False, hosp=True):
+def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, smoothed=False, skip_incidence=False, hosp=True, NAG=7):
     ARRIVALS = jnp.asarray(np.genfromtxt('Data/Processed/arrivals_daily.csv', delimiter=','))
     if 'RSV' in pathogen:
         REC_UP = jnp.array([1/4.9,1/4.1,0.0])
@@ -212,8 +212,8 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_RSV_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_RSV_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_RSV_positive_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_RSV_total_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
     elif 'InfluenzaA' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
@@ -229,8 +229,8 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaA_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaA_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaA_positive_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaA_total_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
     elif 'InfluenzaB' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
@@ -246,8 +246,8 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaB_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaB_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaB_positive_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_InfluenzaB_total_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
     elif 'Parainfluenza3' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
@@ -263,8 +263,8 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Parainfluenza3_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Parainfluenza3_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Parainfluenza3_positive_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Parainfluenza3_total_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
     elif 'Adenovirus' in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
@@ -280,8 +280,8 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Adenovirus_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Adenovirus_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Adenovirus_positive_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Adenovirus_total_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
     elif 'Metapneumovirus' in pathogen:
         REC_UP = np.array([1/4.9,1/4.1,0.0]) # based on RSV - Okiro 2010
         REC_SAME = np.array([0.0,0.0,1/4.1]) # based on RSV - Okiro 2010
@@ -297,8 +297,8 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
-            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_positive_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
-            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_total_counts'+['', '_hospday'][hosp]+'.csv', header=None).values)
+            positives = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_positive_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
+            total_tests = jnp.asarray(pd.read_csv(f'Data/Processed/KPSC_panel_Metapneumovirus_total_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=None).values)
     elif "test" in pathogen:
         REC_UP = jnp.array([1/3.0,1/3.0,0.0])
         REC_SAME = jnp.array([0.0,0.0,1/3.0])
@@ -320,10 +320,13 @@ from Parameters.times_and_contacts import FF as defaultFF
 from new_vax import rsv_eff_vax_rate
 from new_vax import rsv_maternal_immunity
 from new_vax import flu_eff_vax_rate
-def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=False):
+def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=False, NAG=7):
     if fixed_params is None:
-        from Parameters.census_population import AGING_RATE
-        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
+        if NAG>7:
+            from Parameters.census_population import AGING_RATE_split as AGING_RATE
+        else:
+            from Parameters.census_population import AGING_RATE
+        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
         BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
         if pathogen == "sim":
             _, _, IMPORT_STRENGTH, _ = pathogen_parameters("test", import_multiplier=import_multiplier, skip_incidence=True)
@@ -336,7 +339,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     if rescale is not None:
         x = rescale[:,0] + x * (rescale[:,1] - rescale[:,0])
     
-    N_S, NAG = 3, 7
+    N_S = 3
     EPOCH = pd.to_datetime('1970-01-01')
     END = pd.to_datetime(end_date)
     FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
@@ -505,11 +508,16 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         protection_param = S_REL*P_OBS
         max_eff = (protection_param[-2]-protection_param[-1])/protection_param[-2]
         VAX_RATE = flu_eff_vax_rate(FULL_POINTS, max_eff)
+        # if NAG is greater than 7, duplicate the fifth row (index 4) to fill out the additional age groups
+        if NAG > 7:
+            VAX_RATE = jnp.concatenate((VAX_RATE[:, :5], jnp.tile(VAX_RATE[:, 4:5], (1, NAG-7)), VAX_RATE[:, 5:]), axis=1)
     elif ("RSV" in pathogen) and ("nvax" not in option1):
         protection_param = S_REL*P_OBS
         max_eff0 = 1 - protection_param[-1]
         max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
         VAX_RATE = rsv_eff_vax_rate(FULL_POINTS, max_eff0, max_eff1)
+        if NAG > 7:
+            VAX_RATE = jnp.concatenate((VAX_RATE[:, :5], jnp.tile(VAX_RATE[:, 4:5], (1, NAG-7)), VAX_RATE[:, 5:]), axis=1)
     else:
         VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
 
@@ -573,9 +581,8 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     else:
         return params
 
-def parameters_names_bounds(pathogen, lockdown, option1, option2):
+def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
     bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
-
     if "wane" in option1:
         bounds_dict["WANE1"] = [0,1e-2]
     if option1 == "nb":
@@ -600,7 +607,8 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
                 upper_bound = int(match.group(1)) / (10 ** len(match.group(1)))
             else:
                 upper_bound = 0.01
-        bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [0, upper_bound]
+        for i in range(1,NAG+1):
+            bounds_dict[f"AGE_OBS_{i}"] = [0, upper_bound]
     if "pp" in option2:
         if option2 == "ppflexage":
             lower_bound = 0.05
@@ -611,7 +619,8 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
                 lower_bound = int(match.group(1)) / (10 ** len(match.group(1)))
             else:
                 lower_bound = 0.05
-        bounds_dict["AGE_OBS_1"] = bounds_dict["AGE_OBS_2"] = bounds_dict["AGE_OBS_3"] = bounds_dict["AGE_OBS_4"] = bounds_dict["AGE_OBS_5"] = bounds_dict["AGE_OBS_6"] = bounds_dict["AGE_OBS_7"] = [lower_bound, 1]
+        for i in range(1,NAG+1):
+            bounds_dict[f"AGE_OBS_{i}"] = [lower_bound, 1]
     if "pathogen" not in option1:
         if lockdown == "Mobility":
             bounds_dict["F1"] = bounds_dict["F2"] = [0,2]
@@ -638,7 +647,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
     if ("daycare" in option2) and ("daycarep" not in option2):
         bounds_dict["DAYCARE"] = [0,1]
     # reorder bounds_dict to match order in x
-    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","DAYCARE"]\
+    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","AGE_OBS_8","AGE_OBS_9","DAYCARE"]\
         if key in bounds_dict.keys()}
     bounds = jnp.array(list(bounds_dict.values()))
     param_names = list(bounds_dict.keys())
@@ -680,9 +689,12 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
             sys.exit()
         x = opt.x
     
-    from Parameters.census_population import AGING_RATE
+    if "split" in option1:
+        from Parameters.census_population import AGING_RATE_split as AGING_RATE
+    else:
+        from Parameters.census_population import AGING_RATE
     REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
-    CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
+    CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][ "split" in option1] +'_contact_all_US_Census.csv', delimiter=',', header=None).values)
     BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
 
     end_date = '2025-05-01'
@@ -822,11 +834,10 @@ def age_of_first_infection(result,MEDIAN_AGE,NAG=7,sd=False):
         return(ages,ages_sd)
     return(ages)
 
-def susceptibility(solution,params,N_C=2):
+def susceptibility(solution,params,N_C=2,NAG=7,N_S=3):
     """
     Generate susceptibility by age group from ODE solutions
     """
-    NAG, N_S = 7, 3
     FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
     BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
     REC_UP, REC_SAME, IMPORT_STRENGTH = params

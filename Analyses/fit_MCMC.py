@@ -19,14 +19,16 @@ from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController, DirectA
 from Parameters.census_population import CENSUS_AGE_POP, AGING_RATE
 from JAX_ODEs import deltas
 N_C = 2
-NAG = 7
+# NAG = 7
 N_S = 3
 from utils import date_to_t, parameters_from_DE, x_to_params, calculate_population_size
 from Gemini_vaccination import FluRatePreprocessor
 import time
 from plotting import calculate_observations_per_season_jax, get_season_start_jax
 
-def run_simulation(params, y0, t1, saveat_ts, hessian=False):
+def run_simulation(params, y0, t1, saveat_ts, hessian=False, NAG=7):
+    # add NAG to end of params to pass to ODE solver
+    sim_params = params + (NAG,)
     term = ODETerm(deltas)
     solver = Dopri5()
     saveat = SaveAt(ts=saveat_ts)
@@ -38,18 +40,18 @@ def run_simulation(params, y0, t1, saveat_ts, hessian=False):
     solution = diffeqsolve(
                         term, solver,
                         t0=0, t1=t1, dt0=0.1, stepsize_controller=step_controller,
-                        saveat=saveat, y0=y0.flatten(), args=params, 
+                        saveat=saveat, y0=y0.flatten(), args=sim_params, 
                         max_steps=10000, throw=False,
                         adjoint=adjoint,
                         )
     return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
-def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, hessian=False, return_sum=True):
+def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, hessian=False, return_sum=True, NAG=7):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
-        values = run_simulation(params, STATE0, t1, POINTS, hessian=hessian)
+        values = run_simulation(params, STATE0, t1, POINTS, hessian=hessian, NAG=NAG)
         values = values.ys.T
     else:
         values = solution.ys.T
@@ -57,7 +59,7 @@ def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_
     population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
 
     if incidence_data:
-        expected_obs = calculate_expected_obs(values, p_time_to_obs, len(data))
+        expected_obs = calculate_expected_obs(values, p_time_to_obs, len(data), NAG=NAG)
         incidence = jnp.round(data*population_size[-len(data):])
         # exclude date range from likelihood calculation
         masked_incidence = jnp.ones((len(data) - (mask[1] - mask[0]),NAG))
@@ -74,7 +76,7 @@ def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_
             expected_ratio = jnp.divide(expected_infectious, population_size[-len(data):] * obs_age)
             expected_positivity = jnp.clip(expected_ratio, 1e-10, 0.99)
         else:
-            expected_obs = calculate_expected_obs(values, p_time_to_obs, len(data))
+            expected_obs = calculate_expected_obs(values, p_time_to_obs, len(data), NAG=NAG)
             # probability of getting a positive test in hospital is expected_obs / population size over time
             expected_ratio = jnp.divide(expected_obs, population_size[-len(data):])
             # then condition by baseline probabilty of hospitalization
@@ -92,7 +94,7 @@ def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_
     else:
         return likelihood
     
-def calculate_expected_obs(values, p_time_to_obs, length):
+def calculate_expected_obs(values, p_time_to_obs, length, NAG=7):
     trajectory = jnp.diff(values[-NAG:,:],axis=1).T
         # convolution of trajectory with probability of detection at each day after infection to get expected observations on each day
     p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
@@ -103,7 +105,7 @@ def calculate_expected_obs(values, p_time_to_obs, length):
     expected_obs = jax.nn.softplus(expected_obs[-length:]*100)/100
     return expected_obs
 
-def peaks_and_times_likelihood(obs_per_season, peak_times, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, hessian=False, return_sum=True):
+def peaks_and_times_likelihood(obs_per_season, peak_times, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, hessian=False, return_sum=True, NAG=7):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
@@ -114,7 +116,7 @@ def peaks_and_times_likelihood(obs_per_season, peak_times, params, POINTS, STATE
     population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
     obs_per_season = obs_per_season * population_size[-1]
 
-    expected_obs = calculate_expected_obs(values, p_time_to_obs, len(times))
+    expected_obs = calculate_expected_obs(values, p_time_to_obs, len(times), NAG=NAG)
     cut_times = times[:-1]
     expected_obs_per_season = calculate_observations_per_season_jax(expected_obs, age_groups=True)
     # Assign each time point to a season (numeric season id/start)

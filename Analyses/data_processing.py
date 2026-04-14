@@ -52,10 +52,14 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
         positive_counts_filled = positive_counts.reindex(date_range, fill_value=0)
         total_counts_filled = total_counts.reindex(date_range, fill_value=0)
         daily_hospitalization_counts_filled = daily_hospitalization_counts.reindex(date_range, fill_value=0)
+
+        # find number of age groups
+        NAG = len(AGE_GROUP_NAMES)
+
         # Save as separate CSV files with no index or column names
-        positive_counts_filled.to_csv(f'Data/Processed/KPSC_panel_{pathogen}_positive_counts'+['', '_hospday'][hosp]+'.csv', header=False, index=False)
-        total_counts_filled.to_csv(f'Data/Processed/KPSC_panel_{pathogen}_total_counts'+['', '_hospday'][hosp]+'.csv', header=False, index=False)
-        daily_hospitalization_counts_filled.to_csv(f'Data/Processed/KPSC_panel_hospitalizations_noCOVID.csv', header=False, index=False)
+        positive_counts_filled.to_csv(f'Data/Processed/KPSC_panel_{pathogen}_positive_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=False, index=False)
+        total_counts_filled.to_csv(f'Data/Processed/KPSC_panel_{pathogen}_total_counts'+['', '_hospday'][hosp]+['', '_split'][NAG>7]+'.csv', header=False, index=False)
+        daily_hospitalization_counts_filled.to_csv(f'Data/Processed/KPSC_panel_hospitalizations_noCOVID'+['', '_split'][NAG>7]+'.csv', header=False, index=False)
 
     if aggregation == "D":
         # When both positive and total counts are zero, set proportion to 0
@@ -418,17 +422,25 @@ if __name__ == "__main__":
     pop_by_age_group_month = pop_by_age_group_month.drop(columns=['8-39y'])
     pop_by_age_group_month = pop_by_age_group_month.reindex(columns=AGE_GROUP_NAMES)
 
+    # save daily hospitalization counts and pop by age group month for use in incidence calculation
+    daily_hospitalization_counts.to_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_split.csv')
+    pop_by_age_group_month.to_csv(f'Data/Processed/KPSC_population_by_age_group_monthly_split.csv')
+    # saive daily hospitalization rates by age group for use in incidence calculation
+    daily_hospitalization_rates = daily_hospitalization_counts.div(pop_by_age_group_month.resample('D').ffill(), axis=1)
+    daily_hospitalization_rates.to_csv(f'Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group_split.csv')
+
+
     # for each pathogen plot incidence by age group in an eight panel plot
     for pathogen in ["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]:
-        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="W", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=True, pop_by_age_group_month=pop_by_age_group_month, daily_hospitalization_counts=daily_hospitalization_counts, daily_test_counts_complete=daily_test_counts)
-        fig, ax = plt.subplots(4,2,figsize=(13.3,7.5),sharex=True)
-        for i,age_group in enumerate(AGE_GROUP_NAMES):
-            ax[i%4, i//4].plot(incidence.index, incidence[age_group] * 100000, color="k", label=age_group)
-            ax[i%4, i//4].set_title(f"{age_group}")
-        ax[1, 0].set_ylabel('Incidence per 100k')
-        # ax[3,1].axis('off')
-        plt.tight_layout()
-        plt.savefig(f"Figures/{pathogen}_split_age_group_panels_hospitalization_incidence_weekly.png",dpi=300)
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=True, pp_only=False, hosp=True, pop_by_age_group_month=pop_by_age_group_month, daily_hospitalization_counts=daily_hospitalization_counts, daily_test_counts_complete=daily_test_counts)
+        # fig, ax = plt.subplots(4,2,figsize=(13.3,7.5),sharex=True)
+        # for i,age_group in enumerate(AGE_GROUP_NAMES):
+        #     ax[i%4, i//4].plot(incidence.index, incidence[age_group] * 100000, color="k", label=age_group)
+        #     ax[i%4, i//4].set_title(f"{age_group}")
+        # ax[1, 0].set_ylabel('Incidence per 100k')
+        # # ax[3,1].axis('off')
+        # plt.tight_layout()
+        # plt.savefig(f"Figures/{pathogen}_split_age_group_panels_hospitalization_incidence_daily.png",dpi=300)
 
 
     # combined_data = merge_positive_tests(test_data, hospitalization_data)
