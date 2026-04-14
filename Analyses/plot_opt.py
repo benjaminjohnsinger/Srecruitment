@@ -3,16 +3,10 @@
 
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
-import scipy as sp
 import pandas as pd
-import time
 import pickle
 import sys
-import os
 
-import contact_model as cm
-from JAX_ODEs import deltas
-from Parameters.census_population import *
 from Parameters.times_and_contacts import *
 
 from utils import *
@@ -84,6 +78,9 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
 
 if __name__ == "__main__":
     pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
+    
+    NAG = 7 + ("split" in option1)
+    
     if len(sys.argv) > 10:
         prefix = sys.argv[10]
     else:
@@ -140,18 +137,17 @@ if __name__ == "__main__":
     # option1 = "incidence_data"
     if "incidence_data" in option1:
         if "old" in option1:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data="Old", smoothed=False, hosp=hosp)
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data="Old", smoothed=False, hosp=hosp, NAG=NAG)
         elif "smoothed" in option1:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True, hosp=hosp)
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True, hosp=hosp, NAG=NAG)
         else:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False, hosp=hosp)
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False, hosp=hosp, NAG=NAG)
     else:
-        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False, hosp=hosp)
+        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False, hosp=hosp, NAG=NAG)
     print(data_full.shape)
-    N_S, NAG = 3, 7
-    CONTACT_MATRIX = np.asarray(pd.read_csv('Data/Processed/contact_matrices/KP_contact_all_US_Census.csv', delimiter=',', header=None).values)
+    N_S = 3
+    CONTACT_MATRIX = np.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['','_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
     BIRTH_RATE = np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=',')
-    age_pops = np.genfromtxt('Data/Processed/age_pops_daily.csv', delimiter=',')
 
     EPOCH = pd.to_datetime('1970-01-01')
     START = pd.to_datetime(start_date) 
@@ -165,7 +161,7 @@ if __name__ == "__main__":
     end_idx = int(date_to_t(end_date) - date_to_t('2015-10-01'))
     data = data_full[start_idx:end_idx]
 
-    daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
+    daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group'+['','_split'][NAG>7]+'.csv',index_col=0,parse_dates=True)
     daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
     daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
     daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
@@ -175,6 +171,10 @@ if __name__ == "__main__":
     # print(x)
     print("Log-Likelihood:", log_likelihood*N)
 
+    if NAG == 7:
+        from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUPS, AGE_GROUP_NAMES, MEDIAN_AGE
+    else:
+        from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP, AGE_GROUPS_split as AGE_GROUPS, AGE_GROUP_NAMES_split as AGE_GROUP_NAMES, MEDIAN_AGE_split as MEDIAN_AGE
     ## Initial conditions
     STATE0 = jnp.zeros((2*N_S+1,NAG))
     STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
@@ -183,18 +183,18 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-    params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True)
+    params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True, NAG=NAG)
     print(cntct.shape)
 
     # names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
     # for i in range(len(names)):
     #     print(names[i]+ " (bounds: "+str(bounds[i])+")")
 
-    solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS)
+    solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
     values = solution.ys.T
     times = solution.ts
 
-    likelihood = SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, solution=solution, mask=mask, incidence_data=("incidence_data" in option1), return_sum=True)
+    likelihood = SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, solution=solution, mask=mask, incidence_data=("incidence_data" in option1), return_sum=True, NAG=NAG)
     print(likelihood)
     # # print(likelihood.shape)
     # age_summed_likelihood = jnp.sum(likelihood, axis=1)
@@ -211,7 +211,7 @@ if __name__ == "__main__":
     season_infection_array = np.zeros((len(seasons)-1,3))
     season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
     first_infections = np.zeros((len(seasons)-1,NAG))
-    population_size = calculate_population_size(values)
+    population_size = calculate_population_size(values, NAG=NAG)
     for i in range(len(seasons)-1):
         # get the number of infections in each season
         season_start = np.argmax(times>=seasons[i])
@@ -243,9 +243,9 @@ if __name__ == "__main__":
     print("Difference in peak times between 2017/18 and 2022/23 seasons (in days):", peak_time_diff.tolist())
 
     population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
-    expected_obs = calculate_expected_obs(values, p_time_to_obs, len(times))
+    expected_obs = calculate_expected_obs(values, p_time_to_obs, len(times), NAG=NAG)
     cut_times = times[:-1]
-    expected_obs_per_season = calculate_observations_per_season_jax(expected_obs, age_groups=True)
+    expected_obs_per_season = calculate_observations_per_season_jax(expected_obs, age_groups=True, NAG=NAG)
     # Assign each time point to a season (numeric season id/start)
     season_ids = jax.vmap(get_season_start_jax)(cut_times)
     unique_seasons = 16684 + 365 * jnp.arange(10)  # Assuming seasons start on day 259 of each year
@@ -337,6 +337,8 @@ if __name__ == "__main__":
     #     ax[2].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed")
     # # ax[2].plot(POINTS, mx*full_likelihood, label="Normalized likelihood", color="black", alpha=0.5)
 
+    hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
+    hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
     for i_age in range(NAG):
         age_ax = ax_grid[i_age // 4][i_age % 4]
         if "orig_incidence_data" in option1:
@@ -345,15 +347,16 @@ if __name__ == "__main__":
             dmx = kpsc_positive_test_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, color="k", legend=False, aggregation=aggregation, factor=10000, select_age_group=i_age, linewidth=0.5)
         else:
             dmx = kpsc_proportion_positive_incidence_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, select_age_group=i_age, aggregation=aggregation, factor=10000, color="black", hosp=hosp, linewidth=0.5)
-        mx = lockdown_incidence_plot(age_ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label=None,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, select_age_group=i_age, color=hsv_colors[i_age], linewidth=0.5)
+        mx = lockdown_incidence_plot(age_ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label=None,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, select_age_group=i_age, color=hsv_colors[i_age], linewidth=0.5, NAG=NAG)
         lockdown_incidence_format(age_ax,date_to_t('2020-03-19'),365,mx,year_window=2)
         age_ax.legend(frameon=False, fontsize=6)
-    omx = lockdown_incidence_plot(ax_grid[-1][-1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="grey", linewidth=0.5)
-    if lockdown == "ExponentialByAge":
-        ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,0], label="<40y contacts", color="black", linestyle="dashed")
-        ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,-1], label=">40y contacts", color="silver", linestyle="dashed")
-    else:
-        ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed")
+    if NAG < 8:
+        omx = lockdown_incidence_plot(ax_grid[-1][-1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="grey", linewidth=0.5, NAG=NAG)
+        if lockdown == "ExponentialByAge":
+            ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,0], label="<40y contacts", color="black", linestyle="dashed")
+            ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,-1], label=">40y contacts", color="silver", linestyle="dashed")
+        else:
+            ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed")
     # ax_grid[-1][-1].legend(frameon=False, fontsize=6)
    
     for ax_row in ax_grid:
@@ -367,7 +370,7 @@ if __name__ == "__main__":
             gridax.set_yticks([])
             gridax.set_xticks([])
 
-    lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+    lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES, NAG=NAG)
     lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
     # ax[3].set_title("Effective susceptibles")
 

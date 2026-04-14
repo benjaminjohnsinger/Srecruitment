@@ -22,7 +22,7 @@ from utils import date_to_t, t_to_date, calculate_population_size, susceptibilit
 
 N_C = 2
 N_S = 3
-NAG = 7
+# NAG = 7
 from JAX_ODEs import deltas
 
 ##### General plotting parameters #####
@@ -35,6 +35,7 @@ def lockdown_incidence_plot(
     ax,state0,params,points,T_LOCKDOWN,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,
     by_age=False,AGE_GROUP_NAMES=None,select_age_group=None,relative=False,deltas=deltas,obs=None,times=None,
     start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'),factor=1,p_time_to_obs=[1],
+    NAG=7
 ):
     if solution is None:
         term = ODETerm(deltas)
@@ -81,7 +82,9 @@ def lockdown_incidence_plot(
             raise ValueError(f"select_age_group index must be between 0 and {NAG-1}.")
 
     if by_age:
-        pop_size_by_age = calculate_population_size(values)[1:]
+        hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
+        hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
+        pop_size_by_age = calculate_population_size(values, NAG=NAG)[1:]
         obs = factor * expected_obs
 
         if selected_age_idx is None:
@@ -146,7 +149,7 @@ def lockdown_incidence_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,mx,year_window=5,y
     ax.set_xlabel('Time (years)')
     ax.set_title(title)
 
-def prevalence_plot(ax,state0,params,points,obs_age=None,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,deltas=deltas,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01')):
+def prevalence_plot(ax,state0,params,points,obs_age=None,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,by_age=False,AGE_GROUP_NAMES=None,deltas=deltas,times=None,start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'), NAG=7):
     if solution is None:
         term = ODETerm(deltas)
         solver = Dopri5()
@@ -186,10 +189,10 @@ def prevalence_plot(ax,state0,params,points,obs_age=None,solution=None,label='Ob
     return(mx)
 
 
-def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,solution=None,label='Susceptible_population',color='#648FFF',relative=True,proportion=False,by_age=False,AGE_GROUP_NAMES=None,style='-',delta=deltas):
-    NAG = 7
+def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,solution=None,label='Susceptible_population',color='#648FFF',relative=True,proportion=False,by_age=False,AGE_GROUP_NAMES=None,style='-',delta=deltas,NAG=7):
     N_S = 3
     if solution is None:
+        params = params + (NAG,)
         term = ODETerm(deltas)
         solver = Dopri5()
         saveat = SaveAt(ts=POINTS)
@@ -204,10 +207,12 @@ def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,solut
     values = solution.ys.T
     dates = [t_to_date(t) for t in times]
     ## Calculate susceptibility
-    sus = susceptibility(solution,params)
+    sus = susceptibility(solution,params,NAG=NAG)
     if by_age:
+        hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
+        hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
         if proportion:
-            pop_by_age = calculate_population_size(values)
+            pop_by_age = calculate_population_size(values, NAG=NAG)
             sus = sus/pop_by_age
         for i in range(NAG):
             ax.plot(dates,sus[:,i], label=AGE_GROUP_NAMES[i], color=hsv_colors[i],linestyle=style)
@@ -583,13 +588,16 @@ def kpsc_positive_test_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES
 nice_names = {"RSV": "RSV", "InfluenzaA": "Influenza A", "InfluenzaB": "Influenza B", "Metapneumovirus": "Metapneumovirus", "Adenovirus": "Adenovirus", "Parainfluenza3": "Parainfluenza 3", "Rhinovirus": "Rhinovirus", "Pertussis": "Pertussis", "M.pneumoniae": "M. pneumoniae", "C.pneumoniae": "C. pneumoniae", "SARS-CoV-2": "SARS-CoV-2", "Enterovirus": "Enterovirus"}
 from data_processing import calculate_proportion_positive_incidence
 def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, select_age_group=None, title=None, color=hsv_colors, linewidth=1, legend=True, aggregation="D", window_size=28, weighting_factor=0.5, label=None, factor=1000000, annotations=False, definition="50% median", pp_only=False, hosp=False):
-    incidence = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=window_size, weighting_factor=weighting_factor, sum_age_groups=AGE_GROUPS is None, save_counts=False, pp_only=pp_only, hosp=hosp)
+    NAG = len(AGE_GROUP_NAMES) if AGE_GROUP_NAMES is not None else 7
+    incidence = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=window_size, weighting_factor=weighting_factor, sum_age_groups=AGE_GROUPS is None, save_counts=False, pp_only=pp_only, hosp=hosp, NAG=NAG)
     incidence *= factor
     if aggregation == "MS":
         # add 14 days to the index to get the middle of the month
         incidence.index = incidence.index + pd.Timedelta(days=14)
     if AGE_GROUPS is not None:
         if select_age_group is None:
+            color = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
+            color[3] = colormaps.hsv((3/NAG)+0.28/NAG)
             for i in range(len(AGE_GROUP_NAMES)):
                 ax.plot(incidence.index, incidence[AGE_GROUP_NAMES[i]], label=AGE_GROUP_NAMES[i], color=color[i], linewidth=linewidth)
         else:
@@ -679,7 +687,7 @@ def calculate_observations_per_season(incidence, age_groups=False, aggregation="
     return obs_per_season
 
 
-def calculate_observations_per_season_jax(incidence, age_groups=False, pad_days=14, n_full_seasons=9, season_len=365):
+def calculate_observations_per_season_jax(incidence, age_groups=False, pad_days=14, n_full_seasons=9, season_len=365, NAG=7):
     """
     JAX-compatible version for traced arrays.
     Expects daily incidence starting at 2015-10-01 (or equivalent offset).
@@ -696,7 +704,7 @@ def calculate_observations_per_season_jax(incidence, age_groups=False, pad_days=
     # x = jnp.concatenate([pad, x], axis=0)
 
     full_days = n_full_seasons * season_len
-    full = x[:full_days].reshape(n_full_seasons, season_len, 7).sum(axis=1)   # (n_full_seasons, n_age)
+    full = x[:full_days].reshape(n_full_seasons, season_len, NAG).sum(axis=1)   # (n_full_seasons, n_age)
     last = x[full_days:].sum(axis=0, keepdims=True)                                # (1, n_age)
     out = jnp.concatenate([full, last], axis=0)                                    # (n_full_seasons+1, n_age)
 

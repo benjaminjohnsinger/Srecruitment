@@ -1,6 +1,13 @@
 combinations=(
-"RSV 260414 Exponential split daycareflexagep03 1e-9 20 1 0.7 scipy_DE"
-"RSV 260414 Exponential NA daycareflexagep03 1e-9 20 1 0.7 scipy_DE"
+"RSV 2604142 Exponential split daycareflexagep03 1e-9 20 1 0.7 scipy_DE"
+"RSV 2604142 Exponential NA daycareflexagep03 1e-9 20 1 0.7 scipy_DE"
+"RSV 2604143 Exponential split daycareflexagep03 1e-9 20 1 0.7 scipy_DE"
+"RSV 2604143 Exponential NA daycareflexagep03 1e-9 20 1 0.7 scipy_DE"
+"RSV 2604144 Exponential split daycareflexagep03 1e-9 20 1 0.7 scipy_DE"
+"RSV 2604144 Exponential NA daycareflexagep03 1e-9 20 1 0.7 scipy_DE"
+"RSV 2604145 Exponential split daycareflexagep03 1e-9 20 1 0.7 scipy_DE"
+"RSV 2604145 Exponential NA daycareflexagep03 1e-9 20 1 0.7 scipy_DE"
+
 "Metapneumovirus 260414 Exponential split daycareflexagep03 1e-9 20 1 0.7 scipy_DE"
 "InfluenzaA 260414 Exponential split daycareflexagep05 1e-9 20 1 0.7 scipy_DE"
 "InfluenzaB 260414 Exponential split daycareflexagep05 1e-9 20 1 0.7 scipy_DE"

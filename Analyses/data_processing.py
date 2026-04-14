@@ -9,20 +9,33 @@ import pickle
 import time
 import sys
 from matplotlib.patches import Rectangle
-from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
 
 ################ Data processing functions ################
 
 ##### function to calculate proportion positive tests for a given pathogen in a moving window, and multiply by population-proportional incidence of ARI hospitalizations ######
 # daily_hospitalization_rates = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
 
-def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_factor=0.1, aggregation='D', sum_age_groups=False, save_counts=False, pp_only=False, hosp=False, salvage=True, pop_by_age_group_month=None, daily_hospitalization_counts=None, daily_test_counts_complete=None):
+def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_factor=0.1, aggregation='D', sum_age_groups=False, save_counts=False, pp_only=False, hosp=False, salvage=True, pop_by_age_group_month=None, daily_hospitalization_counts=None, daily_test_counts_complete=None, NAG=7):
+    if NAG == 7:
+        from Parameters.census_population import AGE_GROUP_NAMES
+    elif NAG > 7:
+        from Parameters.census_population import AGE_GROUP_NAMES_split as AGE_GROUP_NAMES
+    
     if pop_by_age_group_month is None:
-        pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
+        if NAG == 7:
+            pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
+        elif NAG > 7:
+            pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly_split.csv', index_col=0, parse_dates=['month_start'])
     if daily_hospitalization_counts is None:
-        daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index_col=0, parse_dates=True)
+        if NAG == 7:
+            daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index_col=0, parse_dates=True)
+        elif NAG > 7:
+            daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_split.csv', index_col=0, parse_dates=True)
     if daily_test_counts_complete is None:
-        daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen'+['','_unsalvage'][not salvage]+'_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group.csv',index_col=0,parse_dates=True)
+        if NAG == 7:
+            daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen'+['','_unsalvage'][not salvage]+'_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group.csv',index_col=0,parse_dates=True)
+        elif NAG > 7:
+            daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen'+['','_unsalvage'][not salvage]+'_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group_split.csv',index_col=0,parse_dates=True)
 
     # Filter for specified pathogens
     pathogen_data = daily_test_counts_complete[daily_test_counts_complete['pathogen']==pathogen]
@@ -428,7 +441,9 @@ if __name__ == "__main__":
     # saive daily hospitalization rates by age group for use in incidence calculation
     daily_hospitalization_rates = daily_hospitalization_counts.div(pop_by_age_group_month.resample('D').ffill(), axis=1)
     daily_hospitalization_rates.to_csv(f'Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group_split.csv')
-
+    # save daily test counts for use in incidence calculation
+    daily_test_counts = daily_test_counts.set_index('Hospitalization date')
+    daily_test_counts.to_csv(f'Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group_split.csv')
 
     # for each pathogen plot incidence by age group in an eight panel plot
     for pathogen in ["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]:

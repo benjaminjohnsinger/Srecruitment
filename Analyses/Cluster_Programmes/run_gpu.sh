@@ -12,7 +12,7 @@
 #SBATCH --time=10:00:00
 
 # Array job specifications:
-#SBATCH --array=0-2
+#SBATCH --array=0-7
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 
@@ -20,7 +20,17 @@ module purge
 module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
-PATHOGENS=("RSV" "InfluenzaA" "InfluenzaB")
-CURRENT_PATHOGEN=${PATHOGENS[$SLURM_ARRAY_TASK_ID]}
-echo "Starting optimization for: $CURRENT_PATHOGEN (Task ID: $SLURM_ARRAY_TASK_ID)"
-python -u Analyses/fit_opt.py $CURRENT_PATHOGEN 260404 Exponential NA nrflexagep01 1e-9 200 2000 0.7
+combinations=(
+"RSV 260414 Exponential NA daycareflexagep03 1e-9 200 2000 0.7"
+"RSV 260414 Exponential split daycareflexagep03 1e-9 200 2000 0.7"
+"RSV 260414 ExponentialByAge NA daycareflexagep03 1e-9 200 2000 0.7"
+"RSV 260414 ExponentialByAge mimm daycareflexagep03 1e-9 200 2000 0.7"
+"RSV 260414 ExponentialByAge split daycareflexagep03 1e-9 200 2000 0.7"
+"RSV 260414 ExponentialByAge mimm daycareflexagep03 1e-9 200 2000 0.7"
+"RSV 260414 Exponential splitmimm daycareflexagep03 1e-9 200 2000 0.7"
+"RSV 260414 ExponentialByAge splitmimm daycareflexagep03 1e-9 200 2000 0.7"
+)
+
+combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
+
+python -u Analyses/fit_opt.py $combination
