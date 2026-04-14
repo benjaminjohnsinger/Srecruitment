@@ -113,6 +113,7 @@ if __name__ == "__main__":
         mask = [3135,3288]
 
     print(pathogen, seed)
+
     # set seed
     np.random.seed(seed)
     prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
@@ -349,8 +350,8 @@ if __name__ == "__main__":
         age_ax.legend(frameon=False, fontsize=6)
     omx = lockdown_incidence_plot(ax_grid[-1][-1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="grey", linewidth=0.5)
     if lockdown == "ExponentialByAge":
-        ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,0]**2, label="<40y contacts", color="black", linestyle="dashed")
-        ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,-1]**2, label=">40y contacts", color="silver", linestyle="dashed")
+        ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,0], label="<40y contacts", color="black", linestyle="dashed")
+        ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,-1], label=">40y contacts", color="silver", linestyle="dashed")
     else:
         ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed")
     # ax_grid[-1][-1].legend(frameon=False, fontsize=6)

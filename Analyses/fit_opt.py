@@ -237,7 +237,9 @@ if __name__ == '__main__':
     #     pickle.dump(opt,f)
 
 
-    _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
+    names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
+    for name, i in zip(names, range(len(names))):
+        print(name + " (bounds: " + str(bounds[i]) + ")")
     # bounds = jnp.zeros(unlogged_bounds.shape)
     # bounds = bounds.at[:, 1].set(10)
     # bounds = bounds.at[:, 0].set(-10)

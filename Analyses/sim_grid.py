@@ -16,7 +16,7 @@ from utils import consistent_x_from_DE, x_to_params, date_to_t
 from fit_MCMC import run_simulation
 from data_processing import calculate_proportion_positive_incidence
 from Parameters.census_population import CENSUS_AGE_POP, MEDIAN_AGE
-from Parameters.times_and_contacts import PERIOD
+# from Parameters.times_and_contacts import PERIOD
 
 from scipy import stats
 from scipy.stats import qmc, binned_statistic_2d
@@ -32,6 +32,7 @@ from matplotlib import cm
 NAG = 7  # Number of age groups
 N_S = 3  # Susceptibility classes
 
+PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
 POINTS = np.array(date_to_t(PERIOD))
 ## Initial conditions
 STATE0 = jnp.zeros((2*N_S+1,NAG))
@@ -344,18 +345,20 @@ def load_and_recombine_results(run_save_path):
 # ==========================================
 # EPIDEMIOLOGICAL OUTCOMES
 # ==========================================
-def time_to_rebound(x, threshold_factor=1/3):
+def time_to_rebound(x, threshold_factor=0.4, include_years=True):
     obs_summed, peak_times_summed = x[0, :, -1], x[1, :, -1]
     threshold = threshold_factor * jnp.median(obs_summed[:5])
-    last_pre_pandemic_peak_time = peak_times_summed[4] + (4 * 365)
+    last_pre_pandemic_peak_time = peak_times_summed[4] + include_years * (4 * 365)
     
     post_pandemic_obs = obs_summed[5:]
-    rebound_season_idx = jnp.argmax(post_pandemic_obs >= threshold)
-    rebound_found = post_pandemic_obs[rebound_season_idx] >= threshold
-    
-    season_idx = 5 + rebound_season_idx
-    first_post_pandemic_peak_time = peak_times_summed[season_idx] + (season_idx * 365)
-    
+    rebound_mask = post_pandemic_obs >= threshold
+    rebound_found = jnp.any(rebound_mask)
+
+    # JAX-safe first index lookup (argmax on booleans gives first True; 0 if none found)
+    first_rebound_idx = jnp.argmax(rebound_mask)
+    season_idx = 5 + first_rebound_idx
+    first_post_pandemic_peak_time = peak_times_summed[season_idx] + include_years * (season_idx * 365)
+
     return jnp.where(rebound_found, first_post_pandemic_peak_time - last_pre_pandemic_peak_time, jnp.nan)
 
 def relative_size_of_rebound(x):
@@ -408,16 +411,27 @@ def extract_target_values(all_results, outcome, **kwargs):
 def extract_target_value_from_data(pathogen, outcome, aggregation="D"):
     incidence = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False).values)
     incidence_summed_age = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, pp_only=False)["Total"].values)
+    # pad with zeros: 14 days at the start, then enough at the end to complete full years
+    pad_start = 14
+    pad_end = (365 - ((len(incidence) + pad_start) % 365)) % 365
+    incidence = jnp.pad(incidence,((pad_start, pad_end), (0, 0)),mode="constant",constant_values=0,)
+    incidence_summed_age = jnp.pad(incidence_summed_age,(pad_start, pad_end),mode="constant",constant_values=0,)
     n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
     days_to_keep = n_seasons * 365
     obs_curtailed = incidence[:days_to_keep, :]
     obs_summed_age_curtailed = incidence_summed_age[:days_to_keep]
+    # calculate obs per season by summing over each 365-day period, then concatenate the summed age version
     obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
     obs_summed_age_per_season = obs_summed_age_curtailed.reshape((n_seasons, 365)).sum(axis=1)
     obs_per_season = jnp.concatenate([obs_per_season, obs_summed_age_per_season[:, None]], axis=1)
+    # smooth the data over two weeks before calculating peaks to avoid noise causing spurious peaks
+    kernel = jnp.ones(14)/14
+    obs_curtailed = jax.vmap(lambda x: jnp.convolve(x, kernel, mode='same'), in_axes=1, out_axes=1)(obs_curtailed)
+    obs_summed_age_curtailed = jnp.convolve(obs_summed_age_curtailed, kernel, mode='same')
     peak_times = jnp.argmax(obs_curtailed.reshape((n_seasons, -1, NAG)), axis=1)
     peak_times_summed_age = jnp.argmax(obs_summed_age_curtailed.reshape((n_seasons, -1)), axis=1)
     peak_times = jnp.concatenate([peak_times, peak_times_summed_age[:, None]], axis=1)
+    # season info
     seasons = jnp.stack([obs_per_season, peak_times], axis=0)
     if outcome == "relative_size":
         return relative_size_of_rebound(seasons)
@@ -557,6 +571,8 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=0, p2=8, ou
     if outcome in ["time_to_rebound", "relative_size", "age_ratio"]:
         pathogen_vals = [extract_target_value_from_data(pathogen, outcome=outcome) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]]
         pathogen_colors = cm.viridis((jnp.array(pathogen_vals) - np.nanmin(valid_targets)) / (np.nanmax(valid_targets) - np.nanmin(valid_targets)))
+        # where pathogen_vals is NA, set color to white
+        pathogen_colors = [pathogen_colors[i] if not np.isnan(pathogen_vals[i]) else (1,1,1,1) for i in range(len(good_simulations))]
     else:
         pathogen_colors = ["white"] * len(good_simulations)
     add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, color=pathogen_colors)
@@ -604,26 +620,26 @@ def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8):
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 18, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260324
+    seed = 260410
     option1 = "NA"
-    option2 = "flexagep01"
-    lockdown = "Sigmoid"
+    option2 = "flexagep05"
+    lockdown = "Exponential"
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     good_simulations = [
-        ["RSV", seed, option1, option2], ["Metapneumovirus", seed, option1, option2], 
-        ["InfluenzaA", seed, option1, option2], ["InfluenzaB", seed, option1, option2], 
-        ["Adenovirus", seed, option1, option2], ["Parainfluenza3", seed, option1, option2]
+        ["RSV", 260408, option1, "flexagep028"], ["Metapneumovirus", seed, option1, "flexagep03"], 
+        ["InfluenzaA", seed, option1, "flexagep05"], ["InfluenzaB", seed, option1, "flexagep04"], 
+        ["Adenovirus", seed, option1, "flexagep04"], ["Parainfluenza3", seed, option1, "flexagep02"]
     ]
 
     # Parameter scaling factors used in the model
-    PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
+    PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
 
     fig, ax = plt.subplots(figsize=(10, 8))
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
                                             seed=seed, n_samples=80000, dimension=2, chunk_size=40000)
     generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=0, p2=8, outcome="time_to_rebound")
     plt.tight_layout()
-    plt.savefig("Figures/heatmap_time_to_rebound_Sigmoid.png", dpi=300)
+    plt.savefig("Figures/heatmap_time_to_rebound_factorp4.png", dpi=300)
 
     # fig, ax = plt.subplots(figsize=(10, 8))
     # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)

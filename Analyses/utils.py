@@ -497,8 +497,8 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
     if ('flexage' in option2) & ('dynamic' not in option1):
-        OBS_AGE = jnp.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
-        n += 7
+        OBS_AGE = x[n:n+NAG]
+        n += NAG
     elif 'dynamic' in option1:
         OBS_AGE = fixed_params[7]
     if ("Influenza" in pathogen):
@@ -527,8 +527,15 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         relative_parent_labor_interp = jnp.interp(FULL_POINTS, parent_labor_times, relative_parent_labor)
         # scale all contact between the first four age groups by relative_parent_labor_interp
         # x[n] is the proportion of all contacts between these age groups that occur in daycare
-        RELATIVE_CONTACT = RELATIVE_CONTACT.at[:, 1:4].set(RELATIVE_CONTACT[:, 1:4] * (1 + x[n] * relative_parent_labor_interp.reshape(-1,1)))
-        n += 1
+        # if daycare is followed by p, then a number, set the value of DAYCARE to be that number divided by 10
+        match = re.search(r'daycarep(\d+)', option2)
+        if match:
+            DAYCARE = int(match.group(1))/10
+        else:
+            DAYCARE = x[n]
+            n += 1
+        RELATIVE_CONTACT = RELATIVE_CONTACT.at[:, 1:4].set(RELATIVE_CONTACT[:, 1:4] * (1 + DAYCARE * relative_parent_labor_interp.reshape(-1,1)))
+        
 
     params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
                 BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
@@ -536,6 +543,8 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     
     if print_params:
         param_names = ["BETA","WANE","SEASONALITY","OFFSET","S_REL","P_OBS","OBS_AGE"]
+        if "daycare" in option2:
+            param_names += ["DAYCARE"]
         if lockdown != "Taube":
             param_names += ["FF"]
             if "Mobility" not in lockdown:
@@ -611,7 +620,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
         elif lockdown == "Exponential":
             bounds_dict["F1"] = [0,1]
             bounds_dict["R1"] = [0.002,0.01]
-        elif lockdown == "ExponentialByAge":
+        elif "ExponentialByAge" in lockdown:
             bounds_dict["F1"] = [0,1]
             bounds_dict["R1"] = bounds_dict["R2"] = [0.001,0.01]
         elif lockdown == "Exponential2":
@@ -626,7 +635,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
         elif lockdown != "Taube":
             bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
-    if "daycare" in option2:
+    if ("daycare" in option2) and ("daycarep" not in option2):
         bounds_dict["DAYCARE"] = [0,1]
     # reorder bounds_dict to match order in x
     bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","DAYCARE"]\
@@ -696,11 +705,12 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
 # unified x from DE, i.e. x is same length regardless of model options. assume option2=flexage, lockdown=FlexStepwise
 def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
     base_path = "Data/Processed/results"+str(seed)[:6]+"/"
-    filename_pattern = pathogen+lockdown+option1+option2+str(seed)+".pickle"
+    filename_pattern = "_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
     opt = None
     prefix = ""
-    for test_prefix in ["DE_opt_", "evosax_DE_"]:
+    for test_prefix in ["scipy_DE", "DE_opt", "evosax_DE"]:
         filepath = base_path + test_prefix + filename_pattern
+        print(filepath)
         try:
             with open(filepath, "rb") as f:
                 opt = pickle.load(f)
@@ -748,7 +758,7 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
         x_consistent = x_consistent.at[12:14].set(x_DE[n:n+2]) # F1, R1
         n += 2
         obs_age_start = 14
-    elif lockdown == "ExponentialByAge":
+    elif "ExponentialByAge" in lockdown:
         x_consistent = x_consistent.at[12:15].set(x_DE[n:n+3]) # F1, R1, R2
         n += 3
         obs_age_start = 15
