@@ -399,7 +399,7 @@ if __name__ == "__main__":
     # pathogen as title
     fig.suptitle(pnamedict[pathogen_name], fontsize=10)
     # likelihood as subtitle
-    fig.text(0.5, 0.92, "Log-Likelihood: "+str(np.round(log_likelihood*N,5)), ha='center', fontsize=8)
+    fig.text(0.5, 0.92, "Log-Likelihood: "+str(np.round(-log_likelihood*N,0)), ha='center', fontsize=8)
 
     # plt.tight_layout()
     plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+".png",dpi=300)

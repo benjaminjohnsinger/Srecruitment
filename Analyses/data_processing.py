@@ -16,10 +16,13 @@ from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
 ##### function to calculate proportion positive tests for a given pathogen in a moving window, and multiply by population-proportional incidence of ARI hospitalizations ######
 # daily_hospitalization_rates = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
 
-def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_factor=0.1, aggregation='D', sum_age_groups=False, save_counts=False, pp_only=False, hosp=False, salvage=True):
-    pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
-    daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index_col=0, parse_dates=True)
-    daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen'+['','_unsalvage'][not salvage]+'_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group.csv',index_col=0,parse_dates=True)
+def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_factor=0.1, aggregation='D', sum_age_groups=False, save_counts=False, pp_only=False, hosp=False, salvage=True, pop_by_age_group_month=None, daily_hospitalization_counts=None, daily_test_counts_complete=None):
+    if pop_by_age_group_month is None:
+        pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
+    if daily_hospitalization_counts is None:
+        daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index_col=0, parse_dates=True)
+    if daily_test_counts_complete is None:
+        daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen'+['','_unsalvage'][not salvage]+'_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group.csv',index_col=0,parse_dates=True)
 
     # Filter for specified pathogens
     pathogen_data = daily_test_counts_complete[daily_test_counts_complete['pathogen']==pathogen]
@@ -138,69 +141,70 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
     
     return incidence
 
-def load_and_filter_test_data():
+def load_and_filter_test_data(remove_salvage=True):
     # time_start = time.time()
     test_data1 = pd.read_sas('Data/Raw/KPSC/testing.sas7bdat', format='sas7bdat', encoding='utf-8')
     test_data2 = pd.read_sas('Data/Raw/KPSC/testing_20250818.sas7bdat', format='sas7bdat', encoding='utf-8')
     test_data = pd.concat([test_data1, test_data2], ignore_index=True)
-    
-    # load RSV salvage test data from Data/Raw/KPSC/Viral_Transmission_RSV_TestResults_20250623.xlsx
-    rsv_salvage_data = pd.read_excel('Data/Raw/KPSC/Viral_Transmission_RSV_TestResults_20250623.xlsx')
-    
-    # Rename columns to match pathogen names in test_data
-    rsv_salvage_data = rsv_salvage_data.rename(columns={
-        "adenovirus": "ADENOVIRUS",
-        "chlamydia": "CHLAMYDOPHILA PNEUMONIAE",
-        "coronavirus": "CORONAVIRUS",
-        "covid": "SARS-COV-2 (COVID-19)",
-        "enterovirus": "ENTEROVIRUS/RHINOVIRUS",
-        "fluA": "INFLUENZA A",
-        "fluA_H1": "INFLUENZA A H1N1 2009",
-        "fluA_H3": "INFLUENZA A VIRUS SUBTYPE H3",
-        "fluA_h1n1": "INFLUENZA A VIRUS SUBTYPE H1",
-        "fluB": "INFLUENZA B",
-        "hmpv": "HUMAN METAPNEUMOVIRUS VIRUS",
-        "mycoplasma": "MYCOPLASMA PNEUMONIAE",
-        "paraflu1": "PARAINFLUENZA VIRUS 1",
-        "paraflu2": "PARAINFLUENZA VIRUS 2",
-        "paraflu3": "PARAINFLUENZA VIRUS 3",
-        "paraflu4": "PARAINFLUENZA VIRUS 4",
-        "rsvA": "RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A",
-        "rsvB": "RESPIRATORY SYNCYTIAL VIRUS SUBTYPE B"
-    })
-    
-    # Reshape rsv_salvage_data to long format
-    rsv_salvage_data = rsv_salvage_data.melt(
-        id_vars=["StudyID", "collect_date", "lab_type"],
-        var_name="pathogen",
-        value_name="result_val"
-    )
     
     # Create date columns for efficient matching
     test_data.loc[:, 'Test date'] = (
         pd.to_datetime(test_data["YEAR"].astype(int).astype(str) + '-10-01') +
         pd.to_timedelta(test_data["lab_days"].astype(int), unit='D')
     ).dt.normalize()
-    
-    rsv_salvage_data.loc[:, 'collect_date'] = pd.to_datetime(
-        rsv_salvage_data['collect_date']
-    ).dt.normalize()
-    
-    # Prepare columns for merge
-    merge_cols = ['StudyID', 'Test date', 'pathogen', 'result_val', 'lab_type']
-    rsv_salvage_renamed = rsv_salvage_data.rename(columns={'collect_date': 'Test date'})
-    
-    # Find rows that don't match rsv_salvage_data
-    merged = test_data.merge(
-        rsv_salvage_renamed[merge_cols],
-        on=merge_cols,
-        how='left',
-        indicator=True
-    )
-    
-    # Keep only rows not in rsv_salvage_data
-    test_data = merged[merged['_merge'] == 'left_only'].drop(columns=['_merge']).copy()
-    
+
+    if remove_salvage:
+        # load RSV salvage test data from Data/Raw/KPSC/Viral_Transmission_RSV_TestResults_20250623.xlsx
+        rsv_salvage_data = pd.read_excel('Data/Raw/KPSC/Viral_Transmission_RSV_TestResults_20250623.xlsx')
+        
+        # Rename columns to match pathogen names in test_data
+        rsv_salvage_data = rsv_salvage_data.rename(columns={
+            "adenovirus": "ADENOVIRUS",
+            "chlamydia": "CHLAMYDOPHILA PNEUMONIAE",
+            "coronavirus": "CORONAVIRUS",
+            "covid": "SARS-COV-2 (COVID-19)",
+            "enterovirus": "ENTEROVIRUS/RHINOVIRUS",
+            "fluA": "INFLUENZA A",
+            "fluA_H1": "INFLUENZA A H1N1 2009",
+            "fluA_H3": "INFLUENZA A VIRUS SUBTYPE H3",
+            "fluA_h1n1": "INFLUENZA A VIRUS SUBTYPE H1",
+            "fluB": "INFLUENZA B",
+            "hmpv": "HUMAN METAPNEUMOVIRUS VIRUS",
+            "mycoplasma": "MYCOPLASMA PNEUMONIAE",
+            "paraflu1": "PARAINFLUENZA VIRUS 1",
+            "paraflu2": "PARAINFLUENZA VIRUS 2",
+            "paraflu3": "PARAINFLUENZA VIRUS 3",
+            "paraflu4": "PARAINFLUENZA VIRUS 4",
+            "rsvA": "RESPIRATORY SYNCYTIAL VIRUS SUBTYPE A",
+            "rsvB": "RESPIRATORY SYNCYTIAL VIRUS SUBTYPE B"
+        })
+        
+        # Reshape rsv_salvage_data to long format
+        rsv_salvage_data = rsv_salvage_data.melt(
+            id_vars=["StudyID", "collect_date", "lab_type"],
+            var_name="pathogen",
+            value_name="result_val"
+        )
+        
+        rsv_salvage_data.loc[:, 'collect_date'] = pd.to_datetime(
+            rsv_salvage_data['collect_date']
+        ).dt.normalize()
+        
+        # Prepare columns for merge
+        merge_cols = ['StudyID', 'Test date', 'pathogen', 'result_val', 'lab_type']
+        rsv_salvage_renamed = rsv_salvage_data.rename(columns={'collect_date': 'Test date'})
+        
+        # Find rows that don't match rsv_salvage_data
+        merged = test_data.merge(
+            rsv_salvage_renamed[merge_cols],
+            on=merge_cols,
+            how='left',
+            indicator=True
+        )
+        
+        # Keep only rows not in rsv_salvage_data
+        test_data = merged[merged['_merge'] == 'left_only'].drop(columns=['_merge']).copy()
+        
     # print(f"Time to filter test data: {time.time() - time_start:.2f}s")
     return test_data
 
@@ -281,27 +285,55 @@ def load_and_filter_hospitalization_data(exclude_covid=True):
 
     return clinical_data
 
-def bin_age_groups(data):
-    from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
+def bin_age_groups(data, AGE_GROUPS, AGE_GROUP_NAMES):
     bins = [group[0] for group in AGE_GROUPS] + [AGE_GROUPS[-1][-1] + 1]
-    data.loc[:,"AGE_GROUP"] = pd.cut(data["age_in_mo"],bins=bins,labels=AGE_GROUP_NAMES,right=False)
+    data.loc[:,"age_group"] = pd.cut(data["age_in_mo"],bins=bins,labels=AGE_GROUP_NAMES,right=False)
     return data
 
-def merge_positive_tests(test_data, clinical_data, clinical_date_name="Hospitalization date", test_date_name="Test date"):
+def merge_tests(test_data, clinical_data, clinical_date_name="Hospitalization date", test_date_name="Test date"):
     test_data = test_data[test_data["StudyID"].isin(clinical_data["StudyID"])].copy()
-    positive_tests = test_data[test_data["result_val"] == 'Positive'].copy()
-    # # find date of from clinical_data for each study ID and match to positive tests
-    positive_tests = clinical_data.merge(positive_tests[["StudyID",test_date_name,"pathogen","lab_type","lab_days"]],on="StudyID",how="left")
+    # # find date of from clinical_data for each study ID and match to tests
+    test_data = clinical_data.merge(test_data[["StudyID",test_date_name,"pathogen","lab_type","lab_days","result_val"]],on="StudyID",how="left")
     # # # keep only rows where Hospitalization date is within 14 days of Test date
-    positive_tests = positive_tests[np.abs((pd.to_datetime(positive_tests[clinical_date_name]) - pd.to_datetime(positive_tests[test_date_name])).dt.days) <= 14]
-    # keep only one test per pathogen and hospitalization
-    positive_tests = positive_tests.sort_values(by=["StudyID","pathogen",test_date_name], ascending=[True,True,True])
-    # find groups of tests within 14 days of each other with the same StudyID and pathogen
-    positive_tests.loc[:,"diff"] = positive_tests.groupby(["StudyID","pathogen"])[test_date_name].diff().dt.days
-    # for groups of tests where diff is less than 14 days, keep only the first test
-    positive_tests = positive_tests[(positive_tests["diff"].isna()) | (positive_tests["diff"] > 14)]
-    positive_tests = positive_tests.drop(columns=["diff"])
-    return positive_tests
+    test_data = test_data[np.abs((pd.to_datetime(test_data[clinical_date_name]) - pd.to_datetime(test_data[test_date_name])).dt.days) <= 14]
+    return test_data
+
+def filter_multiple_testing(test_data):
+    # Keep only one test per pathogen and hospitalization - prioritize positive tests
+    test_data = test_data.sort_values(by=["StudyID","pathogen","result_val","Test date"], ascending=[True,True,False,True])
+    test_data.loc[:,"diff"] = test_data.groupby(["StudyID","pathogen"])["Test date"].diff().dt.days
+    test_data = test_data[(test_data["diff"].isna()) | (test_data["diff"] > 14)]
+    return test_data.drop(columns=["diff"])
+
+def get_daily_test_counts(test_data, assigned_date="Hospitalization date"):
+    # Create daily aggregations for total tests and positive tests
+    daily_total_counts = test_data.groupby([assigned_date, 'pathogen', 'age_group']).size().reset_index(name='count')
+    daily_total_counts.loc[:,'result_type'] = 'Total'
+
+    daily_positive_counts = test_data[test_data['result_val'] == 'Positive'].groupby([assigned_date, 'pathogen', 'age_group']).size().reset_index(name='count')
+    daily_positive_counts.loc[:,'result_type'] = 'Positive'
+
+    # Combine total and positive counts
+    daily_test_counts = pd.concat([daily_total_counts, daily_positive_counts], ignore_index=True)
+
+    # Create complete date range and pathogen/result combinations
+    date_range = pd.date_range(start=daily_test_counts[assigned_date].min(), 
+                            end=daily_test_counts[assigned_date].max(), 
+                            freq='D')
+    all_pathogens = daily_test_counts['pathogen'].unique()
+    all_age_groups = daily_test_counts['age_group'].unique()
+    result_types = ['Total', 'Positive']
+
+    # Create complete combinations
+    complete_combinations = pd.MultiIndex.from_product([date_range, all_pathogens, all_age_groups, result_types], 
+                                                    names=[assigned_date, 'pathogen', 'age_group', 'result_type']).to_frame(index=False)
+
+    # Merge with actual counts and fill zeros
+    daily_test_counts_complete = complete_combinations.merge(daily_test_counts, 
+                                                            on=[assigned_date, 'pathogen', 'age_group', 'result_type'], 
+                                                            how='left')
+    daily_test_counts_complete.loc[:,'count'] = daily_test_counts_complete['count'].fillna(0).astype(int)
+    return daily_test_counts_complete
 
 
 
@@ -340,48 +372,93 @@ def merge_positive_tests(test_data, clinical_data, clinical_date_name="Hospitali
 #### old incidence data (new code)
 if __name__ == "__main__":
     time_start = time.time()
-    test_data = load_and_filter_test_data()
+    test_data = load_and_filter_test_data(remove_salvage=False)
     time_test = time.time()
-    print(f"Time to filter test data: {time_test - time_start:.2f}s")
+    print(f"Time to load test data: {time_test - time_start:.2f}s")
 
     test_data = filter_to_panel_tests(test_data)
     time_panel = time.time()
-    print(f"Time to filter panel tests: {time_panel - time_test:.2f}s")
+    print(f"Time to filter to panel tests: {time_panel - time_test:.2f}s")
 
     hospitalization_data = load_and_filter_hospitalization_data(exclude_covid=True)
     time_hosp = time.time()
-    print(f"Time to filter hospitalization data: {time_hosp - time_test:.2f}s")
+    print(f"Time to load and filter hospitalization data: {time_hosp - time_test:.2f}s")
 
-    hospitalization_data = bin_age_groups(hospitalization_data)
+    from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES    
+    AGE_GROUPS = [
+    np.arange(3),
+    np.arange(3,12),
+    np.arange(12,5*12),
+    np.arange(5*12,8*12),
+    np.arange(8*12,18*12),
+    np.arange(18*12,40*12),
+    np.arange(40*12,65*12),
+    np.arange(65*12,100*12)]
+    AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-7y','8-17y','18-39y','40-64y','>=65y']
 
-    combined_data = merge_positive_tests(test_data, hospitalization_data)
-    time_merge = time.time()
-    print(f"Time to merge positive tests with hospitalization data: {time_merge - time_hosp:.2f}s")
+    hospitalization_data = bin_age_groups(hospitalization_data, AGE_GROUPS, AGE_GROUP_NAMES)
+    # Set Hospitalization date as index for resampling
+    daily_hospitalization_counts = hospitalization_data.pivot_table(index='Hospitalization date', columns='age_group', values='StudyID', aggfunc='count').fillna(0).reset_index()
+    # # reorder columns
+    daily_hospitalization_counts = daily_hospitalization_counts[['Hospitalization date'] + AGE_GROUP_NAMES]
+    # set index to Hospitalization date
+    daily_hospitalization_counts = daily_hospitalization_counts.set_index('Hospitalization date')
+    print(f"Time to process hospitalization data: {time.time() - time_hosp:.2f}s")
 
-    combined_data.to_csv('Data/Processed/KPSC_unsalvage_panel_positive_matched_noncovid_ARI_hospitalizations.csv',index=False)
+    test_data = merge_tests(test_data, hospitalization_data)
+    test_data = filter_multiple_testing(test_data)
+    test_data = bin_age_groups(test_data, AGE_GROUPS, AGE_GROUP_NAMES)
+    daily_test_counts = get_daily_test_counts(test_data)
+    print(f"Time to process test data: {time.time() - time_panel:.2f}s")
 
-    combined_data = pd.read_csv('Data/Processed/KPSC_unsalvage_panel_positive_matched_noncovid_ARI_hospitalizations.csv', parse_dates=["Hospitalization date"])
-    # for each pathogen, aggregate the number of positive tests by age group and day
+    # load and split the 8-39 age group pop_by_age_group_monthly into 8-17 and 18-39 age groups assuming a (17-8)/(39-8) proportion
+    pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
+    pop_by_age_group_month['8-17y'] = pop_by_age_group_month['8-39y'] * (17-8) / (39-8)
+    pop_by_age_group_month['18-39y'] = pop_by_age_group_month['8-39y'] * (39-17) / (39-8)
+    pop_by_age_group_month = pop_by_age_group_month.drop(columns=['8-39y'])
+    pop_by_age_group_month = pop_by_age_group_month.reindex(columns=AGE_GROUP_NAMES)
+
+    # for each pathogen plot incidence by age group in an eight panel plot
     for pathogen in ["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]:
-        pathogen_data = combined_data[combined_data["pathogen"].str.contains(pathogen,na=False)].copy()
-        pathogen_data = pathogen_data.groupby(["Hospitalization date","AGE_GROUP"], observed=True)["StudyID"].count().reset_index()
-        pathogen_data.rename(columns={"StudyID":"Positive tests"},inplace=True)
-        # wide format with age groups as columns
-        pathogen_data = pathogen_data.pivot(index="Hospitalization date", columns="AGE_GROUP", values="Positive tests").fillna(0).reset_index()
-        # set order of age group columns
-        pathogen_data = pathogen_data[["Hospitalization date"] + AGE_GROUP_NAMES]
-        # fill dates from 2015-10-01 to 2025-05-01 with 0 positive tests for each age group
-        all_dates = pd.date_range(start="2015-10-01", end="2025-05-01")
-        pathogen_data = pathogen_data.set_index("Hospitalization date").reindex(all_dates).fillna(0).rename_axis("Hospitalization date").reset_index()
-        pathogen_data.to_csv(f'Data/Processed/KPSC_unsalvage_panel_positive_{pathogen}_matched_noncovid_ARI_hospitalizations.csv',index=False)
-        pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
-        pop_by_age_group_month = pop_by_age_group_month.reindex(columns=AGE_GROUP_NAMES)
-        pop_by_age_group_daily = pop_by_age_group_month.resample('D').ffill()
-        # get proportional incidence by dividing positive tests by population
-        pathogen_data[AGE_GROUP_NAMES] = pathogen_data[AGE_GROUP_NAMES].div(
-            pop_by_age_group_daily.reindex(pathogen_data["Hospitalization date"]).values, axis=0
-        )
-        pathogen_data.to_csv(f'Data/Processed/KPSC_unsalvage_panel_positive_{pathogen}_matched_noncovid_ARI_hospitalizations_proportional_incidence.csv',index=False)
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="W", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=True, pop_by_age_group_month=pop_by_age_group_month, daily_hospitalization_counts=daily_hospitalization_counts, daily_test_counts_complete=daily_test_counts)
+        fig, ax = plt.subplots(4,2,figsize=(13.3,7.5),sharex=True)
+        for i,age_group in enumerate(AGE_GROUP_NAMES):
+            ax[i%4, i//4].plot(incidence.index, incidence[age_group] * 100000, color="k", label=age_group)
+            ax[i%4, i//4].set_title(f"{age_group}")
+        ax[1, 0].set_ylabel('Incidence per 100k')
+        # ax[3,1].axis('off')
+        plt.tight_layout()
+        plt.savefig(f"Figures/{pathogen}_split_age_group_panels_hospitalization_incidence_weekly.png",dpi=300)
+
+
+    # combined_data = merge_positive_tests(test_data, hospitalization_data)
+    # time_merge = time.time()
+    # print(f"Time to merge positive tests with hospitalization data: {time_merge - time_hosp:.2f}s")
+
+    # combined_data.to_csv('Data/Processed/KPSC_unsalvage_panel_positive_matched_noncovid_ARI_hospitalizations.csv',index=False)
+
+    # combined_data = pd.read_csv('Data/Processed/KPSC_unsalvage_panel_positive_matched_noncovid_ARI_hospitalizations.csv', parse_dates=["Hospitalization date"])
+    # # for each pathogen, aggregate the number of positive tests by age group and day
+    # for pathogen in ["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]:
+    #     pathogen_data = combined_data[combined_data["pathogen"].str.contains(pathogen,na=False)].copy()
+    #     pathogen_data = pathogen_data.groupby(["Hospitalization date","AGE_GROUP"], observed=True)["StudyID"].count().reset_index()
+    #     pathogen_data.rename(columns={"StudyID":"Positive tests"},inplace=True)
+    #     # wide format with age groups as columns
+    #     pathogen_data = pathogen_data.pivot(index="Hospitalization date", columns="AGE_GROUP", values="Positive tests").fillna(0).reset_index()
+    #     # set order of age group columns
+    #     pathogen_data = pathogen_data[["Hospitalization date"] + AGE_GROUP_NAMES]
+    #     # fill dates from 2015-10-01 to 2025-05-01 with 0 positive tests for each age group
+    #     all_dates = pd.date_range(start="2015-10-01", end="2025-05-01")
+    #     pathogen_data = pathogen_data.set_index("Hospitalization date").reindex(all_dates).fillna(0).rename_axis("Hospitalization date").reset_index()
+    #     pathogen_data.to_csv(f'Data/Processed/KPSC_unsalvage_panel_positive_{pathogen}_matched_noncovid_ARI_hospitalizations.csv',index=False)
+    #     pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
+    #     pop_by_age_group_month = pop_by_age_group_month.reindex(columns=AGE_GROUP_NAMES)
+    #     pop_by_age_group_daily = pop_by_age_group_month.resample('D').ffill()
+    #     # get proportional incidence by dividing positive tests by population
+    #     pathogen_data[AGE_GROUP_NAMES] = pathogen_data[AGE_GROUP_NAMES].div(
+    #         pop_by_age_group_daily.reindex(pathogen_data["Hospitalization date"]).values, axis=0
+    #     )
+    #     pathogen_data.to_csv(f'Data/Processed/KPSC_unsalvage_panel_positive_{pathogen}_matched_noncovid_ARI_hospitalizations_proportional_incidence.csv',index=False)
     
 
 

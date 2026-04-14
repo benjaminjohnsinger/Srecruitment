@@ -35,20 +35,19 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-seed = 260409
-base_path = f"Data/Processed/results{seed}/"
-test_prefix = "scipy_DE_"
-# test_prefix = "evosax_DE_"
-filename_pattern = f"RSVExponentialincidence_dataflexagep028{seed}.pickle"
-filepath = base_path + test_prefix + filename_pattern
-with open(filepath, "rb") as f:
-    opt = pickle.load(f)
-print(f"Loaded: {filepath}")
-# print what attributes opt has
-print("Attributes of loaded optimization result:")
-print(opt.nfev)
-print(opt.nit)
-
+EPOCH = pd.to_datetime('1970-01-01')
+END = pd.to_datetime('2025-05-01')
+FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
+FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
+parent_labor = [60.98262489901673, 61.5063564713625, 60.84281207451028, 60.768041939091475, 60.5037381418266, 61.10016011287247, 61.148622423778086, 62.99393722242363, 63.99372275576328, 63.5827420015764, 64.12485171621293, 64.66696143084945, 66.22302672280338, 67.85271452382989, 68.58049720957207]
+parent_labor = jnp.asarray(parent_labor)/100
+relative_parent_labor = (parent_labor-0.64124852) # scale by 2020 value
+# times are epoch then first of each year from 2010 to 2024
+parent_labor_times = jnp.array([date_to_t(pd.to_datetime(d)) for d in [f'{y}-01-01' for y in range(2010, 2025)]])
+# interpolate relative_parent_labor to FULL_POINTS
+relative_parent_labor_interp = jnp.interp(FULL_POINTS, parent_labor_times, relative_parent_labor)
+plt.plot(FULL_PERIOD, relative_parent_labor_interp, color='k')
+plt.show()
 ###### spectrum analysis
 # N = date_to_t("2020-03-19")-date_to_t('2015-10-01')
 # # N = date_to_t("2025-05-01")-date_to_t('2015-10-01')

@@ -428,11 +428,13 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 2
-        elif lockdown == "ExponentialByAge":
+        elif "ExponentialByAge" in lockdown:
+            match = re.search(r'\d', lockdown)
+            age_partition = int(match.group()) if match else 6
             FF = [1,x[n]]
             TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
             RR = jnp.array([[x[n+1],x[n+2],],])
-            EXPONENTIAL_CONTACT = cm.exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=6)
+            EXPONENTIAL_CONTACT = cm.exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=age_partition)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS.reshape(-1,1)-274)/365-OFFSET)))
             n += 3
         elif lockdown == "Exponential2":
@@ -496,6 +498,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         RELATIVE_CONTACT = fixed_params[9]
     if ('flexage' in option2) & ('dynamic' not in option1):
         OBS_AGE = jnp.array([x[n],x[n+1],x[n+2],x[n+3],x[n+4],x[n+5],x[n+6]])
+        n += 7
     elif 'dynamic' in option1:
         OBS_AGE = fixed_params[7]
     if ("Influenza" in pathogen):
@@ -513,6 +516,19 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     # if relative contact is 1-dimensional, copy it across all age groups
     if RELATIVE_CONTACT.ndim == 1:
         RELATIVE_CONTACT = jnp.sqrt(jnp.tile(RELATIVE_CONTACT.reshape(-1,1), (1,NAG)))
+    
+    if "daycare" in option2:
+        parent_labor = [60.98262489901673, 61.5063564713625, 60.84281207451028, 60.768041939091475, 60.5037381418266, 61.10016011287247, 61.148622423778086, 62.99393722242363, 63.99372275576328, 63.5827420015764, 64.12485171621293, 64.66696143084945, 66.22302672280338, 67.85271452382989, 68.58049720957207]
+        parent_labor = jnp.asarray(parent_labor)/100
+        relative_parent_labor = (parent_labor-0.64124852) # scale by 2020 value
+        # times are epoch then first of each year from 2010 to 2024
+        parent_labor_times = jnp.array([date_to_t(pd.to_datetime(d)) for d in [f'{y}-01-01' for y in range(2010, 2025)]])
+        # interpolate relative_parent_labor to FULL_POINTS
+        relative_parent_labor_interp = jnp.interp(FULL_POINTS, parent_labor_times, relative_parent_labor)
+        # scale all contact between the first four age groups by relative_parent_labor_interp
+        # x[n] is the proportion of all contacts between these age groups that occur in daycare
+        RELATIVE_CONTACT = RELATIVE_CONTACT.at[:, 1:4].set(RELATIVE_CONTACT[:, 1:4] * (1 + x[n] * relative_parent_labor_interp.reshape(-1,1)))
+        n += 1
 
     params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
                 BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
@@ -610,9 +626,10 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2):
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
         elif lockdown != "Taube":
             bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
-
+    if "daycare" in option2:
+        bounds_dict["DAYCARE"] = [0,1]
     # reorder bounds_dict to match order in x
-    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7"]\
+    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","DAYCARE"]\
         if key in bounds_dict.keys()}
     bounds = jnp.array(list(bounds_dict.values()))
     param_names = list(bounds_dict.keys())

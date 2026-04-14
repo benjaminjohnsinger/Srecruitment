@@ -12,6 +12,7 @@ import time
 import pickle
 import sys
 import os
+import re
 print(f"My PID is: {os.getpid()}")
 if "Cuda" in str(jax.devices()):
     print(f"Physical GPU assigned by Slurm: {os.environ.get('CUDA_VISIBLE_DEVICES')}")
@@ -128,6 +129,32 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
             else:
                 lh = (lh_base + lh_peaks_times)/2
             return lh
+    elif "youngest" in option1 or "oldest" in option1:
+        N = jnp.prod(jnp.asarray(daily_hospitalization_rates.shape))
+        def likelihood(x, pp_opt=None):
+            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params
+                                    #  , rescale=bounds
+                                    )
+            if "pp" in option2:
+                pp_opt = sim_params[8]
+            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, obs_age=pp_opt, hessian=hessian, return_sum=False)
+            
+            # Extract the numeral from option1
+            match = re.search(r'(youngest|oldest)(\d+)', option1)
+            if match:
+                age_type = match.group(1)
+                n_groups = int(match.group(2))
+                
+                if age_type == "youngest":
+                    filtered_lh = lh[:, :n_groups].sum()
+                else:  # oldest
+                    filtered_lh = lh[:, -n_groups:].sum()
+            else:
+                filtered_lh = lh.sum()
+            
+            if normalize:
+                filtered_lh = filtered_lh / (N * (n_groups / NAG))
+            return filtered_lh
     else:
         N = jnp.prod(jnp.asarray(daily_hospitalization_rates.shape))
         def likelihood(x, pp_opt=None):
