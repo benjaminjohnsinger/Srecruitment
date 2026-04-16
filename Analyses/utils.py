@@ -320,12 +320,14 @@ from Parameters.times_and_contacts import FF as defaultFF
 from new_vax import rsv_eff_vax_rate
 from new_vax import rsv_maternal_immunity
 from new_vax import flu_eff_vax_rate
-def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=False, NAG=7):
+def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=False, NAG=7, wrong_aging=False):
     if fixed_params is None:
         if NAG>7:
             from Parameters.census_population import AGING_RATE_split as AGING_RATE
         else:
             from Parameters.census_population import AGING_RATE
+        if wrong_aging:
+            AGING_RATE = AGING_RATE.at[4].set(1/(22*365))
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
         BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
         if pathogen == "sim":
@@ -373,7 +375,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         S_REL = jnp.array([1,x[n],x[n]*x[n+1]])
         pobsrel = jnp.array([1,x[n+2],x[n+2]*x[n+3]])
         n += 4
-    if 'flexage' not in option2:
+    if ('flexage' not in option2) and ('maxagep' not in option2):
         P_OBS = x[n]*pobsrel
         n += 1
     else:
@@ -431,13 +433,19 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 2
+        elif lockdown == "ExponentialFixed":
+            FF = [1,0.2]
+            TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
+            RR = [0.005,]
+            EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
+            RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
         elif "ExponentialByAge" in lockdown:
             match = re.search(r'\d', lockdown)
             age_partition = int(match.group()) if match else 6
             FF = [1,x[n]]
             TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
             RR = jnp.array([[x[n+1],x[n+2],],])
-            EXPONENTIAL_CONTACT = cm.exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=age_partition)
+            EXPONENTIAL_CONTACT = cm.exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=age_partition, NAG=NAG)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS.reshape(-1,1)-274)/365-OFFSET)))
             n += 3
         elif lockdown == "Exponential2":
@@ -499,7 +507,20 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             n += 7
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
-    if ('flexage' in option2) & ('dynamic' not in option1):
+    if ('maxagep' in option2) & ('dynamic' not in option1):
+        if "RSV" in pathogen:
+            fixed_age_index = 0
+        else:
+            fixed_age_index = -1
+        # search for numbers after maxagep in option2, that number divided by 100 is the value of OBS_AGE for the fixed age group
+        match = re.search(r'maxagep(\d+)', option2)
+        obs_age_max = int(match.group(1)) / (10 ** len(match.group(1)))
+        OBS_AGE = jnp.array([0.0]*NAG)
+        OBS_AGE = OBS_AGE.at[fixed_age_index].set(obs_age_max)
+        # at all other indexes, use x[n:n+NAG-1] in order
+        OBS_AGE = OBS_AGE.at[1+fixed_age_index:NAG+fixed_age_index].set(obs_age_max * x[n:n+NAG-1])
+        n += NAG-1
+    elif ('flexage' in option2) & ('dynamic' not in option1):
         OBS_AGE = x[n:n+NAG]
         n += NAG
     elif 'dynamic' in option1:
@@ -598,17 +619,22 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
     else:
         bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1,1]
     if "dynamic" not in option1 and "pp" not in option2:
-        if option2 == "flexage":
-            upper_bound = 0.005
-        else:
-            # Extract decimal value from option2 (e.g., "flexagep01" -> 0.01, "flexagep5" -> 0.5)
-            match = re.search(r'flexagep(\d+)', option2)
-            if match:
-                upper_bound = int(match.group(1)) / (10 ** len(match.group(1)))
+        if "flexage" in option2:
+            if option2 == "flexage":
+                upper_bound = 0.005
             else:
-                upper_bound = 0.01
-        for i in range(1,NAG+1):
-            bounds_dict[f"AGE_OBS_{i}"] = [0, upper_bound]
+                # Extract decimal value from option2 (e.g., "flexagep01" -> 0.01, "flexagep5" -> 0.5)
+                match = re.search(r'flexagep(\d+)', option2)
+                if match:
+                    upper_bound = int(match.group(1)) / (10 ** len(match.group(1)))
+                else:
+                    upper_bound = 0.01
+            for i in range(1,NAG+1):
+                bounds_dict[f"AGE_OBS_{i}"] = [0, upper_bound]
+        elif "maxagep" in option2:
+            start_index = "RSV" in pathogen
+            for i in range(1+start_index,NAG+start_index):
+                bounds_dict[f"AGE_OBS_{i}"] = [0, 1]
     if "pp" in option2:
         if option2 == "ppflexage":
             lower_bound = 0.05
@@ -730,12 +756,12 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
             break
         except FileNotFoundError:
             continue
-    if prefix == "evosax_DE_":
+    if prefix == "evosax_DE":
         x_DE = opt["final_population"][np.argmax(opt["final_fitness"])]
     else:
         x_DE = opt.x
     REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
-    x_consistent = jnp.zeros(19 + 2*(lockdown=="Exponential") + 3*(lockdown=="Sigmoid"))
+    x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential") + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0409" or lockdown=="FlexStepwise") + NAG)
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC
     x_consistent = x_consistent.at[2:5].set(x_DE[0:3]) # BETA, SEASONALITY, OFFSET
     n = 3
@@ -770,6 +796,9 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
         x_consistent = x_consistent.at[12:14].set(x_DE[n:n+2]) # F1, R1
         n += 2
         obs_age_start = 14
+    if lockdown == "ExponentialFixed":
+        x_consistent = x_consistent.at[12:14].set([0.2,0.005]) # F1, R1
+        obs_age_start = 12
     elif "ExponentialByAge" in lockdown:
         x_consistent = x_consistent.at[12:15].set(x_DE[n:n+3]) # F1, R1, R2
         n += 3
@@ -778,6 +807,14 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
         x_consistent = x_consistent.at[12:15].set(x_DE[n:n+3]) # F1, DT1, R1
         n += 3
         obs_age_start = 15
+    elif lockdown == "RSV0409":
+        x_consistent = x_consistent.at[12:16].set(x_DE[n:n+4]) # F1, F2, F3, F4
+        n += 4
+        obs_age_start = 16
+    elif lockdown == "FlexStepwise": # this should only happen for the RSV fit
+        x_consistent = x_consistent.at[12:16].set([0.7761238, 0.9229197, 0.796961, 0.9991904])
+        n += 4
+        obs_age_start = 16
     x_consistent = x_consistent.at[obs_age_start:obs_age_start+NAG].set(x_DE[-NAG:]) # AGE_OBS_1 to AGE_OBS_7
     return x_consistent
 

@@ -63,10 +63,9 @@ def exponential_recovery(t, ts, fs, rs, steepness=0.2):
         result = result * (1 - reduction) + transition * reduction
     return result
 
-def exponential_recovery_byage(t, ts, fs, rs, age_partition, steepness=0.2):
+def exponential_recovery_byage(t, ts, fs, rs, age_partition, steepness=0.2, NAG=7):
     """Exponential recovery with different rates for two age groups"""
-    n_ages = 7
-    result = jnp.ones((len(t), n_ages)) * fs[0]
+    result = jnp.ones((len(t), NAG)) * fs[0]
     
     for i in range(1, len(ts)):
         # Sudden tanh reduction at ts[i]

@@ -114,6 +114,10 @@ if __name__ == "__main__":
     # set seed
     np.random.seed(seed)
     prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
+    # prefix = "sampling_parameters_"
+    # x = jnp.asarray([0.12032066,0.14603744,0.05796923,0.00512616,0.5582736 ,0.95180595,0.31741548,0.00618303,0.25081336,0.28657508,0.15262091,0.01914573,0.15551174,0.20378447,0.99823165])
+    # log_likelihood = 12014.02
+
 
     # prefix = "evosax_DE_"
     # x = jnp.array([1.1706531e-01, 7.3374316e-02, 2.2380880e-01, 9.8890215e-03, 4.5175752e-01,
@@ -169,7 +173,7 @@ if __name__ == "__main__":
     N = np.prod(daily_hospitalization_rates.shape)
 
     # print(x)
-    print("Log-Likelihood:", log_likelihood*N)
+    # print("Log-Likelihood:", log_likelihood*N)
 
     if NAG == 7:
         from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUPS, AGE_GROUP_NAMES, MEDIAN_AGE
@@ -183,7 +187,7 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-    params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True, NAG=NAG)
+    params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True, NAG=NAG, wrong_aging=int(str(seed)[:6])<260414)
     print(cntct.shape)
 
     # names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
@@ -228,7 +232,7 @@ if __name__ == "__main__":
     average_age_of_first_infection = np.sum(first_infections*jnp.array(MEDIAN_AGE).reshape((1,NAG)),axis=1)/jnp.sum(first_infections,axis=1)
     season_infections = np.sum(season_infection_array,axis=1)
     season_infection_by_age = np.sum(season_infection_by_age,axis=2)
-    print("Average age of first infection per season:",average_age_of_first_infection/12)
+    # print("Average age of first infection per season:",average_age_of_first_infection/12)
     print("Proportion infected per season (including reinfections):",season_infections)
     print("Proportion infected in last season (by age):",season_infection_by_age[-1,:])
 
@@ -241,6 +245,7 @@ if __name__ == "__main__":
     peak_time_diff = (peak_times.iloc[7] - peak_times.iloc[2]).dt.days - 365*5
     # this pritns in vertical format, just printa s a list
     print("Difference in peak times between 2017/18 and 2022/23 seasons (in days):", peak_time_diff.tolist())
+
 
     population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
     expected_obs = calculate_expected_obs(values, p_time_to_obs, len(times), NAG=NAG)
@@ -264,6 +269,16 @@ if __name__ == "__main__":
     # difference in peak times between 2017/18 and 2022/23 seasons
     expected_peak_time_diff = (expected_peak_times[7] - expected_peak_times[2]) - 365*5
     print("Difference in expected peak times between 2017/18 and 2022/23 seasons (in days):", expected_peak_time_diff)
+
+    pre_pandemic_median_ratio = jnp.median(obs_per_season[:5, 2] / obs_per_season[:5, 1])
+    rebound_season_idx = jnp.argmax(jnp.sum(obs_per_season[5:], axis=1))
+    rebound_ratio = obs_per_season[5+rebound_season_idx, 2] / obs_per_season[5+rebound_season_idx, 1]
+    print("Observed ratio of ratios in age groups:", rebound_ratio/pre_pandemic_median_ratio)
+
+    pre_pandemic_median_ratio = jnp.median(expected_obs_per_season[:5, 2] / expected_obs_per_season[:5, 1])
+    rebound_season_idx = jnp.argmax(jnp.sum(expected_obs_per_season[5:], axis=1))
+    rebound_ratio = expected_obs_per_season[5+rebound_season_idx, 2] / expected_obs_per_season[5+rebound_season_idx, 1]
+    print("Expected ratio of ratios in age groups:", rebound_ratio/pre_pandemic_median_ratio)
 
     # population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
     # # trajectory is total proportion infected over time

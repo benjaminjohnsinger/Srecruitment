@@ -35,19 +35,82 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-EPOCH = pd.to_datetime('1970-01-01')
-END = pd.to_datetime('2025-05-01')
-FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
-FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
-parent_labor = [60.98262489901673, 61.5063564713625, 60.84281207451028, 60.768041939091475, 60.5037381418266, 61.10016011287247, 61.148622423778086, 62.99393722242363, 63.99372275576328, 63.5827420015764, 64.12485171621293, 64.66696143084945, 66.22302672280338, 67.85271452382989, 68.58049720957207]
-parent_labor = jnp.asarray(parent_labor)/100
-relative_parent_labor = (parent_labor-0.64124852) # scale by 2020 value
-# times are epoch then first of each year from 2010 to 2024
-parent_labor_times = jnp.array([date_to_t(pd.to_datetime(d)) for d in [f'{y}-01-01' for y in range(2010, 2025)]])
-# interpolate relative_parent_labor to FULL_POINTS
-relative_parent_labor_interp = jnp.interp(FULL_POINTS, parent_labor_times, relative_parent_labor)
-plt.plot(FULL_PERIOD, relative_parent_labor_interp, color='k')
-plt.show()
+# BETA follows a lognormal distribution with median 0.15
+def BETA_distribution(key):
+    return jax.random.normal(key, shape=()) * 0.5 + np.log(0.2)
+
+def SEASONALITY_distribution(key):
+    return jax.random.normal(key, shape=()) * 0.5 + np.log(0.1)
+
+def OFFSET_distribution(key):
+    return jax.random.normal(key, shape=()) * 0.1 + 0.15
+
+def WANE2_distribution(key):
+    return jax.random.normal(key, shape=()) * 0.5 + np.log(0.005)
+
+def REL_distribution(key):
+    return jax.random.uniform(key, shape=(), minval=0.1, maxval=1.0)
+
+def F1_distribution(key):
+    return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
+
+def R1_distribution(key):
+    return jax.random.uniform(key, shape=(), minval=0.002, maxval=0.01)
+
+def OBS_distribution(key):
+    return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
+
+def sample_parameters(key):
+    keys = jax.random.split(key, 15)
+    BETA = jnp.exp(BETA_distribution(keys[0]))
+    SEASONALITY = jnp.exp(SEASONALITY_distribution(keys[1]))
+    OFFSET = OFFSET_distribution(keys[2])
+    WANE2 = jnp.exp(WANE2_distribution(keys[3]))
+    S_REL1 = REL_distribution(keys[4])
+    S_REL2 = REL_distribution(keys[5])
+    F1 = F1_distribution(keys[6])
+    R1 = R1_distribution(keys[7])
+    AGE_OBS = jnp.array([OBS_distribution(keys[8+i]) for i in range(7)])
+    return jnp.concatenate([jnp.array([BETA, SEASONALITY, OFFSET, WANE2, S_REL1, S_REL2, F1, R1]), AGE_OBS])
+
+from fit_opt import get_likelihood
+key = jax.random.PRNGKey(0)
+# sample parameters in chunks of 10000 up to a total of 1000000
+parameter_samples = []
+likelihoods = []
+from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
+likelihood, _ = get_likelihood("RSV", "Exponential", "split", "daycare5maxagep028", 1e-9, normalize=False, CENSUS_AGE_POP=CENSUS_AGE_POP, NAG=8)
+
+chunk_size = 10000
+total_samples = 1000000
+for i in range(0, total_samples, chunk_size):
+    print(f"Processing chunk {i // chunk_size + 1}/{total_samples // chunk_size}")
+    key = jax.random.fold_in(key, i // chunk_size)
+    chunk_params = jax.vmap(sample_parameters)(jax.random.split(key, chunk_size))
+    chunk_likelihoods = jax.vmap(likelihood)(chunk_params)
+    parameter_samples.append(chunk_params)
+    likelihoods.append(chunk_likelihoods)
+
+parameter_samples = jnp.concatenate(parameter_samples, axis=0)
+likelihoods = jnp.concatenate(likelihoods, axis=0)
+# plot likelihoods against each parameter
+parameter_names = ["BETA", "SEASONALITY", "OFFSET", "WANE2", "S_REL1", "S_REL2", "F1", "R1"] + [f"AGE_OBS_{i}" for i in range(2,9)]
+# print minimum liklelihood and corresponding parameters
+min_likelihood_idx = jnp.argmin(likelihoods)
+
+fig, axes = plt.subplots(5, 3, figsize=(15, 10))
+for i, ax in enumerate(axes.flatten()):
+    # Get the 10% best fitting points
+    threshold = np.nanpercentile(likelihoods, 10)
+    print(f"10% likelihood threshold: {threshold:.2f}")
+    colors = np.where(likelihoods < threshold, 'red', 'lightgray')
+    if i < len(parameter_names):
+        ax.scatter(parameter_samples[:, i], likelihoods, alpha=0.5, c=colors)
+        ax.set_xlabel(parameter_names[i])
+        ax.set_ylabel("Likelihood")
+plt.tight_layout()
+plt.savefig("Figures/likelihood_vs_parameters.png", dpi=300)
+
 ###### spectrum analysis
 # N = date_to_t("2020-03-19")-date_to_t('2015-10-01')
 # # N = date_to_t("2025-05-01")-date_to_t('2015-10-01')
@@ -119,8 +182,7 @@ plt.show()
 # ax1.set_ylabel("Probability")
 # ax1.legend(frameon=False)
 
-# # Panel 2: vary n (fix n_p)
-# n_fixed_values = np.arange(20, H, 5)
+# # Panel 2: vary n # n_fixed_values = np.arange(20, H, 5)
 # poisson_n = [poisson_probability(n_p, ni, H, inc) for ni in n_fixed_values]
 # binomial_n = [binomial_probability(n_p, ni, H, inc) for ni in n_fixed_values]
 # poisson_n = np.array(poisson_n) / np.sum(poisson_n)  # Normalize to sum to 1
@@ -133,8 +195,7 @@ plt.show()
 # ax2.set_xlabel("n")
 # ax2.set_ylabel("Probability")
 
-# # Panel 3: vary H (fix n_p)
-# H_values = np.arange(50, 150, 10)
+# # Panel 3: vary H # H_values = np.arange(50, 150, 10)
 # poisson_H = [poisson_probability(n_p, n, Hi, inc) for Hi in H_values]
 # binomial_H = [binomial_probability(n_p, n, Hi, inc) for Hi in H_values]
 # poisson_H = np.array(poisson_H) / np.sum(poisson_H)  # Normalize to sum to 1
@@ -147,8 +208,7 @@ plt.show()
 # ax3.set_xlabel("H")
 # ax3.set_ylabel("Probability")
 
-# # Panel 4: vary l (fix n_p)
-# inc_values = np.logspace(-6.5, np.log10(H/N), 120)
+# # Panel 4: vary l # inc_values = np.logspace(-6.5, np.log10(H/N), 120)
 # poisson_l = [poisson_probability(n_p, n, H, inci) for inci in inc_values]
 # binomial_l = [binomial_probability(n_p, n, H, inci) for inci in inc_values]
 # poisson_l = np.array(poisson_l) / np.sum(poisson_l)  # Normalize to sum to 1
@@ -187,8 +247,7 @@ plt.show()
 #     plt.plot(FULL_POINTS, EXPONENTIAL_CONTACT[:,AGE_GROUP_NAMES.index(age_group)], label=age_group, color=hsv_colors[AGE_GROUP_NAMES.index(age_group)])
 # plt.legend()
 # plt.xlim(date_to_t('2020-01-01'), date_to_t('2025-05-01'))
-# plt.xlabel("Time (days since 1970-01-01)")
-# plt.ylabel("Relative contact rate")
+# plt.xlabel("Time # plt.ylabel("Relative contact rate")
 # plt.title("Exponential recovery contact function by age group")
 # plt.show()
 
@@ -211,24 +270,17 @@ plt.show()
 #     result = fs[0]
 #     for i in range(1, len(ts)):
 #         # Sudden tanh reduction at ts[i]
-#         reduction = 0.5 * (1 + jnp.tanh(steepness * (t - ts[i])))
-#         # Exponential recovery back to fs[0]
+#         reduction = 0.5 * #         # Exponential recovery back to fs[0]
 #         recovery = jnp.exp(-rs[i-1] * jnp.maximum(0, t - ts[i]))
 #         # Combine: reduce to fs[i], then recover toward fs[0]
-#         transition = fs[i] + (fs[0] - fs[i]) * (1 - recovery)
-#         result = result * (1 - reduction) + transition * reduction
-#     return result
+#         transition = fs[i] + #         result = result * #     return result
 # def sigmoidal_recovery(t, ts, fs, rs, steepness=0.2):
 #     """Sudden tanh reduction at ts[i] with sigmoidal recovery to fs[0]"""
 #     result = fs[0]
 #     # Sudden tanh reduction at ts[i]
-#     reduction = (1 + jnp.tanh(steepness * (t - ts[1])))
-#     # Sigmoidal recovery back to fs[0]
-#     recovery = (1 + jnp.exp(-rs[0]*(ts[2]-ts[1]))) / (1 + jnp.exp(rs[0] * (t - ts[2])))
-#     # Combine: reduce to fs[i], then recover toward fs[0]
-#     transition = fs[1] + (fs[0] - fs[1]) * (1-recovery)
-#     result = result * (1 - reduction) + transition * reduction
-#     return result
+#     reduction = #     # Sigmoidal recovery back to fs[0]
+#     recovery = #     # Combine: reduce to fs[i], then recover toward fs[0]
+#     transition = fs[1] + #     result = result * #     return result
 # # MOBILITY_CONTACT = exponential_recovery(FULL_POINTS, TT, FF, RR)
 # SIGMOIDAL_CONTACT = sigmoidal_recovery(FULL_POINTS, TT2, FF, [0.002,])
 # SIGMOIDAL_CONTACT2 = sigmoidal_recovery(FULL_POINTS, TT2, FF, [0.01,])
@@ -259,8 +311,7 @@ plt.show()
 
 #     # Create subplots
 #     n_cols = 5
-#     n_rows = (n_params + n_cols - 1) // n_cols
-#     fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2*n_rows))
+#     n_rows = #     fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2*n_rows))
 #     axes = axes.flatten()
 
 #     # Plot each parameter trajectory
@@ -310,8 +361,7 @@ plt.show()
 #         # plot rolling standard deviation of fitness over last 100 generations
 #         rolling_std = pd.Series(best_fitness).rolling(window=100).std()
 #         fig, ax = plt.subplots(figsize=(10, 5))
-#         ax.plot(generations, rolling_std, label="Rolling Std Dev (100 gen)", color='r')
-#         ax.set_title(f"{pathogen} Log Likelihood Rolling Std Dev over Generations")
+#         ax.plot(generations, rolling_std, label="Rolling Std Dev #         ax.set_title(f"{pathogen} Log Likelihood Rolling Std Dev over Generations")
 #         ax.set_xlabel("Generation")
 #         ax.set_ylabel("Rolling Std Dev")
 #         ax.grid(True, alpha=0.3)
@@ -436,15 +486,13 @@ plt.show()
 #         ax[i,0].plot(neglogL_history[:,i], color='k')
 #         ax[i,0].set_ylabel('Negative log-likelihood')
 #         ax[i,0].set_yscale('log')
-#         ax[i,0].set_title(f'Optimization trajectory (Run {i+1})')
-#         if i == 2:
+#         ax[i,0].set_title(f'Optimization trajectory #         if i == 2:
 #             ax[i,0].set_xlabel('Iteration')
         
 #         # Zoomed in on last 200 iterations
 #         ax[i,1].plot(neglogL_history[-200:,i], color='k')
 #         ax[i,1].set_yscale('log')
-#         ax[i,1].set_title(f'Last 200 iterations (Run {i+1})')
-#         if i == 2:
+#         ax[i,1].set_title(f'Last 200 iterations #         if i == 2:
 #             ax[i,1].set_xlabel('Iteration')
 
 #     plt.tight_layout()
@@ -533,8 +581,7 @@ plt.show()
 # plt.yscale('log')
 # plt.plot(test_lengths, scaling_law(test_lengths, *popt), label=f'Fit: a={popt[0]:.2e}, b={popt[1]:.2f}, c={popt[2]:.2e}', color='r')
 # plt.legend()
-# plt.ylabel('Time (s)')
-# plt.title('Computation time vs. test length')
+# plt.ylabel('Time # plt.title('Computation time vs. test length')
 # plt.tight_layout()
 # plt.savefig(f"Figures/{pathogen}260223_offset_likelihood_test_time.png", dpi=300)
 # plt.close()
@@ -589,8 +636,7 @@ plt.show()
 #         self.x = x
 # import pickle
 # contact_arrays = {}
-# for pathogen, seed in [("RSV", "260217"),("RSV", "2602172"),("RSV", "2602173"), ("Metapneumovirus", "260217"),("Metapneumovirus", "2602172"),("Metapneumovirus", "2602173"), ("InfluenzaA", "260217"), ("Adenovirus", "260217"), ("Parainfluenza3", "2602173")]:
-#     lockdown = "FlexStepwise"
+# for pathogen, seed in [("RSV", "260217"),("RSV", "2602172"),("RSV", "2602173"), #     lockdown = "FlexStepwise"
 #     option1 = "NA"
 #     option2 = "flexage"
 #     if pathogen != "None":
@@ -602,8 +648,7 @@ plt.show()
 #     PERIOD = pd.date_range(start=START, end=END, freq='D')
 #     POINTS = jnp.array(date_to_t(PERIOD))
 #     n = 4
-#     if ("Influenza" in pathogen) and ("free" not in pathogen) and (option2 != 'nr'):
-#         n += 3
+#     if #         n += 3
 #     elif pathogen == 'RSV':
 #         n += 2
 #     else:
@@ -619,11 +664,7 @@ plt.show()
 #         if lockdown == 'FlexStepwise':
 #             TT = jnp.array([date_to_t(START),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
 #             # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
-#             F1 = x[n+3] # value between 0 and 1 (first lockdown)
-#             F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
-#             F3 = F2*x[n+5] # value less than F2 (second lockdown)
-#             F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
-#             FF = jnp.array([1,F1,F2,F3,F4])
+#             F1 = x[n+3] # value between 0 and 1 #             F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 #             F3 = F2*x[n+5] # value less than F2 #             F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 #             FF = jnp.array([1,F1,F2,F3,F4])
 #             PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(POINTS)
 #             n += 7
 #     contact_arrays[(pathogen, seed)] = PIECEWISE_CONTACT
@@ -641,11 +682,9 @@ plt.show()
 #     "None": "Compromise Fit"
 # }
 
-# for i, ((pathogen, seed), contact_data) in enumerate(contact_arrays.items()):
-#     axes[i].plot(PERIOD, contact_data, color=colors[i], linewidth=2)
+# for i, #     axes[i].plot(PERIOD, contact_data, color=colors[i], linewidth=2)
 #     axes[i].set_ylabel("Relative Contact Rate")
-#     axes[i].set_title(f"{pathogen_labels[pathogen]} (Seed: {seed})")
-#     axes[i].set_ylim(0, 1)
+#     axes[i].set_title(f"{pathogen_labels[pathogen]} #     axes[i].set_ylim(0, 1)
 #     axes[i].grid(True, alpha=0.3)
     
 # # Only set x-axis labels on the bottom subplot
@@ -701,8 +740,7 @@ plt.show()
 #     if row == 2:
 #         ax[row, col].set_xlabel('Time')
 #     if col == 0:
-#         ax[row, col].set_ylabel('Positivity (%)')
-#     ax[row, col].set_xticks(pd.date_range(start='2018-01-01', end='2025-01-01', freq='2YS'))
+#         ax[row, col].set_ylabel('Positivity #     ax[row, col].set_xticks(pd.date_range(start='2018-01-01', end='2025-01-01', freq='2YS'))
 #     ax[row, col].set_xticklabels([date.strftime('%Y') for date in pd.date_range(start='2018-01-01', end='2025-01-01', freq='2YS')])
 #     # Add minor ticks for intermediate years
 #     ax[row, col].set_xticks(pd.date_range(start='2018-06-01', end='2025-06-01', freq='Y'), minor=True)
@@ -720,8 +758,7 @@ plt.show()
 #     for j, vacc_time in enumerate(vaccination_times):
 #         # mock peak incidence change as a function of vacc_time and coverage
 #         # Add a penalty for early vaccination with low coverage
-#         early_penalty = (1 - coverage) * jnp.exp(-0.01*(vacc_time)**2) * 0.2
-#         peak_incidence_change = peak_incidence_change.at[i,j].set(1 - 0.3 * coverage * jnp.exp(-0.01*(vacc_time - n_days/2)**2) + early_penalty)
+#         early_penalty = #         peak_incidence_change = peak_incidence_change.at[i,j].set(1 - 0.3 * coverage * jnp.exp(-0.01*(vacc_time - n_days/2)**2) + early_penalty)
 # plt.figure(figsize=(13.3/2.2,2.7))
 # plt.imshow(peak_incidence_change, extent=[0,n_days,0,1], aspect='auto', origin='lower', cmap='viridis')
 # plt.colorbar(label='Peak incidence change')
@@ -744,8 +781,7 @@ plt.show()
 #     I = I.at[0].set(I0)
 #     R = R.at[0].set(R0)
 #     for day in range(1, days):
-#         new_infections = beta * S[day-1] * I[day-1] / (S0 + I0 + R0)
-#         new_recoveries = gamma * I[day-1]
+#         new_infections = beta * S[day-1] * I[day-1] / #         new_recoveries = gamma * I[day-1]
 #         S = S.at[day].set(S[day-1] - new_infections)
 #         I = I.at[day].set(I[day-1] + new_infections - new_recoveries)
 #         R = R.at[day].set(R[day-1] + new_recoveries)
@@ -758,11 +794,7 @@ plt.show()
 # plt.figure(figsize=(13.3/2.2,2.7))
 # # Create mock uncertainty intervals that grow then shrink with outbreak size
 # uncertainty_factor = 0.5  # Controls width of uncertainty bands
-# # Make uncertainty narrow at time 20 (the transition point)
-# transition_factor = 1 - jnp.exp(-0.5 * (t - 20)**2)  # Gaussian that's minimal at t=20
-# uncertainty1 = uncertainty_factor * I1 * (1 - I1/jnp.max(I1)) * transition_factor
-# uncertainty2 = uncertainty_factor * I2 * (1 - I2/jnp.max(I2)) * transition_factor
-
+# # Make uncertainty narrow at time 20 # transition_factor = 1 - jnp.exp(-0.5 * # uncertainty1 = uncertainty_factor * I1 * # uncertainty2 = uncertainty_factor * I2 * 
 # # Plot the main curves
 # plt.plot(t[:21], I1[:21], label='Virus A', color='#648FFF', linestyle='-')
 # plt.plot(t[20:], I1[20:], color='#648FFF', linestyle='--')
@@ -793,8 +825,7 @@ plt.show()
 #     I = I.at[0].set(I0)
 #     R = R.at[0].set(R0)
 #     for i in range(1, t.shape[0]):
-#         new_infections = beta * S[i-1] * I[i-1] / (S0 + I0 + R0) / slowdown
-#         new_recoveries = gamma * I[i-1] / slowdown
+#         new_infections = beta * S[i-1] * I[i-1] / #         new_recoveries = gamma * I[i-1] / slowdown
 #         S = S.at[i].set(S[i-1] - new_infections)
 #         I = I.at[i].set(I[i-1] + new_infections - new_recoveries)
 #         R = R.at[i].set(R[i-1] + new_recoveries)
@@ -813,8 +844,7 @@ plt.show()
 # key = jax.random.PRNGKey(0)
 # for i in range(3):
 #     I_noisy = jax.random.poisson(key, I_list[i])
-#     I_noisy = I_noisy*(1 - 0.25 * jnp.exp(-0.8 * (t - perturb_day)**2))  # small dip at perturbation day
-#     I_list[i] = I_noisy
+#     I_noisy = I_noisy*(1 - 0.25 * jnp.exp(-0.8 * #     I_list[i] = I_noisy
 # # plot three on subgraphs with vertical dashed line at perturbation day
 # plt.figure(figsize=(13.3/2.2,2.7))
 # for i in range(3):
@@ -892,8 +922,7 @@ plt.show()
 # for i in range(3):
 #     ax[i,0].set_ylabel("Incidence")
 #     ax[i,1].set_ylabel("")
-# ax[3,0].set_ylabel("Positivity (%)")
-# ax[3,1].set_ylabel("")
+# ax[3,0].set_ylabel("Positivity # ax[3,1].set_ylabel("")
 # for j in range(2):
 #     ax[3,j].set_xlabel("Time")
 # for ax in ax.flatten():
@@ -943,13 +972,11 @@ plt.show()
 # NAG = len(AGE_GROUP_NAMES)
 
 # fig, ax = plt.subplots(2,3,figsize=(12.5,5.5), sharex=True)
-# for i, (pathogen, model_type, waning_type) in enumerate(good_simulations):
-#     incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
+# for i, #     incidence = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_"+pathogen+"_cases_age_daily.csv",index_col=0))
 #     obs_summed_age = incidence.sum(axis=1)
 #     # sum obs over each season, starting with the first time point
 #     n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
-#     # Curtail obs to fit exact seasons (ignore partial days due to leap years)
-#     days_to_keep = n_seasons * 365
+#     # Curtail obs to fit exact seasons #     days_to_keep = n_seasons * 365
 #     obs_curtailed = incidence[:days_to_keep, :]
 #     obs_summed_age_curtailed = obs_summed_age[:days_to_keep]
 #     obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
@@ -1014,11 +1041,7 @@ plt.show()
 # n = 0
 # TT = jnp.array([date_to_t(START),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
 # # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
-# F1 = x[n+3] # value between 0 and 1 (first lockdown)
-# F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 (inter-lockdown)
-# F3 = F2*x[n+5] # value less than F2 (second lockdown)
-# F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 (post-lockdown)
-# FF = jnp.array([1,F1,F2,F3,F4])
+# F1 = x[n+3] # value between 0 and 1 # F2 = F1 + x[n+4] - F1*x[n+4] # value between x[n+3] and 1 # F3 = F2*x[n+5] # value less than F2 # F4 = F2 + x[n+6] - F2*x[n+6] # value between F2 and 1 # FF = jnp.array([1,F1,F2,F3,F4])
 # PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(POINTS)
 
 # # plot relative contact rate over time
@@ -1079,11 +1102,8 @@ plt.show()
 # plt.savefig('Figures/time_to_hospital_admission_distribution.png', dpi=300)
 
 # population_size_by_age_and_year = pd.read_csv("Data/Processed/KPSC_population_by_age.csv")
-# # split "Older children" group into 3/13 (in original column) then add 10/13 of that group to "Young adults" column
-# oldchildren = population_size_by_age_and_year["Older children"]
-# population_size_by_age_and_year["Older children"] = (3/13)*oldchildren
-# population_size_by_age_and_year["Young adults"] += (10/13)*oldchildren
-# # save
+# # split "Older children" group into 3/13 # oldchildren = population_size_by_age_and_year["Older children"]
+# population_size_by_age_and_year["Older children"] = # population_size_by_age_and_year["Young adults"] += # # save
 # population_size_by_age_and_year.to_csv("Data/Processed/KPSC_population_by_age_split.csv", index=False)
 
 # # load contact matrix
@@ -1131,8 +1151,7 @@ plt.show()
 # ax.set_yscale('log')
 # ax.set_xticks(jnp.arange(len(true_x)))
 # ax.set_xticklabels([f'x{i}' for i in range(1,len(true_x)+1)])
-# ax.set_ylabel('Parameter Value (log scale)')
-# ax.set_title('Parameter Estimates from Differential Evolution')
+# ax.set_ylabel('Parameter Value # ax.set_title('Parameter Estimates from Differential Evolution')
 # plt.legend()
 # plt.tight_layout()
 # plt.savefig('Figures/DE_tests_boxplot.png',dpi=300)
@@ -1281,9 +1300,7 @@ plt.show()
 
 # mode = 0.43911709767941026
 # concentration = 10000
-# a = mode * (concentration - 2) + 1
-# b = (1 - mode) * (concentration - 2) + 1
-# print(a,b)
+# a = mode * # b = # print(a,b)
 
 # x = sp.stats.beta.rvs(a=a,b=b,size=100000)
 # ax[1].hist(x,bins=50,density=True)

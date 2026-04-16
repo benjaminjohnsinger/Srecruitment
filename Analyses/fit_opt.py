@@ -27,7 +27,7 @@ from data_processing import calculate_proportion_positive_incidence
 # import scipy as sp
 # import multiprocessing
 
-def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=True, hosp=True, hessian=False, NAG=7):
+def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=True, hosp=True, hessian=False, NAG=7, CENSUS_AGE_POP=None):
     ### load data and parameters
     start_date = '2015-07-04'
     end_date = '2025-05-01'
@@ -252,7 +252,7 @@ if __name__ == '__main__':
     # bounds = jnp.zeros(unlogged_bounds.shape)
     # bounds = bounds.at[:, 1].set(10)
     # bounds = bounds.at[:, 0].set(-10)
-    likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, NAG=NAG)
+    likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP)
     def new_likelihood(x):
         lik =  likelihood(x)
         # remove nans
