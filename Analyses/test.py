@@ -86,10 +86,9 @@ total_samples = 1000000
 n_params = 15
 
 # Create full Latin Hypercube Sample upfront
-from scipy.stats import qmc
+from fit_opt import latin_hypercube_sample
 print(f"Generating {total_samples} LHS samples...")
-sampler = qmc.LatinHypercube(d=n_params, seed=key.item())
-lhs_samples = sampler.random(n=total_samples)
+lhs_samples = latin_hypercube_sample(key, total_samples, n_params)
 
 start_time = time.time()
 for i in range(0, total_samples, chunk_size):
