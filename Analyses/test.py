@@ -60,17 +60,17 @@ def R1_distribution(key):
 def OBS_distribution(key):
     return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
 
-def percentile_to_params(percentiles):
-    """Convert percentiles [0,1] to parameter values using inverse CDF"""
-    BETA = jnp.exp(sp.stats.norm.ppf(percentiles[0]) * 0.5 + np.log(0.2))
-    SEASONALITY = jnp.exp(sp.stats.norm.ppf(percentiles[1]) * 0.5 + np.log(0.1))
-    OFFSET = sp.stats.norm.ppf(percentiles[2]) * 0.1 + 0.15
-    WANE2 = jnp.exp(sp.stats.norm.ppf(percentiles[3]) * 0.5 + np.log(0.005))
-    S_REL1 = sp.stats.uniform.ppf(percentiles[4], loc=0.1, scale=0.9)
-    S_REL2 = sp.stats.uniform.ppf(percentiles[5], loc=0.1, scale=0.9)
-    F1 = sp.stats.uniform.ppf(percentiles[6], loc=0.0, scale=1.0)
-    R1 = sp.stats.uniform.ppf(percentiles[7], loc=0.002, scale=0.008)
-    AGE_OBS = jnp.array([sp.stats.uniform.ppf(percentiles[8+i], loc=0.0, scale=1.0) for i in range(7)])
+def quantile_to_params(quantiles):
+    """Convert quantiles [0,1] to parameter values using inverse CDF"""
+    BETA = jnp.exp(jsp.special.erfinv(2*quantiles[0] - 1) * 0.5 + np.log(0.2))
+    SEASONALITY = jnp.exp(jsp.special.erfinv(2*quantiles[1] - 1) * 0.5 + np.log(0.1))
+    OFFSET = jsp.special.erfinv(2*quantiles[2] - 1) * 0.1 + 0.15
+    WANE2 = jnp.exp(jsp.special.erfinv(2*quantiles[3] - 1) * 0.5 + np.log(0.005))
+    S_REL1 = 0.1 + quantiles[4] * 0.9
+    S_REL2 = 0.1 + quantiles[5] * 0.9
+    F1 = quantiles[6]
+    R1 = 0.002 + quantiles[7] * 0.008
+    AGE_OBS = jnp.array([quantiles[8+i] for i in range(7)])
     return jnp.concatenate([jnp.array([BETA, SEASONALITY, OFFSET, WANE2, S_REL1, S_REL2, F1, R1]), AGE_OBS])
 
 from fit_opt import get_likelihood
@@ -100,7 +100,7 @@ for i in range(0, total_samples, chunk_size):
     chunk_lhs = lhs_samples[chunk_start:chunk_end]
     
     # Convert LHS samples to parameter space
-    chunk_params = jax.vmap(percentile_to_params)(jnp.array(chunk_lhs))
+    chunk_params = jax.vmap(quantile_to_params)(jnp.array(chunk_lhs))
     chunk_likelihoods = jax.vmap(likelihood)(chunk_params)
     parameter_samples.append(chunk_params)
     likelihoods.append(chunk_likelihoods)
