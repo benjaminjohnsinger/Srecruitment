@@ -347,7 +347,7 @@ def load_and_recombine_results(run_save_path):
 # ==========================================
 # EPIDEMIOLOGICAL OUTCOMES
 # ==========================================
-def time_to_rebound(x, threshold_factor=1/3, include_years=True):
+def time_to_rebound(x, threshold_factor=1, include_years=True):
     obs_summed, peak_times_summed = x[0, :, -1], x[1, :, -1]
     threshold = threshold_factor * jnp.median(obs_summed[:5])
     last_pre_pandemic_peak_time = peak_times_summed[4] + include_years * (4 * 365)
@@ -363,11 +363,11 @@ def time_to_rebound(x, threshold_factor=1/3, include_years=True):
 
     return jnp.where(rebound_found, first_post_pandemic_peak_time - last_pre_pandemic_peak_time, jnp.nan)
 
-def relative_size_of_rebound(x):
+def relative_size_of_rebound(x, threshold_factor=1):
     obs_summed = x[0, :, -1]
     pre_pandemic_median = jnp.median(obs_summed[:5])
     post_pandemic_max = jnp.max(obs_summed[5:])
-    return jnp.where(post_pandemic_max < 0.5*pre_pandemic_median, jnp.nan, post_pandemic_max / pre_pandemic_median)
+    return jnp.where(post_pandemic_max < threshold_factor*pre_pandemic_median, jnp.nan, post_pandemic_max / pre_pandemic_median)
 
 def age_ratio_of_rebound(x, idx_num=2, idx_den=1):
     """Calculate the ratio of infections in one age group to another during the rebound season, relative to the pre-pandemic ratio.
@@ -571,7 +571,13 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=0, p2=8, ou
 
     # Heatmap
     scatter = add_2d_heatmap_figure(ax, x_vals, y_vals, valid_targets, outcome=outcome)
-    plt.colorbar(scatter, ax=ax, label="Time to re-emergence (years)")
+    if outcome == "time_to_rebound":
+        label = "Time to re-emergence (years)"
+    elif outcome == "relative_size":
+        label = "Relative size of rebound"
+    elif outcome == "age_ratio":
+        label = "Ratio of 1-4y to 3-12m in rebound vs pre-pandemic"
+    plt.colorbar(scatter, ax=ax, label=label)
 
     if outcome in ["time_to_rebound", "relative_size", "age_ratio"]:
         pathogen_vals = [extract_target_value_from_data(pathogen, outcome=outcome) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]]
@@ -625,31 +631,32 @@ def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8):
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 18, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 2603172
-    option1 = "NA"
-    option2 = "flexagep01"
-    lockdown = "Exponential"
+    seed = 260415
+    option1 = "split"
+    option2 = "daycarep5maxagep028"
+    lockdown = "RSV0415"
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     good_simulations = [
-        ["RSV", seed, lockdown, option1, option2], ["Metapneumovirus", seed, lockdown, option1, option2], 
+        ["RSV", seed, "FlexStepwise", option1, option2], ["Metapneumovirus", seed, lockdown, option1, option2], 
         ["InfluenzaA", seed, lockdown, option1, option2], ["InfluenzaB", seed, lockdown, option1, option2], 
         ["Adenovirus", seed, lockdown, option1, option2], ["Parainfluenza3", seed, lockdown, option1, option2]
     ]
 
+    # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
+    #                                         seed=seed, n_samples=80000, dimension=2, chunk_size=40000)
+    
     # Parameter scaling factors used in the model
     if lockdown == "Exponential":
         PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
-    elif lockdown == "RSV0409":
+    elif lockdown == "RSV0415":
         PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
 
-    # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
-    #                                         seed=seed, n_samples=80000, dimension=2, chunk_size=40000)
-    run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed2603172_lockdownExponential_2d"
+    run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed260415_lockdownRSV0415_2d"
     fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
     generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="time_to_rebound")
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="age_ratio")
+    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="relative_size")
     plt.tight_layout()
-    plt.savefig(f"Figures/heatmap_daycare_Exponential_flexagep01_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdthird.png", dpi=300)
+    plt.savefig(f"Figures/heatmaps_time_size_RSV0415_daycarep5maxagep028_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold1.png", dpi=300)
     # for p1 in range(len(PARAMETER_NAMES)):
     #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
     #         fig, ax = plt.subplots(figsize=(10, 8))

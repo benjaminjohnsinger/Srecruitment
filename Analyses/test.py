@@ -60,34 +60,48 @@ def R1_distribution(key):
 def OBS_distribution(key):
     return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
 
-def sample_parameters(key):
-    keys = jax.random.split(key, 15)
-    BETA = jnp.exp(BETA_distribution(keys[0]))
-    SEASONALITY = jnp.exp(SEASONALITY_distribution(keys[1]))
-    OFFSET = OFFSET_distribution(keys[2])
-    WANE2 = jnp.exp(WANE2_distribution(keys[3]))
-    S_REL1 = REL_distribution(keys[4])
-    S_REL2 = REL_distribution(keys[5])
-    F1 = F1_distribution(keys[6])
-    R1 = R1_distribution(keys[7])
-    AGE_OBS = jnp.array([OBS_distribution(keys[8+i]) for i in range(7)])
+def percentile_to_params(percentiles):
+    """Convert percentiles [0,1] to parameter values using inverse CDF"""
+    BETA = jnp.exp(sp.stats.norm.ppf(percentiles[0]) * 0.5 + np.log(0.2))
+    SEASONALITY = jnp.exp(sp.stats.norm.ppf(percentiles[1]) * 0.5 + np.log(0.1))
+    OFFSET = sp.stats.norm.ppf(percentiles[2]) * 0.1 + 0.15
+    WANE2 = jnp.exp(sp.stats.norm.ppf(percentiles[3]) * 0.5 + np.log(0.005))
+    S_REL1 = sp.stats.uniform.ppf(percentiles[4], loc=0.1, scale=0.9)
+    S_REL2 = sp.stats.uniform.ppf(percentiles[5], loc=0.1, scale=0.9)
+    F1 = sp.stats.uniform.ppf(percentiles[6], loc=0.0, scale=1.0)
+    R1 = sp.stats.uniform.ppf(percentiles[7], loc=0.002, scale=0.008)
+    AGE_OBS = jnp.array([sp.stats.uniform.ppf(percentiles[8+i], loc=0.0, scale=1.0) for i in range(7)])
     return jnp.concatenate([jnp.array([BETA, SEASONALITY, OFFSET, WANE2, S_REL1, S_REL2, F1, R1]), AGE_OBS])
 
 from fit_opt import get_likelihood
 key = jax.random.PRNGKey(0)
-# sample parameters in chunks of 10000 up to a total of 1000000
+# Generate Latin Hypercube Sample
 parameter_samples = []
 likelihoods = []
 from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
 likelihood, _ = get_likelihood("RSV", "Exponential", "split", "daycare5maxagep028", 1e-9, normalize=False, CENSUS_AGE_POP=CENSUS_AGE_POP, NAG=8)
 
-chunk_size = 10000
+chunk_size = 1000
 total_samples = 1000000
+n_params = 15
+
+# Create full Latin Hypercube Sample upfront
+from scipy.stats import qmc
+print(f"Generating {total_samples} LHS samples...")
+sampler = qmc.LatinHypercube(d=n_params, seed=key.item())
+lhs_samples = sampler.random(n=total_samples)
+
 start_time = time.time()
 for i in range(0, total_samples, chunk_size):
-    print(f"Processing chunk {i // chunk_size + 1}/{total_samples // chunk_size}, ETA: {(total_samples - i) / chunk_size * (time.time() - start_time) / (i // chunk_size + 1) / 60:.2f} minutes")
-    key = jax.random.fold_in(key, i // chunk_size)
-    chunk_params = jax.vmap(sample_parameters)(jax.random.split(key, chunk_size))
+    chunk_start = i
+    chunk_end = min(i + chunk_size, total_samples)
+    print(f"Processing chunk {i // chunk_size + 1}/{(total_samples + chunk_size - 1) // chunk_size}, ETA: {(total_samples - chunk_end) / chunk_size * (time.time() - start_time) / max(1, i // chunk_size) / 60:.2f} minutes")
+    
+    # Extract chunk from full LHS samples
+    chunk_lhs = lhs_samples[chunk_start:chunk_end]
+    
+    # Convert LHS samples to parameter space
+    chunk_params = jax.vmap(percentile_to_params)(jnp.array(chunk_lhs))
     chunk_likelihoods = jax.vmap(likelihood)(chunk_params)
     parameter_samples.append(chunk_params)
     likelihoods.append(chunk_likelihoods)
@@ -95,27 +109,33 @@ for i in range(0, total_samples, chunk_size):
 parameter_samples = jnp.concatenate(parameter_samples, axis=0)
 likelihoods = jnp.concatenate(likelihoods, axis=0)
 # save to Outputs
-with open("Outputs/parameter_samples.pkl", "wb") as f:
+with open("Outputs/parameter_samples_lhs.pkl", "wb") as f:
     pickle.dump((parameter_samples, likelihoods), f)
 # print minimum liklelihood and corresponding parameters
-min_likelihood_idx = jnp.argmin(likelihoods)
+min_likelihood_idx = jnp.nanargmin(likelihoods)
 print("Minimum likelihood:", likelihoods[min_likelihood_idx])
 print("Corresponding parameters:", parameter_samples[min_likelihood_idx])
 
-# plot likelihoods against each parameter
+# plot PMF of each parameter based on likelihoods
 parameter_names = ["BETA", "SEASONALITY", "OFFSET", "WANE2", "S_REL1", "S_REL2", "F1", "R1"] + [f"AGE_OBS_{i}" for i in range(2,9)]
 fig, axes = plt.subplots(5, 3, figsize=(15, 10))
+
+# Use inverse likelihood as weights (lower likelihood = higher weight)
+weights = 1.0 / (1.0 + np.array(likelihoods))
+weights = weights / np.sum(weights)  # Normalize to sum to 1
+
 for i, ax in enumerate(axes.flatten()):
-    # Get the 10% best fitting points
-    threshold = np.nanpercentile(likelihoods, 10)
-    print(f"10% likelihood threshold: {threshold:.2f}")
-    colors = np.where(likelihoods < threshold, 'red', 'lightgray')
     if i < len(parameter_names):
-        ax.scatter(parameter_samples[:, i], likelihoods, alpha=0.5, c=colors)
+        # Create histogram weighted by inverse likelihood
+        ax.hist(np.array(parameter_samples[:, i]), bins=50, weights=weights, alpha=0.7, color='steelblue', edgecolor='black')
         ax.set_xlabel(parameter_names[i])
-        ax.set_ylabel("Likelihood")
+        ax.set_ylabel("Probability Mass")
+        ax.set_title(parameter_names[i])
+    else:
+        ax.axis('off')
+
 plt.tight_layout()
-plt.savefig("Figures/likelihood_vs_parameters.png", dpi=300)
+plt.savefig("Figures/parameter_pmf_from_likelihood_lhs.png", dpi=300)
 
 ###### spectrum analysis
 # N = date_to_t("2020-03-19")-date_to_t('2015-10-01')
