@@ -16,7 +16,7 @@ from Parameters.census_population import AGE_GROUP_NAMES, CENSUS_AGE_POP
 from Parameters.times_and_contacts import PERIOD
 # import pickle
 # from scipy.optimize import curve_fit
-# import time
+import time
 # # import corner
 
 from matplotlib import cm as colormaps
@@ -83,8 +83,9 @@ likelihood, _ = get_likelihood("RSV", "Exponential", "split", "daycare5maxagep02
 
 chunk_size = 10000
 total_samples = 1000000
+start_time = time.time()
 for i in range(0, total_samples, chunk_size):
-    print(f"Processing chunk {i // chunk_size + 1}/{total_samples // chunk_size}")
+    print(f"Processing chunk {i // chunk_size + 1}/{total_samples // chunk_size}, ETA: {(time.time()-start_time) * (total_samples - i) / chunk_size:.2f} seconds")
     key = jax.random.fold_in(key, i // chunk_size)
     chunk_params = jax.vmap(sample_parameters)(jax.random.split(key, chunk_size))
     chunk_likelihoods = jax.vmap(likelihood)(chunk_params)
