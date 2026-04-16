@@ -90,6 +90,9 @@ from fit_opt import latin_hypercube_sample
 print(f"Generating {total_samples} LHS samples...")
 lhs_samples = latin_hypercube_sample(key, total_samples, n_params)
 
+vmap_params = jax.jit(jax.vmap(quantile_to_params))
+vmap_likelihood = jax.jit(jax.vmap(likelihood))
+
 start_time = time.time()
 for i in range(0, total_samples, chunk_size):
     chunk_start = i
@@ -100,8 +103,8 @@ for i in range(0, total_samples, chunk_size):
     chunk_lhs = lhs_samples[chunk_start:chunk_end]
     
     # Convert LHS samples to parameter space
-    chunk_params = jax.vmap(quantile_to_params)(jnp.array(chunk_lhs))
-    chunk_likelihoods = jax.vmap(likelihood)(chunk_params)
+    chunk_params = vmap_params(chunk_lhs)
+    chunk_likelihoods = vmap_likelihood(chunk_params)
     parameter_samples.append(chunk_params)
     likelihoods.append(chunk_likelihoods)
 
