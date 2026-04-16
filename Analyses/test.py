@@ -83,8 +83,9 @@ likelihood, _ = get_likelihood("RSV", "Exponential", "split", "daycare5maxagep02
 
 chunk_size = 10000
 total_samples = 1000000
+start_time = time.time()
 for i in range(0, total_samples, chunk_size):
-    print(f"Processing chunk {i // chunk_size + 1}/{total_samples // chunk_size}")
+    print(f"Processing chunk {i // chunk_size + 1}/{total_samples // chunk_size}, ETA: {(total_samples - i) / chunk_size * (time.time() - start_time) / (i // chunk_size + 1) / 60:.2f} minutes")
     key = jax.random.fold_in(key, i // chunk_size)
     chunk_params = jax.vmap(sample_parameters)(jax.random.split(key, chunk_size))
     chunk_likelihoods = jax.vmap(likelihood)(chunk_params)
@@ -93,11 +94,16 @@ for i in range(0, total_samples, chunk_size):
 
 parameter_samples = jnp.concatenate(parameter_samples, axis=0)
 likelihoods = jnp.concatenate(likelihoods, axis=0)
-# plot likelihoods against each parameter
-parameter_names = ["BETA", "SEASONALITY", "OFFSET", "WANE2", "S_REL1", "S_REL2", "F1", "R1"] + [f"AGE_OBS_{i}" for i in range(2,9)]
+# save to Outputs
+with open("Outputs/parameter_samples.pkl", "wb") as f:
+    pickle.dump((parameter_samples, likelihoods), f)
 # print minimum liklelihood and corresponding parameters
 min_likelihood_idx = jnp.argmin(likelihoods)
+print("Minimum likelihood:", likelihoods[min_likelihood_idx])
+print("Corresponding parameters:", parameter_samples[min_likelihood_idx])
 
+# plot likelihoods against each parameter
+parameter_names = ["BETA", "SEASONALITY", "OFFSET", "WANE2", "S_REL1", "S_REL2", "F1", "R1"] + [f"AGE_OBS_{i}" for i in range(2,9)]
 fig, axes = plt.subplots(5, 3, figsize=(15, 10))
 for i, ax in enumerate(axes.flatten()):
     # Get the 10% best fitting points

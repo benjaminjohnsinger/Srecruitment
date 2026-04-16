@@ -307,7 +307,7 @@ if __name__ == '__main__':
         # if there are opt_states with likelihood over 100, resample those points
         likelihoods = jax.jit(vmap_likelihood)(xs)
 
-        if not ("skip_resampling" in algorithm):
+        if "resample" in algorithm:
             key, subkey = jax.random.split(key)
             print(f"Starting resampling of {jnp.sum((likelihoods > likelihood_threshold) | jnp.isnan(likelihoods))} bad initial points...")
             start_time = time.time()
