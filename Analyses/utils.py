@@ -462,8 +462,8 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             SIGMOID_CONTACT = cm.sigmoid_recovery(FULL_POINTS, TT, FF, RR)
             RELATIVE_CONTACT = SIGMOID_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 3
-        elif lockdown == "RSV0409":
-            TT = jnp.array([date_to_t('1970-01-01'), date_to_t('2020-03-19'), date_to_t('2021-01-04'), date_to_t('2021-07-09'), date_to_t('2022-06-22')])
+        elif lockdown == "RSV0415":
+            TT = jnp.array([date_to_t('1970-01-01'), date_to_t('2020-03-19'), date_to_t('2020-09-30'), date_to_t('2021-08-18'), date_to_t('2022-06-15')])
             F1 = x[n] # value between 0 and 1 (first lockdown)
             F2 = F1 + x[n+1] - F1*x[n+1] # value between F1 and 1 (inter-lockdown)
             F3 = F2*x[n+2] # value less than F2 (second lockdown)
@@ -666,7 +666,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             bounds_dict["F1"] = [0,1]
             bounds_dict["DT1"] = [0,3]
             bounds_dict["R1"] = [0.002,0.01]
-        elif lockdown == "RSV0409":
+        elif lockdown == "RSV0415":
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
         elif lockdown != "Taube":
             bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
@@ -761,7 +761,7 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
     else:
         x_DE = opt.x
     REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
-    x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential") + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0409" or lockdown=="FlexStepwise") + NAG)
+    x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential") + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0415" or lockdown=="FlexStepwise") + NAG)
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC
     x_consistent = x_consistent.at[2:5].set(x_DE[0:3]) # BETA, SEASONALITY, OFFSET
     n = 3
@@ -807,7 +807,7 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
         x_consistent = x_consistent.at[12:15].set(x_DE[n:n+3]) # F1, DT1, R1
         n += 3
         obs_age_start = 15
-    elif lockdown == "RSV0409":
+    elif lockdown == "RSV0415":
         x_consistent = x_consistent.at[12:16].set(x_DE[n:n+4]) # F1, F2, F3, F4
         n += 4
         obs_age_start = 16
