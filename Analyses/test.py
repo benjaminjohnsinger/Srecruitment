@@ -37,23 +37,12 @@ plt.rcParams['font.serif'] = ['Palatino']
 
 from contact_model import exponential_in_and_out
 
-t = jnp.linspace(0, 3*365, 1000)
-ts = jnp.asarray([0, 365, 2*365])
-ts2 = jnp.asarray([0, 1.75*365, 2*365])
-fs = jnp.asarray([1, 0.5])
-rs = jnp.asarray([0.007])
+option1 = "NA"
+option2 = "daycare5maxagep028"
+NAG = 7
 
-ec = exponential_in_and_out(t, ts, fs, rs)
-
-ec2 = exponential_in_and_out(t, ts2, fs, rs)
-
-plt.plot(t, ec)
-plt.plot(t, ec2)
-# vlines at ts and ts2
-plt.vlines(ts, 0, 1.2, color='k', linestyle='--', alpha=0.7)
-plt.vlines(ts2, 0, 1.2, color='r', linestyle='--', alpha=0.7)
-plt.show()
-
+daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group'+['', '_split'][NAG>7]+['', '_detrended']["detrend" in option1]+'.csv',index_col=0,parse_dates=True)
+print(daily_hospitalization_rates_pd.shape[0] * daily_hospitalization_rates_pd.shape[1])
 
 
 ##### latin hypercube sampling of parameter space and likelihood evaluation
