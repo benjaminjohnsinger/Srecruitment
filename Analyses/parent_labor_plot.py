@@ -68,7 +68,7 @@ else:
 print(df_results['Percentage'].tolist())
 
 # --- Plotting the Data ---
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(12, 6))
 
 # Plot all data points
 plt.plot(df_results['Year'], df_results['Percentage'], marker='o', linestyle='-', color='k', linewidth=2)
@@ -86,8 +86,23 @@ plt.ylabel('Percentage (%)', fontsize=12)
 plt.xticks(df_results['Year']) # Ensures every year is marked on the X-axis
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 
-# plt.ylim(0, 100)
-# plt.yticks(range(0, 101, 10))
+plt.ylim(0, 100)
+plt.yticks(range(0, 101, 10))
 
-plt.tight_layout()
-plt.savefig('Figures/parent_labor_plot_zoom.png', dpi=300)
+# panel inside plot to zoom in on relevant y range
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+ax = plt.gca()
+ax_inset = inset_axes(ax, width="50%", height="50%", loc='lower right', borderpad=2)
+ax_inset.plot(df_results['Year'], df_results['Percentage'], marker='o', linestyle='-', color='k', linewidth=2)
+if not df_results[df_results['Year'] == 2020].empty:
+    ax_inset.plot(year_2020['Year'], year_2020['Percentage'], marker='o', markersize=8, 
+                  markerfacecolor='white', markeredgecolor='k', markeredgewidth=2, linestyle='none')
+ax_inset.set_xlim(2014, 2025)
+ax_inset.set_ylim(60, 70)
+ax_inset.set_xticks(range(2014, 2026, 2))
+ax_inset.set_yticks(range(60, 71, 5))
+ax_inset.set_title('Detail', fontsize=10)
+# ax_inset.grid(axis='y', linestyle='--', alpha=0.7)
+
+# plt.tight_layout()
+plt.savefig('Figures/parent_labor_plot.png', dpi=300)
