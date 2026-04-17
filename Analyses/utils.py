@@ -439,6 +439,13 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             RR = [0.005,]
             EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+        elif lockdown == "ExponentialInOut":
+            FF = [1,x[n]]
+            TT = [date_to_t(EPOCH), date_to_t('2020-01-20'), date_to_t('2020-03-19')]
+            RR = [x[n+1],]
+            EXPONENTIAL_CONTACT = cm.exponential_in_and_out(FULL_POINTS, TT, FF, RR)
+            RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+            n += 2
         elif "ExponentialByAge" in lockdown:
             match = re.search(r'\d', lockdown)
             age_partition = int(match.group()) if match else 6
@@ -652,7 +659,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             bounds_dict["F1"] = bounds_dict["F2"] = [0,2]
         elif lockdown == "Mobility2":
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = [0,2]
-        elif lockdown == "Exponential":
+        elif (lockdown == "Exponential") or (lockdown == "ExponentialInOut"):
             bounds_dict["F1"] = [0,1]
             bounds_dict["R1"] = [0.002,0.01]
         elif "ExponentialByAge" in lockdown:
