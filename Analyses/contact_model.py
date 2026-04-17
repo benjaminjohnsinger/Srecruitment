@@ -63,23 +63,21 @@ def exponential_recovery(t, ts, fs, rs, steepness=0.2):
         result = result * (1 - reduction) + transition * reduction
     return result
 
-def exponential_in_and_out(t, ts, fs, rs):
+def exponential_in_and_out(t, ts, fs, rs, steepness=0.2):
     """Gradual exponential reduction accelerating toward fs[1] by ts[1], then exponential recovery from ts[2]."""
     t = jnp.asarray(t)
     dt_01 = jnp.maximum(1e-6, ts[2] - ts[1])
     k = -jnp.log(1e-2) / dt_01
-    reduced_curve = fs[0] - (fs[0] - fs[1]) * jnp.exp(-k * (ts[2] - t))
-    
-    # Value at ts[2] for continuity
-    dt_12 = jnp.maximum(0, ts[2] - t)
-    value_at_ts2 = fs[0] - (fs[0] - fs[1]) * jnp.exp(-k * dt_12)
-    
+    time_to_reduction = jnp.maximum(0, ts[2] - t)
+    reduced_curve = fs[0] - (fs[0] - fs[1]) * jnp.exp(-k * time_to_reduction)
+
     # Phase 2: exponential recovery back to fs[0] from ts[2]
     time_since_recovery = jnp.maximum(0, t - ts[2])
-    recovered_curve = fs[0] + (value_at_ts2 - fs[0]) * jnp.exp(-rs[0] * time_since_recovery)
+    recovered_curve = fs[0] + (fs[1] - fs[0]) * jnp.exp(-rs[0] * time_since_recovery)
     
-    # Piecewise: baseline before ts[1], reduction until ts[2], recovery after ts[2]
-    result = jnp.where(t < ts[1], reduced_curve, recovered_curve)
+    # Smooth transition at ts[2] using tanh
+    transition = 0.5 * (1 + jnp.tanh(steepness * (t - ts[2])))
+    result = reduced_curve * (1 - transition) + recovered_curve * transition
     return result
 
 def exponential_recovery_byage(t, ts, fs, rs, age_partition, steepness=0.2, NAG=7):

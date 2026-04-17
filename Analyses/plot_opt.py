@@ -186,7 +186,7 @@ if __name__ == "__main__":
     # # flatten initial state and add maternal immunity compartment
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-
+    
     params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True, NAG=NAG, wrong_aging=int(str(seed)[:6])<260414)
     print(cntct.shape)
 
