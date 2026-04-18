@@ -15,7 +15,7 @@ from matplotlib.patches import Rectangle
 ##### function to calculate proportion positive tests for a given pathogen in a moving window, and multiply by population-proportional incidence of ARI hospitalizations ######
 # daily_hospitalization_rates = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
 
-def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_factor=0.1, aggregation='D', sum_age_groups=False, save_counts=False, pp_only=False, hosp=False, salvage=True, pop_by_age_group_month=None, daily_hospitalization_counts=None, daily_test_counts_complete=None, NAG=7):
+def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_factor=0.1, aggregation='D', sum_age_groups=False, save_counts=False, pp_only=False, hosp=False, salvage=True, pop_by_age_group_month=None, daily_hospitalization_counts=None, daily_test_counts_complete=None, detrend=False, NAG=7):
     if NAG == 7:
         from Parameters.census_population import AGE_GROUP_NAMES
     elif NAG > 7:
@@ -30,7 +30,7 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
         if NAG == 7:
             daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index_col=0, parse_dates=True)
         elif NAG > 7:
-            daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_split.csv', index_col=0, parse_dates=True)
+            daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_split'+['','_detrended'][detrend]+'.csv', index_col=0, parse_dates=True)
     if daily_test_counts_complete is None:
         if NAG == 7:
             daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen'+['','_unsalvage'][not salvage]+'_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group.csv',index_col=0,parse_dates=True)
@@ -256,7 +256,7 @@ def filter_to_panel_tests(test_data, date_name="Test date"):
     test_data = test_data.set_index(["StudyID", date_name]).loc[panel_test_groups[panel_test_groups].index].reset_index()
     return test_data
 
-def load_and_filter_hospitalization_data(exclude_covid=True):
+def load_and_filter_clinical_data(exclude_covid=True, settings=["Hospital admission"]):
     # time_start = time.time()
     clinical_data1 = pd.read_sas('Data/Raw/KPSC/clinical_20241202.sas7bdat', format='sas7bdat', encoding='utf-8')
     clinical_data2 = pd.read_sas('Data/Raw/KPSC/clinical_20260203.sas7bdat', format='sas7bdat', encoding='utf-8')
@@ -265,7 +265,7 @@ def load_and_filter_hospitalization_data(exclude_covid=True):
 
     clinical_data = clinical_data[clinical_data["dxgroup"] == "ARI"]
 
-    clinical_data = clinical_data[clinical_data["setting"] == "Hospital admission"]
+    clinical_data = clinical_data[clinical_data["setting"].isin(settings)]
 
     clinical_data.loc[:, "Hospitalization date"] = (
         pd.to_datetime(clinical_data["YEAR"].astype(int).astype(str) + '-10-01') +
@@ -388,20 +388,8 @@ def get_daily_test_counts(test_data, assigned_date="Hospitalization date"):
 
 #### old incidence data (new code)
 if __name__ == "__main__":
-    time_start = time.time()
-    test_data = load_and_filter_test_data(remove_salvage=False)
-    time_test = time.time()
-    print(f"Time to load test data: {time_test - time_start:.2f}s")
-
-    test_data = filter_to_panel_tests(test_data)
-    time_panel = time.time()
-    print(f"Time to filter to panel tests: {time_panel - time_test:.2f}s")
-
-    hospitalization_data = load_and_filter_hospitalization_data(exclude_covid=True)
-    time_hosp = time.time()
-    print(f"Time to load and filter hospitalization data: {time_hosp - time_test:.2f}s")
-
     from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES    
+    from scipy import stats
     AGE_GROUPS = [
     np.arange(3),
     np.arange(3,12),
@@ -413,20 +401,31 @@ if __name__ == "__main__":
     np.arange(65*12,100*12)]
     AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-7y','8-17y','18-39y','40-64y','>=65y']
 
-    hospitalization_data = bin_age_groups(hospitalization_data, AGE_GROUPS, AGE_GROUP_NAMES)
-    # Set Hospitalization date as index for resampling
-    daily_hospitalization_counts = hospitalization_data.pivot_table(index='Hospitalization date', columns='age_group', values='StudyID', aggfunc='count').fillna(0).reset_index()
-    # # reorder columns
-    daily_hospitalization_counts = daily_hospitalization_counts[['Hospitalization date'] + AGE_GROUP_NAMES]
-    # set index to Hospitalization date
-    daily_hospitalization_counts = daily_hospitalization_counts.set_index('Hospitalization date')
-    print(f"Time to process hospitalization data: {time.time() - time_hosp:.2f}s")
+    # time_start = time.time()
+    # test_data = load_and_filter_test_data(remove_salvage=False)
+    # time_test = time.time()
+    # print(f"Time to load test data: {time_test - time_start:.2f}s")
 
-    test_data = merge_tests(test_data, hospitalization_data)
-    test_data = filter_multiple_testing(test_data)
-    test_data = bin_age_groups(test_data, AGE_GROUPS, AGE_GROUP_NAMES)
-    daily_test_counts = get_daily_test_counts(test_data)
-    print(f"Time to process test data: {time.time() - time_panel:.2f}s")
+    # test_data = filter_to_panel_tests(test_data)
+    # time_panel = time.time()
+    # print(f"Time to filter to panel tests: {time_panel - time_test:.2f}s")
+
+    # all_clinical_data = load_and_filter_clinical_data(exclude_covid=True, settings=["Physician Office", "Urgent Care", "Emergency department", "Hospital admission"])
+    # time_hosp = time.time()
+    # # print(f"Time to load and filter all_clinical data: {time_hosp - time_test:.2f}s")
+    # all_clinical_data = bin_age_groups(all_clinical_data, AGE_GROUPS, AGE_GROUP_NAMES)
+    # # Set all_clinical date as index for resampling
+    # daily_all_clinical_counts = all_clinical_data.pivot_table(index='Hospitalization date', columns='age_group', values='StudyID', aggfunc='count').fillna(0).reset_index()
+    # # # reorder columns
+    # daily_all_clinical_counts = daily_all_clinical_counts[['Hospitalization date'] + AGE_GROUP_NAMES]
+    # # set index to all_clinical date
+    # daily_all_clinical_counts = daily_all_clinical_counts.set_index('Hospitalization date')
+    # print(f"Time to process all_clinical data: {time.time() - time_hosp:.2f}s")
+
+    # test_data = merge_tests(test_data, hospitalization_data)
+    # test_data = filter_multiple_testing(test_data)
+    # daily_test_counts = get_daily_test_counts(test_data)
+    # print(f"Time to process test data: {time.time() - time_panel:.2f}s")
 
     # load and split the 8-39 age group pop_by_age_group_monthly into 8-17 and 18-39 age groups assuming a (17-8)/(39-8) proportion
     pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
@@ -435,27 +434,185 @@ if __name__ == "__main__":
     pop_by_age_group_month = pop_by_age_group_month.drop(columns=['8-39y'])
     pop_by_age_group_month = pop_by_age_group_month.reindex(columns=AGE_GROUP_NAMES)
 
-    # save daily hospitalization counts and pop by age group month for use in incidence calculation
-    daily_hospitalization_counts.to_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_split.csv')
-    pop_by_age_group_month.to_csv(f'Data/Processed/KPSC_population_by_age_group_monthly_split.csv')
-    # saive daily hospitalization rates by age group for use in incidence calculation
+    # # save daily hospitalization counts and pop by age group month for use in incidence calculation
+    # daily_hospitalization_counts.to_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_split.csv')
+    # pop_by_age_group_month.to_csv(f'Data/Processed/KPSC_population_by_age_group_monthly_split.csv')
+    # load counts and pop by age group month from csv files
+    daily_hospitalization_counts = pd.read_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_split.csv', index_col=0, parse_dates=True)
+    pop_by_age_group_month = pd.read_csv(f'Data/Processed/KPSC_population_by_age_group_monthly_split.csv', index_col=0, parse_dates=['month_start'])
+    # # save daily hospitalization rates by age group for use in incidence calculation
     daily_hospitalization_rates = daily_hospitalization_counts.div(pop_by_age_group_month.resample('D').ffill(), axis=1)
-    daily_hospitalization_rates.to_csv(f'Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group_split.csv')
-    # save daily test counts for use in incidence calculation
-    daily_test_counts = daily_test_counts.set_index('Hospitalization date')
-    daily_test_counts.to_csv(f'Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group_split.csv')
+    daily_hospitalization_rates.to_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group_split.csv')
+    # # save daily test counts for use in incidence calculation
+    # daily_test_counts = daily_test_counts.set_index('Hospitalization date')
+    # daily_test_counts.to_csv(f'Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group_split.csv')
 
-    # for each pathogen plot incidence by age group in an eight panel plot
-    for pathogen in ["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]:
-        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=True, pp_only=False, hosp=True, pop_by_age_group_month=pop_by_age_group_month, daily_hospitalization_counts=daily_hospitalization_counts, daily_test_counts_complete=daily_test_counts)
-        # fig, ax = plt.subplots(4,2,figsize=(13.3,7.5),sharex=True)
-        # for i,age_group in enumerate(AGE_GROUP_NAMES):
-        #     ax[i%4, i//4].plot(incidence.index, incidence[age_group] * 100000, color="k", label=age_group)
-        #     ax[i%4, i//4].set_title(f"{age_group}")
-        # ax[1, 0].set_ylabel('Incidence per 100k')
-        # # ax[3,1].axis('off')
-        # plt.tight_layout()
-        # plt.savefig(f"Figures/{pathogen}_split_age_group_panels_hospitalization_incidence_daily.png",dpi=300)
+    # daily_all_clinical_rates = daily_all_clinical_counts.div(pop_by_age_group_month.resample('D').ffill(), axis=1)
+    # daily_all_clinical_rates.to_csv(f'Data/Processed/KPSC_ARI_nonCOVID_clinical_rates_by_day_age_group_split.csv')
+
+    # load daily hospitalization rates and plot by age group in a 4 x 2 panel plot (data before 2020 only)
+    daily_hospitalization_rates = pd.read_csv(f'Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group_split.csv', index_col=0)
+    daily_hospitalization_rates.index = pd.to_datetime(daily_hospitalization_rates.index)
+    
+    breakpoint1 = pd.to_datetime('2020-03-19')
+    breakpoint2 = pd.to_datetime('2022-03-01')
+    endpoint = pd.to_datetime('2025-05-01')
+    
+    # Plot 1: Individual age group panels
+    fig, ax = plt.subplots(4,2,figsize=(13.3,7.5),sharex=True)
+    
+    for i,age_group in enumerate(AGE_GROUP_NAMES):
+        age_group_data = daily_hospitalization_rates[age_group]
+        age_group_data_weekly = age_group_data.resample('W').sum()
+        ax[i//2, i%2].plot(age_group_data_weekly.index, age_group_data_weekly.values * 100000, color="k", label=age_group)
+        
+        # Fit before and after breakpoint
+        before_breakpoint = age_group_data_weekly[age_group_data_weekly.index < breakpoint1]
+        after_breakpoint = age_group_data_weekly[(age_group_data_weekly.index >= breakpoint2) & (age_group_data_weekly.index < endpoint)]
+        
+        # Fit line before breakpoint
+        non_zero_before = before_breakpoint[before_breakpoint > 0]
+        if len(non_zero_before) > 1:
+            slope_before, intercept_before, r_value_before, p_value_before, std_err_before = stats.linregress(non_zero_before.index.astype(int), non_zero_before.values)
+            ax[i//2, i%2].plot(non_zero_before.index, 100000*(slope_before*non_zero_before.index.astype(int) + intercept_before), color="r", linestyle="--", label="Trend (before)")
+        
+        # Fit line after breakpoint
+        non_zero_after = after_breakpoint[after_breakpoint > 0]
+        if len(non_zero_after) > 1:
+            slope_after, intercept_after, r_value_after, p_value_after, std_err_after = stats.linregress(non_zero_after.index.astype(int), non_zero_after.values)
+            ax[i//2, i%2].plot(non_zero_after.index, 100000*(slope_after*non_zero_after.index.astype(int) + intercept_after), color="orange", linestyle="--", label="Trend (after)")
+        
+        # Display trend info
+        if len(non_zero_before) > 1 and len(non_zero_after) > 1:
+            trend_text = f"Before: slope={slope_before:.2e}, p={p_value_before:.2f}\nAfter: slope={slope_after:.2e}, p={p_value_after:.2f}"
+        elif len(non_zero_before) > 1:
+            trend_text = f"Before: slope={slope_before:.2e}, p={p_value_before:.2f}"
+        elif len(non_zero_after) > 1:
+            trend_text = f"After: slope={slope_after:.2e}, p={p_value_after:.2f}"
+        else:
+            trend_text = ""
+        
+        if trend_text:
+            ax[i//2, i%2].text(0.98, 0.97, trend_text, transform=ax[i//2, i%2].transAxes, 
+                      verticalalignment='top', horizontalalignment='right', 
+                      fontsize=8, bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        
+        ax[i//2, i%2].axvline(breakpoint1, color='gray', linestyle=':', alpha=0.7, linewidth=1)
+        ax[i//2, i%2].axvline(breakpoint2, color='gray', linestyle=':', alpha=0.7, linewidth=1)
+        ax[i//2, i%2].axvline(endpoint, color='gray', linestyle=':', alpha=0.7, linewidth=1)
+        ax[i//2, i%2].set_title(f"{age_group}")
+    
+    ax[1, 0].set_ylabel('Hospitalization rate per 100k')
+    plt.tight_layout()
+    plt.savefig(f"Figures/KPSC_panel_hospitalization_rates_by_age_group_weekly_endpoint.png",dpi=300)
+   
+    # Detrend only the post-breakpoint period (>= breakpoint2) when post-breakpoint trend is significant
+    fig, ax = plt.subplots(4,2,figsize=(13.3,7.5),sharex=True)
+    
+    # Initialize DataFrame to store detrended data
+    detrended_rates = daily_hospitalization_rates.copy()
+
+    for i, age_group in enumerate(AGE_GROUP_NAMES):
+        age_group_data = daily_hospitalization_rates[age_group]
+        age_group_data_daily = age_group_data.resample('D').sum()
+
+        # Start from raw weekly rate per 100k
+        plot_series = age_group_data_daily * 100000.0
+        title_suffix = ""
+
+        # Fit trend using only post-breakpoint window
+        post_mask = (age_group_data_daily.index >= breakpoint2) & (age_group_data_daily.index < endpoint)
+        post_data = age_group_data_daily.loc[post_mask]
+        non_zero_post = post_data[post_data > 0]
+
+        if len(non_zero_post) > 1:
+            x_post = non_zero_post.index.astype(np.int64)
+            slope_after, intercept_after, r_value_after, p_value_after, std_err_after = stats.linregress(
+                x_post, non_zero_post.values
+            )
+
+            # Detrend only post-breakpoint dates if significant
+            if (p_value_after < 0.01) and (slope_after > 0):
+                print(f"Detrending post-breakpoint period for {age_group} due to significant trend (p={p_value_after:.4f})")
+                x_all_post = age_group_data_daily.loc[post_mask].index.astype(np.int64)
+                fitted_post = pd.Series(
+                    slope_after * x_all_post + intercept_after,
+                    index=age_group_data_daily.loc[post_mask].index
+                )
+                print(intercept_after, slope_after, p_value_after)
+                valid = fitted_post > 0
+                detrended_post = age_group_data_daily.loc[post_mask].copy()
+                detrended_post.loc[valid] = (detrended_post.loc[valid] - fitted_post.loc[valid]) + intercept_after + slope_after * x_all_post[0]
+                # minimum of zero
+                detrended_post.loc[detrended_post < 0] = 0
+                plot_series.loc[post_mask] = detrended_post * 100000
+                title_suffix = " (post detrended)"
+                
+                # Update daily detrended rates for post-breakpoint period
+                post_daily_mask = (detrended_rates.index >= breakpoint2) & (detrended_rates.index < endpoint)
+                fitted_post_aligned = fitted_post.reindex(detrended_rates.loc[post_daily_mask].index, method='nearest').fillna(0)
+                detrended_post_values = detrended_rates.loc[post_daily_mask, age_group].values - fitted_post_aligned + intercept_after + slope_after * x_all_post[0]
+                # Ensure no negative values
+                detrended_post_values = np.maximum(detrended_post_values, 0)
+                detrended_rates.loc[post_daily_mask, age_group] = detrended_post_values
+
+        # Plot pre-breakpoint2 data in one color, post-breakpoint2 in another
+        pre_mask = age_group_data_daily.index < breakpoint2
+        if pre_mask.any():
+            ax[i//2, i%2].plot(plot_series.loc[pre_mask].index, plot_series.loc[pre_mask].values, 
+                              color="k", label=age_group, linewidth=1.5)
+        
+        if post_mask.any():
+            # plot undetrended post-breakpoint data in light gray for reference
+            ax[i//2, i%2].plot(age_group_data_daily.loc[post_mask].index, age_group_data_daily.loc[post_mask].values * 100000, 
+                              color="lightgray", label=f"{age_group} (undetrended)", linewidth=1.5, linestyle='--')
+            # plot detrended post-breakpoint data
+            ax[i//2, i%2].plot(plot_series.loc[post_mask].index, plot_series.loc[post_mask].values, 
+                              color="steelblue", label=f"{age_group} (detrended)" if title_suffix else age_group, 
+                              linewidth=1.5)
+        
+        ax[i//2, i%2].set_title(f"{age_group}{title_suffix}")
+        ax[i//2, i%2].axvline(breakpoint1, color='gray', linestyle=':', alpha=0.7, linewidth=1)
+        ax[i//2, i%2].axvline(breakpoint2, color='gray', linestyle=':', alpha=0.7, linewidth=1)
+        ax[i//2, i%2].axvline(endpoint, color='gray', linestyle=':', alpha=0.7, linewidth=1)
+
+    ax[1, 0].set_ylabel('Hospitalization rate per 100k (post-breakpoint detrended if p<0.01)')
+    plt.tight_layout()
+    plt.savefig("Figures/KPSC_panel_hospitalization_rates_by_age_group_daily_detrended.png", dpi=300)
+    
+    # Save detrended rates in same format as original
+    detrended_rates.to_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group_split_detrended.csv')
+
+    # multiply by population to get detrended hospitalization counts and save
+    detrended_counts = detrended_rates.mul(pop_by_age_group_month.resample('D').ffill(), axis=1)
+    detrended_counts.to_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_split_detrended.csv')
+
+    # # load daily test counts for use in incidence calculation
+    # daily_test_counts = pd.read_csv(f'Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group_split.csv', index_col=0, parse_dates=['Hospitalization date'])
+
+    # # plot total number of tests in hospitalized patients by week in each age group ina 4 x 2 panel plot
+    # fig, ax = plt.subplots(4,2,figsize=(13.3,7.5),sharex=True)
+    # for i,age_group in enumerate(AGE_GROUP_NAMES):
+    #     age_group_data = daily_test_counts[daily_test_counts['age_group'] == age_group].groupby('Hospitalization date')['count'].sum()
+    #     age_group_data.index = pd.to_datetime(age_group_data.index)
+    #     age_group_data_weekly = age_group_data.resample('W').sum()
+    #     ax[i//2, i%2].plot(age_group_data_weekly.index, age_group_data_weekly.values, color="k", label=age_group)
+    #     ax[i//2, i%2].set_title(f"{age_group}")
+    # ax[1, 0].set_ylabel('Number of tests')
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/KPSC_panel_hosp_tests_by_age_group_weekly.png",dpi=300)
+
+    # # for each pathogen plot incidence by age group in an eight panel plot
+    # for pathogen in ["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]:
+    #     incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=True, pp_only=False, hosp=True, pop_by_age_group_month=pop_by_age_group_month, daily_hospitalization_counts=daily_hospitalization_counts, daily_test_counts_complete=daily_test_counts)
+    #     # fig, ax = plt.subplots(4,2,figsize=(13.3,7.5),sharex=True)
+    #     # for i,age_group in enumerate(AGE_GROUP_NAMES):
+    #     #     ax[i%4, i//4].plot(incidence.index, incidence[age_group] * 100000, color="k", label=age_group)
+    #     #     ax[i%4, i//4].set_title(f"{age_group}")
+    #     # ax[1, 0].set_ylabel('Incidence per 100k')
+    #     # # ax[3,1].axis('off')
+    #     # plt.tight_layout()
+    #     # plt.savefig(f"Figures/{pathogen}_split_age_group_panels_hospitalization_incidence_daily.png",dpi=300)
 
 
     # combined_data = merge_positive_tests(test_data, hospitalization_data)

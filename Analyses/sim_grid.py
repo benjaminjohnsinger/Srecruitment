@@ -347,7 +347,7 @@ def load_and_recombine_results(run_save_path):
 # ==========================================
 # EPIDEMIOLOGICAL OUTCOMES
 # ==========================================
-def time_to_rebound(x, threshold_factor=1, include_years=True):
+def time_to_rebound(x, threshold_factor=1/2, include_years=True):
     obs_summed, peak_times_summed = x[0, :, -1], x[1, :, -1]
     threshold = threshold_factor * jnp.median(obs_summed[:5])
     last_pre_pandemic_peak_time = peak_times_summed[4] + include_years * (4 * 365)
@@ -472,9 +472,7 @@ def extract_valid_data(samples, all_results, outcome="time_to_rebound", target_b
 # ==========================================
 # PLOTTING UTILITIES
 # ==========================================
-def add_2d_heatmap_figure(ax, x_vals, y_vals, valid_targets, outcome="time_to_rebound", use_scatter=False):
-    vmin, vmax = (1, 2.2) if outcome == "relative_size" else (None, None)
-
+def add_2d_heatmap_figure(ax, x_vals, y_vals, valid_targets, vmin=None, vmax=None, outcome="time_to_rebound", use_scatter=False):
     if use_scatter:
         hist = ax.scatter(x_vals, y_vals, c=valid_targets, s=1, alpha=1, cmap=cm.viridis, vmin=vmin, vmax=vmax)
     else:
@@ -494,9 +492,6 @@ def add_line_of_best_fit(ax, x_vals, y_vals):
     x_fit = np.linspace(1, 50, 1000)
     y_fit = model.predict(np.log(x_fit).reshape(-1,1)) - 1
     
-    valid_mask = (y_fit >= -1) & (y_fit <= 0)
-    x_fit, y_fit = x_fit[valid_mask], y_fit[valid_mask]
-    
     n = len(y_vals)
     x_mean = np.mean(np.log(x_vals))
     residuals = y_vals - (model.predict(X_transformed) - 1)
@@ -505,9 +500,12 @@ def add_line_of_best_fit(ax, x_vals, y_vals):
     t_val = stats.t.ppf(0.975, n-2)  # 95% CI
     ci_upper = np.minimum(y_fit + t_val * se, 0)
     ci_lower = np.maximum(y_fit - t_val * se, -1)
+
+    valid_mask = (y_fit >= -1) & (y_fit <= 0)
+    x_fit_masked, y_fit_masked = x_fit[valid_mask], y_fit[valid_mask]
     
     ax.fill_between(x_fit, ci_lower, ci_upper, alpha=0.3, color='gray', label='95% CI')
-    ax.plot(x_fit, y_fit, color='black', linestyle='--', label='Line of best fit')
+    ax.plot(x_fit_masked, y_fit_masked, color='black', linestyle='--', label='Line of best fit')
 
 def add_pathogen_labels(ax, good_simulations, p1=0, p2=8, color=None):
     if color is None:
@@ -577,6 +575,15 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=0, p2=8, ou
         label = "Relative size of rebound"
     elif outcome == "age_ratio":
         label = "Ratio of 1-4y to 3-12m in rebound vs pre-pandemic"
+    elif "abs_foi_in_class_" in outcome:
+        age_group = int(outcome.split("_")[-1])
+        label = f"Force of infection in age group {age_group}"
+    elif "foi_in_class_" in outcome:
+        age_group = int(outcome.split("_")[-1])
+        label = f"Proportion of force of infection in age group {age_group}"
+    elif "infectors_in_class_" in outcome:
+        age_group = int(outcome.split("_")[-1])
+        label = f"Proportion of infectors in age group {age_group}"
     plt.colorbar(scatter, ax=ax, label=label)
 
     if outcome in ["time_to_rebound", "relative_size", "age_ratio"]:
@@ -631,19 +638,16 @@ def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8):
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 18, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260415
-    option1 = "split"
-    option2 = "daycarep5maxagep028"
-    lockdown = "RSV0415"
+    seed = 2604154
+    option1 = "maxmimmsplit"
+    option2 = "daycarep5maxagep02"
+    lockdown = "Exponential"
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     good_simulations = [
-        ["RSV", seed, "FlexStepwise", option1, option2], ["Metapneumovirus", seed, lockdown, option1, option2], 
-        ["InfluenzaA", seed, lockdown, option1, option2], ["InfluenzaB", seed, lockdown, option1, option2], 
-        ["Adenovirus", seed, lockdown, option1, option2], ["Parainfluenza3", seed, lockdown, option1, option2]
+        ["RSV", 260415, lockdown, option1, "daycarep5maxagep028"], ["Metapneumovirus", 260415, lockdown, option1, option2], 
+        ["InfluenzaA", 260415, lockdown, option1, "daycarep5maxagep05"], ["InfluenzaB", 260415, lockdown, option1, "daycarep5maxagep05"], 
+        ["Adenovirus", 260415, lockdown, option1, option2], ["Parainfluenza3", 260415, lockdown, option1, option2]
     ]
-
-    # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
-    #                                         seed=seed, n_samples=80000, dimension=2, chunk_size=40000)
     
     # Parameter scaling factors used in the model
     if lockdown == "Exponential":
@@ -651,20 +655,23 @@ if __name__ == "__main__":
     elif lockdown == "RSV0415":
         PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
 
-    run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed260415_lockdownRSV0415_2d"
+    fig, ax = plt.subplots(figsize=(12, 6))
+    generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
+    plt.tight_layout()
+    plt.savefig("Figures/line_of_best_fit_Exponential_maxmimmsplit_daycarep5maxagep02.png", dpi=300)
+
+    run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
+                                            seed=seed, n_samples=80000, dimension=2, chunk_size=40000)
+    
+    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed2604153_lockdownExponential_2d"
     fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
     generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="time_to_rebound")
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="relative_size")
+    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="age_ratio")
     plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_time_size_RSV0415_daycarep5maxagep028_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold1.png", dpi=300)
+    plt.savefig(f"Figures/heatmaps_time_age_Exponential_RSVmaxmimm_daycarep5maxagep02_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdp5.png", dpi=300)
     # for p1 in range(len(PARAMETER_NAMES)):
     #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
     #         fig, ax = plt.subplots(figsize=(10, 8))
     #         generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, outcome="time_to_rebound")
     #         plt.tight_layout()
     #         plt.savefig(f"Figures/sim_grids260415/heatmap_time_to_rebound_daycare_factortwothirds_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}.png", dpi=300)
-
-    # fig, ax = plt.subplots(figsize=(10, 8))
-    # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
-    # plt.tight_layout()
-    # plt.savefig("Figures/line_of_best_fit_test.png", dpi=300)

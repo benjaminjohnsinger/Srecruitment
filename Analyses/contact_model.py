@@ -42,7 +42,7 @@ def RAMP(t,t_lockdown,duration,recovery_duration,reduction):
 
 @jax.jit
 def piecewise(t, ts, fs, steepness=0.2):
-    """Smooth approximation using sigmoid transitions, to avoid problems with JAX"""
+    """Smooth approximation using tanh transitions, to avoid problems with JAX"""
     result = fs[0]
     for i in range(1, len(ts)):
         # Smooth step using tanh
@@ -61,6 +61,23 @@ def exponential_recovery(t, ts, fs, rs, steepness=0.2):
         # Combine: reduce to fs[i], then recover toward fs[0]
         transition = fs[i] + (fs[0] - fs[i]) * (1 - recovery)
         result = result * (1 - reduction) + transition * reduction
+    return result
+
+def exponential_in_and_out(t, ts, fs, rs, steepness=0.2):
+    """Gradual exponential reduction accelerating toward fs[1] by ts[1], then exponential recovery from ts[2]."""
+    t = jnp.asarray(t)
+    dt_01 = jnp.maximum(1e-6, ts[2] - ts[1])
+    k = -jnp.log(1e-2) / dt_01
+    time_to_reduction = jnp.maximum(0, ts[2] - t)
+    reduced_curve = fs[0] - (fs[0] - fs[1]) * jnp.exp(-k * time_to_reduction)
+
+    # Phase 2: exponential recovery back to fs[0] from ts[2]
+    time_since_recovery = jnp.maximum(0, t - ts[2])
+    recovered_curve = fs[0] + (fs[1] - fs[0]) * jnp.exp(-rs[0] * time_since_recovery)
+    
+    # Smooth transition at ts[2] using tanh
+    transition = 0.5 * (1 + jnp.tanh(steepness * (t - ts[2])))
+    result = reduced_curve * (1 - transition) + recovered_curve * transition
     return result
 
 def exponential_recovery_byage(t, ts, fs, rs, age_partition, steepness=0.2, NAG=7):
