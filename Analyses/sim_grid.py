@@ -363,27 +363,41 @@ def time_to_rebound(x, threshold_factor=1/2, include_years=True):
 
     return jnp.where(rebound_found, first_post_pandemic_peak_time - last_pre_pandemic_peak_time, jnp.nan)
 
+def outbreak_in_season(x, threshold_factor=0.1, season_idx=7):
+    obs_summed = x[0, :, -1]
+    pre_pandemic_median = jnp.median(obs_summed[:5])
+    threshold = threshold_factor * pre_pandemic_median
+    return obs_summed[season_idx] >= threshold
+
 def relative_size_of_rebound(x, threshold_factor=1):
     obs_summed = x[0, :, -1]
     pre_pandemic_median = jnp.median(obs_summed[:5])
     post_pandemic_max = jnp.max(obs_summed[5:])
     return jnp.where(post_pandemic_max < threshold_factor*pre_pandemic_median, jnp.nan, post_pandemic_max / pre_pandemic_median)
 
-def age_ratio_of_rebound(x, idx_num=2, idx_den=1):
+def age_ratio_of_rebound(x, idx_num=2, idx_den=1, threshold_factor=1/2):
     """Calculate the ratio of infections in one age group to another during the rebound season, relative to the pre-pandemic ratio.
     Args:
         x: The 3D array of metrics returned by the worker function, with shape (n_metrics, n_seasons, NAG+1). The last age group (index -1) corresponds to the summed age group.
         idx_num: The index of the age group to use as the numerator in the ratio (default is 2, which corresponds to 1-4y).
         idx_den: The index of the age group to use as the denominator in the ratio (default is 1, which corresponds to 3-12m).
+        threshold_factor: Threshold factor for rebound detection (default 1/2, consistent with time_to_rebound).
     Returns: The ratio of the specified age groups during the rebound season, relative to the pre-pandemic ratio. If there is no rebound, returns NaN.
     """
     obs_per_season = x[0, :, :]
     pre_pandemic_median_ratio = jnp.median(obs_per_season[:5, idx_num] / obs_per_season[:5, idx_den])
-    post_pandemic_obs = obs_per_season[5:, :]
-    rebound_season_idx = jnp.argmax(jnp.sum(post_pandemic_obs, axis=1))
-    rebound_obs = post_pandemic_obs[rebound_season_idx]
+    threshold = threshold_factor * jnp.median(obs_per_season[:5, -1])
     
-    return (rebound_obs[idx_num] / rebound_obs[idx_den]) / pre_pandemic_median_ratio
+    post_pandemic_obs = obs_per_season[5:, -1]
+    rebound_mask = post_pandemic_obs >= threshold
+    rebound_found = jnp.any(rebound_mask)
+    
+    # Get first rebound season index
+    first_rebound_idx = jnp.argmax(rebound_mask)
+    rebound_season_idx = 5 + first_rebound_idx
+    rebound_obs = obs_per_season[rebound_season_idx]
+    
+    return jnp.where(rebound_found, (rebound_obs[idx_num] / rebound_obs[idx_den]) / pre_pandemic_median_ratio, jnp.nan)
 
 def age_of_first_infection(x):
     return jnp.mean(jnp.sum(x[2, :5, :-1] * jnp.array(MEDIAN_AGE), axis=1)) / 12
@@ -401,6 +415,8 @@ def extract_target_values(all_results, outcome, **kwargs):
     if outcome == "relative_size": return jax.jit(jax.vmap(relative_size_of_rebound))(all_results)
     if outcome == "age_ratio": return jax.jit(jax.vmap(lambda x: age_ratio_of_rebound(x, kwargs.get('idx_num', 2), kwargs.get('idx_den', 1))))(all_results)
     if outcome == "age_of_first_infection": return jax.jit(jax.vmap(age_of_first_infection))(all_results)
+    if outcome == "outbreak_in_season": return jax.jit(jax.vmap(lambda x: outbreak_in_season(x, kwargs.get('threshold_factor', 0.1), kwargs.get('season_idx', 7))))(all_results)
+    if outcome == "age_shift": return jax.jit(jax.vmap(lambda x: age_ratio_of_rebound(x, kwargs.get('idx_num', 2), kwargs.get('idx_den', 1)) > 1))(all_results)
     if "infectors_in_class_" in outcome:
         return jax.vmap(lambda x: x[4, :5, int(outcome.split("_")[-1])].sum(axis=0)/x[4, :5, :-1].sum())(all_results)
     if "abs_foi_in_class_" in outcome:
@@ -660,15 +676,15 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig("Figures/line_of_best_fit_Exponential_maxmimmsplit_daycarep5maxagep02.png", dpi=300)
 
-    run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
-                                            seed=seed, n_samples=80000, dimension=2, chunk_size=40000)
+    # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
+    #                                         seed=seed, n_samples=80000, dimension=2, chunk_size=40000)
     
-    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed2604153_lockdownExponential_2d"
+    run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed2604154_lockdownExponential_2d"
     fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
     generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="time_to_rebound")
     generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="age_ratio")
     plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_time_age_Exponential_RSVmaxmimm_daycarep5maxagep02_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdp5.png", dpi=300)
+    plt.savefig(f"Figures/heatmaps_time_age_Exponential_maxmimmRSV_daycarep5maxagep02_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdp5.png", dpi=300)
     # for p1 in range(len(PARAMETER_NAMES)):
     #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
     #         fig, ax = plt.subplots(figsize=(10, 8))

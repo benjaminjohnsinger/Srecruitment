@@ -252,7 +252,7 @@ if __name__ == "__main__":
     peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()
     # print("Peak time of each season:\n", peak_times)
     # difference between 2017/18 and 2022/23 seasons
-    peak_time_diff = (peak_times.iloc[7] - peak_times.iloc[2]).dt.days - 365*5
+    peak_time_diff = (peak_times.iloc[6] - peak_times.iloc[2]).dt.days - 365*5
     # this pritns in vertical format, just printa s a list
     print("Difference in peak times between 2017/18 and 2022/23 seasons (in days):", peak_time_diff.tolist())
 
@@ -277,11 +277,12 @@ if __name__ == "__main__":
     peak_df.index.name = "Season"
     # print(peak_df.to_string())
     # difference in peak times between 2017/18 and 2022/23 seasons
-    expected_peak_time_diff = (expected_peak_times[7] - expected_peak_times[2]) - 365*5
+    expected_peak_time_diff = (expected_peak_times[6] - expected_peak_times[2]) - 365*5
     print("Difference in expected peak times between 2017/18 and 2022/23 seasons (in days):", expected_peak_time_diff)
 
     pre_pandemic_median_ratio = jnp.median(obs_per_season[:5, 2] / obs_per_season[:5, 1])
-    rebound_season_idx = jnp.argmax(jnp.sum(obs_per_season[5:], axis=1))
+    # rebound_season_idx = jnp.argmax(jnp.sum(obs_per_season[5:], axis=1))
+    rebound_season_idx = 1
     rebound_ratio = obs_per_season[5+rebound_season_idx, 2] / obs_per_season[5+rebound_season_idx, 1]
     print("Observed ratio of ratios in age groups:", rebound_ratio/pre_pandemic_median_ratio)
 

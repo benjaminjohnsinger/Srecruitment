@@ -37,148 +37,148 @@ plt.rcParams['font.serif'] = ['Palatino']
 
 from contact_model import exponential_in_and_out
 
-#### latin hypercube sampling of parameter space and likelihood evaluation
-# BETA follows a lognormal distribution with median 0.15
-def BETA_distribution(key):
-    return jax.random.normal(key, shape=()) * 0.5 + np.log(0.2)
+# #### latin hypercube sampling of parameter space and likelihood evaluation
+# # BETA follows a lognormal distribution with median 0.15
+# def BETA_distribution(key):
+#     return jax.random.normal(key, shape=()) * 0.5 + np.log(0.2)
 
-def SEASONALITY_distribution(key):
-    return jax.random.normal(key, shape=()) * 0.5 + np.log(0.1)
+# def SEASONALITY_distribution(key):
+#     return jax.random.normal(key, shape=()) * 0.5 + np.log(0.1)
 
-def OFFSET_distribution(key):
-    return jax.random.normal(key, shape=()) * 0.1 + 0.15
+# def OFFSET_distribution(key):
+#     return jax.random.normal(key, shape=()) * 0.1 + 0.15
 
-def WANE2_distribution(key):
-    return jax.random.normal(key, shape=()) * 0.5 + np.log(0.005)
+# def WANE2_distribution(key):
+#     return jax.random.normal(key, shape=()) * 0.5 + np.log(0.005)
 
-def REL_distribution(key):
-    return jax.random.uniform(key, shape=(), minval=0.1, maxval=1.0)
+# def REL_distribution(key):
+#     return jax.random.uniform(key, shape=(), minval=0.1, maxval=1.0)
 
-def F1_distribution(key):
-    return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
+# def F1_distribution(key):
+#     return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
 
-def R1_distribution(key):
-    return jax.random.uniform(key, shape=(), minval=0.002, maxval=0.01)
+# def R1_distribution(key):
+#     return jax.random.uniform(key, shape=(), minval=0.002, maxval=0.01)
 
-def OBS_distribution(key):
-    return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
+# def OBS_distribution(key):
+#     return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
 
-def quantile_to_params(quantiles, pathogen="RSV"):
-    """Convert quantiles [0,1] to parameter values using inverse CDF"""
-    BETA = jnp.exp(jsp.special.erfinv(2*quantiles[0] - 1) * 0.5 + np.log(0.2))
-    SEASONALITY = jnp.exp(jsp.special.erfinv(2*quantiles[1] - 1) * 0.5 + np.log(0.1))
-    OFFSET = jsp.special.erfinv(2*quantiles[2] - 1) * 0.1 + 0.15
-    WANE2 = jnp.exp(jsp.special.erfinv(2*quantiles[3] - 1) * 0.5 + np.log(0.005))
-    S_REL1 = 0.1 + quantiles[4] * 0.9
-    S_REL2 = 0.1 + quantiles[5] * 0.9
-    n = 5
-    if pathogen != "RSV":
-        D_REL1 = 0.1 + quantiles[n] * 0.9
-        D_REL2 = 0.1 + quantiles[n+1] * 0.9
-    F1 = quantiles[n]
-    R1 = 0.002 + quantiles[n+1] * 0.008
-    AGE_OBS = jnp.array([quantiles[n+2+i] for i in range(7)])
-    if pathogen != "RSV":
-        return jnp.concatenate([jnp.array([BETA, SEASONALITY, OFFSET, WANE2, S_REL1, S_REL2, D_REL1, D_REL2, F1, R1]), AGE_OBS])
-    return jnp.concatenate([jnp.array([BETA, SEASONALITY, OFFSET, WANE2, S_REL1, S_REL2, F1, R1]), AGE_OBS])
+# def quantile_to_params(quantiles, pathogen="RSV"):
+#     """Convert quantiles [0,1] to parameter values using inverse CDF"""
+#     BETA = jnp.exp(jsp.special.erfinv(2*quantiles[0] - 1) * 0.5 + np.log(0.2))
+#     SEASONALITY = jnp.exp(jsp.special.erfinv(2*quantiles[1] - 1) * 0.5 + np.log(0.1))
+#     OFFSET = jsp.special.erfinv(2*quantiles[2] - 1) * 0.1 + 0.15
+#     WANE2 = jnp.exp(jsp.special.erfinv(2*quantiles[3] - 1) * 0.5 + np.log(0.005))
+#     S_REL1 = 0.1 + quantiles[4] * 0.9
+#     S_REL2 = 0.1 + quantiles[5] * 0.9
+#     n = 5
+#     if pathogen != "RSV":
+#         D_REL1 = 0.1 + quantiles[n] * 0.9
+#         D_REL2 = 0.1 + quantiles[n+1] * 0.9
+#     F1 = quantiles[n]
+#     R1 = 0.002 + quantiles[n+1] * 0.008
+#     AGE_OBS = jnp.array([quantiles[n+2+i] for i in range(7)])
+#     if pathogen != "RSV":
+#         return jnp.concatenate([jnp.array([BETA, SEASONALITY, OFFSET, WANE2, S_REL1, S_REL2, D_REL1, D_REL2, F1, R1]), AGE_OBS])
+#     return jnp.concatenate([jnp.array([BETA, SEASONALITY, OFFSET, WANE2, S_REL1, S_REL2, F1, R1]), AGE_OBS])
 
-from fit_opt import get_likelihood
-key = jax.random.PRNGKey(0)
+# from fit_opt import get_likelihood
+# key = jax.random.PRNGKey(0)
 
-from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
-from fit_opt import latin_hypercube_sample
+# from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
+# from fit_opt import latin_hypercube_sample
 
-pathogens = ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Adenovirus", "Parainfluenza3"]
+# pathogens = ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Adenovirus", "Parainfluenza3"]
 
-chunk_size = 1000
-total_samples = 1_000_000
+# chunk_size = 1000
+# total_samples = 1_000_000
 
-for p_idx, pathogen in enumerate(pathogens):
-    print(f"\n=== {pathogen} ({p_idx+1}/{len(pathogens)}) ===")
+# for p_idx, pathogen in enumerate(pathogens):
+#     print(f"\n=== {pathogen} ({p_idx+1}/{len(pathogens)}) ===")
 
-    likelihood, _ = get_likelihood(
-        pathogen,
-        "Exponential",
-        "split",
-        "nrdaycare5maxagep028",
-        1e-9,
-        normalize=False,
-        CENSUS_AGE_POP=CENSUS_AGE_POP,
-        NAG=8,
-    )
+#     likelihood, _ = get_likelihood(
+#         pathogen,
+#         "Exponential",
+#         "split",
+#         "nrdaycare5maxagep028",
+#         1e-9,
+#         normalize=False,
+#         CENSUS_AGE_POP=CENSUS_AGE_POP,
+#         NAG=8,
+#     )
 
-    # RSV has 15 params in quantile_to_params, non-RSV has 17
-    n_params = 15 if pathogen == "RSV" else 17
+#     # RSV has 15 params in quantile_to_params, non-RSV has 17
+#     n_params = 15 if pathogen == "RSV" else 17
 
-    print(f"Generating {total_samples} LHS samples for {pathogen}...")
-    key, subkey = jax.random.split(key)
-    lhs_samples = latin_hypercube_sample(subkey, total_samples, n_params)
+#     print(f"Generating {total_samples} LHS samples for {pathogen}...")
+#     key, subkey = jax.random.split(key)
+#     lhs_samples = latin_hypercube_sample(subkey, total_samples, n_params)
 
-    vmap_params = jax.jit(jax.vmap(lambda q: quantile_to_params(q, pathogen=pathogen)))
-    vmap_likelihood = jax.jit(jax.vmap(likelihood))
+#     vmap_params = jax.jit(jax.vmap(lambda q: quantile_to_params(q, pathogen=pathogen)))
+#     vmap_likelihood = jax.jit(jax.vmap(likelihood))
 
-    parameter_samples = []
-    likelihoods = []
+#     parameter_samples = []
+#     likelihoods = []
 
-    start_time = time.time()
-    n_chunks = (total_samples + chunk_size - 1) // chunk_size
+#     start_time = time.time()
+#     n_chunks = (total_samples + chunk_size - 1) // chunk_size
 
-    for i in range(0, total_samples, chunk_size):
-        chunk_id = i // chunk_size + 1
-        chunk_end = min(i + chunk_size, total_samples)
+#     for i in range(0, total_samples, chunk_size):
+#         chunk_id = i // chunk_size + 1
+#         chunk_end = min(i + chunk_size, total_samples)
 
-        elapsed = time.time() - start_time
-        done_chunks = max(1, chunk_id - 1)
-        eta_min = ((n_chunks - chunk_id) * (elapsed / done_chunks)) / 60
+#         elapsed = time.time() - start_time
+#         done_chunks = max(1, chunk_id - 1)
+#         eta_min = ((n_chunks - chunk_id) * (elapsed / done_chunks)) / 60
 
-        print(f"[{pathogen}] chunk {chunk_id}/{n_chunks}, ETA: {eta_min:.2f} min")
+#         print(f"[{pathogen}] chunk {chunk_id}/{n_chunks}, ETA: {eta_min:.2f} min")
 
-        chunk_lhs = lhs_samples[i:chunk_end]
-        chunk_params = vmap_params(chunk_lhs)
-        chunk_likelihoods = vmap_likelihood(chunk_params)
+#         chunk_lhs = lhs_samples[i:chunk_end]
+#         chunk_params = vmap_params(chunk_lhs)
+#         chunk_likelihoods = vmap_likelihood(chunk_params)
 
-        parameter_samples.append(chunk_params)
-        likelihoods.append(chunk_likelihoods)
+#         parameter_samples.append(chunk_params)
+#         likelihoods.append(chunk_likelihoods)
 
-    parameter_samples = jnp.concatenate(parameter_samples, axis=0)
-    likelihoods = jnp.concatenate(likelihoods, axis=0)
+#     parameter_samples = jnp.concatenate(parameter_samples, axis=0)
+#     likelihoods = jnp.concatenate(likelihoods, axis=0)
 
-    with open(f"Outputs/{pathogen}_parameter_samples_lhs.pkl", "wb") as f:
-        pickle.dump((parameter_samples, likelihoods), f)
+#     with open(f"Outputs/{pathogen}_parameter_samples_lhs.pkl", "wb") as f:
+#         pickle.dump((parameter_samples, likelihoods), f)
 
-    min_idx = jnp.nanargmin(likelihoods)
-    print(f"[{pathogen}] Minimum likelihood: {likelihoods[min_idx]}")
-    print(f"[{pathogen}] Corresponding parameters: {parameter_samples[min_idx]}")
+#     min_idx = jnp.nanargmin(likelihoods)
+#     print(f"[{pathogen}] Minimum likelihood: {likelihoods[min_idx]}")
+#     print(f"[{pathogen}] Corresponding parameters: {parameter_samples[min_idx]}")
 
-    # plot PMF of each parameter based on inverse-likelihood weights
-    n_plot_params = int(parameter_samples.shape[1])
-    parameter_names = [f"param_{i}" for i in range(n_plot_params)]
+#     # plot PMF of each parameter based on inverse-likelihood weights
+#     n_plot_params = int(parameter_samples.shape[1])
+#     parameter_names = [f"param_{i}" for i in range(n_plot_params)]
 
-    fig, axes = plt.subplots(5, 4, figsize=(16, 10))
-    axes = axes.flatten()
+#     fig, axes = plt.subplots(5, 4, figsize=(16, 10))
+#     axes = axes.flatten()
 
-    weights = 1.0 / (1.0 + np.array(likelihoods))
-    weights = weights / np.sum(weights)
+#     weights = 1.0 / (1.0 + np.array(likelihoods))
+#     weights = weights / np.sum(weights)
 
-    for i, ax in enumerate(axes):
-        if i < n_plot_params:
-            ax.hist(
-                np.array(parameter_samples[:, i]),
-                bins=50,
-                weights=weights,
-                alpha=0.7,
-                color="steelblue",
-                edgecolor="black",
-            )
-            ax.set_title(parameter_names[i])
-            ax.set_xlabel(parameter_names[i])
-            ax.set_ylabel("Probability Mass")
-        else:
-            ax.axis("off")
+#     for i, ax in enumerate(axes):
+#         if i < n_plot_params:
+#             ax.hist(
+#                 np.array(parameter_samples[:, i]),
+#                 bins=50,
+#                 weights=weights,
+#                 alpha=0.7,
+#                 color="steelblue",
+#                 edgecolor="black",
+#             )
+#             ax.set_title(parameter_names[i])
+#             ax.set_xlabel(parameter_names[i])
+#             ax.set_ylabel("Probability Mass")
+#         else:
+#             ax.axis("off")
 
-    plt.tight_layout()
-    plt.savefig(f"Figures/{pathogen}_parameter_pmf_from_likelihood_lhs.png", dpi=300)
-    plt.close(fig)
+#     plt.tight_layout()
+#     plt.savefig(f"Figures/{pathogen}_parameter_pmf_from_likelihood_lhs.png", dpi=300)
+#     plt.close(fig)
 
 ###### spectrum analysis
 # N = date_to_t("2020-03-19")-date_to_t('2015-10-01')
@@ -362,91 +362,93 @@ for p_idx, pathogen in enumerate(pathogens):
 # plt.show()
 
 # # ### plotting functions for optimization results
-# daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)
-# N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
+daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group_split.csv',index_col=0,parse_dates=True)
+N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
 
-# for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "Parainfluenza3", "Adenovirus", "InfluenzaB"]:
-#     # plot for just one result
-#     filepath = f"Data/Processed/results260403/evosax_DE_{pathogen}ExponentialNAflexagep01260403.pickle"
-#     with open(filepath, "rb") as f:
-#         results = pickle.load(f)
-#     print(results)
-#     metrics_log = results["metrics_log"]
-#     generations = metrics_log["generation_counter"]
-#     best_solution = jnp.asarray(metrics_log["best_solution_in_generation"])
-#     n_params = best_solution.shape[1]
+for pathogen, maxage in [("RSV", 28), ("Metapneumovirus", 2), ("InfluenzaA", 5), ("Parainfluenza3", 2), ("Adenovirus", 2), ("InfluenzaB", 5)]:
+    # plot for just one result
+    filepath = f"Data/Processed/results260415/evosax_DE_{pathogen}Exponentialsplitdaycarep5maxagep0{maxage}260415.pickle"
+    with open(filepath, "rb") as f:
+        results = pickle.load(f)
+    print(results)
+    metrics_log = results["metrics_log"]
+    generations = metrics_log["generation_counter"]
+    best_solution = jnp.asarray(metrics_log["best_solution_in_generation"])
+    n_params = best_solution.shape[1]
 
-#     param_names, bounds = parameters_names_bounds(pathogen, "Exponential", "NA", "flexagep01")
+    param_names, bounds = parameters_names_bounds(pathogen, "Exponential", "split", "daycarep5maxagep0"+str(maxage),NAG=8)
+    print(param_names)
+    # Create subplots
+    n_cols = 5
+    n_rows = int(np.ceil(n_params / n_cols))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2*n_rows))
+    axes = axes.flatten()
 
-#     # Create subplots
-#     n_cols = 5
-#     n_rows = #     fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2*n_rows))
-#     axes = axes.flatten()
+    # Plot each parameter trajectory
+    for i in range(n_params):
+        axes[i].plot(generations, best_solution[:, i], color='k', alpha=0.7)
+        axes[i].set_xlabel('')
+        axes[i].set_ylabel('')
+        axes[i].set_title(f'{param_names[i]} Trajectory')
+        axes[i].set_ylim(bounds[i])
+        axes[i].grid(True, alpha=0.3)
 
-#     # Plot each parameter trajectory
-#     for i in range(n_params):
-#         axes[i].plot(generations, best_solution[:, i], color='k', alpha=0.7)
-#         axes[i].set_xlabel('')
-#         axes[i].set_ylabel('')
-#         axes[i].set_title(f'{param_names[i]} Trajectory')
-#         axes[i].set_ylim(bounds[i])
-#         axes[i].grid(True, alpha=0.3)
+    # Hide unused subplots
+    for i in range(n_params, len(axes)):
+        axes[i].set_visible(False)
 
-#     # Hide unused subplots
-#     for i in range(n_params, len(axes)):
-#         axes[i].set_visible(False)
+    plt.tight_layout()
+    plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_parameter_trajectories.png"), dpi=300)
 
-#     plt.tight_layout()
-#     plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_parameter_trajectories.png"), dpi=300)
+    # plot range of population fitness over genrations
+    for pathogen, maxage in [("RSV", 28), ("Metapneumovirus", 2), ("InfluenzaA", 5), ("Parainfluenza3", 2), ("Adenovirus", 2), ("InfluenzaB", 5)]:
+        filepath = f"Data/Processed/results260415/evosax_DE_{pathogen}Exponentialsplitdaycarep5maxagep0{maxage}260415.pickle"
+        with open(filepath, "rb") as f:
+            results = pickle.load(f)
+        print(results)
+        metrics_log = results["metrics_log"]
+        generations = metrics_log["generation_counter"]
+        best_fitness = jnp.asarray(metrics_log["best_fitness_in_generation"]) * N
 
-#     # plot range of population fitness over genrations
-#     for pathogen in ["RSV", "Metapneumovirus", "InfluenzaA", "Parainfluenza3", "Adenovirus", "InfluenzaB"]:
-#         filepath = f"Data/Processed/results260403/evosax_DE_{pathogen}ExponentialNAflexagep01260403.pickle"
-#         with open(filepath, "rb") as f:
-#             results = pickle.load(f)
-#         print(results)
-#         metrics_log = results["metrics_log"]
-#         generations = metrics_log["generation_counter"]
-#         best_fitness = jnp.asarray(metrics_log["best_fitness_in_generation"]) * N
-
-#         fig, ax = plt.subplots(figsize=(10, 5))
-#         ax.plot(generations, best_fitness, label="Best Fitness", color='k')
-#         ax.set_title(f"{pathogen} Fitness over Generations")
-#         ax.set_xlabel("Generation")
-#         ax.set_ylabel("Negative Log Likelihood")
-#         ax.grid(True, alpha=0.3)
-#         ax.legend()
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(generations, best_fitness, label="Best Fitness", color='k')
+        ax.set_title(f"{pathogen} Fitness over Generations")
+        ax.set_xlabel("Generation")
+        ax.set_ylabel("Negative Log Likelihood")
+        ax.grid(True, alpha=0.3)
+        ax.legend()
         
-#         # Add inset zooming in on last 500 generations
-#         axins = inset_axes(ax, width="40%", height="40%", loc="upper right")
-#         last_500_idx = max(0, len(generations) - 500)
-#         axins.plot(generations[last_500_idx:], best_fitness[last_500_idx:], color='k', linewidth=1.5)
-#         axins.set_title("Last 500 Gen", fontsize=8)
-#         axins.grid(True, alpha=0.3)
-#         axins.tick_params(labelsize=8)
+        # Add inset zooming in on last 500 generations
+        axins = inset_axes(ax, width="40%", height="40%", loc="upper right")
+        last_500_idx = max(0, len(generations) - 500)
+        axins.plot(generations[last_500_idx:], best_fitness[last_500_idx:], color='k', linewidth=1.5)
+        axins.set_title("Last 500 Gen", fontsize=8)
+        axins.grid(True, alpha=0.3)
+        axins.tick_params(labelsize=8)
         
-#         plt.tight_layout()
-#         plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_fitness_over_generations.png"), dpi=300)
-#         # plot rolling standard deviation of fitness over last 100 generations
-#         rolling_std = pd.Series(best_fitness).rolling(window=100).std()
-#         fig, ax = plt.subplots(figsize=(10, 5))
-#         ax.plot(generations, rolling_std, label="Rolling Std Dev #         ax.set_title(f"{pathogen} Log Likelihood Rolling Std Dev over Generations")
-#         ax.set_xlabel("Generation")
-#         ax.set_ylabel("Rolling Std Dev")
-#         ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_fitness_over_generations.png"), dpi=300)
+        # plot rolling standard deviation of fitness over last 100 generations
+        rolling_std = pd.Series(best_fitness).rolling(window=100).std()
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(generations, rolling_std, label="Rolling Std Dev", color='r')
+        ax.set_title(f"{pathogen} Log Likelihood Rolling Std Dev over Generations")
+        ax.set_xlabel("Generation")
+        ax.set_ylabel("Rolling Std Dev")
+        ax.grid(True, alpha=0.3)
         
-#         # Add inset zooming in on last 500 generations
-#         axins = inset_axes(ax, width="40%", height="40%", loc="upper right")
-#         last_500_idx = max(0, len(generations) - 500)
-#         axins.plot(generations[last_500_idx:], rolling_std[last_500_idx:], color='r', linewidth=1.5)
-#         axins.set_title("Last 500 Gen", fontsize=8)
-#         axins.grid(True, alpha=0.3)
-#         axins.tick_params(labelsize=8)
+        # Add inset zooming in on last 500 generations
+        axins = inset_axes(ax, width="40%", height="40%", loc="upper right")
+        last_500_idx = max(0, len(generations) - 500)
+        axins.plot(generations[last_500_idx:], rolling_std[last_500_idx:], color='r', linewidth=1.5)
+        axins.set_title("Last 500 Gen", fontsize=8)
+        axins.grid(True, alpha=0.3)
+        axins.tick_params(labelsize=8)
         
-#         ax.legend()
-#         plt.tight_layout()
-#         plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_rolling_std_dev.png"), dpi=300)
-#         plt.close()
+        ax.legend()
+        plt.tight_layout()
+        plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_rolling_std_dev.png"), dpi=300)
+        plt.close()
 
 
 # # plot for a bunch of results
