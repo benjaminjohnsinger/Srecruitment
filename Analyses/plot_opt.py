@@ -78,7 +78,7 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
 
 if __name__ == "__main__":
     pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
-    
+
     NAG = 7 + ("split" in option1)
     
     if len(sys.argv) > 10:
@@ -117,6 +117,16 @@ if __name__ == "__main__":
     # prefix = "sampling_parameters_"
     # x = jnp.asarray([0.12032066,0.14603744,0.05796923,0.00512616,0.5582736 ,0.95180595,0.31741548,0.00618303,0.25081336,0.28657508,0.15262091,0.01914573,0.15551174,0.20378447,0.99823165])
     # log_likelihood = 12014.02
+
+    ## artificial split
+    # option1 = "split"
+    # NAG = 8
+    # # make x one element longer, repeat x[-4] in place
+    # x = jnp.zeros(len(x_temp)+1)
+    # x = x.at[:-5].set(x_temp[:-4])
+    # x = x.at[-5].set(x_temp[-4])
+    # x = x.at[-4].set(x_temp[-4])
+    # x = x.at[-3:].set(x_temp[-3:])
 
 
     # prefix = "evosax_DE_"
@@ -186,7 +196,7 @@ if __name__ == "__main__":
     # # flatten initial state and add maternal immunity compartment
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-    
+
     params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True, NAG=NAG, wrong_aging=int(str(seed)[:6])<260414)
     print(cntct.shape)
 
@@ -276,7 +286,7 @@ if __name__ == "__main__":
     print("Observed ratio of ratios in age groups:", rebound_ratio/pre_pandemic_median_ratio)
 
     pre_pandemic_median_ratio = jnp.median(expected_obs_per_season[:5, 2] / expected_obs_per_season[:5, 1])
-    rebound_season_idx = jnp.argmax(jnp.sum(expected_obs_per_season[5:], axis=1))
+    # rebound_season_idx = jnp.argmax(jnp.sum(expected_obs_per_season[5:], axis=1))
     rebound_ratio = expected_obs_per_season[5+rebound_season_idx, 2] / expected_obs_per_season[5+rebound_season_idx, 1]
     print("Expected ratio of ratios in age groups:", rebound_ratio/pre_pandemic_median_ratio)
 
