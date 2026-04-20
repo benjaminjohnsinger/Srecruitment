@@ -663,7 +663,7 @@ if __name__ == "__main__":
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
                                             seed=seed, n_samples=80000, dimension=2, chunk_size=40000)
     
-    run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed2604153_lockdownExponential_2d"
+    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed2604153_lockdownExponential_2d"
     fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
     generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="time_to_rebound")
     generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="age_ratio")

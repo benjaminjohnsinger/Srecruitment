@@ -37,129 +37,148 @@ plt.rcParams['font.serif'] = ['Palatino']
 
 from contact_model import exponential_in_and_out
 
-t = jnp.linspace(0, 3*365, 1000)
-ts = jnp.asarray([0, 365, 2*365])
-ts2 = jnp.asarray([0, 1.75*365, 2*365])
-fs = jnp.asarray([1, 0.5])
-rs = jnp.asarray([0.007])
+#### latin hypercube sampling of parameter space and likelihood evaluation
+# BETA follows a lognormal distribution with median 0.15
+def BETA_distribution(key):
+    return jax.random.normal(key, shape=()) * 0.5 + np.log(0.2)
 
-ec = exponential_in_and_out(t, ts, fs, rs)
+def SEASONALITY_distribution(key):
+    return jax.random.normal(key, shape=()) * 0.5 + np.log(0.1)
 
-ec2 = exponential_in_and_out(t, ts2, fs, rs)
+def OFFSET_distribution(key):
+    return jax.random.normal(key, shape=()) * 0.1 + 0.15
 
-plt.plot(t, ec)
-plt.plot(t, ec2)
-# vlines at ts and ts2
-plt.vlines(ts, 0, 1.2, color='k', linestyle='--', alpha=0.7)
-plt.vlines(ts2, 0, 1.2, color='r', linestyle='--', alpha=0.7)
-plt.show()
+def WANE2_distribution(key):
+    return jax.random.normal(key, shape=()) * 0.5 + np.log(0.005)
 
+def REL_distribution(key):
+    return jax.random.uniform(key, shape=(), minval=0.1, maxval=1.0)
 
+def F1_distribution(key):
+    return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
 
-##### latin hypercube sampling of parameter space and likelihood evaluation
-# # BETA follows a lognormal distribution with median 0.15
-# def BETA_distribution(key):
-#     return jax.random.normal(key, shape=()) * 0.5 + np.log(0.2)
+def R1_distribution(key):
+    return jax.random.uniform(key, shape=(), minval=0.002, maxval=0.01)
 
-# def SEASONALITY_distribution(key):
-#     return jax.random.normal(key, shape=()) * 0.5 + np.log(0.1)
+def OBS_distribution(key):
+    return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
 
-# def OFFSET_distribution(key):
-#     return jax.random.normal(key, shape=()) * 0.1 + 0.15
+def quantile_to_params(quantiles, pathogen="RSV"):
+    """Convert quantiles [0,1] to parameter values using inverse CDF"""
+    BETA = jnp.exp(jsp.special.erfinv(2*quantiles[0] - 1) * 0.5 + np.log(0.2))
+    SEASONALITY = jnp.exp(jsp.special.erfinv(2*quantiles[1] - 1) * 0.5 + np.log(0.1))
+    OFFSET = jsp.special.erfinv(2*quantiles[2] - 1) * 0.1 + 0.15
+    WANE2 = jnp.exp(jsp.special.erfinv(2*quantiles[3] - 1) * 0.5 + np.log(0.005))
+    S_REL1 = 0.1 + quantiles[4] * 0.9
+    S_REL2 = 0.1 + quantiles[5] * 0.9
+    n = 5
+    if pathogen != "RSV":
+        D_REL1 = 0.1 + quantiles[n] * 0.9
+        D_REL2 = 0.1 + quantiles[n+1] * 0.9
+    F1 = quantiles[n]
+    R1 = 0.002 + quantiles[n+1] * 0.008
+    AGE_OBS = jnp.array([quantiles[n+2+i] for i in range(7)])
+    if pathogen != "RSV":
+        return jnp.concatenate([jnp.array([BETA, SEASONALITY, OFFSET, WANE2, S_REL1, S_REL2, D_REL1, D_REL2, F1, R1]), AGE_OBS])
+    return jnp.concatenate([jnp.array([BETA, SEASONALITY, OFFSET, WANE2, S_REL1, S_REL2, F1, R1]), AGE_OBS])
 
-# def WANE2_distribution(key):
-#     return jax.random.normal(key, shape=()) * 0.5 + np.log(0.005)
+from fit_opt import get_likelihood
+key = jax.random.PRNGKey(0)
 
-# def REL_distribution(key):
-#     return jax.random.uniform(key, shape=(), minval=0.1, maxval=1.0)
+from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
+from fit_opt import latin_hypercube_sample
 
-# def F1_distribution(key):
-#     return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
+pathogens = ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Adenovirus", "Parainfluenza3"]
 
-# def R1_distribution(key):
-#     return jax.random.uniform(key, shape=(), minval=0.002, maxval=0.01)
+chunk_size = 1000
+total_samples = 1_000_000
 
-# def OBS_distribution(key):
-#     return jax.random.uniform(key, shape=(), minval=0.0, maxval=1.0)
+for p_idx, pathogen in enumerate(pathogens):
+    print(f"\n=== {pathogen} ({p_idx+1}/{len(pathogens)}) ===")
 
-# def quantile_to_params(quantiles):
-#     """Convert quantiles [0,1] to parameter values using inverse CDF"""
-#     BETA = jnp.exp(jsp.special.erfinv(2*quantiles[0] - 1) * 0.5 + np.log(0.2))
-#     SEASONALITY = jnp.exp(jsp.special.erfinv(2*quantiles[1] - 1) * 0.5 + np.log(0.1))
-#     OFFSET = jsp.special.erfinv(2*quantiles[2] - 1) * 0.1 + 0.15
-#     WANE2 = jnp.exp(jsp.special.erfinv(2*quantiles[3] - 1) * 0.5 + np.log(0.005))
-#     S_REL1 = 0.1 + quantiles[4] * 0.9
-#     S_REL2 = 0.1 + quantiles[5] * 0.9
-#     F1 = quantiles[6]
-#     R1 = 0.002 + quantiles[7] * 0.008
-#     AGE_OBS = jnp.array([quantiles[8+i] for i in range(7)])
-#     return jnp.concatenate([jnp.array([BETA, SEASONALITY, OFFSET, WANE2, S_REL1, S_REL2, F1, R1]), AGE_OBS])
+    likelihood, _ = get_likelihood(
+        pathogen,
+        "Exponential",
+        "split",
+        "nrdaycare5maxagep028",
+        1e-9,
+        normalize=False,
+        CENSUS_AGE_POP=CENSUS_AGE_POP,
+        NAG=8,
+    )
 
-# from fit_opt import get_likelihood
-# key = jax.random.PRNGKey(0)
-# # Generate Latin Hypercube Sample
-# parameter_samples = []
-# likelihoods = []
-# from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
-# likelihood, _ = get_likelihood("RSV", "Exponential", "split", "daycare5maxagep028", 1e-9, normalize=False, CENSUS_AGE_POP=CENSUS_AGE_POP, NAG=8)
+    # RSV has 15 params in quantile_to_params, non-RSV has 17
+    n_params = 15 if pathogen == "RSV" else 17
 
-# chunk_size = 1000
-# total_samples = 1000000
-# n_params = 15
+    print(f"Generating {total_samples} LHS samples for {pathogen}...")
+    key, subkey = jax.random.split(key)
+    lhs_samples = latin_hypercube_sample(subkey, total_samples, n_params)
 
-# # Create full Latin Hypercube Sample upfront
-# from fit_opt import latin_hypercube_sample
-# print(f"Generating {total_samples} LHS samples...")
-# lhs_samples = latin_hypercube_sample(key, total_samples, n_params)
+    vmap_params = jax.jit(jax.vmap(lambda q: quantile_to_params(q, pathogen=pathogen)))
+    vmap_likelihood = jax.jit(jax.vmap(likelihood))
 
-# vmap_params = jax.jit(jax.vmap(quantile_to_params))
-# vmap_likelihood = jax.jit(jax.vmap(likelihood))
+    parameter_samples = []
+    likelihoods = []
 
-# start_time = time.time()
-# for i in range(0, total_samples, chunk_size):
-#     chunk_start = i
-#     chunk_end = min(i + chunk_size, total_samples)
-#     print(f"Processing chunk {i // chunk_size + 1}/{(total_samples + chunk_size - 1) // chunk_size}, ETA: {(total_samples - chunk_end) / chunk_size * (time.time() - start_time) / max(1, i // chunk_size) / 60:.2f} minutes")
-    
-#     # Extract chunk from full LHS samples
-#     chunk_lhs = lhs_samples[chunk_start:chunk_end]
-    
-#     # Convert LHS samples to parameter space
-#     chunk_params = vmap_params(chunk_lhs)
-#     chunk_likelihoods = vmap_likelihood(chunk_params)
-#     parameter_samples.append(chunk_params)
-#     likelihoods.append(chunk_likelihoods)
+    start_time = time.time()
+    n_chunks = (total_samples + chunk_size - 1) // chunk_size
 
-# parameter_samples = jnp.concatenate(parameter_samples, axis=0)
-# likelihoods = jnp.concatenate(likelihoods, axis=0)
-# # save to Outputs
-# with open("Outputs/parameter_samples_lhs.pkl", "wb") as f:
-#     pickle.dump((parameter_samples, likelihoods), f)
-# # print minimum liklelihood and corresponding parameters
-# min_likelihood_idx = jnp.nanargmin(likelihoods)
-# print("Minimum likelihood:", likelihoods[min_likelihood_idx])
-# print("Corresponding parameters:", parameter_samples[min_likelihood_idx])
+    for i in range(0, total_samples, chunk_size):
+        chunk_id = i // chunk_size + 1
+        chunk_end = min(i + chunk_size, total_samples)
 
-# # plot PMF of each parameter based on likelihoods
-# parameter_names = ["BETA", "SEASONALITY", "OFFSET", "WANE2", "S_REL1", "S_REL2", "F1", "R1"] + [f"AGE_OBS_{i}" for i in range(2,9)]
-# fig, axes = plt.subplots(5, 3, figsize=(15, 10))
+        elapsed = time.time() - start_time
+        done_chunks = max(1, chunk_id - 1)
+        eta_min = ((n_chunks - chunk_id) * (elapsed / done_chunks)) / 60
 
-# # Use inverse likelihood as weights (lower likelihood = higher weight)
-# weights = 1.0 / (1.0 + np.array(likelihoods))
-# weights = weights / np.sum(weights)  # Normalize to sum to 1
+        print(f"[{pathogen}] chunk {chunk_id}/{n_chunks}, ETA: {eta_min:.2f} min")
 
-# for i, ax in enumerate(axes.flatten()):
-#     if i < len(parameter_names):
-#         # Create histogram weighted by inverse likelihood
-#         ax.hist(np.array(parameter_samples[:, i]), bins=50, weights=weights, alpha=0.7, color='steelblue', edgecolor='black')
-#         ax.set_xlabel(parameter_names[i])
-#         ax.set_ylabel("Probability Mass")
-#         ax.set_title(parameter_names[i])
-#     else:
-#         ax.axis('off')
+        chunk_lhs = lhs_samples[i:chunk_end]
+        chunk_params = vmap_params(chunk_lhs)
+        chunk_likelihoods = vmap_likelihood(chunk_params)
 
-# plt.tight_layout()
-# plt.savefig("Figures/parameter_pmf_from_likelihood_lhs.png", dpi=300)
+        parameter_samples.append(chunk_params)
+        likelihoods.append(chunk_likelihoods)
+
+    parameter_samples = jnp.concatenate(parameter_samples, axis=0)
+    likelihoods = jnp.concatenate(likelihoods, axis=0)
+
+    with open(f"Outputs/{pathogen}_parameter_samples_lhs.pkl", "wb") as f:
+        pickle.dump((parameter_samples, likelihoods), f)
+
+    min_idx = jnp.nanargmin(likelihoods)
+    print(f"[{pathogen}] Minimum likelihood: {likelihoods[min_idx]}")
+    print(f"[{pathogen}] Corresponding parameters: {parameter_samples[min_idx]}")
+
+    # plot PMF of each parameter based on inverse-likelihood weights
+    n_plot_params = int(parameter_samples.shape[1])
+    parameter_names = [f"param_{i}" for i in range(n_plot_params)]
+
+    fig, axes = plt.subplots(5, 4, figsize=(16, 10))
+    axes = axes.flatten()
+
+    weights = 1.0 / (1.0 + np.array(likelihoods))
+    weights = weights / np.sum(weights)
+
+    for i, ax in enumerate(axes):
+        if i < n_plot_params:
+            ax.hist(
+                np.array(parameter_samples[:, i]),
+                bins=50,
+                weights=weights,
+                alpha=0.7,
+                color="steelblue",
+                edgecolor="black",
+            )
+            ax.set_title(parameter_names[i])
+            ax.set_xlabel(parameter_names[i])
+            ax.set_ylabel("Probability Mass")
+        else:
+            ax.axis("off")
+
+    plt.tight_layout()
+    plt.savefig(f"Figures/{pathogen}_parameter_pmf_from_likelihood_lhs.png", dpi=300)
+    plt.close(fig)
 
 ###### spectrum analysis
 # N = date_to_t("2020-03-19")-date_to_t('2015-10-01')
