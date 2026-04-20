@@ -24,7 +24,7 @@ from sklearn.linear_model import LinearRegression
 
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
-from matplotlib import cm
+from matplotlib import cm as colormaps
 
 # ==========================================
 # CONSTANTS & CONFIGURATION
@@ -363,7 +363,7 @@ def time_to_rebound(x, threshold_factor=1/2, include_years=True):
 
     return jnp.where(rebound_found, first_post_pandemic_peak_time - last_pre_pandemic_peak_time, jnp.nan)
 
-def outbreak_in_season(x, threshold_factor=0.1, season_idx=7):
+def outbreak_in_season(x, threshold_factor=0.1, season_idx=6):
     obs_summed = x[0, :, -1]
     pre_pandemic_median = jnp.median(obs_summed[:5])
     threshold = threshold_factor * pre_pandemic_median
@@ -415,7 +415,7 @@ def extract_target_values(all_results, outcome, **kwargs):
     if outcome == "relative_size": return jax.jit(jax.vmap(relative_size_of_rebound))(all_results)
     if outcome == "age_ratio": return jax.jit(jax.vmap(lambda x: age_ratio_of_rebound(x, kwargs.get('idx_num', 2), kwargs.get('idx_den', 1))))(all_results)
     if outcome == "age_of_first_infection": return jax.jit(jax.vmap(age_of_first_infection))(all_results)
-    if outcome == "outbreak_in_season": return jax.jit(jax.vmap(lambda x: outbreak_in_season(x, kwargs.get('threshold_factor', 0.1), kwargs.get('season_idx', 7))))(all_results)
+    if outcome == "outbreak_in_season": return jax.jit(jax.vmap(lambda x: outbreak_in_season(x, kwargs.get('threshold_factor', 0.1), kwargs.get('season_idx', 6))))(all_results)
     if outcome == "age_shift": return jax.jit(jax.vmap(lambda x: age_ratio_of_rebound(x, kwargs.get('idx_num', 2), kwargs.get('idx_den', 1)) > 1))(all_results)
     if "infectors_in_class_" in outcome:
         return jax.vmap(lambda x: x[4, :5, int(outcome.split("_")[-1])].sum(axis=0)/x[4, :5, :-1].sum())(all_results)
@@ -571,14 +571,14 @@ def run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_t
     
     return run_save_path
 
-def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=0, p2=8, outcome="time_to_rebound"):
+def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=0, p2=8, outcome="time_to_rebound", **kwargs):
     """Generates the heatmap/histogram background with simply the main pathogens overlaid."""
     all_results, all_samples = load_and_recombine_results(run_save_path)
     if all_results is None:
         print("No simulation results found. Please run the simulation pipeline first.")
         return
         
-    valid_samples, valid_targets = extract_valid_data(all_samples, all_results, outcome=outcome)
+    valid_samples, valid_targets = extract_valid_data(all_samples, all_results, outcome=outcome, **kwargs)
 
     x_vals = get_parameter_values(valid_samples, p1)
     y_vals = get_parameter_values(valid_samples, p2)
@@ -587,6 +587,10 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=0, p2=8, ou
     scatter = add_2d_heatmap_figure(ax, x_vals, y_vals, valid_targets, outcome=outcome)
     if outcome == "time_to_rebound":
         label = "Time to re-emergence (years)"
+    elif outcome == "outbreak_in_season":
+        label = "Outbreak in 2021-22 season"
+    elif outcome == "age_shift":
+        label = "Age shift in rebound (1-4y > 3-12m)"
     elif outcome == "relative_size":
         label = "Relative size of rebound"
     elif outcome == "age_ratio":
@@ -650,19 +654,74 @@ def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8):
 
     return ax
 
+# function to plot a grid of the nine closest simulations to target parameter values
+def plot_time_series_for_parameters(args, run_save_path, target_p1, target_p2, axes=None, p1=0, p2=8):
+    all_results, all_samples = load_and_recombine_results(run_save_path)
 
+    valid_samples, _ = extract_valid_data(all_samples, all_results)
+    
+    parameter_values_p1 = get_parameter_values(valid_samples, p1)
+    parameter_values_p2 = get_parameter_values(valid_samples, p2)
+    
+    # Calculate distance from target parameters
+    distances = np.sqrt((parameter_values_p1 - target_p1)**2 + (parameter_values_p2 - target_p2)**2)
+    
+    # Find indices of 9 closest simulations
+    closest_indices = np.argsort(distances)[:9]
+    
+    # Plot grid of 9 subplots
+    if axes is None:
+        fig, axes = plt.subplots(3, 3, figsize=(15, 12))
+    
+    for plot_idx, closest_idx in enumerate(closest_indices):
+        row, col = divmod(plot_idx, 3)
+        current_ax = axes[row, col]
+        
+        # Load the time series data for this simulation
+        # closest_sample = valid_samples[closest_idx]
+        closest_sample = jnp.array([0.20408164, 0.24390244, 0.4619105,  0.09280661, 0.03950271, 0.,
+            0.00886391, 0.15137969, 0.6883665,  0.46,       0.67391306, 0.,
+            0.3173601,  0.00538335, 0.00538335, 0.40685558, 0.3152779,  0.09924182,
+            0.00676099, 0.01487822, 0.08004236, 0.84279305])
+        lockdown_param, POINTS, STATE0, p_time_to_obs, option1, option2 = args
+        params = x_to_params(closest_sample, "sim", lockdown_param, option1+"mimmwane", option2+"nr",print_params=True)
+        solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS)
+        
+        values = solution.ys.T
+        trajectory = jnp.diff(values[-NAG:,:],axis=1).T
+            # convolution of trajectory with probability of detection at each day after infection to get expected observations on each day
+        p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
+        def obs_convolution(x):
+            return jnp.convolve(x, p_time_to_obs_flipped, mode='same')
+            # the expected observations for a given date are the observations on each day i days prvious multiplied by the probability of detection i days after infection
+        expected_obs = jax.vmap(obs_convolution, in_axes=1, out_axes=1)(trajectory)
+        expected_obs = jax.nn.softplus(expected_obs*100)/100
+
+        color = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
+        color[3] = colormaps.hsv((3/NAG)+0.28/NAG)
+
+        for i in range(NAG):
+            current_ax.plot(POINTS[1:], expected_obs[:, i], color=color[i], linewidth=1.5)
+        current_ax.set_title(f"Rank {plot_idx+1}: p1={parameter_values_p1[closest_idx]:.2f}, p2={parameter_values_p2[closest_idx]:.2f}")
+        current_ax.set_xlabel("Time (days)")
+        current_ax.set_ylabel("Observed infections")
+        current_ax.grid(True, alpha=0.3)
+    
+    fig.suptitle(f"9 Closest Simulations to Target: {PARAMETER_NAMES[p1]}={target_p1:.2f}, {PARAMETER_NAMES[p2]}={target_p2:.2f}")
+    return axes
+    
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 18, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 2604154
-    option1 = "maxmimmsplit"
+    seed = 260415
+    option1 = "split"
     option2 = "daycarep5maxagep02"
     lockdown = "Exponential"
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     good_simulations = [
-        ["RSV", 260415, lockdown, option1, "daycarep5maxagep028"], ["Metapneumovirus", 260415, lockdown, option1, option2], 
-        ["InfluenzaA", 260415, lockdown, option1, "daycarep5maxagep05"], ["InfluenzaB", 260415, lockdown, option1, "daycarep5maxagep05"], 
-        ["Adenovirus", 260415, lockdown, option1, option2], ["Parainfluenza3", 260415, lockdown, option1, option2]
+        ["RSV", seed, lockdown, option1, "daycarep5maxagep028"], ["Metapneumovirus", seed, lockdown, option1, option2], 
+        ["InfluenzaA", seed, lockdown, option1, "daycarep5maxagep05"], ["InfluenzaB", seed, lockdown, option1, "daycarep5maxagep05"], 
+        ["Adenovirus", seed, lockdown, option1, option2], ["Parainfluenza3", seed, lockdown, option1, option2]
     ]
     
     # Parameter scaling factors used in the model
@@ -671,20 +730,26 @@ if __name__ == "__main__":
     elif lockdown == "RSV0415":
         PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
 
-    fig, ax = plt.subplots(figsize=(12, 6))
-    generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
-    plt.tight_layout()
-    plt.savefig("Figures/line_of_best_fit_Exponential_maxmimmsplit_daycarep5maxagep02.png", dpi=300)
+    # fig, ax = plt.subplots(figsize=(12, 6))
+    # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
+    # plt.tight_layout()
+    # plt.savefig("Figures/line_of_best_fit_Exponential_maxmimmsplit_daycarep5maxagep02.png", dpi=300)
 
     # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
     #                                         seed=seed, n_samples=80000, dimension=2, chunk_size=40000)
     
-    run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed2604154_lockdownExponential_2d"
-    fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
-    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="time_to_rebound")
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="age_ratio")
-    plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_time_age_Exponential_maxmimmRSV_daycarep5maxagep02_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdp5.png", dpi=300)
+    run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed260415_lockdownExponential_2d"
+    
+    args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, "daycarep5maxagep028")
+    plot_time_series_for_parameters(args, run_save_path, target_p1=0.09414, target_p2=-0.9994, p1=3, p2=8)
+    plt.savefig("Figures/test.png", dpi=300)
+    
+    # fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
+    # generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="time_to_rebound")
+    # generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="age_ratio")
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmaps_time_aget_Exponential_split_daycarep5maxagep02_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdp5_test.png", dpi=300)
+    
     # for p1 in range(len(PARAMETER_NAMES)):
     #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
     #         fig, ax = plt.subplots(figsize=(10, 8))

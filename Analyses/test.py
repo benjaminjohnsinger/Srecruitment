@@ -365,9 +365,9 @@ from contact_model import exponential_in_and_out
 daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group_split.csv',index_col=0,parse_dates=True)
 N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
 
-for pathogen, maxage in [("RSV", 28), ("Metapneumovirus", 2), ("InfluenzaA", 5), ("Parainfluenza3", 2), ("Adenovirus", 2), ("InfluenzaB", 5)]:
+for pathogen, maxage in [("Metapneumovirus", 2)]:
     # plot for just one result
-    filepath = f"Data/Processed/results260415/evosax_DE_{pathogen}Exponentialsplitdaycarep5maxagep0{maxage}260415.pickle"
+    filepath = f"Data/Processed/results260416/evosax_DE_{pathogen}ExponentialInOutmaxmimmsplitdaycarep5maxagep0{maxage}260416.pickle"
     with open(filepath, "rb") as f:
         results = pickle.load(f)
     print(results)
@@ -376,7 +376,7 @@ for pathogen, maxage in [("RSV", 28), ("Metapneumovirus", 2), ("InfluenzaA", 5),
     best_solution = jnp.asarray(metrics_log["best_solution_in_generation"])
     n_params = best_solution.shape[1]
 
-    param_names, bounds = parameters_names_bounds(pathogen, "Exponential", "split", "daycarep5maxagep0"+str(maxage),NAG=8)
+    param_names, bounds = parameters_names_bounds(pathogen, "ExponentialInOut", "maxmimmsplit", "daycarep5maxagep0"+str(maxage),NAG=8)
     print(param_names)
     # Create subplots
     n_cols = 5
@@ -401,8 +401,8 @@ for pathogen, maxage in [("RSV", 28), ("Metapneumovirus", 2), ("InfluenzaA", 5),
     plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_parameter_trajectories.png"), dpi=300)
 
     # plot range of population fitness over genrations
-    for pathogen, maxage in [("RSV", 28), ("Metapneumovirus", 2), ("InfluenzaA", 5), ("Parainfluenza3", 2), ("Adenovirus", 2), ("InfluenzaB", 5)]:
-        filepath = f"Data/Processed/results260415/evosax_DE_{pathogen}Exponentialsplitdaycarep5maxagep0{maxage}260415.pickle"
+    for pathogen, maxage in [("Metapneumovirus", 2)]:
+        filepath = f"Data/Processed/results260416/evosax_DE_{pathogen}ExponentialInOutmaxmimmsplitdaycarep5maxagep0{maxage}260416.pickle"
         with open(filepath, "rb") as f:
             results = pickle.load(f)
         print(results)

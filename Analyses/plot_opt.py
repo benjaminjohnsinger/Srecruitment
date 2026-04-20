@@ -16,66 +16,6 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2):
-    if re.search(r'\d{6}',lockdown):
-        lockdown_search = "FlexStepwise"
-    else:
-        lockdown_search = lockdown
-
-    base_path = "Data/Processed/results"+str(seed)[:6]+"/"
-    filename_pattern = "_"+pathogen+lockdown_search+option1+option2+str(seed)+".pickle"
-
-    # Try both DE_opt and evosax_DE prefixes
-    opt = None
-    if prefix == "":
-        for test_prefix in ["DE_opt", "evosax_DE", "scipy_DE", "evosax_DiffusionEvolution"]:
-            filepath = base_path + test_prefix + filename_pattern
-            try:
-                with open(filepath, "rb") as f:
-                    opt = pickle.load(f)
-                print(f"Loaded: {test_prefix}{filename_pattern}")
-                prefix = test_prefix
-                break
-            except FileNotFoundError:
-                continue
-    else:
-        if "skip_resampling" in prefix:
-            prefix = "evosax_DE"
-        filepath = base_path + prefix + filename_pattern
-        try:
-            with open(filepath, "rb") as f:
-                opt = pickle.load(f)
-            print(f"Loaded: {prefix}{filename_pattern}")
-        except FileNotFoundError:
-            print(f"File not found: {prefix}{filename_pattern}")
-
-    if opt is None:
-        print(base_path+filename_pattern)
-        print('File not found with any of the tested prefixes (DE_opt_, scipy_DE_, evosax_DE_, evosax_DiffusionEvolution_)')
-        sys.exit()
-
-    # Detect file type and extract results accordingly
-    if "evosax" in prefix:
-    # evosax_DE format
-        x = opt["final_population"][np.argmin(opt["final_fitness"])]
-        neg_log_likelihood = np.min(opt["final_fitness"])
-        if jnp.std(opt["final_fitness"]) <= 0.01 * jnp.abs(jnp.mean(opt["final_fitness"])):
-            print("evosax converged according to scipy criteria")
-        else:
-            print("evosax did not converge according to scipy criteria")
-    # scipy.optimize.differential_evolution format
-    elif ("scipy_DE" in prefix) or ("DE_opt" in prefix):
-        if opt.success:
-            print("Optimization converged")
-        else:
-            print("Optimization did not converge")
-            print(opt.message)
-            print(opt.x)
-            sys.exit()
-        x = opt.x
-        neg_log_likelihood = opt.fun
-    return prefix,x,neg_log_likelihood
-
 if __name__ == "__main__":
     pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
 
@@ -114,6 +54,8 @@ if __name__ == "__main__":
     # set seed
     np.random.seed(seed)
     prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
+    print(x)
+    
     # prefix = "sampling_parameters_"
     # x = jnp.asarray([0.12032066,0.14603744,0.05796923,0.00512616,0.5582736 ,0.95180595,0.31741548,0.00618303,0.25081336,0.28657508,0.15262091,0.01914573,0.15551174,0.20378447,0.99823165])
     # log_likelihood = 12014.02
@@ -252,7 +194,7 @@ if __name__ == "__main__":
     peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()
     # print("Peak time of each season:\n", peak_times)
     # difference between 2017/18 and 2022/23 seasons
-    peak_time_diff = (peak_times.iloc[6] - peak_times.iloc[2]).dt.days - 365*5
+    peak_time_diff = (peak_times.iloc[7] - peak_times.iloc[2]).dt.days - 365*5
     # this pritns in vertical format, just printa s a list
     print("Difference in peak times between 2017/18 and 2022/23 seasons (in days):", peak_time_diff.tolist())
 
@@ -277,12 +219,12 @@ if __name__ == "__main__":
     peak_df.index.name = "Season"
     # print(peak_df.to_string())
     # difference in peak times between 2017/18 and 2022/23 seasons
-    expected_peak_time_diff = (expected_peak_times[6] - expected_peak_times[2]) - 365*5
+    expected_peak_time_diff = (expected_peak_times[7] - expected_peak_times[2]) - 365*5
     print("Difference in expected peak times between 2017/18 and 2022/23 seasons (in days):", expected_peak_time_diff)
 
     pre_pandemic_median_ratio = jnp.median(obs_per_season[:5, 2] / obs_per_season[:5, 1])
     # rebound_season_idx = jnp.argmax(jnp.sum(obs_per_season[5:], axis=1))
-    rebound_season_idx = 1
+    rebound_season_idx = 2
     rebound_ratio = obs_per_season[5+rebound_season_idx, 2] / obs_per_season[5+rebound_season_idx, 1]
     print("Observed ratio of ratios in age groups:", rebound_ratio/pre_pandemic_median_ratio)
 

@@ -610,7 +610,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         return params
 
 def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
-    bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
+    bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,0.35]}
     if "wane" in option1:
         bounds_dict["WANE1"] = [0,1e-2]
     if option1 == "nb":
@@ -747,26 +747,69 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
 
     return params, param_names, bounds, tests, p_time_to_obs
 
-# unified x from DE, i.e. x is same length regardless of model options. assume option2=flexage, lockdown=FlexStepwise
-def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
+def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2):
+    if re.search(r'\d{6}',lockdown):
+        lockdown_search = "FlexStepwise"
+    else:
+        lockdown_search = lockdown
+
     base_path = "Data/Processed/results"+str(seed)[:6]+"/"
-    filename_pattern = "_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+    filename_pattern = "_"+pathogen+lockdown_search+option1+option2+str(seed)+".pickle"
+
+    # Try both DE_opt and evosax_DE prefixes
     opt = None
-    prefix = ""
-    for test_prefix in ["scipy_DE", "DE_opt", "evosax_DE"]:
-        filepath = base_path + test_prefix + filename_pattern
-        print(filepath)
+    if prefix == "":
+        for test_prefix in ["DE_opt", "evosax_DE", "scipy_DE", "evosax_DiffusionEvolution"]:
+            filepath = base_path + test_prefix + filename_pattern
+            try:
+                with open(filepath, "rb") as f:
+                    opt = pickle.load(f)
+                print(f"Loaded: {test_prefix}{filename_pattern}")
+                prefix = test_prefix
+                break
+            except FileNotFoundError:
+                continue
+    else:
+        if "skip_resampling" in prefix:
+            prefix = "evosax_DE"
+        filepath = base_path + prefix + filename_pattern
         try:
             with open(filepath, "rb") as f:
                 opt = pickle.load(f)
-            prefix = test_prefix
-            break
+            print(f"Loaded: {prefix}{filename_pattern}")
         except FileNotFoundError:
-            continue
-    if prefix == "evosax_DE":
-        x_DE = opt["final_population"][np.argmax(opt["final_fitness"])]
-    else:
-        x_DE = opt.x
+            print(f"File not found: {prefix}{filename_pattern}")
+
+    if opt is None:
+        print(base_path+filename_pattern)
+        print('File not found with any of the tested prefixes (DE_opt_, scipy_DE_, evosax_DE_, evosax_DiffusionEvolution_)')
+        sys.exit()
+
+    # Detect file type and extract results accordingly
+    if "evosax" in prefix:
+    # evosax_DE format
+        x = opt["final_population"][np.argmin(opt["final_fitness"])]
+        neg_log_likelihood = np.min(opt["final_fitness"])
+        if jnp.std(opt["final_fitness"]) <= 0.01 * jnp.abs(jnp.mean(opt["final_fitness"])):
+            print("evosax converged according to scipy criteria")
+        else:
+            print("evosax did not converge according to scipy criteria")
+    # scipy.optimize.differential_evolution format
+    elif ("scipy_DE" in prefix) or ("DE_opt" in prefix):
+        if opt.success:
+            print("Optimization converged")
+        else:
+            print("Optimization did not converge")
+            print(opt.message)
+            print(opt.x)
+            sys.exit()
+        x = opt.x
+        neg_log_likelihood = opt.fun
+    return prefix,x,neg_log_likelihood
+
+# unified x from DE, i.e. x is same length regardless of model options. assume option2=flexage, lockdown=FlexStepwise
+def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", NAG=7):
+    _, x_DE, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
     REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
     x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential") + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0415" or lockdown=="FlexStepwise") + NAG)
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC
@@ -892,6 +935,4 @@ def susceptibility(solution,params,N_C=2,NAG=7,N_S=3):
     return(sus)
 
 if __name__ == "__main__":
-    # measure length of incidence vector for rsv
-    params = x_to_params(np.array([0.03,0.1,0.5,0.001,0.0001,1e-9,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.01,0.5,0.5,0.5,0.5,0.01,0.5]),'RSV','FlexStepwise','NA','flexage')
-    print(len(params[0]))
+    print(consistent_x_from_DE("RSV", "Exponential", "split", "daycarep5maxagep028", 260415, NAG=8))

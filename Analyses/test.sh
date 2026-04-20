@@ -7,7 +7,7 @@ combinations=(
 # "Parainfluenza3 260417 ExponentialInOut maxmimmsplit daycarep5maxagep028 1e-9 200 100 0.7"
 
 # "RSV 260415 Exponential split daycarep5maxagep028 1e-9 200 2000 0.7"
-# "Metapneumovirus 260415 Exponential split daycarep5maxagep02 1e-9 200 2000 0.7"
+"Metapneumovirus 260416 ExponentialInOut maxmimmsplit daycarep5maxagep02 1e-9 200 2000 0.7"
 # "InfluenzaA 260415 Exponential split daycarep5maxagep05 1e-9 200 2000 0.7"
 # "InfluenzaB 260415 Exponential split daycarep5maxagep05 1e-9 200 2000 0.7"
 # "Adenovirus 260415 Exponential split daycarep5maxagep02 1e-9 200 2000 0.7"
@@ -29,7 +29,7 @@ combinations=(
 # "Metapneumovirus 260415 ExponentialByAge7 split daycarep5maxagep02 1e-9"
 # "Metapneumovirus 260415 Exponential split daycarep5maxagep02 1e-9"
 # "Metapneumovirus 260415 Exponential mimmsplit daycarep5maxagep02 1e-9"
-"Metapneumovirus 260415 RSV0415 split daycarep5maxagep02 1e-9"
+# "Metapneumovirus 260415 RSV0415 split daycarep5maxagep02 1e-9"
 # "Metapneumovirus 260415 Exponential detrendmaxmimmsplit daycarep5maxagep02 1e-9"
 # "Metapneumovirus 260415 ExponentialByAge7 maxmimmsplit daycarep5maxagep02 1e-9"
 # "Metapneumovirus 260417 ExponentialInOut maxmimmsplit daycarep5maxagep028 1e-9"
