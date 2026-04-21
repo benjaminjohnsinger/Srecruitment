@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=longmob
+#SBATCH --job-name=betacap
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -12,7 +12,7 @@
 #SBATCH --time=10:00:00
 
 # Array job specifications:
-#SBATCH --array=0-5
+#SBATCH --array=0-1
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 
