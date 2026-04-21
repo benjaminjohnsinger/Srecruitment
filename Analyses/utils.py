@@ -610,7 +610,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         return params
 
 def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
-    bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,0.35]}
+    bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,0.3]}
     if "wane" in option1:
         bounds_dict["WANE1"] = [0,1e-2]
     if option1 == "nb":
