@@ -321,6 +321,8 @@ from new_vax import rsv_eff_vax_rate
 from new_vax import rsv_maternal_immunity
 from new_vax import flu_eff_vax_rate
 def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=False, NAG=7, wrong_aging=False):
+    if "split" in option1:
+        NAG = 8
     if fixed_params is None:
         if NAG>7:
             from Parameters.census_population import AGING_RATE_split as AGING_RATE
@@ -865,7 +867,19 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", 
         x_consistent = x_consistent.at[12:16].set([0.7761238, 0.9229197, 0.796961, 0.9991904])
         n += 4
         obs_age_start = 16
-    x_consistent = x_consistent.at[obs_age_start:obs_age_start+NAG].set(x_DE[-NAG:]) # AGE_OBS_1 to AGE_OBS_7
+    if "maxagep" in option2:
+        match = re.search(r'maxagep(\d+)', option2)
+        obs_age_max = int(match.group(1)) / (10 ** len(match.group(1)))
+        OBS_AGE = jnp.zeros(NAG)
+        if "RSV" in pathogen:
+            OBS_AGE = OBS_AGE.at[0].set(obs_age_max)
+            OBS_AGE = OBS_AGE.at[1:].set(obs_age_max * x_DE[n:n+NAG-1])
+        else:
+            OBS_AGE = OBS_AGE.at[:-1].set(obs_age_max * x_DE[n:n+NAG-1])
+            OBS_AGE = OBS_AGE.at[-1].set(obs_age_max)
+    else:
+        OBS_AGE = x_DE[n:n+NAG]
+    x_consistent = x_consistent.at[obs_age_start:obs_age_start+NAG].set(OBS_AGE) # AGE_OBS_1 to AGE_OBS_7
     return x_consistent
 
 ####### Generating interesting quantities from ODE results #######
