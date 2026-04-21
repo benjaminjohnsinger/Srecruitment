@@ -81,7 +81,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
         daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
         daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
     if ("peaks_and_times" in option1) or ("combo" in option1):
-        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp)
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp, NAG=NAG)
         incidence = incidence.fillna(0)
         obs_per_season = jnp.asarray(calculate_observations_per_season(incidence, age_groups=True))
         peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()

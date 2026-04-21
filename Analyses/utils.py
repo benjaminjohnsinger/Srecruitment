@@ -428,20 +428,13 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             MOBILITY_CONTACT = jnp.ones(len(FULL_POINTS))
             MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_START:cm.MOBILITY_END+1].set(contact_factor)
             RELATIVE_CONTACT = MOBILITY_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
-        elif lockdown == "Exponential":
-            FF = [1,x[n]]
-            TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
-            RR = [x[n+1],]
-            EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
-            RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
-            n += 2
-        elif lockdown == "ExponentialFixed":
+        elif "ExponentialFixed" in lockdown:
             FF = [1,0.2]
             TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
             RR = [0.005,]
             EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
-        elif lockdown == "ExponentialInOut":
+        elif "ExponentialInOut" in lockdown:
             FF = [1,x[n]]
             TT = [date_to_t(EPOCH), date_to_t('2020-01-20'), date_to_t('2020-03-19')]
             RR = [x[n+1],]
@@ -457,13 +450,20 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             EXPONENTIAL_CONTACT = cm.exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=age_partition, NAG=NAG)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS.reshape(-1,1)-274)/365-OFFSET)))
             n += 3
-        elif lockdown == "Exponential2":
+        elif "Exponential2" in lockdown:
             FF = [1,x[n],x[n+1]]
             TT = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+x[n+2]*365]
             RR = [x[n+3],x[n+4]]
             EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 5
+        elif "Exponential" in lockdown:
+            FF = [1,x[n]]
+            TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
+            RR = [x[n+1],]
+            EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
+            RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+            n += 2
         elif lockdown == "Sigmoid":
             FF = [1, x[n]]
             TT = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+x[n+1]*365]
@@ -516,6 +516,14 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             n += 7
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
+    if "ODip" in lockdown:
+        dipsize = 1 - (1 - FF[1])/2
+        dipdates = jnp.array([date_to_t(EPOCH),
+                    date_to_t('2021-12-15'),
+                    date_to_t('2022-03-01')])
+        dipvalues = jnp.array([1, 1-dipsize, 1])
+        ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
+        RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
     if ('maxagep' in option2) & ('dynamic' not in option1):
         if "RSV" in pathogen:
             fixed_age_index = 0
@@ -597,17 +605,22 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         if "mimm" in option1 or "maxmimm" in option1:
             print("MATERNAL_IMMUNITY: "+MIMM.__str__())
     
+    if "ODip" in lockdown:
+        contact_multiplier = ODIP_CONTACT
+    else:
+        contact_multiplier = 1
+
     if return_contact:
         if 'Exponential' in lockdown:
-            return params, EXPONENTIAL_CONTACT
+            return params, EXPONENTIAL_CONTACT*contact_multiplier
         if 'Sigmoid' in lockdown:
-            return params, SIGMOID_CONTACT
+            return params, SIGMOID_CONTACT*contact_multiplier
         elif 'Mobility' in lockdown:
-            return params, MOBILITY_CONTACT
+            return params, MOBILITY_CONTACT*contact_multiplier
         elif 'Taube' in lockdown:
-            return params, MOBILITY_CONTACT
+            return params, MOBILITY_CONTACT*contact_multiplier
         else:
-            return params, PIECEWISE_CONTACT
+            return params, PIECEWISE_CONTACT*contact_multiplier
     else:
         return params
 
