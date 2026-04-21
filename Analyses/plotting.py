@@ -18,7 +18,7 @@ import pickle
 import colorsys
 from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 
-from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, infections_by_age, observations
+from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, infections_by_age, observations, load_optimization_results, x_to_params
 
 N_C = 2
 N_S = 3
@@ -803,47 +803,47 @@ if __name__ == "__main__":
     plt.rcParams['font.sans-serif'] = ['Helvetica']
     from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
 
-    fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
+    # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     
-    # Plot proportion positive on left y-axis
-    color1 = "red"
-    kpsc_proportion_positive_incidence_plot(ax1, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=AGE_GROUP_NAMES, title=None, color=color1, legend=False, aggregation="W", window_size=1, weighting_factor=0, label="Proportion positive", factor=10000, annotations=False, pp_only=False, hosp=True)
-    ax1.tick_params(axis='y', labelcolor=color1)
-    for line in ax1.get_lines():
-        line.set_alpha(0.7)
-    ax1.set_ylabel('Proportion positive incidence per 10k', color=color1)
+    # # Plot proportion positive on left y-axis
+    # color1 = "red"
+    # kpsc_proportion_positive_incidence_plot(ax1, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=AGE_GROUP_NAMES, title=None, color=color1, legend=False, aggregation="W", window_size=1, weighting_factor=0, label="Proportion positive", factor=10000, annotations=False, pp_only=False, hosp=True)
+    # ax1.tick_params(axis='y', labelcolor=color1)
+    # for line in ax1.get_lines():
+    #     line.set_alpha(0.7)
+    # ax1.set_ylabel('Proportion positive incidence per 10k', color=color1)
     
-    # Create second y-axis for positive tests
-    ax2 = ax1.twinx()
-    color2 = "blue"
-    ax2.set_ylabel('Positive tests incidence per 10k', color=color2)
-    kpsc_positive_test_plot(ax2, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=AGE_GROUP_NAMES, color=color2, legend=False, aggregation="W", factor=10000, label="Positive tests")
-    ax2.tick_params(axis='y', labelcolor=color2)
-    for line in ax2.get_lines():
-        line.set_alpha(0.7)
-    fig.tight_layout()
-    plt.savefig("Figures/KPSC_RSV_proportion_positive_vs_positive_test_incidence_weekly.png", dpi=300)
+    # # Create second y-axis for positive tests
+    # ax2 = ax1.twinx()
+    # color2 = "blue"
+    # ax2.set_ylabel('Positive tests incidence per 10k', color=color2)
+    # kpsc_positive_test_plot(ax2, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=AGE_GROUP_NAMES, color=color2, legend=False, aggregation="W", factor=10000, label="Positive tests")
+    # ax2.tick_params(axis='y', labelcolor=color2)
+    # for line in ax2.get_lines():
+    #     line.set_alpha(0.7)
+    # fig.tight_layout()
+    # plt.savefig("Figures/KPSC_RSV_proportion_positive_vs_positive_test_incidence_weekly.png", dpi=300)
 
-    # fig = plt.figure(layout="constrained", figsize=(7,4))
+    fig = plt.figure(layout="constrained", figsize=(7,4))
 
-    pathogens = ["Metapneumovirus","Parainfluenza3","Adenovirus","RSV","InfluenzaA","InfluenzaB",]
+    pathogens = ["RSV","Metapneumovirus","InfluenzaA","InfluenzaB","Adenovirus","Parainfluenza3",]
 
-    # subfigs = fig.subfigures(1, 2, wspace=0.05, width_ratios=[7, 3])
-    # axA = subfigs[1].subplots(len(pathogens), 1, sharex = True)
-    # axB = subfigs[0].subplots((len(pathogens) + 1)//2, 2, sharex = True)
+    subfigs = fig.subfigures(1, 2, wspace=0.05, width_ratios=[7, 3])
+    axA = subfigs[1].subplots(len(pathogens), 1, sharex = True)
+    axB = subfigs[0].subplots((len(pathogens) + 1)//2, 2, sharex = True)
 
     
-    # # figA, axA = plt.subplots(6, 1, figsize=(2.5,4), sharex = True)
-    # for pi,pathogen in enumerate(pathogens):
-    #     print(pathogen)
-    #     age_group_incidence_plot(axA[pi],pathogen,color="k",season="pre_median", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Pre-COVID-19")
-    #     age_group_incidence_plot(axA[pi],pathogen,color="silver",season="rebound", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Re-emergence")
-    #     axA[pi].set_title(nice_names.get(pathogen, pathogen))
-    # # set singe x label for all subplots
-    # axA[-1].set_xlabel("Age group")
-    # axA[0].legend(loc="upper right", fontsize=6)
-    # # set single y label for all subplots
-    # subfigs[1].text(-0.05, 0.5, 'Incidence per 100k members', va='center', rotation='vertical')
+    # figA, axA = plt.subplots(6, 1, figsize=(2.5,4), sharex = True)
+    for pi,pathogen in enumerate(pathogens):
+        print(pathogen)
+        age_group_incidence_plot(axA[pi],pathogen,color="k",season="pre_median", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Pre-COVID-19")
+        age_group_incidence_plot(axA[pi],pathogen,color="silver",season="rebound", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Re-emergence")
+        axA[pi].set_title(nice_names.get(pathogen, pathogen))
+    # set singe x label for all subplots
+    axA[-1].set_xlabel("Age group")
+    axA[0].legend(loc="upper right", fontsize=6)
+    # set single y label for all subplots
+    subfigs[1].text(-0.05, 0.5, 'Incidence per 100k members', va='center', rotation='vertical')
     # # plt.tight_layout()
     # # plt.savefig("Figures/KPSC_age_group_incidence_pre_median_rebound.png",dpi=300)
 
@@ -862,7 +862,7 @@ if __name__ == "__main__":
         kpsc_proportion_positive_incidence_plot(
             axB[pi//2, pi%2], pathogen=pathogen, title=nice_names.get(pathogen, pathogen),
             color=data_color, aggregation=aggregation, factor=factor,
-            annotations=True, definition="100% median", label="Data", hosp=True)
+            annotations=True, definition="50% median", label="Data", hosp=True)
     # suppress all y labels and replace with single label on left
     for i in range(len(pathogens)//2):
         for j in range(2):
@@ -879,38 +879,50 @@ if __name__ == "__main__":
 
     # now include plots of simulations on top of data
     
+    seed = 260415
+    option1 = "split"
+    NAG = 7 + ("split" in option1)
+    if "split" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
+        from Parameters.census_population import MEDIAN_AGE_split as MEDIAN_AGE
+    else:
+        from Parameters.census_population import CENSUS_AGE_POP
+        from Parameters.census_population import MEDIAN_AGE
+    option2 = "daycarep5flexagep05"
     lockdown = "Exponential"
-    option1 = "NA"
-    option2 = "flexagep01"
-    seeds = [2603172,]*6
+    p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
+    PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
+    POINTS = np.array(date_to_t(PERIOD))
     ## Initial conditions
-    from Parameters.census_population import CENSUS_AGE_POP
     STATE0 = jnp.zeros((2*N_S+1,NAG))
     STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
     STATE0 = STATE0.at[1,:].set(1)
     # # flatten initial state and add maternal immunity compartment
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+    good_simulations = [
+        ["RSV", 260420, lockdown, option1, "maxbetap35maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "daycarep5maxagep02"], 
+        ["InfluenzaA", seed, lockdown, option1, "daycarep5maxagep05"], ["InfluenzaB", seed, lockdown, option1, "daycarep5maxagep05"], 
+        ["Adenovirus", seed, lockdown, option1, "daycarep5maxagep02"], ["Parainfluenza3", seed, lockdown, option1, "daycarep5maxagep02"]
+    ]
     from Parameters.times_and_contacts import PERIOD
     POINTS = jnp.array(date_to_t(PERIOD))
     T_LOCKDOWN = date_to_t(pd.to_datetime("2020-03-20"))
-    for pi, pathogen in enumerate(pathogens):
-        print(pathogen)
-        print(f"Plotting simulations for {pathogen}...")
-        try:
-            params, _, _, _, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seeds[pi])
-        except Exception as e:
-            print(f"Pathogen {pathogen} not found")
-            continue
+    for pi, sim in enumerate(good_simulations):
+        pathogen = sim[0]
+        print(f"Plotting simulation for {pathogen}...")
+        _, x, _ = load_optimization_results("", sim[0], sim[1], sim[2], sim[3], sim[4])
+        params = x_to_params(x, sim[0], sim[2], sim[3], sim[4], NAG=NAG, return_contact=False)
+        params = (*params, NAG)
         lockdown_incidence_plot(axB[pi//2,pi%2], STATE0, params, POINTS, T_LOCKDOWN,
                                 p_time_to_obs=p_time_to_obs,
                                 color="#DC267F", factor=factor*agg_factor, label="Simulation")
-    axB[0,1].legend(loc="upper right")
+    axB[1,1].legend(loc="upper right")
     
-    plt.tight_layout()
-    plt.savefig("Figures/ReportOverallIncidenceWeeklyExponential2604172_annotate100.png",dpi=300)
+    # plt.tight_layout()
+    # plt.savefig("Figures/ReportOverallIncidenceWeeklyExponential2604172_annotate100.png",dpi=300)
 
-    # subfigs[0].suptitle("A", x=0.01, fontweight='bold')
-    # subfigs[1].suptitle("B", x=0.01, fontweight='bold')
+    subfigs[0].suptitle("A", x=0.01, fontweight='bold')
+    subfigs[1].suptitle("B", x=0.01, fontweight='bold')
 
-    # plt.savefig("Figures/Figure1_thirdmedian.png",dpi=300)
+    plt.savefig("Figures/Figure1_thresholdp5.png",dpi=300)
