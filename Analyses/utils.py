@@ -517,13 +517,14 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
     if "ODip" in lockdown:
-        dipsize = 1 - (1 - FF[1])/2
+        FO = FF[1] + x[n] - FF[1]*x[n]
         dipdates = jnp.array([date_to_t(EPOCH),
                     date_to_t('2021-12-15'),
                     date_to_t('2022-03-01')])
-        dipvalues = jnp.array([1, 1-dipsize, 1])
+        dipvalues = jnp.array([1, 1-FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
+        n += 1
     if ('maxagep' in option2) & ('dynamic' not in option1):
         if "RSV" in pathogen:
             fixed_age_index = 0
@@ -593,6 +594,8 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             param_names += ["DAYCARE"]
         if lockdown != "Taube":
             param_names += ["FF"]
+            if "ODip" in lockdown:
+                param_names += ["FO"]
             if "Mobility" not in lockdown:
                 param_names += ["TT"]
             if "Exponential" in lockdown or "Sigmoid" in lockdown:
@@ -674,7 +677,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             bounds_dict["F1"] = bounds_dict["F2"] = [0,2]
         elif lockdown == "Mobility2":
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = [0,2]
-        elif (lockdown == "Exponential") or (lockdown == "ExponentialInOut"):
+        elif ("Exponential" in lockdown) and (("ByAge" not in lockdown) and ("2" not in lockdown)):
             bounds_dict["F1"] = [0,1]
             bounds_dict["R1"] = [0.002,0.01]
         elif "ExponentialByAge" in lockdown:
@@ -692,10 +695,12 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
         elif lockdown != "Taube":
             bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
+        if "ODip" in lockdown:
+            bounds_dict["FO"] = [0,1]
     if ("daycare" in option2) and ("daycarep" not in option2):
         bounds_dict["DAYCARE"] = [0,1]
     # reorder bounds_dict to match order in x
-    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","AGE_OBS_8","AGE_OBS_9","DAYCARE"]\
+    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","FO","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","AGE_OBS_8","AGE_OBS_9","DAYCARE"]\
         if key in bounds_dict.keys()}
     bounds = jnp.array(list(bounds_dict.values()))
     param_names = list(bounds_dict.keys())

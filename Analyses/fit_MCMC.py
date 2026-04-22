@@ -109,7 +109,7 @@ def peaks_and_times_likelihood(obs_per_season, peak_times, params, POINTS, STATE
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
-        solution = run_simulation(params, STATE0, t1, POINTS, hessian=hessian)
+        solution = run_simulation(params, STATE0, t1, POINTS, hessian=hessian, NAG=NAG)
     values = solution.ys.T
     times = solution.ts
 
