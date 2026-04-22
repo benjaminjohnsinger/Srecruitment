@@ -354,11 +354,16 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         REC_UP = jnp.array([x[n],x[n+1],0.0])
         REC_SAME = jnp.array([0.0,0.0,x[n+1]])
         n += 2
-    BETA = x[n]
-    SEASONALITY = x[n+1]
-    OFFSET = x[n+2]
+    if "fixbetap" in option2:
+        match = re.search(r'fixbetap(\d+)', option2)
+        BETA = int(match.group(1)) / (10 ** len(match.group(1)))
+    else:
+        BETA = x[n]
+        n+=1
+    SEASONALITY = x[n]
+    OFFSET = x[n+1]
     MATERNAL_IMMUNITY = jnp.zeros((len(FULL_POINTS), N_S))
-    n += 3
+    n += 2
     if "wane" in option1:
         WANE = jnp.array([0.0,x[n],x[n+1]])
         n += 2
@@ -516,7 +521,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             n += 7
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
-    if "ODip" in lockdown:
+    if "ODipTune" in lockdown:
         FO = FF[1] + x[n] - FF[1]*x[n]
         dipdates = jnp.array([date_to_t(EPOCH),
                     date_to_t('2021-12-15'),
@@ -524,7 +529,22 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         dipvalues = jnp.array([1, 1-FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
-        n += 1
+    elif "ODipLinear" in lockdown:
+        FO = 0.75*FF[1] + 0.25
+        dipdates = jnp.array([date_to_t(EPOCH),
+                    date_to_t('2021-12-15'),
+                    date_to_t('2022-03-01')])
+        dipvalues = jnp.array([1, 1-FO, 1])
+        ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
+        RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
+    elif "ODipEqual" in lockdown:
+        FO = FF[1]
+        dipdates = jnp.array([date_to_t(EPOCH),
+                    date_to_t('2021-12-15'),
+                    date_to_t('2022-03-01')])
+        dipvalues = jnp.array([1, 1-FO, 1])
+        ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
+        RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
     if ('maxagep' in option2) & ('dynamic' not in option1):
         if "RSV" in pathogen:
             fixed_age_index = 0
@@ -628,7 +648,9 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         return params
 
 def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
-    bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,0.3]}
+    bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1]}
+    if "fixbetap" not in option2:
+        bounds_dict["BETA"] = [0,0.3]
     if "wane" in option1:
         bounds_dict["WANE1"] = [0,1e-2]
     if option1 == "nb":
@@ -695,7 +717,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
         elif lockdown != "Taube":
             bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
-        if "ODip" in lockdown:
+        if "ODipTune" in lockdown:
             bounds_dict["FO"] = [0,1]
     if ("daycare" in option2) and ("daycarep" not in option2):
         bounds_dict["DAYCARE"] = [0,1]

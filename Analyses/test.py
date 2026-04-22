@@ -35,7 +35,25 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-from contact_model import exponential_in_and_out
+labels = ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Adenovirus", "Parainfluenza3"]
+x = np.array([0.05055, 0.01256, 0.5846, 0.1926, 0.9883, 0.6028])
+y = np.array([0.2908, 0.01664, 0.6762, 0.5275, 0.9916, 0.9820])
+# # line of best fit with constraint that coefficients sum to 1
+# # fit: y = a*x + b where a + b = 1, so b = 1 - a
+# # minimize: sum((y - (a*x + (1-a)))^2)
+# def objective(a):
+#     y_pred = a * x + (1 - a)
+#     return np.sum((y - y_pred) ** 2)
+
+# a_opt = sp.optimize.minimize_scalar(objective, bounds=(0, 1), method='bounded').x
+# b_opt = 1 - a_opt
+a_opt, b_opt = 0.75, 0.25
+print("Line of best fit (constrained): y = {:.3f}x + {:.3f}".format(a_opt, b_opt))
+plt.plot(x, a_opt*x + b_opt, color='r', label='Line of Best Fit (Constrained)')
+plt.scatter(x, y)
+for i, label in enumerate(labels):
+    plt.annotate(label, (x[i], y[i]), xytext=(5, 5), textcoords='offset points', fontsize=9)
+plt.show()
 
 # #### latin hypercube sampling of parameter space and likelihood evaluation
 # # BETA follows a lognormal distribution with median 0.15
@@ -361,94 +379,94 @@ from contact_model import exponential_in_and_out
 # plt.plot()
 # plt.show()
 
-# # ### plotting functions for optimization results
-daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group_split.csv',index_col=0,parse_dates=True)
-N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
+# # # ### plotting functions for optimization results
+# daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group_split.csv',index_col=0,parse_dates=True)
+# N = jnp.prod(jnp.asarray(daily_hospitalization_rates_pd.shape))
 
-for pathogen, maxage in [("Metapneumovirus", 2)]:
-    # plot for just one result
-    filepath = f"Data/Processed/results260416/evosax_DE_{pathogen}ExponentialInOutmaxmimmsplitdaycarep5maxagep0{maxage}260416.pickle"
-    with open(filepath, "rb") as f:
-        results = pickle.load(f)
-    print(results)
-    metrics_log = results["metrics_log"]
-    generations = metrics_log["generation_counter"]
-    best_solution = jnp.asarray(metrics_log["best_solution_in_generation"])
-    n_params = best_solution.shape[1]
+# for pathogen, maxage in [("Metapneumovirus", 2)]:
+#     # plot for just one result
+#     filepath = f"Data/Processed/results260416/evosax_DE_{pathogen}ExponentialInOutmaxmimmsplitdaycarep5maxagep0{maxage}260416.pickle"
+#     with open(filepath, "rb") as f:
+#         results = pickle.load(f)
+#     print(results)
+#     metrics_log = results["metrics_log"]
+#     generations = metrics_log["generation_counter"]
+#     best_solution = jnp.asarray(metrics_log["best_solution_in_generation"])
+#     n_params = best_solution.shape[1]
 
-    param_names, bounds = parameters_names_bounds(pathogen, "ExponentialInOut", "maxmimmsplit", "daycarep5maxagep0"+str(maxage),NAG=8)
-    print(param_names)
-    # Create subplots
-    n_cols = 5
-    n_rows = int(np.ceil(n_params / n_cols))
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2*n_rows))
-    axes = axes.flatten()
+#     param_names, bounds = parameters_names_bounds(pathogen, "ExponentialInOut", "maxmimmsplit", "daycarep5maxagep0"+str(maxage),NAG=8)
+#     print(param_names)
+#     # Create subplots
+#     n_cols = 5
+#     n_rows = int(np.ceil(n_params / n_cols))
+#     fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2*n_rows))
+#     axes = axes.flatten()
 
-    # Plot each parameter trajectory
-    for i in range(n_params):
-        axes[i].plot(generations, best_solution[:, i], color='k', alpha=0.7)
-        axes[i].set_xlabel('')
-        axes[i].set_ylabel('')
-        axes[i].set_title(f'{param_names[i]} Trajectory')
-        axes[i].set_ylim(bounds[i])
-        axes[i].grid(True, alpha=0.3)
+#     # Plot each parameter trajectory
+#     for i in range(n_params):
+#         axes[i].plot(generations, best_solution[:, i], color='k', alpha=0.7)
+#         axes[i].set_xlabel('')
+#         axes[i].set_ylabel('')
+#         axes[i].set_title(f'{param_names[i]} Trajectory')
+#         axes[i].set_ylim(bounds[i])
+#         axes[i].grid(True, alpha=0.3)
 
-    # Hide unused subplots
-    for i in range(n_params, len(axes)):
-        axes[i].set_visible(False)
+#     # Hide unused subplots
+#     for i in range(n_params, len(axes)):
+#         axes[i].set_visible(False)
 
-    plt.tight_layout()
-    plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_parameter_trajectories.png"), dpi=300)
+#     plt.tight_layout()
+#     plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_parameter_trajectories.png"), dpi=300)
 
-    # plot range of population fitness over genrations
-    for pathogen, maxage in [("Metapneumovirus", 2)]:
-        filepath = f"Data/Processed/results260416/evosax_DE_{pathogen}ExponentialInOutmaxmimmsplitdaycarep5maxagep0{maxage}260416.pickle"
-        with open(filepath, "rb") as f:
-            results = pickle.load(f)
-        print(results)
-        metrics_log = results["metrics_log"]
-        generations = metrics_log["generation_counter"]
-        best_fitness = jnp.asarray(metrics_log["best_fitness_in_generation"]) * N
+#     # plot range of population fitness over genrations
+#     for pathogen, maxage in [("Metapneumovirus", 2)]:
+#         filepath = f"Data/Processed/results260416/evosax_DE_{pathogen}ExponentialInOutmaxmimmsplitdaycarep5maxagep0{maxage}260416.pickle"
+#         with open(filepath, "rb") as f:
+#             results = pickle.load(f)
+#         print(results)
+#         metrics_log = results["metrics_log"]
+#         generations = metrics_log["generation_counter"]
+#         best_fitness = jnp.asarray(metrics_log["best_fitness_in_generation"]) * N
 
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(generations, best_fitness, label="Best Fitness", color='k')
-        ax.set_title(f"{pathogen} Fitness over Generations")
-        ax.set_xlabel("Generation")
-        ax.set_ylabel("Negative Log Likelihood")
-        ax.grid(True, alpha=0.3)
-        ax.legend()
+#         fig, ax = plt.subplots(figsize=(10, 5))
+#         ax.plot(generations, best_fitness, label="Best Fitness", color='k')
+#         ax.set_title(f"{pathogen} Fitness over Generations")
+#         ax.set_xlabel("Generation")
+#         ax.set_ylabel("Negative Log Likelihood")
+#         ax.grid(True, alpha=0.3)
+#         ax.legend()
         
-        # Add inset zooming in on last 500 generations
-        axins = inset_axes(ax, width="40%", height="40%", loc="upper right")
-        last_500_idx = max(0, len(generations) - 500)
-        axins.plot(generations[last_500_idx:], best_fitness[last_500_idx:], color='k', linewidth=1.5)
-        axins.set_title("Last 500 Gen", fontsize=8)
-        axins.grid(True, alpha=0.3)
-        axins.tick_params(labelsize=8)
+#         # Add inset zooming in on last 500 generations
+#         axins = inset_axes(ax, width="40%", height="40%", loc="upper right")
+#         last_500_idx = max(0, len(generations) - 500)
+#         axins.plot(generations[last_500_idx:], best_fitness[last_500_idx:], color='k', linewidth=1.5)
+#         axins.set_title("Last 500 Gen", fontsize=8)
+#         axins.grid(True, alpha=0.3)
+#         axins.tick_params(labelsize=8)
         
-        plt.tight_layout()
-        plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_fitness_over_generations.png"), dpi=300)
-        # plot rolling standard deviation of fitness over last 100 generations
-        rolling_std = pd.Series(best_fitness).rolling(window=100).std()
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(generations, rolling_std, label="Rolling Std Dev", color='r')
-        ax.set_title(f"{pathogen} Log Likelihood Rolling Std Dev over Generations")
-        ax.set_xlabel("Generation")
-        ax.set_ylabel("Rolling Std Dev")
-        ax.grid(True, alpha=0.3)
+#         plt.tight_layout()
+#         plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_fitness_over_generations.png"), dpi=300)
+#         # plot rolling standard deviation of fitness over last 100 generations
+#         rolling_std = pd.Series(best_fitness).rolling(window=100).std()
+#         fig, ax = plt.subplots(figsize=(10, 5))
+#         ax.plot(generations, rolling_std, label="Rolling Std Dev", color='r')
+#         ax.set_title(f"{pathogen} Log Likelihood Rolling Std Dev over Generations")
+#         ax.set_xlabel("Generation")
+#         ax.set_ylabel("Rolling Std Dev")
+#         ax.grid(True, alpha=0.3)
         
-        # Add inset zooming in on last 500 generations
-        axins = inset_axes(ax, width="40%", height="40%", loc="upper right")
-        last_500_idx = max(0, len(generations) - 500)
-        axins.plot(generations[last_500_idx:], rolling_std[last_500_idx:], color='r', linewidth=1.5)
-        axins.set_title("Last 500 Gen", fontsize=8)
-        axins.grid(True, alpha=0.3)
-        axins.tick_params(labelsize=8)
+#         # Add inset zooming in on last 500 generations
+#         axins = inset_axes(ax, width="40%", height="40%", loc="upper right")
+#         last_500_idx = max(0, len(generations) - 500)
+#         axins.plot(generations[last_500_idx:], rolling_std[last_500_idx:], color='r', linewidth=1.5)
+#         axins.set_title("Last 500 Gen", fontsize=8)
+#         axins.grid(True, alpha=0.3)
+#         axins.tick_params(labelsize=8)
         
-        ax.legend()
-        plt.tight_layout()
-        plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_rolling_std_dev.png"), dpi=300)
-        plt.close()
+#         ax.legend()
+#         plt.tight_layout()
+#         plt.savefig("Figures/"+filepath.split("/")[-1].replace(".pickle", "_rolling_std_dev.png"), dpi=300)
+#         plt.close()
 
 
 # # plot for a bunch of results
