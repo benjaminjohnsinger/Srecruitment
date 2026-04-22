@@ -209,9 +209,12 @@ def worker(args):
     obs_summed_age_per_season = obs_summed_age_curtailed.reshape((n_seasons, 365)).sum(axis=1)
     # concatenate to obs_per_season
     obs_per_season = jnp.concatenate([obs_per_season, obs_summed_age_per_season[:, None]], axis=1)
-    # find the time of peak incidence in each age group for each season
-    peak_times = jnp.argmax(obs_curtailed.reshape((n_seasons, -1, NAG)), axis=1)
-    peak_times_summed_age = jnp.argmax(obs_summed_age_curtailed.reshape((n_seasons, -1)), axis=1)
+    # find the centre of gravity of incidence in each age group for each season
+    obs_reshaped = obs_curtailed.reshape((n_seasons, 365, NAG))
+    days = jnp.arange(365)
+    peak_times = jnp.sum(days[None, :, None] * obs_reshaped, axis=1) / (jnp.sum(obs_reshaped, axis=1) + 1e-10)
+    obs_summed_age_reshaped = obs_summed_age_curtailed.reshape((n_seasons, 365))
+    peak_times_summed_age = jnp.sum(days[None, :] * obs_summed_age_reshaped, axis=1) / (jnp.sum(obs_summed_age_reshaped, axis=1) + 1e-10)
     peak_times = jnp.concatenate([peak_times, peak_times_summed_age[:, None]], axis=1)
     # dynamic quantities based on values, not obs
     shaped_values = values[1:, :days_to_keep].reshape((1+2*N_S, NAG, days_to_keep))
@@ -440,8 +443,11 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
     kernel = jnp.ones(14)/14
     obs_curtailed = jax.vmap(lambda x: jnp.convolve(x, kernel, mode='same'), in_axes=1, out_axes=1)(obs_curtailed)
     obs_summed_age_curtailed = jnp.convolve(obs_summed_age_curtailed, kernel, mode='same')
-    peak_times = jnp.argmax(obs_curtailed.reshape((n_seasons, -1, NAG)), axis=1)
-    peak_times_summed_age = jnp.argmax(obs_summed_age_curtailed.reshape((n_seasons, -1)), axis=1)
+    obs_reshaped = obs_curtailed.reshape((n_seasons, 365, NAG))
+    days = jnp.arange(365)
+    peak_times = jnp.sum(days[None, :, None] * obs_reshaped, axis=1) / (jnp.sum(obs_reshaped, axis=1) + 1e-10)
+    obs_summed_age_reshaped = obs_summed_age_curtailed.reshape((n_seasons, 365))
+    peak_times_summed_age = jnp.sum(days[None, :] * obs_summed_age_reshaped, axis=1) / (jnp.sum(obs_summed_age_reshaped, axis=1) + 1e-10)
     peak_times = jnp.concatenate([peak_times, peak_times_summed_age[:, None]], axis=1)
     # season info
     seasons = jnp.stack([obs_per_season, peak_times], axis=0)
@@ -706,7 +712,7 @@ def plot_time_series_for_parameters(args, run_save_path, target_p1, target_p2, a
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 18, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260415
+    seed = 260421
     option1 = "split"
     NAG = 7 + ("split" in option1)
     if "split" in option1:
@@ -715,8 +721,8 @@ if __name__ == "__main__":
     else:
         from Parameters.census_population import CENSUS_AGE_POP
         from Parameters.census_population import MEDIAN_AGE
-    option2 = "daycarep5flexagep05"
-    lockdown = "Exponential"
+    option2 = "flexagep05"
+    lockdown = "ExponentialODipEqual"
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
     POINTS = np.array(date_to_t(PERIOD))
@@ -728,9 +734,9 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     good_simulations = [
-        ["RSV", 260420, lockdown, option1, "maxbetap35maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "daycarep5maxagep02"], 
-        ["InfluenzaA", seed, lockdown, option1, "daycarep5maxagep05"], ["InfluenzaB", seed, lockdown, option1, "daycarep5maxagep05"], 
-        ["Adenovirus", seed, lockdown, option1, "daycarep5maxagep02"], ["Parainfluenza3", seed, lockdown, option1, "daycarep5maxagep02"]
+        ["RSV", 260420, lockdown, option1, "maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "maxagep028"], 
+        ["InfluenzaA", seed, lockdown, option1, "maxagep05"], ["InfluenzaB", seed, lockdown, option1, "maxagep05"], 
+        ["Adenovirus", seed, lockdown, option1, "maxagep05"], ["Parainfluenza3", seed, lockdown, option1, "maxagep028"]
     ]
     
     # Parameter scaling factors used in the model
@@ -741,19 +747,19 @@ if __name__ == "__main__":
     if "split" in option1:
         PARAM_SCALING = np.concatenate((PARAM_SCALING, np.array([1e-2])))
 
-    # fig, ax = plt.subplots(figsize=(12, 6))
-    # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
-    # plt.tight_layout()
-    # plt.savefig("Figures/line_of_best_fit_Exponential_split_maxbetap35daycarep5maxagep02.png", dpi=300)
-    # print("NAG", NAG)
+    fig, ax = plt.subplots(figsize=(12, 6))
+    generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
+    plt.tight_layout()
+    plt.savefig("Figures/line_of_best_fit_ExponentialODipEqual_split.png", dpi=300)
+    print("NAG", NAG)
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
                                             seed=seed, n_samples=40000, dimension=2, chunk_size=10000)
-    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed260415_lockdownExponential_2d"
+    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed260415_lockdownExponentialODipEqual_2d"
     fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
-    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="outbreak_in_season", threshold_factor=1, season_idx=7)
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_shift", threshold_factor=1)
+    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", threshold_factor=1/2)
+    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_ratio", threshold_factor=1/2, idx_num=2, idx_den=1)
     plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_outbreak2223_ageshift_Exponential_split_maxbetap35daycarep5maxagep02_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold1.png", dpi=300)
+    plt.savefig(f"Figures/heatmaps_time_age_ExponentialODipEqual_split_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdp5.png", dpi=300)
     
     # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
     # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)
