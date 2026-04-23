@@ -16,7 +16,7 @@ from Parameters.census_population import AGE_GROUP_NAMES, CENSUS_AGE_POP
 from Parameters.times_and_contacts import PERIOD
 # import pickle
 # from scipy.optimize import curve_fit
-# import time
+import time
 # # import corner
 
 from matplotlib import cm as colormaps

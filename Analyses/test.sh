@@ -10,7 +10,7 @@ combinations=(
 )
 
 for combination in "${combinations[@]}"; do
-    /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
+    /Users/BSinger/Documents/Srecruitment/.venv/bin/python /Users/BSinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
     if [[ $combination == *"optax" ]]; then
         /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_optax.py $combination
     else
