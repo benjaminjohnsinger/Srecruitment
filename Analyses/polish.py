@@ -15,17 +15,22 @@ import optax
 from utils import *
 
 from fit_opt import get_likelihood, likelihood_threshold
-from plot_opt import load_optimization_results
 
 if __name__ == "__main__":
     pathogen, seed, lockdown, option1, option2, import_multiplier, opt_size, opt_rate1, opt_rate2 = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
+
+    NAG = 7 + ("split" in option1)
+    if NAG == 7:
+        from Parameters.census_population import CENSUS_AGE_POP
+    elif NAG == 8:
+        from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
 
     _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
     if int(str(seed)[:6]) < 260406:
         hosp = False
     else:
         hosp = True
-    likelihood, N = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, hosp=hosp)
+    likelihood, N = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, hosp=hosp, CENSUS_AGE_POP=CENSUS_AGE_POP, NAG=NAG)
     def logistic_transform(x):
         return bounds[:, 0] + 1 / (1 + jnp.exp(-x)) * (bounds[:, 1] - bounds[:, 0])
     def inverse_logistic_transform(y):
