@@ -853,7 +853,7 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
 def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", NAG=7):
     _, x_DE, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
     REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
-    x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential") + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0415" or lockdown=="FlexStepwise") + NAG)
+    x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential" or "ExponentialODip" in lockdown) + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0415" or lockdown=="FlexStepwise") + NAG)
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC
     x_consistent = x_consistent.at[2:5].set(x_DE[0:3]) # BETA, SEASONALITY, OFFSET
     n = 3
@@ -895,6 +895,10 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", 
         x_consistent = x_consistent.at[12:15].set(x_DE[n:n+3]) # F1, R1, R2
         n += 3
         obs_age_start = 15
+    elif "Exponential" in lockdown:
+        x_consistent = x_consistent.at[12:14].set(x_DE[n:n+2]) # F1, R1
+        n += 2
+        obs_age_start = 14
     elif lockdown == "Sigmoid":
         x_consistent = x_consistent.at[12:15].set(x_DE[n:n+3]) # F1, DT1, R1
         n += 3

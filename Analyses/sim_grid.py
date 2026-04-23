@@ -379,8 +379,11 @@ def age_ratio_of_rebound(x, idx_num=2, idx_den=1, threshold_factor=1/2):
     Returns: The ratio of the specified age groups during the rebound season, relative to the pre-pandemic ratio. If there is no rebound, returns NaN.
     """
     obs_per_season = x[0, :, :]
-    pre_pandemic_median_ratio = jnp.median(obs_per_season[:5, idx_num] / obs_per_season[:5, idx_den])
+    print(obs_per_season[:5, idx_num], obs_per_season[:5, idx_den])
+    print("ratios all pre-pandemic:", obs_per_season[:5, idx_num] / obs_per_season[:5, idx_den])
+    pre_pandemic_mean_ratio = jnp.mean(obs_per_season[:5, idx_num] / obs_per_season[:5, idx_den])
     threshold = threshold_factor * jnp.median(obs_per_season[:5, -1])
+    print("pre-pandemic mean ratio:", pre_pandemic_mean_ratio)
     
     post_pandemic_obs = obs_per_season[5:, -1]
     rebound_mask = post_pandemic_obs >= threshold
@@ -390,8 +393,15 @@ def age_ratio_of_rebound(x, idx_num=2, idx_den=1, threshold_factor=1/2):
     first_rebound_idx = jnp.argmax(rebound_mask)
     rebound_season_idx = 5 + first_rebound_idx
     rebound_obs = obs_per_season[rebound_season_idx]
+    print("rebound ratio:", rebound_obs[idx_num] / rebound_obs[idx_den])
     
-    return jnp.where(rebound_found, (rebound_obs[idx_num] / rebound_obs[idx_den]) / pre_pandemic_median_ratio, jnp.nan)
+    # Return NaN if numerator or denominator is zero or NaN
+    pre_pandemic_obs = obs_per_season[:5]
+    has_valid_pre_pandemic = (pre_pandemic_obs[:, idx_num] > 0).all() & (pre_pandemic_obs[:, idx_den] > 0).all()
+    has_valid_rebound = (rebound_obs[idx_num] > 0) & (rebound_obs[idx_den] > 0) & jnp.isfinite(rebound_obs[idx_num]) & jnp.isfinite(rebound_obs[idx_den])
+    has_valid_obs = has_valid_pre_pandemic & has_valid_rebound
+
+    return jnp.where(rebound_found & has_valid_obs, (rebound_obs[idx_num] / rebound_obs[idx_den]) / pre_pandemic_mean_ratio, jnp.nan)
 
 def age_of_first_infection(x):
     return jnp.mean(jnp.sum(x[2, :5, :-1] * jnp.array(MEDIAN_AGE), axis=1)) / 12
@@ -421,8 +431,8 @@ def extract_target_values(all_results, outcome, **kwargs):
 
 def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
     print("pathogen:", pathogen)
-    incidence = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, hosp=True, pp_only=False, NAG=NAG).values)
-    incidence_summed_age = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, hosp=True, pp_only=False, NAG=NAG)["Total"].values)
+    incidence = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, hosp=True, return_counts=False, pp_only=False, NAG=NAG).values)
+    incidence_summed_age = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, hosp=True, return_counts=False, pp_only=False, NAG=NAG)["Total"].values)
     # pad with zeros: 14 days at the start, then enough at the end to complete full years
     pad_start = 14
     pad_end = (365 - ((len(incidence) + pad_start) % 365)) % 365
@@ -452,11 +462,20 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
     # season info
     seasons = jnp.stack([obs_per_season, peak_times], axis=0)
     if outcome == "relative_size":
-        return relative_size_of_rebound(seasons)
+        value = relative_size_of_rebound(seasons)
     elif outcome == "age_ratio":
-        return age_ratio_of_rebound(seasons)
+        value = age_ratio_of_rebound(seasons)
     elif outcome == "time_to_rebound":
-        return time_to_rebound(seasons)/365
+        value = time_to_rebound(seasons)/365
+    # print 3-11m and 1-4y observations for the 2017/18 season and the 2022/23 season
+    print("3-11m obs in 2017/18 season:", obs_per_season[2, 1])
+    print("1-4y obs in 2017/18 season:", obs_per_season[2, 2])
+    print("3-11m obs in 2021/22 season:", obs_per_season[6, 1])
+    print("1-4y obs in 2021/22 season:", obs_per_season[6, 2])
+    print("3-11m obs in 2022/23 season:", obs_per_season[7, 1])
+    print("1-4y obs in 2022/23 season:", obs_per_season[7, 2])
+    print(f"{outcome} for {pathogen}: {value}")
+    return value
 
 def get_parameter_values(samples, p_idx):
     """Extracts and properly scales the specific parameter from the sample arrays."""
@@ -615,7 +634,7 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
         pathogen_colors = [pathogen_colors[i] if not np.isnan(pathogen_vals[i]) else (1,1,1,1) for i in range(len(good_simulations))]
     else:
         pathogen_colors = ["white"] * len(good_simulations)
-    add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, color=pathogen_colors)
+    # add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, color=pathogen_colors)
 
     ax.set_xlabel(PARAMETER_NAMES[p1])
     ax.set_ylabel(PARAMETER_NAMES[p2])
@@ -734,42 +753,45 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     good_simulations = [
-        ["RSV", 260420, lockdown, option1, "maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "maxagep028"], 
+        ["RSV", seed, lockdown, option1, "maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "maxagep028"], 
         ["InfluenzaA", seed, lockdown, option1, "maxagep05"], ["InfluenzaB", seed, lockdown, option1, "maxagep05"], 
         ["Adenovirus", seed, lockdown, option1, "maxagep05"], ["Parainfluenza3", seed, lockdown, option1, "maxagep028"]
     ]
     
     # Parameter scaling factors used in the model
-    if lockdown == "Exponential":
+    if "Exponential" in lockdown:
         PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
     elif lockdown == "RSV0415":
         PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
     if "split" in option1:
         PARAM_SCALING = np.concatenate((PARAM_SCALING, np.array([1e-2])))
 
-    fig, ax = plt.subplots(figsize=(12, 6))
-    generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
-    plt.tight_layout()
-    plt.savefig("Figures/line_of_best_fit_ExponentialODipEqual_split.png", dpi=300)
-    print("NAG", NAG)
-    run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-                                            seed=seed, n_samples=40000, dimension=2, chunk_size=10000)
-    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk40000_seed260415_lockdownExponentialODipEqual_2d"
-    fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
-    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", threshold_factor=1/2)
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_ratio", threshold_factor=1/2, idx_num=2, idx_den=1)
-    plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_time_age_ExponentialODipEqual_split_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdp5.png", dpi=300)
-    
-    # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
-    # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)
+    # fig, ax = plt.subplots(figsize=(12, 6))
+    # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
     # plt.tight_layout()
-    # plt.savefig(f"Figures/close_to_RSV_260415_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    # plt.savefig("Figures/line_of_best_fit_ExponentialODipEqual_split.png", dpi=300)
+    # print("NAG", NAG)
+    # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
+    #                                         seed=seed, n_samples=40000, dimension=2, chunk_size=10000)
+    run_save_path = "Outputs/sim_grid_lh_n40000_chunk10000_seed260421_lockdownExponentialODipEqual_2d"
+
+    print(extract_target_value_from_data("Parainfluenza3", outcome="age_ratio", NAG=NAG))
+
+    fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
+    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", threshold_factor=1/3)
+    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_ratio", threshold_factor=1/3, idx_num=2, idx_den=1)
+    plt.tight_layout()
+    plt.savefig(f"Figures/heatmaps_time_age_ExponentialODipEqual_split_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdthird_nolabels.png", dpi=300)
+    
+    # # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
+    # # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)
+    # # plt.tight_layout()
+    # # plt.savefig(f"Figures/close_to_RSV_260415_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
 
-    # for p1 in range(len(PARAMETER_NAMES)):
-    #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
-    #         fig, ax = plt.subplots(figsize=(10, 8))
-    #         generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, outcome="time_to_rebound")
-    #         plt.tight_layout()
-    #         plt.savefig(f"Figures/sim_grids260415/heatmap_time_to_rebound_daycare_factortwothirds_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}.png", dpi=300)
+    # # for p1 in range(len(PARAMETER_NAMES)):
+    # #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
+    # #         fig, ax = plt.subplots(figsize=(10, 8))
+    # #         generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, outcome="time_to_rebound")
+    # #         plt.tight_layout()
+    # #         plt.savefig(f"Figures/sim_grids260415/heatmap_time_to_rebound_daycare_factortwothirds_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}.png", dpi=300)

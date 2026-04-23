@@ -669,7 +669,8 @@ def get_season_start_jax(date):
 def calculate_observations_per_season(incidence, age_groups=False, aggregation="D"):
     if aggregation != "D":
         # resample to daily and interpolate
-        incidence = incidence.resample("D").interpolate()
+        scale = 1 if aggregation == "D" else (7 if aggregation == "W" else 30.44)
+        incidence = incidence.resample("D").interpolate() / scale
     # pad with two weeks's worth of zeros at the start
     incidence = pd.concat([pd.DataFrame(0, index=pd.date_range(end=incidence.index[0]-pd.Timedelta(days=1), periods=14, freq='D'), columns=incidence.columns), incidence])
     if age_groups:
