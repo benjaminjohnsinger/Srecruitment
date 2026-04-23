@@ -27,7 +27,7 @@ from data_processing import calculate_proportion_positive_incidence
 # import scipy as sp
 # import multiprocessing
 
-def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=True, hosp=True, hessian=False, NAG=7, CENSUS_AGE_POP=None):
+def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=True, hosp=True, hessian=False, NAG=7, CENSUS_AGE_POP=None, birth_rate_multiplier=1.0):
     ### load data and parameters
     start_date = '2015-07-04'
     end_date = '2025-05-01'
@@ -99,7 +99,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     if "incidence_data" in option1:
         N = jnp.prod(jnp.asarray(data.shape))
         def likelihood(x):
-            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG
+            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
             lh = -SIS_likelihood(data, 0, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, incidence_data=True, hessian=hessian, NAG=NAG)
@@ -109,7 +109,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     elif "peaks_and_times" in option1:
         N = 20 # number of data points is number of peaks + number of peak times
         def likelihood(x):
-            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG
+            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
             lh = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian, NAG=NAG)
@@ -121,7 +121,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
         N2 = 20
         N = (N1 + N2) / 2 # average number of data points to make comparable to other likelihoods
         def likelihood(x):
-            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG
+            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
             lh_base = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian, NAG=NAG)
@@ -134,7 +134,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     elif "youngest" in option1 or "oldest" in option1:
         N = jnp.prod(jnp.asarray(daily_hospitalization_rates.shape))
         def likelihood(x, pp_opt=None):
-            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG
+            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
             if "pp" in option2:
@@ -160,7 +160,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     else:
         N = jnp.prod(jnp.asarray(daily_hospitalization_rates.shape))
         def likelihood(x, pp_opt=None):
-            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG
+            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
             if "pp" in option2:
@@ -228,6 +228,12 @@ if __name__ == '__main__':
     else:
         algorithm = "evosax" # default to evosax if not specified
 
+    birth_rate_multiplier = 1.0
+    if "brm" in option1:
+        match = re.search(r'brm(\d*\.?\d+)', option1)
+        if match:
+            birth_rate_multiplier = float(match.group(1))
+
     # set seed
     np.random.seed(seed)
 
@@ -252,7 +258,7 @@ if __name__ == '__main__':
     # bounds = jnp.zeros(unlogged_bounds.shape)
     # bounds = bounds.at[:, 1].set(10)
     # bounds = bounds.at[:, 0].set(-10)
-    likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP)
+    likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, birth_rate_multiplier=birth_rate_multiplier)
     def new_likelihood(x):
         lik =  likelihood(x)
         # remove nans

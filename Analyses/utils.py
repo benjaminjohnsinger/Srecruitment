@@ -320,7 +320,7 @@ from Parameters.times_and_contacts import FF as defaultFF
 from new_vax import rsv_eff_vax_rate
 from new_vax import rsv_maternal_immunity
 from new_vax import flu_eff_vax_rate
-def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=False, NAG=7, wrong_aging=False):
+def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=False, NAG=7, wrong_aging=False, birth_rate_multiplier=1.0):
     if "split" in option1:
         NAG = 8
     if fixed_params is None:
@@ -331,7 +331,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         if wrong_aging:
             AGING_RATE = AGING_RATE.at[4].set(1/(22*365))
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
-        BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
+        BIRTH_RATE = birth_rate_multiplier * jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
         if pathogen == "sim":
             _, _, IMPORT_STRENGTH, _ = pathogen_parameters("test", import_multiplier=import_multiplier, skip_incidence=True)
         else:
