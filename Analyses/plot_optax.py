@@ -19,7 +19,7 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-pathogen, seed, lockdown, option1, option2, optn = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], int(sys.argv[8])
+pathogen, seed, lockdown, option1, option2, optn = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], int(sys.argv[11])
 
 # set seed
 np.random.seed(seed)
@@ -42,16 +42,17 @@ else:
         print('File not found:',"Data/Processed/results"+str(seed)[:6]+"/optax_"+pathogen+lockdown+option1+option2+str(seed)+".pickle")
         sys.exit()
 xs = opt["final_params"]
+x = opt["best_params"]
 # extend print size for xs
 for i in range(738):
     print("x"+str(i)+":",xs[i])
-# which xs is not nan at the end of the optimization?
+
 
 neglogLs = opt["neglogL_history"]
 neglogLs = neglogLs[:,optn]
 
 param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
-x = bounds[:,0] + rescaled_x*(bounds[:,1]-bounds[:,0])
+# x = bounds[:,0] + rescaled_x*(bounds[:,1]-bounds[:,0])
 
 REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests_full = pathogen_parameters(pathogen)
 daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0,parse_dates=True)

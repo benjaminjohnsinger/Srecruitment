@@ -321,6 +321,8 @@ from new_vax import rsv_eff_vax_rate
 from new_vax import rsv_maternal_immunity
 from new_vax import flu_eff_vax_rate
 def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=False, NAG=7, wrong_aging=False):
+    if "split" in option1:
+        NAG = 8
     if fixed_params is None:
         if NAG>7:
             from Parameters.census_population import AGING_RATE_split as AGING_RATE
@@ -352,11 +354,16 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         REC_UP = jnp.array([x[n],x[n+1],0.0])
         REC_SAME = jnp.array([0.0,0.0,x[n+1]])
         n += 2
-    BETA = x[n]
-    SEASONALITY = x[n+1]
-    OFFSET = x[n+2]
+    if "fixbetap" in option2:
+        match = re.search(r'fixbetap(\d+)', option2)
+        BETA = int(match.group(1)) / (10 ** len(match.group(1)))
+    else:
+        BETA = x[n]
+        n+=1
+    SEASONALITY = x[n]
+    OFFSET = x[n+1]
     MATERNAL_IMMUNITY = jnp.zeros((len(FULL_POINTS), N_S))
-    n += 3
+    n += 2
     if "wane" in option1:
         WANE = jnp.array([0.0,x[n],x[n+1]])
         n += 2
@@ -380,6 +387,11 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         n += 1
     else:
         P_OBS = pobsrel
+    if "irel" in option1:
+        I_REL = jnp.array([1,x[n],x[n]*x[n+1]])
+        n += 2
+    else:
+        I_REL = jnp.array([1,1,1])
     if "maxmimm" in option1:
         MIMM = 1
         MATERNAL_IMMUNITY = MATERNAL_IMMUNITY.at[:,2].set(MIMM)
@@ -426,20 +438,13 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             MOBILITY_CONTACT = jnp.ones(len(FULL_POINTS))
             MOBILITY_CONTACT = MOBILITY_CONTACT.at[cm.MOBILITY_START:cm.MOBILITY_END+1].set(contact_factor)
             RELATIVE_CONTACT = MOBILITY_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
-        elif lockdown == "Exponential":
-            FF = [1,x[n]]
-            TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
-            RR = [x[n+1],]
-            EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
-            RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
-            n += 2
-        elif lockdown == "ExponentialFixed":
+        elif "ExponentialFixed" in lockdown:
             FF = [1,0.2]
             TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
             RR = [0.005,]
             EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
-        elif lockdown == "ExponentialInOut":
+        elif "ExponentialInOut" in lockdown:
             FF = [1,x[n]]
             TT = [date_to_t(EPOCH), date_to_t('2020-01-20'), date_to_t('2020-03-19')]
             RR = [x[n+1],]
@@ -455,13 +460,20 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             EXPONENTIAL_CONTACT = cm.exponential_recovery_byage(FULL_POINTS, TT, FF, RR, age_partition=age_partition, NAG=NAG)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS.reshape(-1,1)-274)/365-OFFSET)))
             n += 3
-        elif lockdown == "Exponential2":
+        elif "Exponential2" in lockdown:
             FF = [1,x[n],x[n+1]]
             TT = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+x[n+2]*365]
             RR = [x[n+3],x[n+4]]
             EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
             RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
             n += 5
+        elif "Exponential" in lockdown:
+            FF = [1,x[n]]
+            TT = [date_to_t(EPOCH), date_to_t('2020-03-19')]
+            RR = [x[n+1],]
+            EXPONENTIAL_CONTACT = cm.exponential_recovery(FULL_POINTS, TT, FF, RR)
+            RELATIVE_CONTACT = EXPONENTIAL_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
+            n += 2
         elif lockdown == "Sigmoid":
             FF = [1, x[n]]
             TT = [date_to_t(EPOCH), date_to_t('2020-03-19'), date_to_t('2020-03-19')+x[n+1]*365]
@@ -514,6 +526,30 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             n += 7
     elif 'pathogen' in option1:
         RELATIVE_CONTACT = fixed_params[9]
+    if "ODipTune" in lockdown:
+        FO = FF[1] + x[n] - FF[1]*x[n]
+        dipdates = jnp.array([date_to_t(EPOCH),
+                    date_to_t('2021-12-15'),
+                    date_to_t('2022-03-01')])
+        dipvalues = jnp.array([1, 1-FO, 1])
+        ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
+        RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
+    elif "ODipLinear" in lockdown:
+        FO = 0.75*FF[1] + 0.25
+        dipdates = jnp.array([date_to_t(EPOCH),
+                    date_to_t('2021-12-15'),
+                    date_to_t('2022-03-01')])
+        dipvalues = jnp.array([1, 1-FO, 1])
+        ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
+        RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
+    elif "ODipEqual" in lockdown:
+        FO = FF[1]
+        dipdates = jnp.array([date_to_t(EPOCH),
+                    date_to_t('2021-12-15'),
+                    date_to_t('2022-03-01')])
+        dipvalues = jnp.array([1, 1-FO, 1])
+        ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
+        RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
     if ('maxagep' in option2) & ('dynamic' not in option1):
         if "RSV" in pathogen:
             fixed_age_index = 0
@@ -574,15 +610,17 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         
 
     params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
-                BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
+                BETA, WANE, S_REL, I_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
                 REC_UP, REC_SAME, IMPORT_STRENGTH)
     
     if print_params:
-        param_names = ["BETA","WANE","SEASONALITY","OFFSET","S_REL","P_OBS","OBS_AGE"]
+        param_names = ["BETA","WANE","SEASONALITY","OFFSET","S_REL","I_REL","P_OBS","OBS_AGE"]
         if "daycare" in option2:
             param_names += ["DAYCARE"]
         if lockdown != "Taube":
             param_names += ["FF"]
+            if "ODip" in lockdown:
+                param_names += ["FO"]
             if "Mobility" not in lockdown:
                 param_names += ["TT"]
             if "Exponential" in lockdown or "Sigmoid" in lockdown:
@@ -595,22 +633,29 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         if "mimm" in option1 or "maxmimm" in option1:
             print("MATERNAL_IMMUNITY: "+MIMM.__str__())
     
+    if "ODip" in lockdown:
+        contact_multiplier = ODIP_CONTACT
+    else:
+        contact_multiplier = 1
+
     if return_contact:
         if 'Exponential' in lockdown:
-            return params, EXPONENTIAL_CONTACT
+            return params, EXPONENTIAL_CONTACT*contact_multiplier
         if 'Sigmoid' in lockdown:
-            return params, SIGMOID_CONTACT
+            return params, SIGMOID_CONTACT*contact_multiplier
         elif 'Mobility' in lockdown:
-            return params, MOBILITY_CONTACT
+            return params, MOBILITY_CONTACT*contact_multiplier
         elif 'Taube' in lockdown:
-            return params, MOBILITY_CONTACT
+            return params, MOBILITY_CONTACT*contact_multiplier
         else:
-            return params, PIECEWISE_CONTACT
+            return params, PIECEWISE_CONTACT*contact_multiplier
     else:
         return params
 
 def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
-    bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1], "BETA": [0,1]}
+    bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1]}
+    if "fixbetap" not in option2:
+        bounds_dict["BETA"] = [0,0.3]
     if "wane" in option1:
         bounds_dict["WANE1"] = [0,1e-2]
     if option1 == "nb":
@@ -625,6 +670,8 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
         bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = [0.1,1]
     else:
         bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1,1]
+    if "irel" in option1:
+        bounds_dict["I_REL1"] = bounds_dict["I_REL2"] = [0.1,1]
     if "dynamic" not in option1 and "pp" not in option2:
         if "flexage" in option2:
             if option2 == "flexage":
@@ -659,7 +706,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             bounds_dict["F1"] = bounds_dict["F2"] = [0,2]
         elif lockdown == "Mobility2":
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = [0,2]
-        elif (lockdown == "Exponential") or (lockdown == "ExponentialInOut"):
+        elif ("Exponential" in lockdown) and (("ByAge" not in lockdown) and ("2" not in lockdown)):
             bounds_dict["F1"] = [0,1]
             bounds_dict["R1"] = [0.002,0.01]
         elif "ExponentialByAge" in lockdown:
@@ -677,10 +724,12 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
         elif lockdown != "Taube":
             bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
+        if "ODipTune" in lockdown:
+            bounds_dict["FO"] = [0,1]
     if ("daycare" in option2) and ("daycarep" not in option2):
         bounds_dict["DAYCARE"] = [0,1]
     # reorder bounds_dict to match order in x
-    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","AGE_OBS_8","AGE_OBS_9","DAYCARE"]\
+    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","I_REL1","I_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","FO","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","AGE_OBS_8","AGE_OBS_9","DAYCARE"]\
         if key in bounds_dict.keys()}
     bounds = jnp.array(list(bounds_dict.values()))
     param_names = list(bounds_dict.keys())
@@ -747,28 +796,71 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
 
     return params, param_names, bounds, tests, p_time_to_obs
 
-# unified x from DE, i.e. x is same length regardless of model options. assume option2=flexage, lockdown=FlexStepwise
-def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
+def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2):
+    if re.search(r'\d{6}',lockdown):
+        lockdown_search = "FlexStepwise"
+    else:
+        lockdown_search = lockdown
+
     base_path = "Data/Processed/results"+str(seed)[:6]+"/"
-    filename_pattern = "_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+    filename_pattern = "_"+pathogen+lockdown_search+option1+option2+str(seed)+".pickle"
+
+    # Try both DE_opt and evosax_DE prefixes
     opt = None
-    prefix = ""
-    for test_prefix in ["scipy_DE", "DE_opt", "evosax_DE"]:
-        filepath = base_path + test_prefix + filename_pattern
-        print(filepath)
+    if prefix == "":
+        for test_prefix in ["DE_opt", "evosax_DE", "scipy_DE", "evosax_DiffusionEvolution"]:
+            filepath = base_path + test_prefix + filename_pattern
+            try:
+                with open(filepath, "rb") as f:
+                    opt = pickle.load(f)
+                print(f"Loaded: {test_prefix}{filename_pattern}")
+                prefix = test_prefix
+                break
+            except FileNotFoundError:
+                continue
+    else:
+        if "skip_resampling" in prefix:
+            prefix = "evosax_DE"
+        filepath = base_path + prefix + filename_pattern
         try:
             with open(filepath, "rb") as f:
                 opt = pickle.load(f)
-            prefix = test_prefix
-            break
+            print(f"Loaded: {prefix}{filename_pattern}")
         except FileNotFoundError:
-            continue
-    if prefix == "evosax_DE":
-        x_DE = opt["final_population"][np.argmax(opt["final_fitness"])]
-    else:
-        x_DE = opt.x
+            print(f"File not found: {prefix}{filename_pattern}")
+
+    if opt is None:
+        print(base_path+filename_pattern)
+        print('File not found with any of the tested prefixes (DE_opt_, scipy_DE_, evosax_DE_, evosax_DiffusionEvolution_)')
+        sys.exit()
+
+    # Detect file type and extract results accordingly
+    if "evosax" in prefix:
+    # evosax_DE format
+        x = opt["final_population"][np.argmin(opt["final_fitness"])]
+        neg_log_likelihood = np.min(opt["final_fitness"])
+        if jnp.std(opt["final_fitness"]) <= 0.01 * jnp.abs(jnp.mean(opt["final_fitness"])):
+            print("evosax converged according to scipy criteria")
+        else:
+            print("evosax did not converge according to scipy criteria")
+    # scipy.optimize.differential_evolution format
+    elif ("scipy_DE" in prefix) or ("DE_opt" in prefix):
+        if opt.success:
+            print("Optimization converged")
+        else:
+            print("Optimization did not converge")
+            print(opt.message)
+            print(opt.x)
+            sys.exit()
+        x = opt.x
+        neg_log_likelihood = opt.fun
+    return prefix,x,neg_log_likelihood
+
+# unified x from DE, i.e. x is same length regardless of model options. assume option2=flexage, lockdown=FlexStepwise
+def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", NAG=7):
+    _, x_DE, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
     REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
-    x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential") + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0415" or lockdown=="FlexStepwise") + NAG)
+    x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential" or "ExponentialODip" in lockdown) + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0415" or lockdown=="FlexStepwise") + NAG)
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC
     x_consistent = x_consistent.at[2:5].set(x_DE[0:3]) # BETA, SEASONALITY, OFFSET
     n = 3
@@ -810,6 +902,10 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
         x_consistent = x_consistent.at[12:15].set(x_DE[n:n+3]) # F1, R1, R2
         n += 3
         obs_age_start = 15
+    elif "Exponential" in lockdown:
+        x_consistent = x_consistent.at[12:14].set(x_DE[n:n+2]) # F1, R1
+        n += 2
+        obs_age_start = 14
     elif lockdown == "Sigmoid":
         x_consistent = x_consistent.at[12:15].set(x_DE[n:n+3]) # F1, DT1, R1
         n += 3
@@ -822,7 +918,19 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=7):
         x_consistent = x_consistent.at[12:16].set([0.7761238, 0.9229197, 0.796961, 0.9991904])
         n += 4
         obs_age_start = 16
-    x_consistent = x_consistent.at[obs_age_start:obs_age_start+NAG].set(x_DE[-NAG:]) # AGE_OBS_1 to AGE_OBS_7
+    if "maxagep" in option2:
+        match = re.search(r'maxagep(\d+)', option2)
+        obs_age_max = int(match.group(1)) / (10 ** len(match.group(1)))
+        OBS_AGE = jnp.zeros(NAG)
+        if "RSV" in pathogen:
+            OBS_AGE = OBS_AGE.at[0].set(obs_age_max)
+            OBS_AGE = OBS_AGE.at[1:].set(obs_age_max * x_DE[n:n+NAG-1])
+        else:
+            OBS_AGE = OBS_AGE.at[:-1].set(obs_age_max * x_DE[n:n+NAG-1])
+            OBS_AGE = OBS_AGE.at[-1].set(obs_age_max)
+    else:
+        OBS_AGE = x_DE[n:n+NAG]
+    x_consistent = x_consistent.at[obs_age_start:obs_age_start+NAG].set(OBS_AGE) # AGE_OBS_1 to AGE_OBS_7
     return x_consistent
 
 ####### Generating interesting quantities from ODE results #######
@@ -883,7 +991,7 @@ def susceptibility(solution,params,N_C=2,NAG=7,N_S=3):
     Generate susceptibility by age group from ODE solutions
     """
     FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
-    BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
+    BETA, WANE, S_REL, I_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
     REC_UP, REC_SAME, IMPORT_STRENGTH = params
     sus = np.zeros((len(solution.ts),NAG))
     for i_t,t in enumerate(solution.ts):
@@ -892,6 +1000,4 @@ def susceptibility(solution,params,N_C=2,NAG=7,N_S=3):
     return(sus)
 
 if __name__ == "__main__":
-    # measure length of incidence vector for rsv
-    params = x_to_params(np.array([0.03,0.1,0.5,0.001,0.0001,1e-9,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.01,0.5,0.5,0.5,0.5,0.01,0.5]),'RSV','FlexStepwise','NA','flexage')
-    print(len(params[0]))
+    print(consistent_x_from_DE("RSV", "Exponential", "split", "daycarep5maxagep028", 260415, NAG=8))

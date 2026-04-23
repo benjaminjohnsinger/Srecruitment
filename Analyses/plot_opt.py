@@ -16,69 +16,9 @@ from sim_grid import *
 from plotting import *
 from fit_MCMC import *
 
-def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2):
-    if re.search(r'\d{6}',lockdown):
-        lockdown_search = "FlexStepwise"
-    else:
-        lockdown_search = lockdown
-
-    base_path = "Data/Processed/results"+str(seed)[:6]+"/"
-    filename_pattern = "_"+pathogen+lockdown_search+option1+option2+str(seed)+".pickle"
-
-    # Try both DE_opt and evosax_DE prefixes
-    opt = None
-    if prefix == "":
-        for test_prefix in ["DE_opt", "evosax_DE", "scipy_DE", "evosax_DiffusionEvolution"]:
-            filepath = base_path + test_prefix + filename_pattern
-            try:
-                with open(filepath, "rb") as f:
-                    opt = pickle.load(f)
-                print(f"Loaded: {test_prefix}{filename_pattern}")
-                prefix = test_prefix
-                break
-            except FileNotFoundError:
-                continue
-    else:
-        if "skip_resampling" in prefix:
-            prefix = "evosax_DE"
-        filepath = base_path + prefix + filename_pattern
-        try:
-            with open(filepath, "rb") as f:
-                opt = pickle.load(f)
-            print(f"Loaded: {prefix}{filename_pattern}")
-        except FileNotFoundError:
-            print(f"File not found: {prefix}{filename_pattern}")
-
-    if opt is None:
-        print(base_path+filename_pattern)
-        print('File not found with any of the tested prefixes (DE_opt_, scipy_DE_, evosax_DE_, evosax_DiffusionEvolution_)')
-        sys.exit()
-
-    # Detect file type and extract results accordingly
-    if "evosax" in prefix:
-    # evosax_DE format
-        x = opt["final_population"][np.argmin(opt["final_fitness"])]
-        neg_log_likelihood = np.min(opt["final_fitness"])
-        if jnp.std(opt["final_fitness"]) <= 0.01 * jnp.abs(jnp.mean(opt["final_fitness"])):
-            print("evosax converged according to scipy criteria")
-        else:
-            print("evosax did not converge according to scipy criteria")
-    # scipy.optimize.differential_evolution format
-    elif ("scipy_DE" in prefix) or ("DE_opt" in prefix):
-        if opt.success:
-            print("Optimization converged")
-        else:
-            print("Optimization did not converge")
-            print(opt.message)
-            print(opt.x)
-            sys.exit()
-        x = opt.x
-        neg_log_likelihood = opt.fun
-    return prefix,x,neg_log_likelihood
-
 if __name__ == "__main__":
     pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
-    
+
     NAG = 7 + ("split" in option1)
     
     if len(sys.argv) > 10:
@@ -114,9 +54,20 @@ if __name__ == "__main__":
     # set seed
     np.random.seed(seed)
     prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
+    
     # prefix = "sampling_parameters_"
     # x = jnp.asarray([0.12032066,0.14603744,0.05796923,0.00512616,0.5582736 ,0.95180595,0.31741548,0.00618303,0.25081336,0.28657508,0.15262091,0.01914573,0.15551174,0.20378447,0.99823165])
     # log_likelihood = 12014.02
+
+    ## artificial split
+    # option1 = "split"
+    # NAG = 8
+    # # make x one element longer, repeat x[-4] in place
+    # x = jnp.zeros(len(x_temp)+1)
+    # x = x.at[:-5].set(x_temp[:-4])
+    # x = x.at[-5].set(x_temp[-4])
+    # x = x.at[-4].set(x_temp[-4])
+    # x = x.at[-3:].set(x_temp[-3:])
 
 
     # prefix = "evosax_DE_"
@@ -186,7 +137,7 @@ if __name__ == "__main__":
     # # flatten initial state and add maternal immunity compartment
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-    
+
     params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True, NAG=NAG, wrong_aging=int(str(seed)[:6])<260414)
     print(cntct.shape)
 
@@ -236,16 +187,34 @@ if __name__ == "__main__":
     print("Proportion infected per season (including reinfections):",season_infections)
     print("Proportion infected in last season (by age):",season_infection_by_age[-1,:])
 
-    incidence = calculate_proportion_positive_incidence(pathogen, aggregation="W", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp)
+    incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp, return_counts=True, NAG=NAG)
     incidence = incidence.fillna(0)
-    obs_per_season = jnp.asarray(calculate_observations_per_season(incidence, age_groups=True, aggregation="W"))
-    peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()
+    obs_per_season = jnp.asarray(calculate_observations_per_season(incidence, age_groups=True, aggregation="D"))
+    def center_of_gravity(season_data):
+        """Calculate center of gravity: sum(days * incidence) / sum(incidence)"""
+        season_start_idx = season_data.index[0]
+        season_start_numeric = (season_start_idx - EPOCH).days
+        days = np.arange(len(season_data))
+        if season_data.ndim == 1:
+            total = np.sum(season_data.values)
+            if total == 0:
+                return np.nan
+            return season_start_numeric + np.sum(days * season_data.values) / total
+        else:
+            # For multi-column data, compute center of gravity for each column
+            totals = np.sum(season_data.values, axis=0)
+            result = season_start_numeric + np.sum(days[:, None] * season_data.values, axis=0) / np.maximum(totals, 1e-10)
+            result[totals == 0] = np.nan
+            return result
+    peak_times_by_season = incidence.groupby(incidence.index.map(get_season_start)).apply(center_of_gravity)
+    # peak_times_by_season is now a Series of arrays; convert to list of time indices per season
+    peak_times = [pd.to_timedelta(np.asarray(pt, dtype=int), unit='D') if isinstance(pt, np.ndarray) else pd.to_timedelta(int(pt), unit='D') for pt in peak_times_by_season]
     # print("Peak time of each season:\n", peak_times)
     # difference between 2017/18 and 2022/23 seasons
-    peak_time_diff = (peak_times.iloc[7] - peak_times.iloc[2]).dt.days - 365*5
+    print(peak_times[2])
+    peak_time_diff = (peak_times[7] - peak_times[2]).days - 365*5
     # this pritns in vertical format, just printa s a list
     print("Difference in peak times between 2017/18 and 2022/23 seasons (in days):", peak_time_diff.tolist())
-
 
     population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
     expected_obs = calculate_expected_obs(values, p_time_to_obs, len(times), NAG=NAG)
@@ -254,12 +223,18 @@ if __name__ == "__main__":
     # Assign each time point to a season (numeric season id/start)
     season_ids = jax.vmap(get_season_start_jax)(cut_times)
     unique_seasons = 16684 + 365 * jnp.arange(10)  # Assuming seasons start on day 259 of each year
-    # For each season, find the time index of the peak expected observation (per age group)
+    
+    # For each season, find the center of gravity of expected observation (per age group)
     def season_peak_times(season_id):
         season_mask = season_ids == season_id                           # (T,)
-        masked_obs = jnp.where(season_mask[:, None], expected_obs, -jnp.inf)  # (T, NAG)
-        peak_idx = jnp.argmax(masked_obs, axis=0)                      # (NAG,)
-        return times[peak_idx]                                          # (NAG,)
+        masked_obs = jnp.where(season_mask[:, None], expected_obs, 0)   # (T, NAG)
+        # Calculate center of gravity: sum(time_idx * obs) / sum(obs)
+        time_indices = jnp.arange(len(cut_times))
+        numerator = jnp.sum(time_indices[:, None] * masked_obs, axis=0)  # (NAG,)
+        denominator = jnp.sum(masked_obs, axis=0)                       # (NAG,)
+        peak_idx = numerator / jnp.maximum(denominator, 1e-10)          # (NAG,) - avoid division by zero
+        return times[jnp.asarray(peak_idx, dtype=int)]                  # (NAG,)
+    
     expected_peak_times = jax.vmap(season_peak_times)(unique_seasons) 
     # Convert peak times to dates and display in a nice table format
     peak_dates = [[t_to_date(t).strftime('%Y-%m-%d') for t in season] for season in expected_peak_times]
@@ -270,15 +245,78 @@ if __name__ == "__main__":
     expected_peak_time_diff = (expected_peak_times[7] - expected_peak_times[2]) - 365*5
     print("Difference in expected peak times between 2017/18 and 2022/23 seasons (in days):", expected_peak_time_diff)
 
-    pre_pandemic_median_ratio = jnp.median(obs_per_season[:5, 2] / obs_per_season[:5, 1])
-    rebound_season_idx = jnp.argmax(jnp.sum(obs_per_season[5:], axis=1))
-    rebound_ratio = obs_per_season[5+rebound_season_idx, 2] / obs_per_season[5+rebound_season_idx, 1]
-    print("Observed ratio of ratios in age groups:", rebound_ratio/pre_pandemic_median_ratio)
+    # Calculate ratio of ratios for observed data
+    pre_pandemic_observed_obs = obs_per_season[:5]
+    # rebound_season_idx is the first season after 2019/20 with total infections exceeding threshold of median pre-pandemic season
+    threshold = 1/2
+    rebound_season_idx = np.where(np.sum(obs_per_season[5:], axis=1) > threshold * np.median(np.sum(obs_per_season[:5], axis=1)))[0][0]
+    rebound_observed_obs = obs_per_season[5+rebound_season_idx]
 
-    pre_pandemic_median_ratio = jnp.median(expected_obs_per_season[:5, 2] / expected_obs_per_season[:5, 1])
-    rebound_season_idx = jnp.argmax(jnp.sum(expected_obs_per_season[5:], axis=1))
-    rebound_ratio = expected_obs_per_season[5+rebound_season_idx, 2] / expected_obs_per_season[5+rebound_season_idx, 1]
-    print("Expected ratio of ratios in age groups:", rebound_ratio/pre_pandemic_median_ratio)
+    from sim_grid import age_ratio_of_rebound
+    print(age_ratio_of_rebound(jnp.stack([obs_per_season, obs_per_season], axis=0)))
+    
+    obs_ratio_matrix = np.zeros((NAG, NAG))
+    for i in range(NAG):
+        for j in range(NAG):
+            ratio_of_ratios = age_ratio_of_rebound(jnp.stack([obs_per_season, obs_per_season], axis=0), idx_num=i, idx_den=j, threshold_factor=threshold)
+            obs_ratio_matrix[i, j] = ratio_of_ratios
+
+    expected_ratio_matrix = np.zeros((NAG, NAG))
+    for i in range(NAG):
+        for j in range(NAG):
+            ratio_of_ratios = age_ratio_of_rebound(jnp.stack([expected_obs_per_season, expected_obs_per_season], axis=0), idx_num=i, idx_den=j, threshold_factor=threshold)
+            expected_ratio_matrix[i, j] = ratio_of_ratios
+
+    
+    # Calculate differences between observed and expected, weighted by distance from 1
+    diff_matrix = np.abs(obs_ratio_matrix - expected_ratio_matrix)
+    # Weight by distance from 1 (prioritize values far from 1)
+    weight_matrix = np.abs(obs_ratio_matrix - 1) + np.abs(expected_ratio_matrix - 1)
+    
+    # Create weighted diff only for lower triangle
+    weighted_diff_matrix = np.full_like(diff_matrix, np.nan)
+    for i in range(NAG):
+        for j in range(i):  # Only lower triangle
+            with np.errstate(divide='ignore', invalid='ignore'):
+                weighted_diff_matrix[i, j] = diff_matrix[i, j] / weight_matrix[i, j]
+    
+    # Find three smallest and three largest weighted differences (lower triangle only)
+    flat_diffs = weighted_diff_matrix[np.isfinite(weighted_diff_matrix)].flatten()
+    sorted_diffs = np.sort(flat_diffs)
+    three_smallest = sorted_diffs[:3]
+    three_largest = sorted_diffs[-3:]
+    
+    # Create formatted dataframes with markers (lower triangle only)
+    obs_ratio_df = pd.DataFrame(obs_ratio_matrix, index=AGE_GROUP_NAMES, columns=AGE_GROUP_NAMES)
+    obs_ratio_display = obs_ratio_df.astype(object)
+    
+    expected_ratio_df = pd.DataFrame(expected_ratio_matrix, index=AGE_GROUP_NAMES, columns=AGE_GROUP_NAMES)
+    expected_ratio_display = expected_ratio_df.astype(object)
+    
+    # Mark three closest and three most different (lower triangle only)
+    for i in range(NAG):
+        for j in range(NAG):
+            if i <= j:  # Skip upper triangle and diagonal
+                obs_ratio_display.iat[i, j] = ""
+                expected_ratio_display.iat[i, j] = ""
+            else:
+                marker = ""
+                if np.isfinite(weighted_diff_matrix[i, j]):
+                    if weighted_diff_matrix[i, j] in three_smallest:
+                        marker = "*"
+                    elif weighted_diff_matrix[i, j] in three_largest:
+                        marker = "$"
+                
+                obs_ratio_display.iat[i, j] = f"{obs_ratio_matrix[i, j]:.3f}{marker}"
+                expected_ratio_display.iat[i, j] = f"{expected_ratio_matrix[i, j]:.3f}{marker}"
+    
+    print("Observed ratio of ratios matrix (lower triangle only):")
+    print(obs_ratio_display.to_string())
+    print()
+    print("Expected ratio of ratios matrix (lower triangle only):")
+    print(expected_ratio_display.to_string())
+    print(f"\n* = three closest matches furthest from 1 (weighted diffs: {three_smallest})")
+    print(f"$ = three most different furthest from 1 (weighted diffs: {three_largest})")
 
     # population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
     # # trajectory is total proportion infected over time
@@ -319,7 +357,17 @@ if __name__ == "__main__":
     # text type is palatino
     plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.serif'] = ['Palatino']
-    fig = plt.figure(figsize=(5,5))
+
+    hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
+    hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
+
+    fig = plt.figure(figsize=(5.5,5.5))
+    # ax = fig.add_subplot(1,1,1)
+    # aggregation = "MS"
+    # mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label=None,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color=hsv_colors, linewidth=0.5, NAG=NAG)
+    # lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
+    # plt.savefig("Figures/"+prefix+"incidence_plot_"+pathogen+"_"+str(seed)+"_"+option1_label+"_"+option2_label+".png", dpi=300, bbox_inches='tight')
+
     ax1 = fig.add_subplot(3,1,1)
     
     # Create a grid of 2 rows x 4 columns in the middle
@@ -352,8 +400,6 @@ if __name__ == "__main__":
     #     ax[2].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed")
     # # ax[2].plot(POINTS, mx*full_likelihood, label="Normalized likelihood", color="black", alpha=0.5)
 
-    hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
-    hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
     for i_age in range(NAG):
         age_ax = ax_grid[i_age // 4][i_age % 4]
         if "orig_incidence_data" in option1:
@@ -424,33 +470,33 @@ if __name__ == "__main__":
     plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+".png",dpi=300)
     plt.close()
 
-    # fig, ax = plt.subplots(figsize=(4,4))
-    # aggregation = "W"
-    # kpsc_proportion_positive_incidence_plot(ax, pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data")
-    # mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="silver", label="Simulation")
-    # lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
-    # plt.tight_layout()
-    # plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_monthly_noage.png",dpi=300)
-    # plt.close()
+    fig, ax = plt.subplots(figsize=(4,4))
+    aggregation = "W"
+    kpsc_proportion_positive_incidence_plot(ax, pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data")
+    mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="silver", label="Simulation")
+    lockdown_incidence_format(ax,date_to_t('2020-03-19'),365,mx,year_window=2)
+    plt.tight_layout()
+    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_monthly_noage.png",dpi=300)
+    plt.close()
 
-    # ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
-    # ax[1].set_xlabel("")
-    # ax[1].set_ylabel("")
-    # ax[1].set_xlabel("")
-    # ax[1].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
-    # ax[0].set_yticks([])
-    # lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=False,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
-    # lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
-    # ax[2].set_title("Effective susceptibles")
-    # ax[1].set_xlabel("")
-    # ax[1].set_ylabel("")
-    # ax[1].set_xlabel("")
-    # ax[1].ticklabel_format(axis='y', style='sci', scilimits=(0,0))
-    # ax.set_xticklabels(["","2016","","2018","","2020","","2022","","2024",""])
-    # # ax.set_yscale('log')
-    # # ax.set_ylim(1e-3,)
-    # # multiply y lables by 100
-    # ylabls = ax.get_yticks()
-    # ax.set_yticklabels([str(int(np.round(yl*100))) for yl in ylabls])
-    # plt.tight_layout()
-    # plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_mini_noage_weekly.png",dpi=300)
+    ax[1].set_title("Simulated incidence of "+pnamedict[pathogen])
+    ax[1].set_xlabel("")
+    ax[1].set_ylabel("")
+    ax[1].set_xlabel("")
+    ax[1].set_xticklabels(["","2016","","2018","","2020","","2022","","2024"])
+    ax[0].set_yticks([])
+    lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=True,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES)
+    lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
+    ax[2].set_title("Effective susceptibles")
+    ax[1].set_xlabel("")
+    ax[1].set_ylabel("")
+    ax[1].set_xlabel("")
+    ax[1].ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+    ax.set_xticklabels(["","2016","","2018","","2020","","2022","","2024",""])
+    # ax.set_yscale('log')
+    # ax.set_ylim(1e-3,)
+    # multiply y lables by 100
+    ylabls = ax.get_yticks()
+    ax.set_yticklabels([str(int(np.round(yl*100))) for yl in ylabls])
+    plt.tight_layout()
+    plt.savefig("Figures/DE_"+pathogen+lockdown+option1+option2+str(seed)+"_mini_noage_weekly.png",dpi=300)

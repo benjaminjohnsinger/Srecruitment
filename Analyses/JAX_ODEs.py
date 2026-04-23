@@ -9,7 +9,7 @@ interp_fn = jax.vmap(jnp.interp, in_axes=(None, None, 1), out_axes=0)
 
 def deltas(t, state, args):
     (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, # population parameters
-    BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY, # fit parameters
+    BETA, WANE, S_REL, I_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY, # fit parameters
     REC_UP, REC_SAME, IMPORT_STRENGTH, NAG) = args # pathogen parameters
     N_S = 3
     delta = jnp.zeros((2*N_S+1,NAG))
@@ -29,7 +29,7 @@ def deltas(t, state, args):
     relative_contact = interp_fn(t, FULL_POINTS, RELATIVE_CONTACT)
     import_strength = jnp.interp(t, FULL_POINTS, IMPORT_STRENGTH)
     CONTACT_t = relative_contact[:, None] * relative_contact[None, :] * CONTACT_MATRIX
-    infectious_by_age = jnp.sum(infectious, axis=0)
+    infectious_by_age = jnp.sum(I_REL[:, None] * infectious, axis=0)
     infectious_contact = jnp.dot(CONTACT_t,infectious_by_age)/pop_size
     import_contact = import_strength*jnp.dot(CONTACT_t,age_pops)/pop_size
     force_of_infection = BETA*(infectious_contact + import_contact)

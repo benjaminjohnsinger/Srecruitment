@@ -94,7 +94,7 @@ if __name__ == "__main__":
     # with open(results_file, "rb") as f:
     #     results = pickle.load(f)
     # print(f"Loaded results from disk: {results.keys()}")
-    # final_x = results["final_params"]
+    # final_x = results["final_x"]
     
     # calculate Hessian
     true_likelihood, N = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=False, hosp=hosp, hessian=True)

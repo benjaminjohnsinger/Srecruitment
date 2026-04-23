@@ -81,7 +81,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
         daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
         daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
     if ("peaks_and_times" in option1) or ("combo" in option1):
-        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp)
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp, NAG=NAG)
         incidence = incidence.fillna(0)
         obs_per_season = jnp.asarray(calculate_observations_per_season(incidence, age_groups=True))
         peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()
@@ -281,23 +281,28 @@ if __name__ == '__main__':
     key = jax.random.PRNGKey(seed)
 
     # see if there's already an output file to start from
+    hypercube_size = int(opt_size) * len(bounds)
     xs = None
+    load_flag = False
     if ("evosax" in algorithm) and ("diffusion" not in algorithm):
         results_file = "Data/Processed/results"+str(seed)[:6]+"/evosax_DE_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
         if os.path.exists(results_file):
             print(f"Found existing results file for {algorithm} optimization. Loading initial points from disk.")
+            load_flag = True
             with open(results_file, "rb") as f:
                 data = pickle.load(f)
                 if "final_population" in data:
                     xs = data["final_population"]
+                    likelihoods = data["final_fitness"]
+                    metrics_log_past = data["metrics_log"]
                 elif "final_params" in data:
                     xs = data["final_params"]
+                    likelihoods = data["neglogL_history"][-1]
+                    metrics_log_past = data["neglogL_history"]
                 else:
                     print("No suitable initial points found in results file. Generating new initial points.")
                     xs = None
     if xs is None:
-        hypercube_size = int(opt_size) * len(bounds)
-
         key, subkey = jax.random.split(key)
         sampling_start_time = time.time()
         lhs_samples = latin_hypercube_sample(subkey, hypercube_size, len(bounds))
@@ -384,6 +389,8 @@ if __name__ == '__main__':
             os.makedirs("Data/Processed/results"+str(seed)[:6])
         # save results to disk
         results_file = "Data/Processed/results"+str(seed)[:6]+"/evosax_"+name+"_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
+        if load_flag:
+            metrics_log = {**metrics_log_past, **metrics_log} # combine old and new metrics logs
         with open(results_file, "wb") as f:
             pickle.dump({"final_population": state.population, "final_fitness": state.fitness, "metrics_log": metrics_log}, f)
     elif "optax" in algorithm:
