@@ -38,7 +38,7 @@ combinations=(
 )
 
 for combination in "${combinations[@]}"; do
-    /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/polish.py $combination
+    /Users/BSinger/Documents/Srecruitment/.venv/bin/python /Users/BSinger/Documents/Srecruitment/Analyses/polish.py $combination
 done
 
 
