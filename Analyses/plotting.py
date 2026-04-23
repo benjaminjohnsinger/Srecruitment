@@ -214,6 +214,10 @@ def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,solut
         if proportion:
             pop_by_age = calculate_population_size(values, NAG=NAG)
             sus = sus/pop_by_age
+        if relative:
+            pre_mx_sus = np.mean(np.sum(sus,axis=1)[np.argmax(times>T_LOCKDOWN-5*365):np.argmax(times>T_LOCKDOWN)])
+            print(pre_mx_sus)
+            sus = sus/pre_mx_sus
         for i in range(NAG):
             ax.plot(dates,sus[:,i], label=AGE_GROUP_NAMES[i], color=hsv_colors[i],linestyle=style)
     else:

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import scipy as sp
 import pandas as pd
 # import itertools as it
-from plotting import lockdown_incidence_plot, kpsc_positive_test_plot
+from plotting import lockdown_incidence_plot, lockdown_incidence_format, kpsc_positive_test_plot
 # from math import comb
 from utils import *
 from Parameters.census_population import AGE_GROUP_NAMES, CENSUS_AGE_POP
@@ -35,27 +35,27 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-labels = ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Adenovirus", "Parainfluenza3"]
-x = np.array([0.05055, 0.01256, 0.5846, 0.1926, 0.9883, 0.6028])
-y = np.array([0.2908, 0.01664, 0.6762, 0.5275, 0.9916, 0.9820])
-# # line of best fit with constraint that coefficients sum to 1
-# # fit: y = a*x + b where a + b = 1, so b = 1 - a
-# # minimize: sum((y - (a*x + (1-a)))^2)
-# def objective(a):
-#     y_pred = a * x + (1 - a)
-#     return np.sum((y - y_pred) ** 2)
+# labels = ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Adenovirus", "Parainfluenza3"]
+# x = np.array([0.05055, 0.01256, 0.5846, 0.1926, 0.9883, 0.6028])
+# y = np.array([0.2908, 0.01664, 0.6762, 0.5275, 0.9916, 0.9820])
+# # # line of best fit with constraint that coefficients sum to 1
+# # # fit: y = a*x + b where a + b = 1, so b = 1 - a
+# # # minimize: sum((y - (a*x + (1-a)))^2)
+# # def objective(a):
+# #     y_pred = a * x + (1 - a)
+# #     return np.sum((y - y_pred) ** 2)
 
-# a_opt = sp.optimize.minimize_scalar(objective, bounds=(0, 1), method='bounded').x
-# b_opt = 1 - a_opt
-a_opt, b_opt = 0.75, 0.25
-print("Line of best fit (constrained): y = {:.3f}x + {:.3f}".format(a_opt, b_opt))
-plt.plot(x, a_opt*x + b_opt, color='r', label='Line of Best Fit (Constrained)')
-plt.scatter(x, y)
-for i, label in enumerate(labels):
-    plt.annotate(label, (x[i], y[i]), xytext=(5, 5), textcoords='offset points', fontsize=9)
-plt.show()
+# # a_opt = sp.optimize.minimize_scalar(objective, bounds=(0, 1), method='bounded').x
+# # b_opt = 1 - a_opt
+# a_opt, b_opt = 0.75, 0.25
+# print("Line of best fit (constrained): y = {:.3f}x + {:.3f}".format(a_opt, b_opt))
+# plt.plot(x, a_opt*x + b_opt, color='r', label='Line of Best Fit (Constrained)')
+# plt.scatter(x, y)
+# for i, label in enumerate(labels):
+#     plt.annotate(label, (x[i], y[i]), xytext=(5, 5), textcoords='offset points', fontsize=9)
+# plt.show()
 
-# #### latin hypercube sampling of parameter space and likelihood evaluation
+#### latin hypercube sampling of parameter space and likelihood evaluation
 # # BETA follows a lognormal distribution with median 0.15
 # def BETA_distribution(key):
 #     return jax.random.normal(key, shape=()) * 0.5 + np.log(0.2)
@@ -106,7 +106,7 @@ plt.show()
 # from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
 # from fit_opt import latin_hypercube_sample
 
-# pathogens = ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Adenovirus", "Parainfluenza3"]
+pathogens = ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Adenovirus", "Parainfluenza3"]
 
 # chunk_size = 1000
 # total_samples = 1_000_000
@@ -197,6 +197,8 @@ plt.show()
 #     plt.tight_layout()
 #     plt.savefig(f"Figures/{pathogen}_parameter_pmf_from_likelihood_lhs.png", dpi=300)
 #     plt.close(fig)
+
+
 
 ###### spectrum analysis
 # N = date_to_t("2020-03-19")-date_to_t('2015-10-01')

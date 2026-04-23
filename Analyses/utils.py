@@ -387,6 +387,11 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         n += 1
     else:
         P_OBS = pobsrel
+    if "irel" in option1:
+        I_REL = jnp.array([1,x[n],x[n]*x[n+1]])
+        n += 2
+    else:
+        I_REL = jnp.array([1,1,1])
     if "maxmimm" in option1:
         MIMM = 1
         MATERNAL_IMMUNITY = MATERNAL_IMMUNITY.at[:,2].set(MIMM)
@@ -605,11 +610,11 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         
 
     params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
-                BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
+                BETA, WANE, S_REL, I_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
                 REC_UP, REC_SAME, IMPORT_STRENGTH)
     
     if print_params:
-        param_names = ["BETA","WANE","SEASONALITY","OFFSET","S_REL","P_OBS","OBS_AGE"]
+        param_names = ["BETA","WANE","SEASONALITY","OFFSET","S_REL","I_REL","P_OBS","OBS_AGE"]
         if "daycare" in option2:
             param_names += ["DAYCARE"]
         if lockdown != "Taube":
@@ -665,6 +670,8 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
         bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = [0.1,1]
     else:
         bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1,1]
+    if "irel" in option1:
+        bounds_dict["I_REL1"] = bounds_dict["I_REL2"] = [0.1,1]
     if "dynamic" not in option1 and "pp" not in option2:
         if "flexage" in option2:
             if option2 == "flexage":
@@ -722,7 +729,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
     if ("daycare" in option2) and ("daycarep" not in option2):
         bounds_dict["DAYCARE"] = [0,1]
     # reorder bounds_dict to match order in x
-    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","FO","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","AGE_OBS_8","AGE_OBS_9","DAYCARE"]\
+    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","I_REL1","I_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","FO","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","AGE_OBS_8","AGE_OBS_9","DAYCARE"]\
         if key in bounds_dict.keys()}
     bounds = jnp.array(list(bounds_dict.values()))
     param_names = list(bounds_dict.keys())
@@ -984,7 +991,7 @@ def susceptibility(solution,params,N_C=2,NAG=7,N_S=3):
     Generate susceptibility by age group from ODE solutions
     """
     FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
-    BETA, WANE, S_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
+    BETA, WANE, S_REL, I_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
     REC_UP, REC_SAME, IMPORT_STRENGTH = params
     sus = np.zeros((len(solution.ts),NAG))
     for i_t,t in enumerate(solution.ts):

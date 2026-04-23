@@ -379,11 +379,8 @@ def age_ratio_of_rebound(x, idx_num=2, idx_den=1, threshold_factor=1/2):
     Returns: The ratio of the specified age groups during the rebound season, relative to the pre-pandemic ratio. If there is no rebound, returns NaN.
     """
     obs_per_season = x[0, :, :]
-    print(obs_per_season[:5, idx_num], obs_per_season[:5, idx_den])
-    print("ratios all pre-pandemic:", obs_per_season[:5, idx_num] / obs_per_season[:5, idx_den])
     pre_pandemic_mean_ratio = jnp.mean(obs_per_season[:5, idx_num] / obs_per_season[:5, idx_den])
     threshold = threshold_factor * jnp.median(obs_per_season[:5, -1])
-    print("pre-pandemic mean ratio:", pre_pandemic_mean_ratio)
     
     post_pandemic_obs = obs_per_season[5:, -1]
     rebound_mask = post_pandemic_obs >= threshold
@@ -393,7 +390,6 @@ def age_ratio_of_rebound(x, idx_num=2, idx_den=1, threshold_factor=1/2):
     first_rebound_idx = jnp.argmax(rebound_mask)
     rebound_season_idx = 5 + first_rebound_idx
     rebound_obs = obs_per_season[rebound_season_idx]
-    print("rebound ratio:", rebound_obs[idx_num] / rebound_obs[idx_den])
     
     # Return NaN if numerator or denominator is zero or NaN
     pre_pandemic_obs = obs_per_season[:5]
@@ -467,14 +463,6 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
         value = age_ratio_of_rebound(seasons)
     elif outcome == "time_to_rebound":
         value = time_to_rebound(seasons)/365
-    # print 3-11m and 1-4y observations for the 2017/18 season and the 2022/23 season
-    print("3-11m obs in 2017/18 season:", obs_per_season[2, 1])
-    print("1-4y obs in 2017/18 season:", obs_per_season[2, 2])
-    print("3-11m obs in 2021/22 season:", obs_per_season[6, 1])
-    print("1-4y obs in 2021/22 season:", obs_per_season[6, 2])
-    print("3-11m obs in 2022/23 season:", obs_per_season[7, 1])
-    print("1-4y obs in 2022/23 season:", obs_per_season[7, 2])
-    print(f"{outcome} for {pathogen}: {value}")
     return value
 
 def get_parameter_values(samples, p_idx):
