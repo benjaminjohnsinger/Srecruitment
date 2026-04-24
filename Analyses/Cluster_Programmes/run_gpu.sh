@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ODip+
+#SBATCH --job-name=nnrODip
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -12,7 +12,7 @@
 #SBATCH --time=10:00:00
 
 # Array job specifications:
-#SBATCH --array=0-6
+#SBATCH --array=0-1
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 
@@ -21,13 +21,8 @@ module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
 combinations=(
-"RSV 260423 ExponentialODipEqual split maxagep028 1e-9 200 2000 0.7"
-"Metapneumovirus 260423 ExponentialODipEqual split maxagep028 1e-9 200 2000 0.7"
-"InfluenzaA 260423 ExponentialODipEqual split nrmaxagep05 1e-9 200 2000 0.7"
-"InfluenzaB 260423 ExponentialODipEqual split nrmaxagep05 1e-9 200 2000 0.7"
-"InfluenzaA 260424 ExponentialODipEqual split nrmaxagep05 1e-9 200 2000 0.7"
-"InfluenzaB 260424 ExponentialODipEqual split nrmaxagep05 1e-9 200 2000 0.7"
-"Metapneumovirus 260424 ExponentialODipEqual split maxagep028 1e-9 200 2000 0.7"
+"InfluenzaA 260424 ExponentialODipEqual split maxagep05 1e-9 200 2000 0.7"
+"InfluenzaB 260424 ExponentialODipEqual split maxagep05 1e-9 200 2000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
