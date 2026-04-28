@@ -12,7 +12,7 @@
 #SBATCH --time=72:00:00
 
 # Array job specifications:
-#SBATCH --array=0-3
+#SBATCH --array=0-1
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 
@@ -23,8 +23,6 @@ source activate /global/scratch/users/bjsinger/jax_env
 combinations=(
 "InfluenzaA 260423 ExponentialODipEqual split nrmaxagep05 1e-9 200 2000 0.7"
 "InfluenzaB 260423 ExponentialODipEqual split nrmaxagep05 1e-9 200 2000 0.7"
-"RSV 260423 ExponentialODipEqual split maxagep028 1e-9 200 2000 0.7"
-"Metapneumovirus 260423 ExponentialODipEqual split maxagep028 1e-9 200 2000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
