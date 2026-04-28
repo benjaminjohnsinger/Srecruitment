@@ -35,6 +35,157 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
+######
+from Parameters.census_population import AGE_GROUPS_split as AGE_GROUPS
+expected_obs = jnp.ones((10,65))
+expected_obs = expected_obs.at[:,0:3].set(0.5)
+expected_obs = expected_obs.at[:,3:12].set(0.3)
+expected_obs = expected_obs.at[:,12:60].set(0.1)
+expected_obs = expected_obs.at[:,60].set(0.9)
+expected_obs = expected_obs.at[:,61].set(0.7)
+expected_obs = expected_obs.at[:,62].set(0.4)
+expected_obs = expected_obs.at[:,63].set(0.6)
+expected_obs = expected_obs.at[:,64].set(0.8)
+
+print(sum_age_to(expected_obs, 12*5, AGE_GROUPS))
+
+######### interval between first and second birth in months
+# # percent with no second birth, within 24 months, 25-36 months, 37-48 months, and 49+ months
+# percent = np.array([29.5, 18.7, 17.3, 10.7, 23.9])/100
+# # renormalize to look at kids with at least one older sibling (i.e. get rid of no second birth)
+# percent = percent[1:]/np.sum(percent[1:])
+
+# weights = np.array([0.11007698, 0.33023093, 1.79616209, 0.63537594 ])
+# weights = weights/np.sum(weights)
+
+# print(np.sum(percent[0:3]), percent[-1])
+# print(np.sum(weights[0:3]), weights[-1])
+
+
+####### plot difference between aging at an exponential rate vs aging fully realistically
+# compartments = jnp.zeros(4)
+# time_in_age_group = jnp.array([3/12*365,9/12*365,4*365,80*365])
+# age_rate = 1/time_in_age_group
+# birth_rate = 1/(80*365)
+# # run simulation of birth and aging until steady state
+# def birth_and_aging(t, compartments):
+#     aging = age_rate * compartments
+#     dcompartments_dt = jnp.array([birth_rate, aging[0], aging[1], aging[2]]) - aging
+#     return dcompartments_dt
+# from scipy.integrate import solve_ivp
+# t_eval = np.linspace(0, 80*365*5, 10000)
+# start_time = time.time()
+# sol = solve_ivp(birth_and_aging, [0, 80*365*5], compartments, t_eval=t_eval)
+# print('done in', time.time() - start_time, 'seconds')
+
+# # try with more compartments (and sum compartments to same age groups)
+# compartments2 = jnp.zeros(4*5+1)
+# time_in_age_group2 = jnp.array([1/4*365]*4*5 + [80*365])
+# age_rate2 = 1/time_in_age_group2
+# # run simulation of birth and aging until steady state
+# def birth_and_aging2(t, compartments2):
+#     aging = age_rate2 * compartments2
+#     dcompartments_dt = jnp.zeros_like(compartments2)
+#     dcompartments_dt = dcompartments_dt.at[0].add(birth_rate)
+#     dcompartments_dt = dcompartments_dt.at[1:].add(aging[:-1])
+#     dcompartments_dt = dcompartments_dt - aging
+#     return dcompartments_dt
+# from scipy.integrate import solve_ivp
+# t_eval = np.linspace(0, 80*365*5, 10000)
+# start_time = time.time()
+# sol2 = solve_ivp(birth_and_aging2, [0, 80*365*5], compartments2, t_eval=t_eval)
+# print('done in', time.time() - start_time, 'seconds')
+# values = sol2.y.T
+# # sum into same age groups as first simulation
+# age_group_compartments2 = jnp.array([jnp.sum(values[:,0:1], axis=1),
+#                                      jnp.sum(values[:,1:4], axis=1),
+#                                     jnp.sum(values[:,4:-1], axis=1),
+#                                      jnp.sum(values[:,-1:], axis=1)])
+
+# # try with more compartments (and sum compartments to same age groups)
+# compartments3 = jnp.zeros(12*5+1)
+# time_in_age_group3 = jnp.array([1/12*365]*12*5 + [80*365])
+# age_rate3 = 1/time_in_age_group3
+# # run simulation of birth and aging until steady state
+# def birth_and_aging3(t, compartments3):
+#     aging = age_rate3 * compartments3
+#     dcompartments_dt = jnp.zeros_like(compartments3)
+#     dcompartments_dt = dcompartments_dt.at[0].add(birth_rate)
+#     dcompartments_dt = dcompartments_dt.at[1:].add(aging[:-1])
+#     dcompartments_dt = dcompartments_dt - aging
+#     return dcompartments_dt
+# from scipy.integrate import solve_ivp
+# t_eval = np.linspace(0, 80*365*5, 10000)
+# start_time = time.time()
+# sol3 = solve_ivp(birth_and_aging3, [0, 80*365*5], compartments3, t_eval=t_eval)
+# print('done in', time.time() - start_time, 'seconds')
+# values = sol3.y.T
+# # sum into same age groups as first simulation
+# age_group_compartments3 = jnp.array([jnp.sum(values[:,0:3], axis=1),
+#                                      jnp.sum(values[:,3:12], axis=1),
+#                                     jnp.sum(values[:,12:-1], axis=1),
+#                                      jnp.sum(values[:,-1:], axis=1)])
+
+# # run alternative simulation where people spend exactly the time in each age group (i.e. non-markov)
+# sim_days = 80*365*5
+# daily_compartments = jnp.zeros((sim_days,81*365))
+# start_time = time.time()
+# def simulate_birth_and_aging(sim_days, birth_rate):
+#     def body_fn(day, daily_compartments):
+#         daily_compartments = daily_compartments.at[day, 1:].set(daily_compartments[day-1, :-1])
+#         daily_compartments = daily_compartments.at[day, 0].set(birth_rate)
+#         return daily_compartments
+    
+#     daily_compartments = jnp.zeros((sim_days, 81*365))
+#     daily_compartments = jax.lax.fori_loop(1, sim_days, body_fn, daily_compartments)
+#     return daily_compartments
+
+# start_time = time.time()
+# daily_compartments = jax.jit(simulate_birth_and_aging, static_argnums=(0,))(sim_days, birth_rate)
+# print('done in', time.time() - start_time, 'seconds')
+# # sum up age groups to get same age groups as in the first simulation
+# age_group_compartments = jnp.array([jnp.sum(daily_compartments[:,0:int(3/12*365)], axis=1),
+#                                     jnp.sum(daily_compartments[:,int(3/12*365):int(365)], axis=1),
+#                                     jnp.sum(daily_compartments[:,int(365):int(5*365)], axis=1),
+#                                     jnp.sum(daily_compartments[:,int(5*365):], axis=1)])
+
+# # save sol and daily_compartments
+# with open("Outputs/birth_and_aging_comparison.pkl", "wb") as f:
+#     pickle.dump((sol, age_group_compartments), f)
+
+# # Define colors for age groups and line styles for simulation types
+# age_group_colors = ['#648FFF', '#DC267F', '#FFB000', '#785EF0']  # Blue, Pink, Orange, Purple
+# age_group_labels = ["0-3m", "3-11m", "1-4y", "5y+"]
+# linestyles = ['-', ':', '--', '-.']
+# simulation_labels = ['Markov (3 compartments)', 'Markov (4*5 compartments)', 'Markov (12*5 compartments)', 'Non-Markov (exact)']
+
+# fig, ax = plt.subplots(figsize=(10, 6))
+
+# # Plot exponential model
+# for i, (color, label) in enumerate(zip(age_group_colors, age_group_labels)):
+#     ax.plot(sol.t/365, sol.y[i], color=color, linestyle='-', linewidth=2, label=f'{label} - {simulation_labels[0]}')
+
+# # Plot Markov model
+# for i, (color, label) in enumerate(zip(age_group_colors, age_group_labels)):
+#     ax.plot(sol2.t/365, age_group_compartments2[i], color=color, linestyle=':', linewidth=2, label=f'{label} - {simulation_labels[1]}')
+
+# # Plot Markov model (12*5 compartments)
+# for i, (color, label) in enumerate(zip(age_group_colors, age_group_labels)):
+#     ax.plot(sol3.t/365, age_group_compartments3[i], color=color, linestyle='--', linewidth=2, label=f'{label} - {simulation_labels[2]}')
+
+# # Plot non-Markov model
+# for i, (color, label) in enumerate(zip(age_group_colors, age_group_labels)):
+#     ax.plot(np.arange(sim_days)/365, age_group_compartments[i], color=color, linestyle='-.', linewidth=2, label=f'{label} - {simulation_labels[3]}')
+
+# ax.set_xlabel('Time (years)')
+# ax.set_ylabel('Compartment value')
+# ax.legend(frameon=False, fontsize=9, ncol=4)
+# plt.tight_layout()
+# plt.show()
+
+
+
+
 # labels = ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Adenovirus", "Parainfluenza3"]
 # x = np.array([0.05055, 0.01256, 0.5846, 0.1926, 0.9883, 0.6028])
 # y = np.array([0.2908, 0.01664, 0.6762, 0.5275, 0.9916, 0.9820])
@@ -106,7 +257,7 @@ plt.rcParams['font.serif'] = ['Palatino']
 # from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
 # from fit_opt import latin_hypercube_sample
 
-pathogens = ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Adenovirus", "Parainfluenza3"]
+# pathogens = ["RSV", "Metapneumovirus", "InfluenzaA", "InfluenzaB", "Adenovirus", "Parainfluenza3"]
 
 # chunk_size = 1000
 # total_samples = 1_000_000

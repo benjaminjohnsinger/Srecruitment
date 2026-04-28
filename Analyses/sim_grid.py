@@ -427,8 +427,8 @@ def extract_target_values(all_results, outcome, **kwargs):
 
 def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
     print("pathogen:", pathogen)
-    incidence = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, hosp=True, return_counts=False, pp_only=False, NAG=NAG).values)
-    incidence_summed_age = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, hosp=True, return_counts=False, pp_only=False, NAG=NAG)["Total"].values)
+    incidence = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, hosp=True, return_counts=True, pp_only=False, NAG=NAG).values)
+    incidence_summed_age = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, hosp=True, return_counts=True, pp_only=False, NAG=NAG)["Total"].values)
     # pad with zeros: 14 days at the start, then enough at the end to complete full years
     pad_start = 14
     pad_end = (365 - ((len(incidence) + pad_start) % 365)) % 365
@@ -564,12 +564,13 @@ def add_extra_pathogens(ax):
 # PIPELINE FUNCTIONS
 # ==========================================
 def run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=7,
-                            seed=251118, n_samples=80000, dimension=2, chunk_size=40000):
+                            seed=251118, n_samples=80000, dimension=2, chunk_size=40000, run_save_path=None):
     """Handles parameter sampling, environment setup, and executes simulation chunks."""
     parameter_sets = parameter_space(good_simulations, NAG=NAG)
     samples = lh_sampling(parameter_sets, n_samples, dimension=dimension)
 
-    run_save_path = f"Outputs/sim_grid_lh_n{n_samples}_chunk{chunk_size}_seed{seed}_lockdown{lockdown}_{dimension}d"
+    if run_save_path is None:
+        run_save_path = f"Outputs/sim_grid_lh_n{n_samples}_chunk{chunk_size}_seed{seed}_lockdown{lockdown}_{dimension}d"
     os.makedirs(run_save_path, exist_ok=True)
     with open(os.path.join(run_save_path, "samples.pickle"), "wb") as f: pickle.dump(np.asarray(samples), f)
 
@@ -622,7 +623,7 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
         pathogen_colors = [pathogen_colors[i] if not np.isnan(pathogen_vals[i]) else (1,1,1,1) for i in range(len(good_simulations))]
     else:
         pathogen_colors = ["white"] * len(good_simulations)
-    # add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, color=pathogen_colors)
+    add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, color=pathogen_colors)
 
     ax.set_xlabel(PARAMETER_NAMES[p1])
     ax.set_ylabel(PARAMETER_NAMES[p2])
@@ -719,7 +720,7 @@ def plot_time_series_for_parameters(args, run_save_path, target_p1, target_p2, a
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 18, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260421
+    seed = 260423
     option1 = "split"
     NAG = 7 + ("split" in option1)
     if "split" in option1:
@@ -741,9 +742,9 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     good_simulations = [
-        ["RSV", seed, lockdown, option1, "maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "maxagep028"], 
-        ["InfluenzaA", seed, lockdown, option1, "maxagep05"], ["InfluenzaB", seed, lockdown, option1, "maxagep05"], 
-        ["Adenovirus", seed, lockdown, option1, "maxagep05"], ["Parainfluenza3", seed, lockdown, option1, "maxagep028"]
+        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", seed, lockdown, option1, "maxagep028"],
+        ["InfluenzaA", seed, lockdown, option1, "nrmaxagep05"], ["InfluenzaB", seed, lockdown, option1, "nrmaxagep05"],
+        ["Adenovirus", seed, lockdown, option1, "maxagep05"],["Parainfluenza3", seed, lockdown, option1, "maxagep028"],
     ]
     
     # Parameter scaling factors used in the model
@@ -759,17 +760,15 @@ if __name__ == "__main__":
     # plt.tight_layout()
     # plt.savefig("Figures/line_of_best_fit_ExponentialODipEqual_split.png", dpi=300)
     # print("NAG", NAG)
-    # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-    #                                         seed=seed, n_samples=40000, dimension=2, chunk_size=10000)
-    run_save_path = "Outputs/sim_grid_lh_n40000_chunk10000_seed260421_lockdownExponentialODipEqual_2d"
-
-    print(extract_target_value_from_data("Parainfluenza3", outcome="age_ratio", NAG=NAG))
+    # run_save_path = "Outputs/sim_grid_lh_n40000_chunk10000_seed260421_lockdownExponentialODipEqual_onlyFluRSV_2d"
+    run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
+                                            seed=seed, n_samples=10000, dimension=2, chunk_size=5000)
 
     fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
     generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", threshold_factor=1/3)
     generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_ratio", threshold_factor=1/3, idx_num=2, idx_den=1)
     plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_time_age_ExponentialODipEqual_split_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdthird_nolabels.png", dpi=300)
+    plt.savefig(f"Figures/heatmaps_time_age_ExponentialODipEqualGPU_split_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdthird.png", dpi=300)
     
     # # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
     # # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)

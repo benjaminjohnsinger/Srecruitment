@@ -21,7 +21,7 @@ from JAX_ODEs import deltas
 N_C = 2
 # NAG = 7
 N_S = 3
-from utils import date_to_t, parameters_from_DE, x_to_params, calculate_population_size
+from utils import date_to_t, parameters_from_DE, x_to_params, calculate_population_size, sum_age_to
 from Gemini_vaccination import FluRatePreprocessor
 import time
 from plotting import calculate_observations_per_season_jax, get_season_start_jax
@@ -47,7 +47,7 @@ def run_simulation(params, y0, t1, saveat_ts, hessian=False, NAG=7):
     return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
-def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, hessian=False, return_sum=True, NAG=7):
+def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, hessian=False, return_sum=True, NAG=7, AGE_GROUPS=None, max_month=None):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
@@ -56,10 +56,20 @@ def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_
     else:
         values = solution.ys.T
 
-    population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
+    population_size_inital = calculate_population_size(values, N_S=N_S, NAG=NAG)
+
+    if incidence_data or (obs_age is None):
+        expected_obs_initial = calculate_expected_obs(values, p_time_to_obs, len(data), NAG=NAG)
+
+    if (AGE_GROUPS is not None) and (max_month is not None):
+        population_size = sum_age_to(population_size_inital, max_month, AGE_GROUPS)
+        expected_obs = sum_age_to(expected_obs_initial, max_month, AGE_GROUPS)
+        NAG = len(AGE_GROUPS)
+    else:
+        population_size = population_size_inital
+        expected_obs = expected_obs_initial
 
     if incidence_data:
-        expected_obs = calculate_expected_obs(values, p_time_to_obs, len(data), NAG=NAG)
         incidence = jnp.round(data*population_size[-len(data):])
         # exclude date range from likelihood calculation
         masked_incidence = jnp.ones((len(data) - (mask[1] - mask[0]),NAG))
@@ -76,7 +86,6 @@ def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_
             expected_ratio = jnp.divide(expected_infectious, population_size[-len(data):] * obs_age)
             expected_positivity = jnp.clip(expected_ratio, 1e-10, 0.99)
         else:
-            expected_obs = calculate_expected_obs(values, p_time_to_obs, len(data), NAG=NAG)
             # probability of getting a positive test in hospital is expected_obs / population size over time
             expected_ratio = jnp.divide(expected_obs, population_size[-len(data):])
             # then condition by baseline probabilty of hospitalization

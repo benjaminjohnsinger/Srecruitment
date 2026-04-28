@@ -18,7 +18,7 @@ import pickle
 import colorsys
 from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 
-from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, infections_by_age, observations, load_optimization_results, x_to_params
+from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, infections_by_age, observations, load_optimization_results, x_to_params, sum_age_to
 
 N_C = 2
 N_S = 3
@@ -35,13 +35,14 @@ def lockdown_incidence_plot(
     ax,state0,params,points,T_LOCKDOWN,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,
     by_age=False,AGE_GROUP_NAMES=None,select_age_group=None,relative=False,deltas=deltas,obs=None,times=None,
     start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'),factor=1,p_time_to_obs=[1],
-    NAG=7
+    NAG=7, AGE_GROUPS=None, max_month=None
 ):
     if solution is None:
         term = ODETerm(deltas)
         solver = Dopri5()
         saveat = SaveAt(ts=points)
         step_controller = PIDController(rtol=1e-5, atol=1e-5)
+        params_sim = params + (NAG,)
         solution = diffeqsolve(
             term,
             solver,
@@ -51,7 +52,7 @@ def lockdown_incidence_plot(
             stepsize_controller=step_controller,
             saveat=saveat,
             y0=state0.flatten(),
-            args=params,
+            args=params_sim,
             max_steps=None,
         )
 
@@ -64,9 +65,11 @@ def lockdown_incidence_plot(
     end_index = np.argmin(times <= end_t)
     if end_index <= start_index:
         end_index = len(times)
-
+    
     trajectory = np.diff(values[-NAG:, :], axis=1).T
     expected_obs = np.sum([np.roll(trajectory, i, axis=0) * p_time_to_obs[i] for i in range(len(p_time_to_obs))], axis=0)
+    if (AGE_GROUPS is not None) and (max_month is not None):
+        expected_obs = sum_age_to(expected_obs, max_month, AGE_GROUPS)
 
     # Resolve optional single-age-group selection
     selected_age_idx = None
@@ -85,6 +88,8 @@ def lockdown_incidence_plot(
         hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
         hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
         pop_size_by_age = calculate_population_size(values, NAG=NAG)[1:]
+        if (AGE_GROUPS is not None) and (max_month is not None):
+            pop_size_by_age = sum_age_to(pop_size_by_age, max_month, AGE_GROUPS)
         obs = factor * expected_obs
 
         if selected_age_idx is None:
@@ -189,7 +194,7 @@ def prevalence_plot(ax,state0,params,points,obs_age=None,solution=None,label='Ob
     return(mx)
 
 
-def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,solution=None,label='Susceptible_population',color='#648FFF',relative=True,proportion=False,by_age=False,AGE_GROUP_NAMES=None,style='-',delta=deltas,NAG=7):
+def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,solution=None,label='Susceptible_population',color='#648FFF',relative=True,proportion=False,by_age=False,AGE_GROUP_NAMES=None,style='-',delta=deltas,NAG=7,NAG_eff=7,AGE_GROUPS=None, max_month=None):
     N_S = 3
     if solution is None:
         params = params + (NAG,)
@@ -208,16 +213,20 @@ def lockdown_susceptibility_plot(ax,state0,params,period,points,T_LOCKDOWN,solut
     dates = [t_to_date(t) for t in times]
     ## Calculate susceptibility
     sus = susceptibility(solution,params,NAG=NAG)
+    if (AGE_GROUPS is not None) and (max_month is not None):
+        sus = sum_age_to(sus, max_month, AGE_GROUPS)
     if by_age:
-        hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
-        hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
+        hsv_colors = colormaps.hsv(-0.02+np.arange(NAG_eff)/NAG_eff)
+        hsv_colors[3] = colormaps.hsv((3/NAG_eff)+0.28/NAG_eff)
         if proportion:
             pop_by_age = calculate_population_size(values, NAG=NAG)
+            if (AGE_GROUPS is not None) and (max_month is not None):
+                pop_by_age = sum_age_to(pop_by_age, max_month, AGE_GROUPS)
             sus = sus/pop_by_age
         if relative:
             pre_mx_sus = np.max(sus[np.argmax(times>T_LOCKDOWN-5*365):np.argmax(times>T_LOCKDOWN)], axis=0)
             sus = sus/pre_mx_sus
-        for i in range(NAG):
+        for i in range(NAG_eff):
             ax.plot(dates,sus[:,i], label=AGE_GROUP_NAMES[i], color=hsv_colors[i],linestyle=style)
     else:
         total_sus = np.sum(sus,axis=1)
@@ -807,6 +816,15 @@ if __name__ == "__main__":
     plt.rcParams['font.sans-serif'] = ['Helvetica']
     from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
 
+    seed = 260415
+    option1 = "split"
+    NAG = 7 + ("split" in option1)
+    if "split" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP, AGE_GROUP_NAMES_split as AGE_GROUP_NAMES
+    else:
+        from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUP_NAMES
+    lockdown = "Exponential"
+
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     
     # # Plot proportion positive on left y-axis
@@ -828,32 +846,32 @@ if __name__ == "__main__":
     # fig.tight_layout()
     # plt.savefig("Figures/KPSC_RSV_proportion_positive_vs_positive_test_incidence_weekly.png", dpi=300)
 
-    fig = plt.figure(layout="constrained", figsize=(7,4))
+    # fig = plt.figure(layout="constrained", figsize=(7,4))
 
     pathogens = ["RSV","Metapneumovirus","InfluenzaA","InfluenzaB","Adenovirus","Parainfluenza3",]
 
-    subfigs = fig.subfigures(1, 2, wspace=0.05, width_ratios=[7, 3])
-    axA = subfigs[1].subplots(len(pathogens), 1, sharex = True)
-    axB = subfigs[0].subplots((len(pathogens) + 1)//2, 2, sharex = True)
+    # subfigs = fig.subfigures(1, 2, wspace=0.05, width_ratios=[7, 3])
+    # axA = subfigs[1].subplots(len(pathogens), 1, sharex = True)
+    # axB = subfigs[0].subplots((len(pathogens) + 1)//2, 2, sharex = True)
 
     
-    # figA, axA = plt.subplots(6, 1, figsize=(2.5,4), sharex = True)
-    for pi,pathogen in enumerate(pathogens):
-        print(pathogen)
-        age_group_incidence_plot(axA[pi],pathogen,color="k",season="pre_median", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Pre-COVID-19")
-        age_group_incidence_plot(axA[pi],pathogen,color="silver",season="rebound", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Re-emergence")
-        axA[pi].set_title(nice_names.get(pathogen, pathogen))
-    # set singe x label for all subplots
-    axA[-1].set_xlabel("Age group")
-    axA[0].legend(loc="upper right", fontsize=6)
-    # set single y label for all subplots
-    subfigs[1].text(-0.05, 0.5, 'Incidence per 100k members', va='center', rotation='vertical')
-    # # plt.tight_layout()
-    # # plt.savefig("Figures/KPSC_age_group_incidence_pre_median_rebound.png",dpi=300)
+    # # figA, axA = plt.subplots(6, 1, figsize=(2.5,4), sharex = True)
+    # for pi,pathogen in enumerate(pathogens):
+    #     print(pathogen)
+    #     age_group_incidence_plot(axA[pi],pathogen,color="k",season="pre_median", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Pre-COVID-19")
+    #     age_group_incidence_plot(axA[pi],pathogen,color="silver",season="rebound", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, label="Re-emergence")
+    #     axA[pi].set_title(nice_names.get(pathogen, pathogen))
+    # # set singe x label for all subplots
+    # axA[-1].set_xlabel("Age group")
+    # axA[0].legend(loc="upper right", fontsize=6)
+    # # set single y label for all subplots
+    # subfigs[1].text(-0.05, 0.5, 'Incidence per 100k members', va='center', rotation='vertical')
+    # # # plt.tight_layout()
+    # # # plt.savefig("Figures/KPSC_age_group_incidence_pre_median_rebound.png",dpi=300)
 
     figB, axB = plt.subplots(3, 2, figsize=(6.5,4), sharex = True)
     data_color = "#648FFF"
-    aggregation = "W-MON"
+    aggregation = "MS"
     agg_factor = {"D":1, "W-MON":7, "MS":30.44}[aggregation]
     factor = 100000
     if factor >= 1000000:
@@ -864,7 +882,7 @@ if __name__ == "__main__":
         factor_label = str(factor)
     for pi, pathogen in enumerate(pathogens):
         kpsc_proportion_positive_incidence_plot(
-            axB[pi//2, pi%2], pathogen=pathogen, title=nice_names.get(pathogen, pathogen),
+            axB[pi//2, pi%2], pathogen=pathogen, AGE_GROUP_NAMES=AGE_GROUP_NAMES, title=nice_names.get(pathogen, pathogen),
             color=data_color, aggregation=aggregation, factor=factor,
             annotations=True, definition="50% median", label="Data", hosp=True)
     # suppress all y labels and replace with single label on left
@@ -883,17 +901,6 @@ if __name__ == "__main__":
 
     # now include plots of simulations on top of data
     
-    seed = 260415
-    option1 = "split"
-    NAG = 7 + ("split" in option1)
-    if "split" in option1:
-        from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
-        from Parameters.census_population import MEDIAN_AGE_split as MEDIAN_AGE
-    else:
-        from Parameters.census_population import CENSUS_AGE_POP
-        from Parameters.census_population import MEDIAN_AGE
-    option2 = "daycarep5flexagep05"
-    lockdown = "Exponential"
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
     POINTS = np.array(date_to_t(PERIOD))
@@ -905,7 +912,7 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     good_simulations = [
-        ["RSV", 260420, lockdown, option1, "maxbetap35maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "daycarep5maxagep02"], 
+        ["RSV", seed, lockdown, option1, "daycarep5maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "daycarep5maxagep02"], 
         ["InfluenzaA", seed, lockdown, option1, "daycarep5maxagep05"], ["InfluenzaB", seed, lockdown, option1, "daycarep5maxagep05"], 
         ["Adenovirus", seed, lockdown, option1, "daycarep5maxagep02"], ["Parainfluenza3", seed, lockdown, option1, "daycarep5maxagep02"]
     ]
@@ -916,8 +923,8 @@ if __name__ == "__main__":
         pathogen = sim[0]
         print(f"Plotting simulation for {pathogen}...")
         _, x, _ = load_optimization_results("", sim[0], sim[1], sim[2], sim[3], sim[4])
-        params = x_to_params(x, sim[0], sim[2], sim[3], sim[4], NAG=NAG, return_contact=False)
-        params = (*params, NAG)
+        params = x_to_params(x, sim[0], sim[2], sim[3], sim[4], NAG=NAG, return_contact=False, print_params=False)
+        params = params + (NAG,)
         lockdown_incidence_plot(axB[pi//2,pi%2], STATE0, params, POINTS, T_LOCKDOWN,
                                 p_time_to_obs=p_time_to_obs,
                                 color="#DC267F", factor=factor*agg_factor, label="Simulation")
@@ -926,7 +933,7 @@ if __name__ == "__main__":
     # plt.tight_layout()
     # plt.savefig("Figures/ReportOverallIncidenceWeeklyExponential2604172_annotate100.png",dpi=300)
 
-    subfigs[0].suptitle("A", x=0.01, fontweight='bold')
-    subfigs[1].suptitle("B", x=0.01, fontweight='bold')
+    # subfigs[0].suptitle("A", x=0.01, fontweight='bold')
+    # subfigs[1].suptitle("B", x=0.01, fontweight='bold')
 
-    plt.savefig("Figures/Figure1_thresholdp5.png",dpi=300)
+    plt.savefig("Figures/Figure1_old.png",dpi=300)

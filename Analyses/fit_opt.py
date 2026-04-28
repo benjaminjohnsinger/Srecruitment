@@ -27,7 +27,7 @@ from data_processing import calculate_proportion_positive_incidence
 # import scipy as sp
 # import multiprocessing
 
-def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=True, hosp=True, hessian=False, NAG=7, CENSUS_AGE_POP=None, birth_rate_multiplier=1.0):
+def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=True, hosp=True, hessian=False, NAG=7, AGE_GROUPS=None, CENSUS_AGE_POP=None, birth_rate_multiplier=1.0):
     ### load data and parameters
     start_date = '2015-07-04'
     end_date = '2025-05-01'
@@ -51,11 +51,16 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
 
     N_S = 3
-    if NAG > 7:
+    if "months" in option1:
+        from Parameters.census_population import AGING_RATE_months as AGING_RATE
+    elif NAG > 7:
         from Parameters.census_population import AGING_RATE_split as AGING_RATE
     else:
         from Parameters.census_population import AGING_RATE
-    CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7] +'_contact_all_US_Census.csv', delimiter=',', header=None).values)
+    if "months" in option1:
+        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/MONTHS_contact_all_US_Census.csv', delimiter=',', header=None).values)
+    else:
+        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
     BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
     if "incidence_data" in option1:
         if "old" in option1:
@@ -87,6 +92,10 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
         peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()
         peak_times = jnp.asarray(np.array([date_to_t(t) for t in peak_times.values]))
 
+    max_month = None
+    if "months" in option1:
+        max_month = 5*12
+
     ## Initial conditions
     STATE0 = jnp.zeros((2*N_S+1,NAG))
     STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
@@ -102,7 +111,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
             sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
-            lh = -SIS_likelihood(data, 0, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, incidence_data=True, hessian=hessian, NAG=NAG)
+            lh = -SIS_likelihood(data, 0, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, incidence_data=True, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
             if normalize:
                 lh = lh / N # normalize by number of data points
             return lh
@@ -112,7 +121,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
             sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
-            lh = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian, NAG=NAG)
+            lh = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
             if normalize:
                 lh = lh / N # normalize by number of data points
             return lh
@@ -124,8 +133,8 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
             sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
-            lh_base = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian, NAG=NAG)
-            lh_peaks_times = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian, NAG=NAG)
+            lh_base = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
+            lh_peaks_times = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
             if normalize:
                 lh = (lh_base / N1 + lh_peaks_times / N2)/2 # normalize by number of data points to make comparable
             else:
@@ -139,7 +148,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
                                     )
             if "pp" in option2:
                 pp_opt = sim_params[8]
-            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, obs_age=pp_opt, hessian=hessian, return_sum=False, NAG=NAG)
+            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, obs_age=pp_opt, hessian=hessian, return_sum=False, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
             
             # Extract the numeral from option1
             match = re.search(r'(youngest|oldest)(\d+)', option1)
@@ -165,7 +174,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
                                     )
             if "pp" in option2:
                 pp_opt = sim_params[8]
-            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, obs_age=pp_opt, hessian=hessian, NAG=NAG)
+            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, obs_age=pp_opt, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
             if normalize:
                 lh = lh / N # normalize by number of data points
             return lh
@@ -214,12 +223,17 @@ def run_resampling(xs, likelihoods, key):
 if __name__ == '__main__':
     pathogen, seed, lockdown, option1, option2, import_multiplier, opt_size, opt_rate1, opt_rate2 = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
 
-    NAG = 7 + ("split" in option1)
-
-    if NAG > 7:
+    AGE_GROUPS = None
+    if "months" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_months as CENSUS_AGE_POP
+        from Parameters.census_population import AGE_GROUPS_split as AGE_GROUPS
+        NAG = 65
+    elif "split" in option1:
         from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
+        NAG = 8
     else:
         from Parameters.census_population import CENSUS_AGE_POP
+        NAG = 7
 
     if len(sys.argv) > 10:
         algorithm = sys.argv[10]
@@ -258,7 +272,7 @@ if __name__ == '__main__':
     # bounds = jnp.zeros(unlogged_bounds.shape)
     # bounds = bounds.at[:, 1].set(10)
     # bounds = bounds.at[:, 0].set(-10)
-    likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, birth_rate_multiplier=birth_rate_multiplier)
+    likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, NAG=NAG, AGE_GROUPS=AGE_GROUPS, CENSUS_AGE_POP=CENSUS_AGE_POP, birth_rate_multiplier=birth_rate_multiplier)
     def new_likelihood(x):
         lik =  likelihood(x)
         # remove nans

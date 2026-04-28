@@ -19,8 +19,26 @@ from fit_MCMC import *
 if __name__ == "__main__":
     pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
 
-    NAG = 7 + ("split" in option1)
+    AGE_GROUPS = None
+    if "months" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_months as CENSUS_AGE_POP
+        from Parameters.census_population import AGE_GROUPS_split as AGE_GROUPS
+        NAG = 65
+        max_month = 12*5
+    elif "split" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
+        NAG = 8
+        max_month = None
+    else:
+        from Parameters.census_population import CENSUS_AGE_POP
+        NAG = 7
+        max_month = None
     
+    if NAG == 65:
+        NAG_eff = 7 + ("split" in option1)
+    else:
+        NAG_eff = NAG
+
     if len(sys.argv) > 10:
         prefix = sys.argv[10]
     else:
@@ -59,8 +77,10 @@ if __name__ == "__main__":
 
     # set seed
     np.random.seed(seed)
-    prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
-    
+    # prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
+    x = jnp.array([0.1310817,0.06757059,0.22862325,0.00741201,0.55173564,0.25616312
+                    ,0.61351486,0.28743721,0.0064109,0.00775033,0.18045704,0.45180356
+                    ,0.22604074,0.10237113,0.00948401,0.02116685,0.09200145])
     # prefix = "sampling_parameters_"
     # x = jnp.asarray([0.12032066,0.14603744,0.05796923,0.00512616,0.5582736 ,0.95180595,0.31741548,0.00618303,0.25081336,0.28657508,0.15262091,0.01914573,0.15551174,0.20378447,0.99823165])
     # log_likelihood = 12014.02
@@ -107,7 +127,10 @@ if __name__ == "__main__":
         REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False, hosp=hosp, NAG=NAG)
     print(data_full.shape)
     N_S = 3
-    CONTACT_MATRIX = np.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['','_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
+    if "months" in option1:
+        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/MONTHS_contact_all_US_Census.csv', delimiter=',', header=None).values)
+    else:
+        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
     BIRTH_RATE = np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=',')
 
     EPOCH = pd.to_datetime('1970-01-01')
@@ -129,11 +152,13 @@ if __name__ == "__main__":
 
     N = np.prod(daily_hospitalization_rates.shape)
 
-    # print(x)
+    print(x)
     # print("Log-Likelihood:", log_likelihood*N)
 
     if NAG == 7:
         from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUPS, AGE_GROUP_NAMES, MEDIAN_AGE
+    elif "months" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_months as CENSUS_AGE_POP, AGE_GROUPS_split as AGE_GROUPS, AGE_GROUP_NAMES_split as AGE_GROUP_NAMES, MEDIAN_AGE_split as MEDIAN_AGE
     else:
         from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP, AGE_GROUPS_split as AGE_GROUPS, AGE_GROUP_NAMES_split as AGE_GROUP_NAMES, MEDIAN_AGE_split as MEDIAN_AGE
     ## Initial conditions
@@ -153,10 +178,11 @@ if __name__ == "__main__":
 
     solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
     values = solution.ys.T
+    print(values.shape)
     times = solution.ts
 
-    likelihood = SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, solution=solution, mask=mask, incidence_data=("incidence_data" in option1), return_sum=True, NAG=NAG)
-    print(likelihood)
+    likelihood = SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, mask=mask, incidence_data=("incidence_data" in option1), return_sum=True, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
+    log_likelihood = -likelihood/N
     # # print(likelihood.shape)
     # age_summed_likelihood = jnp.sum(likelihood, axis=1)
     # # print(jnp.min(age_summed_likelihood))
@@ -167,31 +193,31 @@ if __name__ == "__main__":
     # full_likelihood = full_likelihood.at[90:90+mask[0]].set(normalized_likelihood[:mask[0]]).at[90+mask[1]:90+mask[1]+(len(normalized_likelihood)-mask[0])].set(normalized_likelihood[mask[0]:])
     # # print(full_likelihood)
 
-    # # for each season from the 2015/16 season onwards, sum the total number of infections
-    seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
-    season_infection_array = np.zeros((len(seasons)-1,3))
-    season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
-    first_infections = np.zeros((len(seasons)-1,NAG))
-    population_size = calculate_population_size(values, NAG=NAG)
-    for i in range(len(seasons)-1):
-        # get the number of infections in each season
-        season_start = np.argmax(times>=seasons[i])
-        season_end = np.argmax(times>=seasons[i+1])
-        pop_size = np.sum(values[:-NAG,season_start])
-        age_pops = population_size[season_start]
-        first_infections[i,:] = np.sum(values[1:1+NAG,season_start:season_end],axis=1)
-        season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
-        season_infection_array[i,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end])*REC_UP[1]/pop_size
-        season_infection_array[i,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end])*REC_SAME[2]/pop_size
-        season_infection_by_age[i,:,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end],axis=1)*REC_UP[0]/age_pops
-        season_infection_by_age[i,:,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end],axis=1)*REC_UP[1]/age_pops
-        season_infection_by_age[i,:,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end],axis=1)*REC_SAME[2]/age_pops 
-    average_age_of_first_infection = np.sum(first_infections*jnp.array(MEDIAN_AGE).reshape((1,NAG)),axis=1)/jnp.sum(first_infections,axis=1)
-    season_infections = np.sum(season_infection_array,axis=1)
-    season_infection_by_age = np.sum(season_infection_by_age,axis=2)
-    # print("Average age of first infection per season:",average_age_of_first_infection/12)
-    print("Proportion infected per season (including reinfections):",season_infections)
-    print("Proportion infected in last season (by age):",season_infection_by_age[-1,:])
+    # # # for each season from the 2015/16 season onwards, sum the total number of infections
+    # seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
+    # season_infection_array = np.zeros((len(seasons)-1,3))
+    # season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
+    # first_infections = np.zeros((len(seasons)-1,NAG))
+    # population_size = calculate_population_size(values, NAG=NAG)
+    # for i in range(len(seasons)-1):
+    #     # get the number of infections in each season
+    #     season_start = np.argmax(times>=seasons[i])
+    #     season_end = np.argmax(times>=seasons[i+1])
+    #     pop_size = np.sum(values[:-NAG,season_start])
+    #     age_pops = population_size[season_start]
+    #     first_infections[i,:] = np.sum(values[1:1+NAG,season_start:season_end],axis=1)
+    #     season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
+    #     season_infection_array[i,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end])*REC_UP[1]/pop_size
+    #     season_infection_array[i,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end])*REC_SAME[2]/pop_size
+    #     season_infection_by_age[i,:,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end],axis=1)*REC_UP[0]/age_pops
+    #     season_infection_by_age[i,:,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end],axis=1)*REC_UP[1]/age_pops
+    #     season_infection_by_age[i,:,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end],axis=1)*REC_SAME[2]/age_pops 
+    # # average_age_of_first_infection = np.sum(first_infections*jnp.array(MEDIAN_AGE).reshape((1,NAG)),axis=1)/jnp.sum(first_infections,axis=1)
+    # season_infections = np.sum(season_infection_array,axis=1)
+    # season_infection_by_age = np.sum(season_infection_by_age,axis=2)
+    # # print("Average age of first infection per season:",average_age_of_first_infection/12)
+    # print("Proportion infected per season (including reinfections):",season_infections)
+    # print("Proportion infected in last season (by age):",season_infection_by_age[-1,:])
 
     incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp, return_counts=True, NAG=NAG)
     incidence = incidence.fillna(0)
@@ -223,9 +249,13 @@ if __name__ == "__main__":
     print("Difference in peak times between 2017/18 and 2022/23 seasons (in days):", peak_time_diff.tolist())
 
     population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
+    if (AGE_GROUPS is not None) and (max_month is not None):
+        population_size = sum_age_to(population_size, max_month, AGE_GROUPS)
     expected_obs = calculate_expected_obs(values, p_time_to_obs, len(times), NAG=NAG)
+    if (AGE_GROUPS is not None) and (max_month is not None):
+        expected_obs = sum_age_to(expected_obs, max_month, AGE_GROUPS)
     cut_times = times[:-1]
-    expected_obs_per_season = calculate_observations_per_season_jax(expected_obs, age_groups=True, NAG=NAG)
+    expected_obs_per_season = calculate_observations_per_season_jax(expected_obs, age_groups=True, NAG=NAG_eff)
     # Assign each time point to a season (numeric season id/start)
     season_ids = jax.vmap(get_season_start_jax)(cut_times)
     unique_seasons = 16684 + 365 * jnp.arange(10)  # Assuming seasons start on day 259 of each year
@@ -261,15 +291,15 @@ if __name__ == "__main__":
     from sim_grid import age_ratio_of_rebound
     print(age_ratio_of_rebound(jnp.stack([obs_per_season, obs_per_season], axis=0)))
     
-    obs_ratio_matrix = np.zeros((NAG, NAG))
-    for i in range(NAG):
-        for j in range(NAG):
+    obs_ratio_matrix = np.zeros((NAG_eff, NAG_eff))
+    for i in range(NAG_eff):
+        for j in range(NAG_eff):
             ratio_of_ratios = age_ratio_of_rebound(jnp.stack([obs_per_season, obs_per_season], axis=0), idx_num=i, idx_den=j, threshold_factor=threshold)
             obs_ratio_matrix[i, j] = ratio_of_ratios
 
-    expected_ratio_matrix = np.zeros((NAG, NAG))
-    for i in range(NAG):
-        for j in range(NAG):
+    expected_ratio_matrix = np.zeros((NAG_eff, NAG_eff))
+    for i in range(NAG_eff):
+        for j in range(NAG_eff):
             ratio_of_ratios = age_ratio_of_rebound(jnp.stack([expected_obs_per_season, expected_obs_per_season], axis=0), idx_num=i, idx_den=j, threshold_factor=threshold)
             expected_ratio_matrix[i, j] = ratio_of_ratios
 
@@ -281,7 +311,7 @@ if __name__ == "__main__":
     
     # Create weighted diff only for lower triangle
     weighted_diff_matrix = np.full_like(diff_matrix, np.nan)
-    for i in range(NAG):
+    for i in range(NAG_eff):
         for j in range(i):  # Only lower triangle
             with np.errstate(divide='ignore', invalid='ignore'):
                 weighted_diff_matrix[i, j] = diff_matrix[i, j] / weight_matrix[i, j]
@@ -300,8 +330,8 @@ if __name__ == "__main__":
     expected_ratio_display = expected_ratio_df.astype(object)
     
     # Mark three closest and three most different (lower triangle only)
-    for i in range(NAG):
-        for j in range(NAG):
+    for i in range(NAG_eff):
+        for j in range(NAG_eff):
             if i <= j:  # Skip upper triangle and diagonal
                 obs_ratio_display.iat[i, j] = ""
                 expected_ratio_display.iat[i, j] = ""
@@ -364,8 +394,8 @@ if __name__ == "__main__":
     plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.serif'] = ['Palatino']
 
-    hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
-    hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
+    hsv_colors = colormaps.hsv(-0.02+np.arange(NAG_eff)/NAG_eff)
+    hsv_colors[3] = colormaps.hsv((3/NAG_eff)+0.28/NAG_eff)
 
     fig = plt.figure(figsize=(5.5,5.5))
     # ax = fig.add_subplot(1,1,1)
@@ -406,7 +436,8 @@ if __name__ == "__main__":
     #     ax[2].plot(POINTS, np.maximum(dmx,mx)*cntct[-len(POINTS):], label="Relative contact rate", color="black", linestyle="dashed")
     # # ax[2].plot(POINTS, mx*full_likelihood, label="Normalized likelihood", color="black", alpha=0.5)
 
-    for i_age in range(NAG):
+
+    for i_age in range(NAG_eff):
         age_ax = ax_grid[i_age // 4][i_age % 4]
         if "orig_incidence_data" in option1:
             dmx = kpsc_positive_test_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, color="k", legend=False, aggregation=aggregation, factor=10000, select_age_group=i_age, orig=True, linewidth=0.5)
@@ -414,11 +445,11 @@ if __name__ == "__main__":
             dmx = kpsc_positive_test_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, color="k", legend=False, aggregation=aggregation, factor=10000, select_age_group=i_age, linewidth=0.5)
         else:
             dmx = kpsc_proportion_positive_incidence_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, select_age_group=i_age, aggregation=aggregation, factor=10000, color="black", hosp=hosp, detrend=("detrend" in option1), linewidth=0.5)
-        mx = lockdown_incidence_plot(age_ax,STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label=None,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, select_age_group=i_age, color=hsv_colors[i_age], linewidth=0.5, NAG=NAG)
+        mx = lockdown_incidence_plot(age_ax,STATE0,params,POINTS,date_to_t('2020-03-19'),label=None,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,solution=solution,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, select_age_group=i_age, color=hsv_colors[i_age], linewidth=0.5, NAG=NAG,AGE_GROUPS=AGE_GROUPS,max_month=max_month)
         lockdown_incidence_format(age_ax,date_to_t('2020-03-19'),365,mx,year_window=2)
         age_ax.legend(frameon=False, fontsize=6)
     if NAG < 8:
-        omx = lockdown_incidence_plot(ax_grid[-1][-1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="grey", linewidth=0.5, NAG=NAG)
+        omx = lockdown_incidence_plot(ax_grid[-1][-1],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, color="grey", linewidth=0.5, NAG=NAG,AGE_GROUPS=AGE_GROUPS,max_month=max_month)
         if lockdown == "ExponentialByAge":
             ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,0], label="<40y contacts", color="black", linestyle="dashed")
             ax_grid[-1][-1].plot(POINTS, omx*cntct[-len(POINTS):,-1], label=">40y contacts", color="silver", linestyle="dashed")
@@ -437,7 +468,7 @@ if __name__ == "__main__":
             gridax.set_yticks([])
             gridax.set_xticks([])
 
-    lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=True,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES, NAG=NAG)
+    lockdown_susceptibility_plot(ax[2],STATE0,params,PERIOD,POINTS,date_to_t('2020-03-19'),solution=solution,relative=True,proportion=True, by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES, NAG=NAG, NAG_eff=NAG_eff, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
     lockdown_susceptibility_format(ax[2],date_to_t('2020-03-19'),365,year_window=2,ymax=None,ymin=None)
     # ax[3].set_title("Effective susceptibles")
 
@@ -447,7 +478,7 @@ if __name__ == "__main__":
         kpsc_positive_test_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data", orig=True)
     else:
         kpsc_proportion_positive_incidence_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data", hosp=hosp, detrend=("detrend" in option1))
-    mx = lockdown_incidence_plot(ax[0],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs)
+    mx = lockdown_incidence_plot(ax[0],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs,NAG=NAG,AGE_GROUPS=AGE_GROUPS,max_month=max_month)
     lockdown_incidence_format(ax[0],date_to_t('2020-03-19'),365,mx,year_window=2)
     ax[0].legend(frameon=False, fontsize=6)
 
@@ -465,7 +496,7 @@ if __name__ == "__main__":
     # ax[2].set_ylabel("Age-structured\nsimulation")
     ax[2].set_title("")
     ax[2].set_xlabel("Date")
-    ax[2].set_ylabel("Effective susceptibility")
+    ax[2].set_ylabel("Relative effective\nsusceptibility")
 
     # pathogen as title
     fig.suptitle(pnamedict[pathogen_name], fontsize=10)

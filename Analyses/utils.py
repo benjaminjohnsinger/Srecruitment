@@ -323,14 +323,21 @@ from new_vax import flu_eff_vax_rate
 def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=False, NAG=7, wrong_aging=False, birth_rate_multiplier=1.0):
     if "split" in option1:
         NAG = 8
+    elif "months" in option1:
+        NAG = 65
     if fixed_params is None:
-        if NAG>7:
+        if "months" in option1:
+            from Parameters.census_population import AGING_RATE_months as AGING_RATE
+        elif NAG>7:
             from Parameters.census_population import AGING_RATE_split as AGING_RATE
         else:
             from Parameters.census_population import AGING_RATE
         if wrong_aging:
             AGING_RATE = AGING_RATE.at[4].set(1/(22*365))
-        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
+        if "months" in option1:
+            CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/MONTHS_contact_all_US_Census.csv', delimiter=',', header=None).values)
+        else:
+            CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
         BIRTH_RATE = birth_rate_multiplier * jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
         if pathogen == "sim":
             _, _, IMPORT_STRENGTH, _ = pathogen_parameters("test", import_multiplier=import_multiplier, skip_incidence=True)
@@ -367,10 +374,17 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     if "wane" in option1:
         WANE = jnp.array([0.0,x[n],x[n+1]])
         n += 2
+    elif "SIRS" in option1:
+        WANE = jnp.array([0.0,x[n],0.0])
+        n += 1
     else:
         WANE = jnp.array([0.0,0.0,x[n]])
         n += 1
-    if ("Influenza" in pathogen) and ("free" not in pathogen) and ('nr' not in option2):
+    if "SIRS" in option1:
+        S_REL = jnp.zeros(N_S)
+        S_REL = S_REL.at[0].set(1)
+        pobsrel = jnp.ones(N_S)
+    elif ("Influenza" in pathogen) and ("free" not in pathogen) and ('nr' not in option2):
         srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
         S_REL = srel
         n += 3
@@ -394,10 +408,13 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         I_REL = jnp.array([1,1,1])
     if "maxmimm" in option1:
         MIMM = 1
-        MATERNAL_IMMUNITY = MATERNAL_IMMUNITY.at[:,2].set(MIMM)
+        MATERNAL_IMMUNITY = MATERNAL_IMMUNITY.at[:,-1].set(MIMM)
+    elif "totalmimm" in option1:
+        MIMM = 1
+        MATERNAL_IMMUNITY = MATERNAL_IMMUNITY.at[:,:].set(MIMM)
     elif "mimm" in option1:
         MIMM = x[n]
-        MATERNAL_IMMUNITY = MATERNAL_IMMUNITY.at[:,2].set(MIMM)
+        MATERNAL_IMMUNITY = MATERNAL_IMMUNITY.at[:,-1].set(MIMM)
         n += 1
     if "RSV" in pathogen:
         MATERNAL_IMMUNITY = jnp.minimum(1, MATERNAL_IMMUNITY + rsv_maternal_immunity(FULL_POINTS).reshape(-1,1))
@@ -550,6 +567,10 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         dipvalues = jnp.array([1, 1-FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
+    if "months" in option1:
+        true_NAG = 65
+        true_OBS_AGE = jnp.zeros(true_NAG)
+        NAG = 7 + ("split" in option1)
     if ('maxagep' in option2) & ('dynamic' not in option1):
         if "RSV" in pathogen:
             fixed_age_index = 0
@@ -568,14 +589,19 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         n += NAG
     elif 'dynamic' in option1:
         OBS_AGE = fixed_params[7]
-    if ("Influenza" in pathogen):
+    if "months" in option1:
+        true_OBS_AGE = true_OBS_AGE.at[0:3].set(OBS_AGE[0])
+        true_OBS_AGE = true_OBS_AGE.at[3:12].set(OBS_AGE[1])
+        true_OBS_AGE = true_OBS_AGE.at[12:12*5].set(OBS_AGE[2])
+        true_OBS_AGE = true_OBS_AGE.at[12*5:].set(OBS_AGE[3:])
+    if (("Influenza" in pathogen) and ("nvax" not in option1)):
         protection_param = S_REL*P_OBS
         max_eff = (protection_param[-2]-protection_param[-1])/protection_param[-2]
         VAX_RATE = flu_eff_vax_rate(FULL_POINTS, max_eff)
         # if NAG is greater than 7, duplicate the fifth row (index 4) to fill out the additional age groups
         if NAG > 7:
             VAX_RATE = jnp.concatenate((VAX_RATE[:, :5], jnp.tile(VAX_RATE[:, 4:5], (1, NAG-7)), VAX_RATE[:, 5:]), axis=1)
-    elif ("RSV" in pathogen) and ("nvax" not in option1):
+    elif (("RSV" in pathogen) and ("nvax" not in option1)) or ("rsvvax" in option1):
         protection_param = S_REL*P_OBS
         max_eff0 = 1 - protection_param[-1]
         max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
@@ -583,11 +609,17 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         if NAG > 7:
             VAX_RATE = jnp.concatenate((VAX_RATE[:, :5], jnp.tile(VAX_RATE[:, 4:5], (1, NAG-7)), VAX_RATE[:, 5:]), axis=1)
     else:
-        VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
+        if "months" in option1:
+            VAX_RATE = jnp.zeros((len(FULL_POINTS),true_NAG))
+        else:
+            VAX_RATE = jnp.zeros((len(FULL_POINTS),NAG))
 
     # if relative contact is 1-dimensional, copy it across all age groups
     if RELATIVE_CONTACT.ndim == 1:
-        RELATIVE_CONTACT = jnp.sqrt(jnp.tile(RELATIVE_CONTACT.reshape(-1,1), (1,NAG)))
+        if "months" in option1:
+            RELATIVE_CONTACT = jnp.sqrt(jnp.tile(RELATIVE_CONTACT.reshape(-1,1), (1,true_NAG)))
+        else:
+            RELATIVE_CONTACT = jnp.sqrt(jnp.tile(RELATIVE_CONTACT.reshape(-1,1), (1,NAG)))
     
     if "daycare" in option2:
         parent_labor = [60.98262489901673, 61.5063564713625, 60.84281207451028, 60.768041939091475, 60.5037381418266, 61.10016011287247, 61.148622423778086, 62.99393722242363, 63.99372275576328, 63.5827420015764, 64.12485171621293, 64.66696143084945, 66.22302672280338, 67.85271452382989, 68.58049720957207]
@@ -607,9 +639,13 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
             DAYCARE = x[n]
             n += 1
         RELATIVE_CONTACT = RELATIVE_CONTACT.at[:, 1:4].set(RELATIVE_CONTACT[:, 1:4] * (1 + DAYCARE * relative_parent_labor_interp.reshape(-1,1)))
-        
 
-    params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
+    if "months" in option1:
+        params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
+                BETA, WANE, S_REL, I_REL, P_OBS, true_OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
+                REC_UP, REC_SAME, IMPORT_STRENGTH)
+    else:
+        params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,
                 BETA, WANE, S_REL, I_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,
                 REC_UP, REC_SAME, IMPORT_STRENGTH)
     
@@ -662,17 +698,21 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
         bounds_dict["OVERDISPERSION"] = [-5,10]
     elif ("mimm" in option1) & ("maxmimm" not in option1):
         bounds_dict["MATERNAL_IMMUNITY"] = [0,1]
-    if ("Influenza" in pathogen) and ("free" not in pathogen) and ("nr" not in option2):
-        bounds_dict["EXTRA_IMMUNITY"] = [0,1]
-        bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
-        bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
-    elif ("RSV" in pathogen) and ("nr" not in option2):
-        bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = [0.1,1]
-    else:
-        bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1,1]
+    if "SIRS" not in option1:
+        if ("Influenza" in pathogen) and ("free" not in pathogen) and ("nr" not in option2):
+            bounds_dict["EXTRA_IMMUNITY"] = [0,1]
+            bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
+            bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
+        elif ("RSV" in pathogen) and ("nr" not in option2):
+            bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = [0.1,1]
+        else:
+            bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1,1]
     if "irel" in option1:
         bounds_dict["I_REL1"] = bounds_dict["I_REL2"] = [0.1,1]
     if "dynamic" not in option1 and "pp" not in option2:
+        if "months" in option1:
+            NAG = 7 + ("split" in option1)
+            true_NAG = 65
         if "flexage" in option2:
             if option2 == "flexage":
                 upper_bound = 0.005
@@ -707,7 +747,15 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
         elif lockdown == "Mobility2":
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = [0,2]
         elif ("Exponential" in lockdown) and (("ByAge" not in lockdown) and ("2" not in lockdown)):
-            bounds_dict["F1"] = [0,1]
+            if "Max" in lockdown:
+                if "Maxp" in lockdown:
+                    match = re.search(r'Maxp(\d+)', lockdown)
+                    upper_bound = int(match.group(1)) / (10 ** len(match.group(1)))
+                else:
+                    upper_bound = 0.7
+                bounds_dict["F1"] = [0, upper_bound]
+            else:
+                bounds_dict["F1"] = [0,1]
             bounds_dict["R1"] = [0.002,0.01]
         elif "ExponentialByAge" in lockdown:
             bounds_dict["F1"] = [0,1]
@@ -998,6 +1046,22 @@ def susceptibility(solution,params,N_C=2,NAG=7,N_S=3):
         for i in range(N_S):
             sus[i_t,:] += S_REL[i]*solution.ys.T[1+N_C*i*NAG:1+(N_C*i+1)*NAG,i_t]
     return(sus)
+
+def sum_age_to(expected_obs, max_month, AGE_GROUPS):
+    results = []
+    for i in range(len(AGE_GROUPS)):
+        group = AGE_GROUPS[i]
+        # Create a mask for columns in the age group range
+        col_indices = jnp.arange(expected_obs.shape[1])
+        mask = (col_indices >= group[0]) & (col_indices <= group[-1])
+        # Use jnp.where to select columns instead of boolean indexing
+        summed = jnp.sum(jnp.where(mask[None, :], expected_obs, 0), axis=1)
+        result = jnp.where(group[-1] <= max_month, 
+                          summed,
+                          expected_obs[:,i-3+max_month])
+        results.append(result)
+    summed_obs = jnp.stack(results)
+    return summed_obs.T
 
 if __name__ == "__main__":
     print(consistent_x_from_DE("RSV", "Exponential", "split", "daycarep5maxagep028", 260415, NAG=8))
