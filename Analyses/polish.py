@@ -102,7 +102,7 @@ if __name__ == "__main__":
     # final_x = results["final_x"]
     
     # calculate Hessian
-    true_likelihood, N = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=False, hosp=hosp, hessian=True)
+    true_likelihood, N = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=False, hosp=hosp, hessian=True, CENSUS_AGE_POP=CENSUS_AGE_POP, NAG=NAG)
     def hessian_likelihood(x):
         x_transformed = logistic_transform(x)
         lik =  true_likelihood(x_transformed)
