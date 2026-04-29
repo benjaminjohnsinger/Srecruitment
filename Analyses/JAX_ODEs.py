@@ -54,13 +54,18 @@ def deltas(t, state, args):
     delta = delta.at[:2*N_S, :].add(-agers)
     delta = delta.at[:2*N_S, 1:].add(agers[:,:-1])
     # maternal compartment aging
-    maternal_agers = AGING_RATE[0]*maternal
-    delta_maternal = delta_maternal - maternal_agers
-    delta = delta.at[0, 1].add(maternal_agers)
+    if NAG == 65:
+        maternal_agers = (1 / ((3 / 12) * 365)) * maternal
+        delta_maternal = delta_maternal - maternal_agers
+        delta = delta.at[0, 3].add(maternal_agers)
+    else:
+        maternal_agers = AGING_RATE[0] * maternal
+        delta_maternal = delta_maternal - maternal_agers
+        delta = delta.at[0, 1].add(maternal_agers)
     # vaccination
     vrate = interp_fn(t, FULL_POINTS, VAX_RATE)
     # assume that S_VAX is the last susceptibility class
-    vaxxers = vrate[None, :]*susceptible[:-1, :]
+    vaxxers = vrate[None, :] * susceptible[:-1, :]
     delta = delta.at[0:2*(N_S-1):2, :].add(-vaxxers)
     delta = delta.at[2*N_S-2, :].add(jnp.sum(vaxxers, axis=0))
     # observations

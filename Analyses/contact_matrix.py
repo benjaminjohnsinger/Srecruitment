@@ -41,26 +41,34 @@ AGE_INC = RAW_OVERLAP/np.sum(RAW_OVERLAP,axis=1)[:,np.newaxis]
 ## Transform contact matrices to KP age groups
 KP_HOME = np.dot(np.dot(AGE_INC,PREM_HOME),AGE_MAP.T)
 KP_WORK = np.dot(np.dot(AGE_INC,PREM_WORK),AGE_MAP.T)
-KP_SCHOOL = np.dot(np.dot(AGE_INC,PREM_SCHOOL),AGE_MAP.T)
 KP_OTHERS = np.dot(np.dot(AGE_INC,PREM_OTHERS),AGE_MAP.T)
 KP_ALL = np.dot(np.dot(AGE_INC,PREM_ALL),AGE_MAP.T)
 
-print(KP_ALL)
+# For school contacts, the first PREM age group (<5y) should be mapped entirely
+# to the 1-4y KP age group (index 2), since infants (<3m, 3-11m) don't attend school/daycare.
+# Build a modified AGE_MAP for school contacts where the first PREM column's weight
+# is shifted entirely to the third KP age group (index 2).
+AGE_MAP_SCHOOL = AGE_MAP.copy()
+AGE_MAP_SCHOOL[:, 0] = 0.0
+AGE_MAP_SCHOOL[2, 0] = 1.0
+AGE_INC_SCHOOL = AGE_INC.copy()
+AGE_INC_SCHOOL[0, :] = 0.0
+AGE_INC_SCHOOL[1, :] = 0.0
+
+KP_SCHOOL = np.dot(np.dot(AGE_INC_SCHOOL,PREM_SCHOOL),AGE_MAP_SCHOOL.T)
 
 # print(KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS - KP_ALL)
 
 # # Shift contacts between first two age groups to the third age group
 # print(KP_HOME)
-# for i in range(2):
-#     infant_contacts = KP_HOME[i,0] + KP_HOME[i,1]
-#     KP_HOME[i,2] += infant_contacts
-#     KP_HOME[i,0] = 0
-#     KP_HOME[i,1] = 0
+for i in range(2):
+    infant_contacts = KP_HOME[i,0] + KP_HOME[i,1]
+    KP_HOME[i,2] += infant_contacts
+    KP_HOME[i,0] = 0
+    KP_HOME[i,1] = 0
 # print(KP_HOME)
 
-# print(KP_SCHOOL)
-
-# KP_ALL = KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS
+print(KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS - KP_ALL)
 
 # # average number of contacts per person per day
 # avg_contacts = np.sum(KP_ALL.T * KP_AGE_POP)
