@@ -18,7 +18,7 @@ from utils import *
 from fit_opt import get_likelihood, likelihood_threshold
 
 if __name__ == "__main__":
-    pathogen, seed, lockdown, option1, option2, import_multiplier, opt_size, opt_rate1, opt_rate2 = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
+    pathogen, seed, lockdown, option1, option2, import_multiplier, opt_size = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6]), int(sys.argv[7])
 
     NAG = 7 + ("split" in option1)
     if NAG == 7:
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     # 3. Initialize and run ScipyBoundedMinimize
     # method="l-bfgs-b" is the default for bounded Scipy minimization
-    lbfgsb = jaxopt.ScipyBoundedMinimize(fun=bounded_likelihood, method="L-BFGS-B")
+    lbfgsb = jaxopt.ScipyBoundedMinimize(fun=bounded_likelihood, method="L-BFGS-B", maxiter=opt_size)
     
     # Run the optimizer
     res = lbfgsb.run(init_params=x, bounds=bounds_tuple)
