@@ -369,7 +369,7 @@ def relative_size_of_rebound(x, threshold_factor=1/2):
     post_pandemic_max = jnp.max(obs_summed[5:])
     return jnp.where(post_pandemic_max < threshold_factor*pre_pandemic_median, jnp.nan, post_pandemic_max / pre_pandemic_median)
 
-def age_ratio_of_rebound(x, idx_num=2, idx_den=1, threshold_factor=1/2):
+def age_ratio_of_rebound(x, idx_num=2, idx_den=1, threshold_factor=1/2, season_idx=None):
     """Calculate the ratio of infections in one age group to another during the rebound season, relative to the pre-pandemic ratio.
     Args:
         x: The 3D array of metrics returned by the worker function, with shape (n_metrics, n_seasons, NAG+1). The last age group (index -1) corresponds to the summed age group.
@@ -379,25 +379,39 @@ def age_ratio_of_rebound(x, idx_num=2, idx_den=1, threshold_factor=1/2):
     Returns: The ratio of the specified age groups during the rebound season, relative to the pre-pandemic ratio. If there is no rebound, returns NaN.
     """
     obs_per_season = x[0, :, :]
-    pre_pandemic_mean_ratio = jnp.mean(obs_per_season[:5, idx_num] / obs_per_season[:5, idx_den])
-    threshold = threshold_factor * jnp.median(obs_per_season[:5, -1])
-    
+    pre_pandemic_obs = obs_per_season[:5]
+    if idx_den is None:
+        has_valid_pre_pandemic = (pre_pandemic_obs[:, idx_num] > 0).all() & jnp.isfinite(pre_pandemic_obs[:, idx_num]).all()
+        pre_pandemic_mean_ratio = jnp.mean(obs_per_season[:5, idx_num])
+    else:
+        has_valid_pre_pandemic = (pre_pandemic_obs[:, idx_num] > 0).all() & (pre_pandemic_obs[:, idx_den] > 0).all()
+        pre_pandemic_mean_ratio = jnp.mean(obs_per_season[:5, idx_num] / obs_per_season[:5, idx_den])
+
     post_pandemic_obs = obs_per_season[5:, -1]
-    rebound_mask = post_pandemic_obs >= threshold
-    rebound_found = jnp.any(rebound_mask)
+    if season_idx is None:
+        threshold = threshold_factor * jnp.mean(obs_per_season[:5, -1])
+        rebound_mask = post_pandemic_obs >= threshold
+        rebound_found = jnp.any(rebound_mask)
+        first_rebound_idx = jnp.argmax(rebound_mask)
+    else:
+        rebound_found = True
+        first_rebound_idx = season_idx - 5  # Adjust for indexing after the first 5 seasons
     
     # Get first rebound season index
-    first_rebound_idx = jnp.argmax(rebound_mask)
     rebound_season_idx = 5 + first_rebound_idx
     rebound_obs = obs_per_season[rebound_season_idx]
     
     # Return NaN if numerator or denominator is zero or NaN
-    pre_pandemic_obs = obs_per_season[:5]
-    has_valid_pre_pandemic = (pre_pandemic_obs[:, idx_num] > 0).all() & (pre_pandemic_obs[:, idx_den] > 0).all()
-    has_valid_rebound = (rebound_obs[idx_num] > 0) & (rebound_obs[idx_den] > 0) & jnp.isfinite(rebound_obs[idx_num]) & jnp.isfinite(rebound_obs[idx_den])
-    has_valid_obs = has_valid_pre_pandemic & has_valid_rebound
 
-    return jnp.where(rebound_found & has_valid_obs, (rebound_obs[idx_num] / rebound_obs[idx_den]) / pre_pandemic_mean_ratio, jnp.nan)
+    if idx_den is None:
+        has_valid_rebound = (rebound_obs[idx_num] > 0) & jnp.isfinite(rebound_obs[idx_num])
+        rebound_ratio = rebound_obs[idx_num]
+    else:
+        has_valid_rebound = (rebound_obs[idx_num] > 0) & (rebound_obs[idx_den] > 0) & jnp.isfinite(rebound_obs[idx_num]) & jnp.isfinite(rebound_obs[idx_den])
+        rebound_ratio = rebound_obs[idx_num] / rebound_obs[idx_den]
+    
+    has_valid_obs = has_valid_pre_pandemic & has_valid_rebound
+    return jnp.where(rebound_found & has_valid_obs, rebound_ratio / pre_pandemic_mean_ratio, jnp.nan)
 
 def age_of_first_infection(x):
     return jnp.mean(jnp.sum(x[2, :5, :-1] * jnp.array(MEDIAN_AGE), axis=1)) / 12

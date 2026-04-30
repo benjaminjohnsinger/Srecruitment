@@ -79,7 +79,7 @@ if __name__ == "__main__":
     np.random.seed(seed)
     prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
 
-    # prefix = "sampling_parameters_"
+   # prefix = "sampling_parameters_"
     # x = jnp.asarray([0.12032066,0.14603744,0.05796923,0.00512616,0.5582736 ,0.95180595,0.31741548,0.00618303,0.25081336,0.28657508,0.15262091,0.01914573,0.15551174,0.20378447,0.99823165])
     # log_likelihood = 12014.02
 
@@ -191,31 +191,31 @@ if __name__ == "__main__":
     # full_likelihood = full_likelihood.at[90:90+mask[0]].set(normalized_likelihood[:mask[0]]).at[90+mask[1]:90+mask[1]+(len(normalized_likelihood)-mask[0])].set(normalized_likelihood[mask[0]:])
     # # print(full_likelihood)
 
-    # # # for each season from the 2015/16 season onwards, sum the total number of infections
-    # seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
-    # season_infection_array = np.zeros((len(seasons)-1,3))
-    # season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
-    # first_infections = np.zeros((len(seasons)-1,NAG))
-    # population_size = calculate_population_size(values, NAG=NAG)
-    # for i in range(len(seasons)-1):
-    #     # get the number of infections in each season
-    #     season_start = np.argmax(times>=seasons[i])
-    #     season_end = np.argmax(times>=seasons[i+1])
-    #     pop_size = np.sum(values[:-NAG,season_start])
-    #     age_pops = population_size[season_start]
-    #     first_infections[i,:] = np.sum(values[1:1+NAG,season_start:season_end],axis=1)
-    #     season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
-    #     season_infection_array[i,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end])*REC_UP[1]/pop_size
-    #     season_infection_array[i,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end])*REC_SAME[2]/pop_size
-    #     season_infection_by_age[i,:,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end],axis=1)*REC_UP[0]/age_pops
-    #     season_infection_by_age[i,:,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end],axis=1)*REC_UP[1]/age_pops
-    #     season_infection_by_age[i,:,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end],axis=1)*REC_SAME[2]/age_pops 
-    # # average_age_of_first_infection = np.sum(first_infections*jnp.array(MEDIAN_AGE).reshape((1,NAG)),axis=1)/jnp.sum(first_infections,axis=1)
-    # season_infections = np.sum(season_infection_array,axis=1)
-    # season_infection_by_age = np.sum(season_infection_by_age,axis=2)
-    # # print("Average age of first infection per season:",average_age_of_first_infection/12)
-    # print("Proportion infected per season (including reinfections):",season_infections)
-    # print("Proportion infected in last season (by age):",season_infection_by_age[-1,:])
+    # # for each season from the 2015/16 season onwards, sum the total number of infections
+    seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
+    season_infection_array = np.zeros((len(seasons)-1,3))
+    season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
+    first_infections = np.zeros((len(seasons)-1,NAG))
+    population_size = calculate_population_size(values, NAG=NAG)
+    for i in range(len(seasons)-1):
+        # get the number of infections in each season
+        season_start = np.argmax(times>=seasons[i])
+        season_end = np.argmax(times>=seasons[i+1])
+        pop_size = np.sum(values[:-NAG,season_start])
+        age_pops = population_size[season_start]
+        first_infections[i,:] = np.sum(values[1:1+NAG,season_start:season_end],axis=1)
+        season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
+        season_infection_array[i,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end])*REC_UP[1]/pop_size
+        season_infection_array[i,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end])*REC_SAME[2]/pop_size
+        season_infection_by_age[i,:,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end],axis=1)*REC_UP[0]/age_pops
+        season_infection_by_age[i,:,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end],axis=1)*REC_UP[1]/age_pops
+        season_infection_by_age[i,:,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end],axis=1)*REC_SAME[2]/age_pops 
+    # average_age_of_first_infection = np.sum(first_infections*jnp.array(MEDIAN_AGE).reshape((1,NAG)),axis=1)/jnp.sum(first_infections,axis=1)
+    season_infections = np.sum(season_infection_array,axis=1)
+    season_infection_by_age = np.sum(season_infection_by_age,axis=2)
+    # print("Average age of first infection per season:",average_age_of_first_infection/12)
+    print("Proportion infected per season (including reinfections):",season_infections)
+    print("Proportion infected in last season (by age):",season_infection_by_age[-1,:])
 
     incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp, return_counts=True, NAG=NAG)
     incidence = incidence.fillna(0)
@@ -282,23 +282,26 @@ if __name__ == "__main__":
     # Calculate ratio of ratios for observed data
     pre_pandemic_observed_obs = obs_per_season[:5]
     # rebound_season_idx is the first season after 2019/20 with total infections exceeding threshold of median pre-pandemic season
-    threshold = 1/2
-    rebound_season_idx = np.where(np.sum(obs_per_season[5:], axis=1) > threshold * np.median(np.sum(obs_per_season[:5], axis=1)))[0][0]
+    # threshold = 1
+    # rebound_season_idx = np.where(np.sum(obs_per_season[5:], axis=1) > threshold * np.median(np.sum(obs_per_season[:5], axis=1)))[0][0]
+    rebound_season_idx = 2
     rebound_observed_obs = obs_per_season[5+rebound_season_idx]
 
     from sim_grid import age_ratio_of_rebound
-    print(age_ratio_of_rebound(jnp.stack([obs_per_season, obs_per_season], axis=0)))
+
+    print(age_ratio_of_rebound(jnp.stack([obs_per_season, obs_per_season], axis=0), idx_num=2, idx_den=None, season_idx=5+rebound_season_idx))
+    print(age_ratio_of_rebound(jnp.stack([expected_obs_per_season, expected_obs_per_season], axis=0), idx_num=2, idx_den=None, season_idx=5+rebound_season_idx))
     
     obs_ratio_matrix = np.zeros((NAG_eff, NAG_eff))
     for i in range(NAG_eff):
         for j in range(NAG_eff):
-            ratio_of_ratios = age_ratio_of_rebound(jnp.stack([obs_per_season, obs_per_season], axis=0), idx_num=i, idx_den=j, threshold_factor=threshold)
+            ratio_of_ratios = age_ratio_of_rebound(jnp.stack([obs_per_season, obs_per_season], axis=0), idx_num=i, idx_den=j, season_idx=5+rebound_season_idx)
             obs_ratio_matrix[i, j] = ratio_of_ratios
 
     expected_ratio_matrix = np.zeros((NAG_eff, NAG_eff))
     for i in range(NAG_eff):
         for j in range(NAG_eff):
-            ratio_of_ratios = age_ratio_of_rebound(jnp.stack([expected_obs_per_season, expected_obs_per_season], axis=0), idx_num=i, idx_den=j, threshold_factor=threshold)
+            ratio_of_ratios = age_ratio_of_rebound(jnp.stack([expected_obs_per_season, expected_obs_per_season], axis=0), idx_num=i, idx_den=j, season_idx=5+rebound_season_idx)
             expected_ratio_matrix[i, j] = ratio_of_ratios
 
     

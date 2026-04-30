@@ -821,8 +821,8 @@ if __name__ == "__main__":
     NAG = 7 + ("split" in option1)
     if "split" in option1:
         from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP, AGE_GROUP_NAMES_split as AGE_GROUP_NAMES
-    else:
-        from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUP_NAMES
+    # else:
+    from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUP_NAMES as AGE_GROUP_NAMES_orig
     lockdown = "Exponential"
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
@@ -884,7 +884,11 @@ if __name__ == "__main__":
         kpsc_proportion_positive_incidence_plot(
             axB[pi//2, pi%2], pathogen=pathogen, AGE_GROUP_NAMES=AGE_GROUP_NAMES, title=nice_names.get(pathogen, pathogen),
             color=data_color, aggregation=aggregation, factor=factor,
-            annotations=True, definition="50% median", label="Data", hosp=True)
+            annotations=False, definition="50% median", label="Data", hosp=True)
+        kpsc_proportion_positive_incidence_plot(
+            axB[pi//2, pi%2], pathogen=pathogen, AGE_GROUP_NAMES=AGE_GROUP_NAMES_orig, title=nice_names.get(pathogen, pathogen),
+            color="grey", aggregation=aggregation, factor=factor,
+            annotations=False, definition="50% median", label="Data", hosp=True)
     # suppress all y labels and replace with single label on left
     for i in range(len(pathogens)//2):
         for j in range(2):
@@ -901,34 +905,34 @@ if __name__ == "__main__":
 
     # now include plots of simulations on top of data
     
-    p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
-    PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
-    POINTS = np.array(date_to_t(PERIOD))
-    ## Initial conditions
-    STATE0 = jnp.zeros((2*N_S+1,NAG))
-    STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
-    STATE0 = STATE0.at[1,:].set(1)
-    # # flatten initial state and add maternal immunity compartment
-    STATE0 = STATE0.flatten()
-    STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-    good_simulations = [
-        ["RSV", seed, lockdown, option1, "daycarep5maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "daycarep5maxagep02"], 
-        ["InfluenzaA", seed, lockdown, option1, "daycarep5maxagep05"], ["InfluenzaB", seed, lockdown, option1, "daycarep5maxagep05"], 
-        ["Adenovirus", seed, lockdown, option1, "daycarep5maxagep02"], ["Parainfluenza3", seed, lockdown, option1, "daycarep5maxagep02"]
-    ]
-    from Parameters.times_and_contacts import PERIOD
-    POINTS = jnp.array(date_to_t(PERIOD))
-    T_LOCKDOWN = date_to_t(pd.to_datetime("2020-03-20"))
-    for pi, sim in enumerate(good_simulations):
-        pathogen = sim[0]
-        print(f"Plotting simulation for {pathogen}...")
-        _, x, _ = load_optimization_results("", sim[0], sim[1], sim[2], sim[3], sim[4])
-        params = x_to_params(x, sim[0], sim[2], sim[3], sim[4], NAG=NAG, return_contact=False, print_params=False)
-        params = params + (NAG,)
-        lockdown_incidence_plot(axB[pi//2,pi%2], STATE0, params, POINTS, T_LOCKDOWN,
-                                p_time_to_obs=p_time_to_obs,
-                                color="#DC267F", factor=factor*agg_factor, label="Simulation")
-    axB[1,1].legend(loc="upper right")
+    # p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
+    # PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
+    # POINTS = np.array(date_to_t(PERIOD))
+    # ## Initial conditions
+    # STATE0 = jnp.zeros((2*N_S+1,NAG))
+    # STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
+    # STATE0 = STATE0.at[1,:].set(1)
+    # # # flatten initial state and add maternal immunity compartment
+    # STATE0 = STATE0.flatten()
+    # STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+    # good_simulations = [
+    #     ["RSV", seed, lockdown, option1, "daycarep5maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "daycarep5maxagep02"], 
+    #     ["InfluenzaA", seed, lockdown, option1, "daycarep5maxagep05"], ["InfluenzaB", seed, lockdown, option1, "daycarep5maxagep05"], 
+    #     ["Adenovirus", seed, lockdown, option1, "daycarep5maxagep02"], ["Parainfluenza3", seed, lockdown, option1, "daycarep5maxagep02"]
+    # ]
+    # from Parameters.times_and_contacts import PERIOD
+    # POINTS = jnp.array(date_to_t(PERIOD))
+    # T_LOCKDOWN = date_to_t(pd.to_datetime("2020-03-20"))
+    # for pi, sim in enumerate(good_simulations):
+    #     pathogen = sim[0]
+    #     print(f"Plotting simulation for {pathogen}...")
+    #     _, x, _ = load_optimization_results("", sim[0], sim[1], sim[2], sim[3], sim[4])
+    #     params = x_to_params(x, sim[0], sim[2], sim[3], sim[4], NAG=NAG, return_contact=False, print_params=False)
+    #     params = params + (NAG,)
+    #     lockdown_incidence_plot(axB[pi//2,pi%2], STATE0, params, POINTS, T_LOCKDOWN,
+    #                             p_time_to_obs=p_time_to_obs,
+    #                             color="#DC267F", factor=factor*agg_factor, label="Simulation")
+    # axB[1,1].legend(loc="upper right")
     
     # plt.tight_layout()
     # plt.savefig("Figures/ReportOverallIncidenceWeeklyExponential2604172_annotate100.png",dpi=300)
@@ -936,4 +940,4 @@ if __name__ == "__main__":
     # subfigs[0].suptitle("A", x=0.01, fontweight='bold')
     # subfigs[1].suptitle("B", x=0.01, fontweight='bold')
 
-    plt.savefig("Figures/Figure1_old.png",dpi=300)
+    plt.savefig("Figures/compare_pre_split_data_dedupallplustests.png",dpi=300)
