@@ -77,10 +77,8 @@ if __name__ == "__main__":
 
     # set seed
     np.random.seed(seed)
-    # prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
-    x = jnp.array([0.1310817,0.06757059,0.22862325,0.00741201,0.55173564,0.25616312
-                    ,0.61351486,0.28743721,0.0064109,0.00775033,0.18045704,0.45180356
-                    ,0.22604074,0.10237113,0.00948401,0.02116685,0.09200145])
+    prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
+
     # prefix = "sampling_parameters_"
     # x = jnp.asarray([0.12032066,0.14603744,0.05796923,0.00512616,0.5582736 ,0.95180595,0.31741548,0.00618303,0.25081336,0.28657508,0.15262091,0.01914573,0.15551174,0.20378447,0.99823165])
     # log_likelihood = 12014.02
@@ -152,7 +150,7 @@ if __name__ == "__main__":
 
     N = np.prod(daily_hospitalization_rates.shape)
 
-    print(x)
+    # print(x)
     # print("Log-Likelihood:", log_likelihood*N)
 
     if NAG == 7:
@@ -182,7 +180,7 @@ if __name__ == "__main__":
     times = solution.ts
 
     likelihood = SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, mask=mask, incidence_data=("incidence_data" in option1), return_sum=True, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
-    log_likelihood = -likelihood/N
+    print(likelihood)
     # # print(likelihood.shape)
     # age_summed_likelihood = jnp.sum(likelihood, axis=1)
     # # print(jnp.min(age_summed_likelihood))

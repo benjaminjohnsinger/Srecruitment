@@ -389,21 +389,22 @@ if __name__ == '__main__':
             return (key, state, params), metrics
         
         @jax.jit
-        def run_es_optimization(key, state, params, num_iterations):
+        def run_es_optimization(key, state, params, iter_array):
             initial_carry = (key, state, params)
-            (_, final_state, _), metrics_log = jax.lax.scan(es_step, initial_carry, jnp.arange(num_iterations))
+            (_, final_state, _), metrics_log = jax.lax.scan(es_step, initial_carry, iter_array)
             return final_state, metrics_log
 
         print(f"Starting {name} optimization...")
         start_time = time.time()
-        
-        if opt_rate1 > 500:
-            num_chunks = int(jnp.ceil(opt_rate1 / 500))
+        chunk_size = 500
+        if opt_rate1 > chunk_size:
+            num_chunks = int(jnp.ceil(opt_rate1 / chunk_size))
             metrics_logs = []
             for chunk in range(num_chunks):
-                chunk_size = min(500, opt_rate1 - chunk * 500)
+                chunk_size = min(chunk_size, opt_rate1 - chunk * chunk_size)
                 print(f"Running chunk {chunk + 1}/{num_chunks} ({chunk_size} iterations)...")
-                state, metrics_log = run_es_optimization(key, state, params, chunk_size)
+                iter_array = jnp.arange(chunk_size)
+                state, metrics_log = run_es_optimization(key, state, params, iter_array)
                 state.fitness.block_until_ready()
                 metrics_logs.append(metrics_log)
                 key, _ = jax.random.split(key)
@@ -414,12 +415,13 @@ if __name__ == '__main__':
                 chunk_file = "Data/Processed/results"+str(seed)[:6]+"/evosax_"+name+"_"+pathogen+lockdown+option1+option2+str(seed)+"_chunk"+str(chunk)+".pickle"
                 with open(chunk_file, "wb") as f:
                     pickle.dump({"population": state.population, "fitness": state.fitness, "metrics_log": metrics_log, "chunk": chunk}, f)
-                print(f"Chunk {chunk + 1} saved to disk. 500 iterations completed in {time.time() - start_time:.2f} seconds.")
+                print(f"Chunk {chunk + 1} saved to disk. {chunk_size} iterations completed in {time.time() - start_time:.2f} seconds.")
             
             # Combine metrics logs from all chunks
             metrics_log = jax.tree_util.tree_map(lambda *args: jnp.concatenate(args), *metrics_logs)
         else:
-            state, metrics_log = run_es_optimization(key, state, params, opt_rate1)
+            iter_array = jnp.arange(opt_rate1)
+            state, metrics_log = run_es_optimization(key, state, params, iter_array)
             state.fitness.block_until_ready()
         
         print(f"{opt_rate1} {name} iterations completed in {time.time() - start_time:.2f} seconds.")

@@ -321,10 +321,11 @@ from new_vax import rsv_eff_vax_rate
 from new_vax import rsv_maternal_immunity
 from new_vax import flu_eff_vax_rate
 def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, import_multiplier=1e-9, end_date='2025-05-01', print_params=False, rescale=None, return_contact=False, NAG=7, wrong_aging=False, birth_rate_multiplier=1.0):
+    true_NAG = 7
     if "split" in option1:
-        NAG = 8
+        NAG = true_NAG = 8
     elif "months" in option1:
-        NAG = 65
+        NAG = true_NAG = 65
     if fixed_params is None:
         if "months" in option1:
             from Parameters.census_population import AGING_RATE_months as AGING_RATE
@@ -347,6 +348,14 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX = fixed_params[:4]
         REC_UP, REC_SAME, IMPORT_STRENGTH = fixed_params[-3:]
 
+    if "cboost" in option2:
+        match = re.search(r'cboost(\d+)', option2)
+        CBOOST = int(match.group(1))
+        if true_NAG==65:
+            CONTACT_MATRIX = CONTACT_MATRIX.at[12:5*12,12:5*12].set(CONTACT_MATRIX[12:5*12,12:5*12]*CBOOST)
+        else:
+            CONTACT_MATRIX = CONTACT_MATRIX.at[2,2].set(CONTACT_MATRIX[2,2]*CBOOST)
+            
     if rescale is not None:
         x = rescale[:,0] + x * (rescale[:,1] - rescale[:,0])
     
@@ -599,15 +608,19 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         max_eff = (protection_param[-2]-protection_param[-1])/protection_param[-2]
         VAX_RATE = flu_eff_vax_rate(FULL_POINTS, max_eff)
         # if NAG is greater than 7, duplicate the fifth row (index 4) to fill out the additional age groups
-        if NAG > 7:
+        if true_NAG == 8:
             VAX_RATE = jnp.concatenate((VAX_RATE[:, :5], jnp.tile(VAX_RATE[:, 4:5], (1, NAG-7)), VAX_RATE[:, 5:]), axis=1)
+        elif true_NAG == 65:
+            VAX_RATE = jnp.concatenate((jnp.tile(VAX_RATE[:, 0:1], (1, 3)), jnp.tile(VAX_RATE[:, 1:2], (1, 9)), jnp.tile(VAX_RATE[:, 2:3], (1, 12*4)), VAX_RATE[:, 3:5], jnp.tile(VAX_RATE[:, 4:5], (1, 1)), VAX_RATE[:, 5:]), axis=1)
     elif (("RSV" in pathogen) and ("nvax" not in option1)) or ("rsvvax" in option1):
         protection_param = S_REL*P_OBS
         max_eff0 = 1 - protection_param[-1]
         max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
         VAX_RATE = rsv_eff_vax_rate(FULL_POINTS, max_eff0, max_eff1)
-        if NAG > 7:
+        if true_NAG == 8:
             VAX_RATE = jnp.concatenate((VAX_RATE[:, :5], jnp.tile(VAX_RATE[:, 4:5], (1, NAG-7)), VAX_RATE[:, 5:]), axis=1)
+        elif true_NAG == 65:
+            VAX_RATE = jnp.concatenate((jnp.tile(VAX_RATE[:, 0:1], (1, 3)), jnp.tile(VAX_RATE[:, 1:2], (1, 9)), jnp.tile(VAX_RATE[:, 2:3], (1, 12*4)), VAX_RATE[:, 3:5], jnp.tile(VAX_RATE[:, 4:5], (1, 1)), VAX_RATE[:, 5:]), axis=1)
     else:
         if "months" in option1:
             VAX_RATE = jnp.zeros((len(FULL_POINTS),true_NAG))
