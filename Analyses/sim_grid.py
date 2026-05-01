@@ -734,8 +734,8 @@ def plot_time_series_for_parameters(args, run_save_path, target_p1, target_p2, a
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 18, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260423
-    option1 = "split"
+    seed = 2604283
+    option1 = "dedupsplit"
     NAG = 7 + ("split" in option1)
     if "split" in option1:
         from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
@@ -757,8 +757,8 @@ if __name__ == "__main__":
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     good_simulations = [
         ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", seed, lockdown, option1, "maxagep028"],
-        ["InfluenzaA", seed, lockdown, option1, "nrmaxagep05"], ["InfluenzaB", seed, lockdown, option1, "nrmaxagep05"],
-        ["Adenovirus", seed, lockdown, option1, "maxagep05"],["Parainfluenza3", seed, lockdown, option1, "maxagep028"],
+        ["InfluenzaA", 260429, lockdown, option1, "maxagep03"], ["InfluenzaB", 260430, lockdown, option1, "maxagep03"],
+        ["Adenovirus", 260430, lockdown, option1, "maxagep03"],["Parainfluenza3", seed, lockdown, option1, "maxagep028"],
     ]
     
     # Parameter scaling factors used in the model
@@ -769,20 +769,20 @@ if __name__ == "__main__":
     if "split" in option1:
         PARAM_SCALING = np.concatenate((PARAM_SCALING, np.array([1e-2])))
 
-    # fig, ax = plt.subplots(figsize=(12, 6))
-    # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
-    # plt.tight_layout()
-    # plt.savefig("Figures/line_of_best_fit_ExponentialODipEqual_split.png", dpi=300)
-    # print("NAG", NAG)
+    fig, ax = plt.subplots(figsize=(12, 6))
+    generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
+    plt.tight_layout()
+    plt.savefig("Figures/line_of_best_fit_ExponentialODipEqualdedup_split.png", dpi=300)
+    print("NAG", NAG)
     # run_save_path = "Outputs/sim_grid_lh_n40000_chunk10000_seed260421_lockdownExponentialODipEqual_onlyFluRSV_2d"
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
                                             seed=seed, n_samples=10000, dimension=2, chunk_size=5000)
 
     fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
-    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", threshold_factor=1/3)
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_ratio", threshold_factor=1/3, idx_num=2, idx_den=1)
+    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", threshold_factor=1)
+    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_ratio", threshold_factor=1, idx_num=2, idx_den=1)
     plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_time_age_ExponentialODipEqualGPU_split_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdthird.png", dpi=300)
+    plt.savefig(f"Figures/heatmaps_time_age_ExponentialODipEqualdedup_split_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold1.png", dpi=300)
     
     # # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
     # # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)

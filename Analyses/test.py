@@ -35,19 +35,59 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-######
-from Parameters.census_population import AGE_GROUPS_split as AGE_GROUPS
-expected_obs = jnp.ones((10,65))
-expected_obs = expected_obs.at[:,0:3].set(0.5)
-expected_obs = expected_obs.at[:,3:12].set(0.3)
-expected_obs = expected_obs.at[:,12:60].set(0.1)
-expected_obs = expected_obs.at[:,60].set(0.9)
-expected_obs = expected_obs.at[:,61].set(0.7)
-expected_obs = expected_obs.at[:,62].set(0.4)
-expected_obs = expected_obs.at[:,63].set(0.6)
-expected_obs = expected_obs.at[:,64].set(0.8)
+x = jnp.array([0.12095959667232087, 0.3086025890923164, 0.23331284328096338, 1.3863291634726729, 2.082696992060726, 0.3568661359437461, 0.10748916622350958, 0.09724880235196955, 0.12787145181311882,])
+y = jnp.array([2.0689655172413794, 5.285714285714286, 4.017857142857142, 24.285714285714285, 36.601941747572816, 6.296296296296296, 1.9, 1.7179487179487178, 2.260869565217391])
+print(x*17.1046/y)
+# x1 = jnp.array([0.0, 0.0, 0.4538724712260504, 3.383575085435271, 6.148380926356059, 2.0405272722471484, 0.49470029407184146, 0.0, 0.0, 0.0, 0.47357454063269555, 0.0,])
 
-print(sum_age_to(expected_obs, 12*5, AGE_GROUPS))
+
+# y = jnp.array([0.11674296467980518, 0.0, 0.0, 0.7620958402996412, 0.4552321742828478, 1.3603380642119973, 0.3878848801381089, 0.391754409160897, 0.0, 0.0, 0.21305446240204226, 0.0,])
+
+# y1 = jnp.array([0.0, 0.4876145894285157, 0.5890984651307263, 0.5833317351641959, 2.024075849579205, 3.2818397055720947, 3.2912595959908515, 1.6947585739376947, 1.175233500340199, 0.0, 0.0, 0.0,])
+
+
+# z = jnp.array([0.08200811725210304, 0.08607271060180226, 0.18474438043781752, 0.258542893291961, 1.3705169997362343, 1.5179136128576214, 0.933934730697798, 0.44397093026338946, 0.0, 0.1182216757753653, 0.0, 0.08744810983482597,])
+# z1 = jnp.array([0.0, 0.0, 0.5789730111184667, 1.9846742288592063, 2.248830000607792, 3.644143508722434, 2.0330843262935496, 0.7681030193127815, 0.0, 0.0, 0.0, 0.0,])
+
+# a = jnp.array([0.43958145959437117, 1.1455618377348478, 2.1413282626361516, 3.5259043471085643, 3.5503081420940688, 4.581901679107324, 1.885698059203255, 0.7290101433128428, 0.22333786511872897, 0.0, 0.1107941168323962, 0.0])
+# a1 = jnp.array([0.5508233707746338, 1.9504643962848296, 5.536508221527665, 8.557980316645272, 5.207686071215107, 9.519770833153034, 4.292035707870987, 1.3474553124336135, 0.5755632297319521, 0.0, 0.0, 0.0, ])
+
+# print("3-11m, data")
+# print(35.666664/x1.sum())
+# print(35/y1.sum())
+# print(30.083334/z1.sum())
+# print(336.24167/a1.sum())
+# print("3-11m, sims")
+# print(76.9066/x1.sum())
+# print(77.011696/y1.sum())
+# print(81.607086/z1.sum())
+# print(151.32814/a1.sum())
+
+# print("1-4y, data")
+# print(81.083336/x.sum())
+# print(59.819046/y.sum())
+# print(88.533325/z.sum())
+# print(101.899994/a.sum())
+# print("1-4y, sims")
+# print(143.34541/x.sum())
+# print(143.58917/y.sum())
+# print(154.0439/z.sum())
+# print(296.96664/a.sum())
+
+
+# ######
+# from Parameters.census_population import AGE_GROUPS_split as AGE_GROUPS
+# expected_obs = jnp.ones((10,65))
+# expected_obs = expected_obs.at[:,0:3].set(0.5)
+# expected_obs = expected_obs.at[:,3:12].set(0.3)
+# expected_obs = expected_obs.at[:,12:60].set(0.1)
+# expected_obs = expected_obs.at[:,60].set(0.9)
+# expected_obs = expected_obs.at[:,61].set(0.7)
+# expected_obs = expected_obs.at[:,62].set(0.4)
+# expected_obs = expected_obs.at[:,63].set(0.6)
+# expected_obs = expected_obs.at[:,64].set(0.8)
+
+# print(sum_age_to(expected_obs, 12*5, AGE_GROUPS))
 
 ######### interval between first and second birth in months
 # # percent with no second birth, within 24 months, 25-36 months, 37-48 months, and 49+ months

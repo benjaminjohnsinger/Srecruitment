@@ -565,7 +565,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
                     date_to_t('2022-03-01')])
         dipvalues = jnp.array([1, 1-FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
-        RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
+        RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
     elif "ODipLinear" in lockdown:
         FO = 0.75*FF[1] + 0.25
         dipdates = jnp.array([date_to_t(EPOCH),
@@ -573,7 +573,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
                     date_to_t('2022-03-01')])
         dipvalues = jnp.array([1, 1-FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
-        RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
+        RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
     elif "ODipEqual" in lockdown:
         FO = FF[1]
         dipdates = jnp.array([date_to_t(EPOCH),
@@ -581,7 +581,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
                     date_to_t('2022-03-01')])
         dipvalues = jnp.array([1, 1-FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
-        RELATIVE_CONTACT = RELATIVE_CONTACT * ODIP_CONTACT
+        RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
     if "months" in option1:
         true_OBS_AGE = jnp.zeros(true_NAG)
         NAG = 7 + ("split" in option1)
@@ -694,7 +694,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
 
     if return_contact:
         if 'Exponential' in lockdown:
-            return params, EXPONENTIAL_CONTACT*contact_multiplier
+            return params, contact_multiplier * EXPONENTIAL_CONTACT
         if 'Sigmoid' in lockdown:
             return params, SIGMOID_CONTACT*contact_multiplier
         elif 'Mobility' in lockdown:

@@ -599,13 +599,20 @@ def kpsc_positive_test_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES
 
 nice_names = {"RSV": "RSV", "InfluenzaA": "Influenza A", "InfluenzaB": "Influenza B", "Metapneumovirus": "Metapneumovirus", "Adenovirus": "Adenovirus", "Parainfluenza3": "Parainfluenza 3", "Rhinovirus": "Rhinovirus", "Pertussis": "Pertussis", "M.pneumoniae": "M. pneumoniae", "C.pneumoniae": "C. pneumoniae", "SARS-CoV-2": "SARS-CoV-2", "Enterovirus": "Enterovirus"}
 from data_processing import calculate_proportion_positive_incidence
-def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, select_age_group=None, title=None, color=hsv_colors, linewidth=1, legend=True, aggregation="D", window_size=28, weighting_factor=0.5, label=None, factor=1000000, annotations=False, definition="50% median", pp_only=False, hosp=False, detrend=False):
+def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, select_age_group=None, title=None, color=hsv_colors, linewidth=1, legend=True, aggregation="D", window_size=28, weighting_factor=0.5, label=None, factor=1000000, annotations=False, definition="50% median", pp_only=False, hosp=False, detrend=False, dedup=False, mask=[3135,3288]):
     NAG = len(AGE_GROUP_NAMES) if AGE_GROUP_NAMES is not None else 7
-    incidence = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=window_size, weighting_factor=weighting_factor, sum_age_groups=AGE_GROUPS is None, save_counts=False, pp_only=pp_only, hosp=hosp, NAG=NAG, detrend=detrend)
+    incidence = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=window_size, weighting_factor=weighting_factor, sum_age_groups=AGE_GROUPS is None, save_counts=False, pp_only=pp_only, hosp=hosp, NAG=NAG, detrend=detrend, dedup=dedup)
     incidence *= factor
     if aggregation == "MS":
         # add 14 days to the index to get the middle of the month
         incidence.index = incidence.index + pd.Timedelta(days=14)
+
+    # mask interval as NA to create a visible gap in the plot
+    if mask is not None and len(mask) == 2:
+        gap_start = t_to_date(date_to_t('2015-07-04') + mask[0] + 89)
+        gap_end = t_to_date(date_to_t('2015-07-04') + mask[1] + 89)
+        incidence.loc[(incidence.index >= gap_start) & (incidence.index < gap_end), :] = np.nan
+
     if AGE_GROUPS is not None:
         if select_age_group is None:
             color = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
@@ -613,6 +620,8 @@ def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None,
             for i in range(len(AGE_GROUP_NAMES)):
                 ax.plot(incidence.index, incidence[AGE_GROUP_NAMES[i]], label=AGE_GROUP_NAMES[i], color=color[i], linewidth=linewidth)
         else:
+            # print(AGE_GROUP_NAMES[select_age_group], "incidence:")
+            # print(list(incidence[AGE_GROUP_NAMES[select_age_group]]))
             if label is None:
                 label = AGE_GROUP_NAMES[select_age_group]
             ax.plot(incidence.index, incidence[AGE_GROUP_NAMES[select_age_group]], label=label, color=color, linewidth=linewidth)
@@ -620,6 +629,7 @@ def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None,
         if label is None:
             label = nice_names.get(pathogen, pathogen)
         ax.plot(incidence.index, incidence["Total"], color=color, label=label, linewidth=linewidth)
+
     if title is None:
         title = f"{nice_names.get(pathogen, pathogen)} estimated incidence of hospitalizations"
     ax.set_title(title)
@@ -713,8 +723,8 @@ def calculate_observations_per_season_jax(incidence, age_groups=False, pad_days=
     elif x.ndim != 2:
         raise ValueError("incidence must have shape (time,) or (time, n_age_groups).")
 
-    # pad = jnp.zeros((pad_days, n_age), dtype=x.dtype)
-    # x = jnp.concatenate([pad, x], axis=0)
+    pad = jnp.zeros((pad_days, NAG), dtype=x.dtype)
+    x = jnp.concatenate([pad, x], axis=0)
 
     full_days = n_full_seasons * season_len
     full = x[:full_days].reshape(n_full_seasons, season_len, NAG).sum(axis=1)   # (n_full_seasons, n_age)
@@ -816,14 +826,14 @@ if __name__ == "__main__":
     plt.rcParams['font.sans-serif'] = ['Helvetica']
     from Parameters.census_population import AGE_GROUPS, AGE_GROUP_NAMES
 
-    seed = 260415
-    option1 = "split"
+    seed = 2604283
+    option1 = "dedupsplit"
     NAG = 7 + ("split" in option1)
     if "split" in option1:
         from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP, AGE_GROUP_NAMES_split as AGE_GROUP_NAMES
-    # else:
-    from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUP_NAMES as AGE_GROUP_NAMES_orig
-    lockdown = "Exponential"
+    else:
+        from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUP_NAMES
+    lockdown = "ExponentialODipEqual"
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     
@@ -884,17 +894,13 @@ if __name__ == "__main__":
         kpsc_proportion_positive_incidence_plot(
             axB[pi//2, pi%2], pathogen=pathogen, AGE_GROUP_NAMES=AGE_GROUP_NAMES, title=nice_names.get(pathogen, pathogen),
             color=data_color, aggregation=aggregation, factor=factor,
-            annotations=False, definition="50% median", label="Data", hosp=True)
-        kpsc_proportion_positive_incidence_plot(
-            axB[pi//2, pi%2], pathogen=pathogen, AGE_GROUP_NAMES=AGE_GROUP_NAMES_orig, title=nice_names.get(pathogen, pathogen),
-            color="grey", aggregation=aggregation, factor=factor,
-            annotations=False, definition="50% median", label="Data", hosp=True)
+            annotations=False, definition="50% median", label="Data", hosp=True, dedup=True)
     # suppress all y labels and replace with single label on left
     for i in range(len(pathogens)//2):
         for j in range(2):
             axB[i,j].set_ylabel("")
     axB[len(pathogens)//4,0].set_ylabel(f"Incidence per {factor_label} members")
-    # only icnlude every other year label
+    # only include every other year label
     for axB_i in axB.flatten():
         axB_i.set_xticks(pd.date_range(start='2016-01-01',end='2025-01-01',freq='2YS'))
         axB_i.set_xticklabels([str(year) for year in range(2016,2026,2)])
@@ -905,39 +911,38 @@ if __name__ == "__main__":
 
     # now include plots of simulations on top of data
     
-    # p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
-    # PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
-    # POINTS = np.array(date_to_t(PERIOD))
-    # ## Initial conditions
-    # STATE0 = jnp.zeros((2*N_S+1,NAG))
-    # STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
-    # STATE0 = STATE0.at[1,:].set(1)
-    # # # flatten initial state and add maternal immunity compartment
-    # STATE0 = STATE0.flatten()
-    # STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-    # good_simulations = [
-    #     ["RSV", seed, lockdown, option1, "daycarep5maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "daycarep5maxagep02"], 
-    #     ["InfluenzaA", seed, lockdown, option1, "daycarep5maxagep05"], ["InfluenzaB", seed, lockdown, option1, "daycarep5maxagep05"], 
-    #     ["Adenovirus", seed, lockdown, option1, "daycarep5maxagep02"], ["Parainfluenza3", seed, lockdown, option1, "daycarep5maxagep02"]
-    # ]
-    # from Parameters.times_and_contacts import PERIOD
-    # POINTS = jnp.array(date_to_t(PERIOD))
-    # T_LOCKDOWN = date_to_t(pd.to_datetime("2020-03-20"))
-    # for pi, sim in enumerate(good_simulations):
-    #     pathogen = sim[0]
-    #     print(f"Plotting simulation for {pathogen}...")
-    #     _, x, _ = load_optimization_results("", sim[0], sim[1], sim[2], sim[3], sim[4])
-    #     params = x_to_params(x, sim[0], sim[2], sim[3], sim[4], NAG=NAG, return_contact=False, print_params=False)
-    #     params = params + (NAG,)
-    #     lockdown_incidence_plot(axB[pi//2,pi%2], STATE0, params, POINTS, T_LOCKDOWN,
-    #                             p_time_to_obs=p_time_to_obs,
-    #                             color="#DC267F", factor=factor*agg_factor, label="Simulation")
-    # axB[1,1].legend(loc="upper right")
+    p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
+    PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
+    POINTS = np.array(date_to_t(PERIOD))
+    ## Initial conditions
+    STATE0 = jnp.zeros((2*N_S+1,NAG))
+    STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
+    STATE0 = STATE0.at[1,:].set(1)
+    # # flatten initial state and add maternal immunity compartment
+    STATE0 = STATE0.flatten()
+    STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+    good_simulations = [
+        ["RSV", seed, lockdown, option1, "maxagep028"], ["Metapneumovirus", seed, lockdown, option1, "maxagep028"], 
+        ["InfluenzaA", seed, lockdown, option1, "maxagep05"], ["InfluenzaB", seed, lockdown, option1, "maxagep05"], 
+        ["Adenovirus", seed, lockdown, option1, "maxagep05"], ["Parainfluenza3", seed, lockdown, option1, "maxagep028"]
+    ]
+    from Parameters.times_and_contacts import PERIOD
+    POINTS = jnp.array(date_to_t(PERIOD))
+    T_LOCKDOWN = date_to_t(pd.to_datetime("2020-03-20"))
+    for pi, sim in enumerate(good_simulations):
+        pathogen = sim[0]
+        print(f"Plotting simulation for {pathogen}...")
+        _, x, _ = load_optimization_results("", sim[0], sim[1], sim[2], sim[3], sim[4])
+        params = x_to_params(x, sim[0], sim[2], sim[3], sim[4], NAG=NAG, return_contact=False, print_params=False)
+        lockdown_incidence_plot(axB[pi//2,pi%2], STATE0, params, POINTS, T_LOCKDOWN,
+                                p_time_to_obs=p_time_to_obs, NAG=NAG,
+                                color="#DC267F", factor=factor*agg_factor, label="Simulation")
+    axB[1,1].legend(loc="upper right")
     
     # plt.tight_layout()
     # plt.savefig("Figures/ReportOverallIncidenceWeeklyExponential2604172_annotate100.png",dpi=300)
 
     # subfigs[0].suptitle("A", x=0.01, fontweight='bold')
     # subfigs[1].suptitle("B", x=0.01, fontweight='bold')
-
-    plt.savefig("Figures/compare_pre_split_data_dedupallplustests.png",dpi=300)
+    plt.tight_layout()
+    plt.savefig("Figures/Figure1_dedup.png",dpi=300)

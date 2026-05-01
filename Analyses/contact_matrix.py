@@ -68,7 +68,7 @@ for i in range(2):
     KP_HOME[i,1] = 0
 # print(KP_HOME)
 
-print(KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS - KP_ALL)
+KP_ALL = KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS
 
 # # average number of contacts per person per day
 # avg_contacts = np.sum(KP_ALL.T * KP_AGE_POP)
@@ -121,9 +121,9 @@ print(KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS - KP_ALL)
 # # plt.savefig('Figures/contact_matrices_Prem_KP.png', dpi=300)
 
 
-# # Save contact matrices
-# np.savetxt('Data/Processed/contact_matrices/KP_split_contact_home_US_Census.csv',KP_HOME,delimiter=',')
-# np.savetxt('Data/Processed/contact_matrices/KP_split_contact_work_US_Census.csv',KP_WORK,delimiter=',')
-# np.savetxt('Data/Processed/contact_matrices/KP_split_contact_school_US_Census.csv',KP_SCHOOL,delimiter=',')
-# np.savetxt('Data/Processed/contact_matrices/KP_split_contact_others_US_Census.csv',KP_OTHERS,delimiter=',')
-# np.savetxt('Data/Processed/contact_matrices/KP_split_contact_all_US_Census.csv',KP_ALL,delimiter=',')
+# Save contact matrices
+np.savetxt('Data/Processed/contact_matrices/KP_mod_split_contact_home_US_Census.csv',KP_HOME,delimiter=',')
+# np.savetxt('Data/Processed/contact_matrices/KP_mod_split_contact_work_US_Census.csv',KP_WORK,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_mod_split_contact_school_US_Census.csv',KP_SCHOOL,delimiter=',')
+# np.savetxt('Data/Processed/contact_matrices/KP_mod_split_contact_others_US_Census.csv',KP_OTHERS,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_mod_split_contact_all_US_Census.csv',KP_ALL,delimiter=',')
