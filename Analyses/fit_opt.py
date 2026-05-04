@@ -27,7 +27,7 @@ from data_processing import calculate_proportion_positive_incidence
 # import scipy as sp
 # import multiprocessing
 
-def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=True, hosp=True, hessian=False, NAG=7, AGE_GROUPS=None, CENSUS_AGE_POP=None, birth_rate_multiplier=1.0):
+def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=True, hosp=True, constant_step=False, hessian=False, NAG=7, AGE_GROUPS=None, CENSUS_AGE_POP=None, birth_rate_multiplier=1.0):
     ### load data and parameters
     start_date = '2015-07-04'
     end_date = '2025-05-01'
@@ -111,7 +111,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
             sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
-            lh = -SIS_likelihood(data, 0, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, incidence_data=True, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
+            lh = -SIS_likelihood(data, 0, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, incidence_data=True, constant_step=constant_step, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
             if normalize:
                 lh = lh / N # normalize by number of data points
             return lh
@@ -121,7 +121,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
             sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
-            lh = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
+            lh = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, constant_step=constant_step, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
             if normalize:
                 lh = lh / N # normalize by number of data points
             return lh
@@ -133,8 +133,8 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
             sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
-            lh_base = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
-            lh_peaks_times = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
+            lh_base = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, constant_step=constant_step, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
+            lh_peaks_times = -peaks_and_times_likelihood(obs_per_season, peak_times, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, constant_step=constant_step, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
             if normalize:
                 lh = (lh_base / N1 + lh_peaks_times / N2)/2 # normalize by number of data points to make comparable
             else:
@@ -148,7 +148,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
                                     )
             if "pp" in option2:
                 pp_opt = sim_params[8]
-            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, obs_age=pp_opt, hessian=hessian, return_sum=False, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
+            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, obs_age=pp_opt, constant_step=constant_step, hessian=hessian, return_sum=False, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
             
             # Extract the numeral from option1
             match = re.search(r'(youngest|oldest)(\d+)', option1)
@@ -174,7 +174,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
                                     )
             if "pp" in option2:
                 pp_opt = sim_params[8]
-            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, obs_age=pp_opt, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
+            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, obs_age=pp_opt, constant_step=constant_step, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
             if normalize:
                 lh = lh / N # normalize by number of data points
             return lh

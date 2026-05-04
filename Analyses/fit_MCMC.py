@@ -14,7 +14,7 @@ import time
 from functools import partial
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
-from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController, DirectAdjoint, RecursiveCheckpointAdjoint
+from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController, ConstantStepSize, DirectAdjoint, RecursiveCheckpointAdjoint
 
 from Parameters.census_population import CENSUS_AGE_POP, AGING_RATE
 from JAX_ODEs import deltas
@@ -26,35 +26,43 @@ from Gemini_vaccination import FluRatePreprocessor
 import time
 from plotting import calculate_observations_per_season_jax, get_season_start_jax
 
-def run_simulation(params, y0, t1, saveat_ts, hessian=False, NAG=7):
+def run_simulation(params, y0, t1, saveat_ts, constant_step=False, hessian=False, NAG=7):
     # add NAG to end of params to pass to ODE solver
     sim_params = params + (NAG,)
     term = ODETerm(deltas)
     solver = Dopri5()
     saveat = SaveAt(ts=saveat_ts)
-    step_controller = PIDController(rtol=1e-5, atol=1e-5)
     if hessian:
         adjoint = DirectAdjoint()
     else:
         adjoint = RecursiveCheckpointAdjoint()
+    if constant_step or hessian:
+        step_controller = ConstantStepSize()
+        dt0 = 0.05
+        max_steps = int(t1/dt0) + 1
+    else:
+        step_controller = PIDController(rtol=1e-5, atol=1e-5)
+        dt0 = 0.1
+        max_steps = 10000
     solution = diffeqsolve(
                         term, solver,
-                        t0=0, t1=t1, dt0=0.1, stepsize_controller=step_controller,
+                        t0=0, t1=t1, dt0=dt0, stepsize_controller=step_controller,
                         saveat=saveat, y0=y0.flatten(), args=sim_params, 
-                        max_steps=10000, throw=False,
+                        max_steps=max_steps, throw=False,
                         adjoint=adjoint,
                         )
     return solution
 
 ## POINTS must start  (at least) len(p_time_to_obs) days before the first observation to avoid issues from jnp.roll behaviour
-def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, hessian=False, return_sum=True, NAG=7, AGE_GROUPS=None, max_month=None):
+def SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, incidence_data=False, obs_age=None, mask=[3135,3288], solution=None, constant_step=False, hessian=False, return_sum=True, NAG=7, AGE_GROUPS=None, max_month=None):
     # run simulation
     if solution is None:
         t1 = int(POINTS[-1])
-        values = run_simulation(params, STATE0, t1, POINTS, hessian=hessian, NAG=NAG)
+        values = run_simulation(params, STATE0, t1, POINTS, constant_step=constant_step, hessian=hessian, NAG=NAG)
         values = values.ys.T
     else:
         values = solution.ys.T
+    print
 
     population_size_inital = calculate_population_size(values, N_S=N_S, NAG=NAG)
 

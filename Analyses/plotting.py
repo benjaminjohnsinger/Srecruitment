@@ -35,7 +35,8 @@ def lockdown_incidence_plot(
     ax,state0,params,points,T_LOCKDOWN,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,
     by_age=False,AGE_GROUP_NAMES=None,select_age_group=None,relative=False,deltas=deltas,obs=None,times=None,
     start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'),factor=1,p_time_to_obs=[1],
-    NAG=7, AGE_GROUPS=None, max_month=None
+    NAG=7, AGE_GROUPS=None, max_month=None,
+    test_data=None,daily_hospitalization_rates=None,aggregation=None
 ):
     if solution is None:
         term = ODETerm(deltas)
@@ -142,6 +143,114 @@ def lockdown_incidence_plot(
                 alpha=alpha,
             )
             mx = 1.1 * np.max(np.array(obs[start_index:end_index]))
+
+    # Plot 95% CI from binomial distribution if test_data provided
+    if test_data is not None:
+        if by_age and selected_age_idx is not None:
+            pop_size_by_age = calculate_population_size(values, NAG=NAG)
+            overall_hosp = daily_hospitalization_rates[:, selected_age_idx] * pop_size_by_age[start_index+1:end_index, selected_age_idx]
+            expected_obs_col = expected_obs[start_index:end_index, selected_age_idx]
+            expected_prop = expected_obs_col / overall_hosp
+            n_tests = test_data[1:, selected_age_idx, 0]
+            # Aggregate if needed
+            if aggregation is not None:
+                dates_agg = dates[(start_index + 1):end_index]
+                agg_freq_map = {'D': 'D', 'W': 'W', 'M': 'MS'}
+                agg_freq = agg_freq_map.get(aggregation[0], 'D')
+                
+                pop_size_col = pop_size_by_age[start_index+1:end_index, selected_age_idx]
+                # print all array shapes goint into df_agg
+                df_agg = pd.DataFrame({
+                    'date': dates_agg,
+                    'expected_obs': expected_obs_col,
+                    'overall_hosp': overall_hosp,
+                    'expected_prop': expected_prop,
+                    'pop_size': pop_size_col,
+                    'n_tests': n_tests
+                })
+                df_agg['date'] = pd.to_datetime(df_agg['date'])
+                df_agg = df_agg.set_index('date')
+                
+                expected_obs_col = df_agg['expected_obs'].resample(agg_freq).sum().values
+                overall_hosp = df_agg['overall_hosp'].resample(agg_freq).sum().values
+                pop_size_col = df_agg['pop_size'].resample(agg_freq).first().values
+                expected_prop = expected_obs_col / overall_hosp
+                dates_agg = df_agg['expected_obs'].resample(agg_freq).sum().index.to_list()
+                n_tests = df_agg['n_tests'].resample(agg_freq).sum().values
+            else:
+                dates_agg = dates[(start_index + 1):end_index]
+                pop_size_col = pop_size_by_age[start_index:end_index, selected_age_idx]
+                overall_hosp = overall_hosp[start_index:end_index]
+            ci_lower = np.zeros_like(expected_prop)
+            ci_upper = np.zeros_like(expected_prop)
+            
+            for t_idx in range(len(expected_prop)):
+                if n_tests[t_idx] > 0:
+                    p = np.clip(expected_prop[t_idx], 0, 1)
+                    ci_lower[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.025, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_col[t_idx])
+                    ci_upper[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.975, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_col[t_idx])
+            
+            agg_factor_map = {'D': 1, 'W': 7, 'M': 30.44}
+            agg_factor = agg_factor_map.get(aggregation[0], 1) if aggregation is not None else 1
+            ax.fill_between(
+                dates_agg,
+                factor * ci_lower / agg_factor,
+                factor * ci_upper / agg_factor,
+                alpha=0.2,
+                color=color,
+            )
+        elif not by_age:
+            pop_size_by_age = calculate_population_size(values, NAG=NAG)
+            overall_hosp = np.sum((daily_hospitalization_rates * pop_size_by_age[start_index+1:end_index, :]), axis=1)
+            expected_obs_agg = np.sum(expected_obs[start_index:end_index], axis=1)
+            expected_prop = expected_obs_agg / overall_hosp
+            n_tests = np.sum(test_data[1:, :, 0], axis=1) if test_data.ndim == 3 else test_data[:, 0]
+            # Aggregate if needed
+            if aggregation is not None:
+                dates_agg = dates[(start_index + 1):end_index]
+                agg_freq_map = {'D': 'D', 'W': 'W', 'M': 'MS'}
+                agg_freq = agg_freq_map.get(aggregation[0], 'D')
+                
+                pop_size_agg = np.sum(pop_size_by_age[start_index+1:end_index, :], axis=1)
+                df_agg = pd.DataFrame({
+                    'date': dates_agg,
+                    'expected_obs': expected_obs_agg,
+                    'overall_hosp': overall_hosp,
+                    'expected_prop': expected_prop,
+                    'pop_size': pop_size_agg,
+                    'n_tests': n_tests
+                })
+                df_agg['date'] = pd.to_datetime(df_agg['date'])
+                df_agg = df_agg.set_index('date')
+                
+                expected_obs_agg = df_agg['expected_obs'].resample(agg_freq).sum().values
+                overall_hosp = df_agg['overall_hosp'].resample(agg_freq).sum().values
+                pop_size_agg = df_agg['pop_size'].resample(agg_freq).first().values
+                expected_prop = expected_obs_agg / overall_hosp
+                n_tests = df_agg['n_tests'].resample(agg_freq).sum().values
+                dates_agg = df_agg['expected_obs'].resample(agg_freq).sum().index.to_list()
+            else:
+                dates_agg = dates[(start_index + 1):end_index]
+                pop_size_agg = np.sum(pop_size_by_age[start_index:end_index, :], axis=1)
+            
+            ci_lower = np.zeros_like(expected_prop)
+            ci_upper = np.zeros_like(expected_prop)
+            
+            for t_idx in range(len(expected_prop)):
+                if n_tests[t_idx] > 0:
+                    p = np.clip(expected_prop[t_idx], 0, 1)
+                    ci_lower[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.025, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_agg[t_idx])
+                    ci_upper[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.975, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_agg[t_idx])
+            
+            agg_factor_map = {'D': 1, 'W': 7, 'M': 30.44}
+            agg_factor = agg_factor_map.get(aggregation[0], 1)
+            ax.fill_between(
+                dates_agg,
+                factor * ci_lower / agg_factor,
+                factor * ci_upper / agg_factor,
+                alpha=0.2,
+                color=color,
+            )
 
     return mx
 
