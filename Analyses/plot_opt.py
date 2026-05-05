@@ -18,8 +18,17 @@ from fit_MCMC import *
 
 if __name__ == "__main__":
     pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
+    option1_label = option1
+    option2_label = option2
 
     AGE_GROUPS = None
+
+    # print("-------!!!!!!!----- adding months to option1 -----!!!!!!!-------")
+    # option1 = option1 + "months"
+
+    # print("-------!!!!!!!----- adding to option2 -----!!!!!!!-------")
+    # option2 = option2 + "
+
     if "months" in option1:
         from Parameters.census_population import CENSUS_AGE_POP_months as CENSUS_AGE_POP
         from Parameters.census_population import AGE_GROUPS_split as AGE_GROUPS
@@ -50,7 +59,6 @@ if __name__ == "__main__":
         if match:
             birth_rate_multiplier = float(match.group(1))
 
-    option1_label = option1
     if int(str(seed)[:6]) < 260203:
         option1 = "orig_incidence_data" + option1
     if int(str(seed)[:6]) < 260406:
@@ -61,7 +69,6 @@ if __name__ == "__main__":
     start_date = '2015-07-04'
     end_date = '2025-05-01'
 
-    option2_label = option2
     if re.match(r'\d{4}-\d{2}-\d{2}',option1):
         start_date = option1
     if re.match(r'\d{4}-\d{2}-\d{2}',option2):
@@ -79,6 +86,7 @@ if __name__ == "__main__":
     np.random.seed(seed)
     prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
 
+    # x[1] = 0.03
    # prefix = "sampling_parameters_"
     # x = jnp.asarray([0.12032066,0.14603744,0.05796923,0.00512616,0.5582736 ,0.95180595,0.31741548,0.00618303,0.25081336,0.28657508,0.15262091,0.01914573,0.15551174,0.20378447,0.99823165])
     # log_likelihood = 12014.02
@@ -167,8 +175,8 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-    params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True, NAG=NAG, wrong_aging=int(str(seed)[:6])<260414, birth_rate_multiplier=birth_rate_multiplier)
-    print(cntct.shape)
+    params = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=False, NAG=NAG, wrong_aging=int(str(seed)[:6])<260414, birth_rate_multiplier=birth_rate_multiplier)
+    # print(cntct.shape)
 
     # names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
     # for i in range(len(names)):
@@ -241,7 +249,6 @@ if __name__ == "__main__":
     peak_times = [pd.to_timedelta(np.asarray(pt, dtype=int), unit='D') if isinstance(pt, np.ndarray) else pd.to_timedelta(int(pt), unit='D') for pt in peak_times_by_season]
     # print("Peak time of each season:\n", peak_times)
     # difference between 2017/18 and 2022/23 seasons
-    print(peak_times[2])
     peak_time_diff = (peak_times[7] - peak_times[2]).days - 365*5
     # this pritns in vertical format, just printa s a list
     print("Difference in peak times between 2017/18 and 2022/23 seasons (in days):", peak_time_diff.tolist())
@@ -261,25 +268,26 @@ if __name__ == "__main__":
     population_size_by_season = np.array([population_size[np.argmax(times >= season)] for season in unique_seasons])
     expected_obs_per_season = expected_obs_per_season / population_size_by_season
 
-    print("Observed per season:\n", obs_per_season)
-    # plot bar chart of obs per season
-    fig, axes = plt.subplots(2, 4, figsize=(14, 6))
-    axes = axes.flatten()
+    # print("Observed per season:\n", obs_per_season)
+
+    # # plot bar chart of obs per season
+    # fig, axes = plt.subplots(2, 4, figsize=(14, 6))
+    # axes = axes.flatten()
     
-    for i_age in range(NAG_eff):
-        ax = axes[i_age]
-        ax.bar(unique_seasons, obs_per_season[:, i_age], width=300, alpha=0.5, label="Observed")
-        # Resample population size to yearly (seasonal) values
-        ax.bar(unique_seasons, expected_obs_per_season[:, i_age], width=300, alpha=0.5, label="Expected")
-        ax.set_title(AGE_GROUP_NAMES[i_age], fontsize=9)
-        ax.set_ylabel("Observations per season")
-        if i_age == 0:
-            ax.legend(frameon=False, fontsize=8)
+    # for i_age in range(NAG_eff):
+    #     ax = axes[i_age]
+    #     ax.bar(unique_seasons, obs_per_season[:, i_age], width=300, alpha=0.5, label="Observed")
+    #     # Resample population size to yearly (seasonal) values
+    #     ax.bar(unique_seasons, expected_obs_per_season[:, i_age], width=300, alpha=0.5, label="Expected")
+    #     ax.set_title(AGE_GROUP_NAMES[i_age], fontsize=9)
+    #     ax.set_ylabel("Observations per season")
+    #     if i_age == 0:
+    #         ax.legend(frameon=False, fontsize=8)
     
-    plt.tight_layout()
-    plt.savefig("Figures/"+prefix+pathogen+"_obs_per_season_"+str(seed)+"_test.png", dpi=300, bbox_inches='tight')
-    plt.close()
-    print("Expected per season:\n", expected_obs_per_season)
+    # plt.tight_layout()
+    # plt.savefig("Figures/"+prefix+pathogen+"_obs_per_season_"+str(seed)+".png", dpi=300, bbox_inches='tight')
+    # plt.close()
+    # print("Expected per season:\n", expected_obs_per_season)
 
     # For each season, find the center of gravity of expected observation (per age group)
     def season_peak_times(season_id):
@@ -470,7 +478,8 @@ if __name__ == "__main__":
         else:
             dmx = kpsc_proportion_positive_incidence_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, select_age_group=i_age, aggregation=aggregation, factor=10000, color="black", hosp=hosp, detrend=("detrend" in option1), linewidth=0.5, dedup=("dedup" in option1))
         mx = lockdown_incidence_plot(age_ax,STATE0,params,POINTS,date_to_t('2020-03-19'),label=None,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,solution=solution,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, select_age_group=i_age, color=hsv_colors[i_age], linewidth=0.5, NAG=NAG,AGE_GROUPS=AGE_GROUPS,max_month=max_month,
-                                     test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,)
+                                    #  test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
+                                     )
         lockdown_incidence_format(age_ax,date_to_t('2020-03-19'),365,mx,year_window=2)
         age_ax.legend(frameon=False, fontsize=6)
     if NAG < 8:
@@ -504,7 +513,8 @@ if __name__ == "__main__":
     else:
         kpsc_proportion_positive_incidence_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data", hosp=hosp, detrend=("detrend" in option1), dedup=("dedup" in option1))
     mx = lockdown_incidence_plot(ax[0],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs,NAG=NAG,AGE_GROUPS=AGE_GROUPS,max_month=max_month,
-                                 test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,)
+                                #  test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
+                                 )
     lockdown_incidence_format(ax[0],date_to_t('2020-03-19'),365,mx,year_window=2)
     ax[0].legend(frameon=False, fontsize=6)
 
@@ -530,7 +540,7 @@ if __name__ == "__main__":
     fig.text(0.5, 0.92, "Log-Likelihood: "+str(np.round(-log_likelihood*N,0)), ha='center', fontsize=8)
 
     # plt.tight_layout()
-    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_CItest.pdf",dpi=300)
+    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+".pdf",dpi=300)
     plt.close()
 
     # fig, ax = plt.subplots(figsize=(4,4))

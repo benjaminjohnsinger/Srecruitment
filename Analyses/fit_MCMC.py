@@ -38,7 +38,11 @@ def run_simulation(params, y0, t1, saveat_ts, constant_step=False, hessian=False
         adjoint = RecursiveCheckpointAdjoint()
     if constant_step or hessian:
         step_controller = ConstantStepSize()
-        dt0 = 0.05
+        # if constant_step is a float, use that as the step size, otherwise use 0.05
+        if isinstance(constant_step, float):
+            dt0 = constant_step
+        else:
+            dt0 = 0.05
         max_steps = int(t1/dt0) + 1
     else:
         step_controller = PIDController(rtol=1e-5, atol=1e-5)

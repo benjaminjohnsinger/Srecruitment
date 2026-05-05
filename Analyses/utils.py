@@ -343,7 +343,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         if "months" in option1:
             CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/MONTHS_contact_all_US_Census.csv', delimiter=',', header=None).values)
         else:
-            CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
+            CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_mod']["cmod" in option2]+['', '_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
         BIRTH_RATE = birth_rate_multiplier * jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
         if pathogen == "sim":
             _, _, IMPORT_STRENGTH, _ = pathogen_parameters("test", import_multiplier=import_multiplier, skip_incidence=True)
@@ -353,6 +353,33 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX = fixed_params[:4]
         REC_UP, REC_SAME, IMPORT_STRENGTH = fixed_params[-3:]
     
+    if "clike" in option2:
+        with np.printoptions(threshold=np.inf, linewidth=np.inf):
+            print(CONTACT_MATRIX[12])
+            print(CONTACT_MATRIX[-4])
+        print(option2)
+        match = re.search(r'(\d)clike(\d)', option2)
+        print(match, match.group(1), match.group(2))
+        if match:
+            i = int(match.group(1))
+            j = int(match.group(2))
+            if true_NAG==65:
+                age_map = [jnp.arange(0, 3), jnp.arange(3, 12), jnp.arange(12, 5*12)] + [jnp.array([5*12+k]) for k in range(7 + ("split" in option1) - 3)]
+                target_idx = age_map[i]
+                source_idx = age_map[j]
+                source_rows = CONTACT_MATRIX[source_idx[0], :]
+                if source_rows.ndim == 1:
+                    source_rows = source_rows[None, :]
+                if source_rows.shape[0] == 1 and target_idx.shape[0] > 1:
+                    source_rows = jnp.repeat(source_rows, target_idx.shape[0], axis=0)
+                print(target_idx, source_idx)
+                print(source_rows)
+                CONTACT_MATRIX = CONTACT_MATRIX.at[target_idx, :].set(source_rows)
+            else:
+                CONTACT_MATRIX = CONTACT_MATRIX.at[i,:].set(CONTACT_MATRIX[j,:])
+        with np.printoptions(threshold=np.inf, linewidth=np.inf):
+            print(CONTACT_MATRIX[12])
+            print(CONTACT_MATRIX[-4])
     if "cboost" in option2:
         match = re.search(r'cboost(\d+)', option2)
         CBOOST = int(match.group(1))
@@ -926,7 +953,7 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
 def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", NAG=7):
     _, x_DE, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
     REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
-    x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential" or "ExponentialODip" in lockdown) + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0415" or lockdown=="FlexStepwise") + NAG)
+    x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential" or "ExponentialODip" in lockdown or "ExponentialInOutODip" in lockdown) + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0415" or lockdown=="FlexStepwise") + NAG)
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC
     x_consistent = x_consistent.at[2:5].set(x_DE[0:3]) # BETA, SEASONALITY, OFFSET
     n = 3

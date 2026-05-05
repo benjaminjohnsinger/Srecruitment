@@ -413,6 +413,40 @@ def age_ratio_of_rebound(x, idx_num=2, idx_den=1, threshold_factor=1/2, season_i
     has_valid_obs = has_valid_pre_pandemic & has_valid_rebound
     return jnp.where(rebound_found & has_valid_obs, rebound_ratio / pre_pandemic_mean_ratio, jnp.nan)
 
+def age_time_shift(x, idx_foc=2, idx_ref=1, threshold_factor=1/2, season_idx=None):
+    obs_per_season = x[0, :, :]
+    peak_times = x[1, :, :]
+    pre_pandemic_obs = obs_per_season[:5]
+    if idx_ref is None:
+        has_valid_pre_pandemic = (pre_pandemic_obs[:, idx_foc] > 0).all() & jnp.isfinite(pre_pandemic_obs[:, idx_foc]).all()
+        pre_pandemic_mean_peak_time = jnp.mean(peak_times[:5, idx_foc])
+    else:
+        has_valid_pre_pandemic = (pre_pandemic_obs[:, idx_foc] > 0).all() & (pre_pandemic_obs[:, idx_ref] > 0).all()
+        pre_pandemic_mean_peak_time = jnp.mean(peak_times[:5, idx_foc] - peak_times[:5, idx_ref])
+
+    post_pandemic_obs = obs_per_season[5:, -1]
+    if season_idx is None:
+        threshold = threshold_factor * jnp.mean(obs_per_season[:5, -1])
+        rebound_mask = post_pandemic_obs >= threshold
+        rebound_found = jnp.any(rebound_mask)
+        first_rebound_idx = jnp.argmax(rebound_mask)
+    else:
+        rebound_found = True
+        first_rebound_idx = season_idx - 5  # Adjust for indexing after the first 5 seasons
+    
+    rebound_season_idx = 5 + first_rebound_idx
+    rebound_obs = obs_per_season[rebound_season_idx]
+    
+    if idx_ref is None:
+        has_valid_rebound = (rebound_obs[idx_foc] > 0) & jnp.isfinite(rebound_obs[idx_foc])
+        rebound_peak_time = peak_times[rebound_season_idx, idx_foc]
+    else:
+        has_valid_rebound = (rebound_obs[idx_foc] > 0) & (rebound_obs[idx_ref] > 0) & jnp.isfinite(rebound_obs[idx_foc]) & jnp.isfinite(rebound_obs[idx_ref])
+        rebound_peak_time = (peak_times[rebound_season_idx, idx_foc] - peak_times[rebound_season_idx, idx_ref])
+    
+    has_valid_obs = has_valid_pre_pandemic & has_valid_rebound
+    return jnp.where(rebound_found & has_valid_obs, rebound_peak_time - pre_pandemic_mean_peak_time, jnp.nan)
+
 def age_of_first_infection(x):
     return jnp.mean(jnp.sum(x[2, :5, :-1] * jnp.array(MEDIAN_AGE), axis=1)) / 12
 
@@ -431,6 +465,7 @@ def extract_target_values(all_results, outcome, **kwargs):
     if outcome == "age_of_first_infection": return jax.jit(jax.vmap(age_of_first_infection))(all_results)
     if outcome == "outbreak_in_season": return jax.jit(jax.vmap(lambda x: outbreak_in_season(x, kwargs.get('threshold_factor', 1/2), kwargs.get('season_idx', 6))))(all_results)
     if outcome == "age_shift": return jax.jit(jax.vmap(lambda x: age_ratio_of_rebound(x, kwargs.get('idx_num', 2), kwargs.get('idx_den', 1), kwargs.get('threshold_factor', 1/2)) > 1))(all_results)
+    if outcome == "age_time_shift": return jax.jit(jax.vmap(lambda x: age_time_shift(x, kwargs.get('idx_foc', 2), kwargs.get('idx_ref', 1), kwargs.get('threshold_factor', 1/2), kwargs.get('season_idx', None))))(all_results)
     if "infectors_in_class_" in outcome:
         return jax.vmap(lambda x: x[4, :5, int(outcome.split("_")[-1])].sum(axis=0)/x[4, :5, :-1].sum())(all_results)
     if "abs_foi_in_class_" in outcome:
@@ -477,6 +512,8 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
         value = age_ratio_of_rebound(seasons)
     elif outcome == "time_to_rebound":
         value = time_to_rebound(seasons)/365
+    elif outcome == "age_time_shift":
+        value = age_time_shift(seasons)
     return value
 
 def get_parameter_values(samples, p_idx):
@@ -614,7 +651,9 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
     elif outcome == "outbreak_in_season":
         label = "Outbreak in 2022-23 season"
     elif outcome == "age_shift":
-        label = r"Age shift in re-emergence ($\Delta$ 1–4y > $\Delta$ 3–12m)"
+        label = r"Age shift in re-emergence"
+    elif outcome == "age_time_shift":
+        label = r"Relative peak shift in re-emergence (days)"
     elif outcome == "relative_size":
         label = "Relative size of rebound"
     elif outcome == "age_ratio":
@@ -630,7 +669,7 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
         label = f"Proportion of infectors in age group {age_group}"
     plt.colorbar(scatter, ax=ax, label=label)
 
-    if outcome in ["time_to_rebound", "relative_size", "age_ratio"]:
+    if outcome in ["time_to_rebound", "relative_size", "age_ratio", "age_time_shift"]:
         pathogen_vals = [extract_target_value_from_data(pathogen, outcome=outcome, NAG=NAG) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]]
         pathogen_colors = cm.viridis((jnp.array(pathogen_vals) - np.nanmin(valid_targets)) / (np.nanmax(valid_targets) - np.nanmin(valid_targets)))
         # where pathogen_vals is NA, set color to white
@@ -734,7 +773,7 @@ def plot_time_series_for_parameters(args, run_save_path, target_p1, target_p2, a
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 18, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 2604283
+    seed = 260505
     option1 = "dedupsplit"
     NAG = 7 + ("split" in option1)
     if "split" in option1:
@@ -744,7 +783,7 @@ if __name__ == "__main__":
         from Parameters.census_population import CENSUS_AGE_POP
         from Parameters.census_population import MEDIAN_AGE
     option2 = "flexagep05"
-    lockdown = "ExponentialODipEqual"
+    lockdown = "ExponentialInOutODipEqual"
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
     POINTS = np.array(date_to_t(PERIOD))
@@ -757,8 +796,8 @@ if __name__ == "__main__":
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     good_simulations = [
         ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", seed, lockdown, option1, "maxagep028"],
-        ["InfluenzaA", 260429, lockdown, option1, "maxagep03"], ["InfluenzaB", 260430, lockdown, option1, "maxagep03"],
-        ["Adenovirus", 260430, lockdown, option1, "maxagep03"],["Parainfluenza3", seed, lockdown, option1, "maxagep028"],
+        ["InfluenzaA", seed, lockdown, option1, "maxagep03"], ["InfluenzaB", seed, lockdown, option1, "maxagep03"],
+        ["Adenovirus", seed, lockdown, option1, "maxagep03"],["Parainfluenza3", seed, lockdown, option1, "maxagep028"],
     ]
     
     # Parameter scaling factors used in the model
@@ -772,17 +811,17 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(figsize=(12, 6))
     generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
     plt.tight_layout()
-    plt.savefig("Figures/line_of_best_fit_ExponentialODipEqualdedup_split.png", dpi=300)
+    plt.savefig("Figures/line_of_best_fit_ExponentialInOutODipEqualdedup_split.png", dpi=300)
     print("NAG", NAG)
-    # run_save_path = "Outputs/sim_grid_lh_n40000_chunk10000_seed260421_lockdownExponentialODipEqual_onlyFluRSV_2d"
+    # run_save_path = "Outputs/sim_grid_lh_n40000_chunk10000_seed260421_lockdownExponentialInOutODipEqual_onlyFluRSV_2d"
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
                                             seed=seed, n_samples=10000, dimension=2, chunk_size=5000)
 
     fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
-    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", threshold_factor=1)
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_ratio", threshold_factor=1, idx_num=2, idx_den=1)
+    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_time_shift", season_idx=7, idx_foc=0, idx_ref=7)
+    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_time_shift", season_idx=7, idx_foc=1, idx_ref=7)
     plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_time_age_ExponentialODipEqualdedup_split_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold1.png", dpi=300)
+    plt.savefig(f"Figures/heatmaps_agetimesoldz_ExponentialInOutODipEqualdedup_split_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdthird.png", dpi=300)
     
     # # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
     # # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)

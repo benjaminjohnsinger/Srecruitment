@@ -1,25 +1,20 @@
 combinations=(
-"RSV 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-12 1e-9"
-# "RSV 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-5 1e-5"
+"RSV 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-6 1e-6"
+"RSV 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-8 1e-6"
+"RSV 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-10 1e-7"
 
-"InfluenzaA 260424 ExponentialODipEqual split maxagep05 1e-9 5000 1e-4 1e-4"
-"InfluenzaB 260424 ExponentialODipEqual split maxagep05 1e-9 5000 1e-4 1e-4"
-"Metapneumovirus 260424 ExponentialODipEqual split maxagep028 1e-9 5000 1e-4 1e-4"
-"Parainfluenza3 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-4 1e-4"
-"Adenovirus 260423 ExponentialODipEqual split maxagep05 1e-9 5000 1e-4 1e-4"
-
-"InfluenzaA 260424 ExponentialODipEqual split maxagep05 1e-9 5000 1e-5 1e-5"
-"InfluenzaB 260424 ExponentialODipEqual split maxagep05 1e-9 5000 1e-5 1e-5"
-"Metapneumovirus 260424 ExponentialODipEqual split maxagep028 1e-9 5000 1e-5 1e-5"
-"Parainfluenza3 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-5 1e-5"
-"Adenovirus 260423 ExponentialODipEqual split maxagep05 1e-9 5000 1e-5 1e-5"
-
-"RSV 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-12 1e-9"
+# "RSV 260505 ExponentialInOutODipEqual dedupsplit maxagep028 1e-9 10 1 0.7 scipy_DE"
+# "Metapneumovirus 260505 ExponentialInOutODipEqual dedupsplit maxagep028 1e-9 10 1 0.7 scipy_DE"
+# "Parainfluenza3 260505 ExponentialInOutODipEqual dedupsplit maxagep028 1e-9 10 1 0.7 scipy_DE"
+# "InfluenzaA 260505 ExponentialInOutODipEqual dedupsplit maxagep03 1e-9 10 1 0.7 scipy_DE"
+# "InfluenzaB 260505 ExponentialInOutODipEqual dedupsplit maxagep03 1e-9 10 1 0.7 scipy_DE"
+# "Adenovirus 260505 ExponentialInOutODipEqual dedupsplit maxagep03 1e-9 10 1 0.7 scipy_DE"
 )
 
 for combination in "${combinations[@]}"; do
     /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/polish.py $combination
 done
+
 # for combination in "${combinations[@]}"; do
 #     /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
 #     if [[ $combination == *"optax" ]]; then
