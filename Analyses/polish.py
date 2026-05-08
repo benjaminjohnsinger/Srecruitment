@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # print(f"Norm of proportional parameter changes: {jnp.linalg.norm((final_x - x) / (bounds[:,1] - bounds[:,0]))}")
     # print(f"Optax optimization completed in {time.time() - start_time:.2f} seconds.")
 
-    # # # save results to disk
+    # # # # save results to disk
     results_file = "Data/Processed/results"+str(seed)[:6]+"/jaxopt_polish_"+pathogen+lockdown+option1+option2+str(seed)+".pickle"
     # with open(results_file, "wb") as f:
     #     pickle.dump({
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         return jnp.where(jnp.isnan(lik), likelihood_threshold * 10, lik)
 
     # Calculate gradients and Hessian at the physical optimum
-    print(f"Final gradient norm: {jnp.linalg.norm(jax.grad(hessian_likelihood_physical)(final_x))}")
+    # print(f"Final gradient norm: {jnp.linalg.norm(jax.grad(hessian_likelihood_physical)(final_x))}")
     hessian = jax.hessian(hessian_likelihood_physical)(final_x)
     
     # estimate uncertainty from Hessian

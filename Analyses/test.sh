@@ -1,14 +1,12 @@
 combinations=(
-"RSV 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-6 1e-6"
-"RSV 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-8 1e-6"
-"RSV 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-10 1e-7"
+# "RSV 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-10 1e-7"
 
-# "RSV 260505 ExponentialInOutODipEqual dedupsplit maxagep028 1e-9 10 1 0.7 scipy_DE"
-# "Metapneumovirus 260505 ExponentialInOutODipEqual dedupsplit maxagep028 1e-9 10 1 0.7 scipy_DE"
-# "Parainfluenza3 260505 ExponentialInOutODipEqual dedupsplit maxagep028 1e-9 10 1 0.7 scipy_DE"
-# "InfluenzaA 260505 ExponentialInOutODipEqual dedupsplit maxagep03 1e-9 10 1 0.7 scipy_DE"
-# "InfluenzaB 260505 ExponentialInOutODipEqual dedupsplit maxagep03 1e-9 10 1 0.7 scipy_DE"
-# "Adenovirus 260505 ExponentialInOutODipEqual dedupsplit maxagep03 1e-9 10 1 0.7 scipy_DE"
+# "RSV 260505 ExponentialODipEqual dedupsplit maxagep028 1e-9 200 1e-7 1e-5"
+"InfluenzaA 260505 ExponentialODipEqual dedupsplit maxagep03 1e-9 200 1e-7 1e-5"
+# "Metapneumovirus 260505 ExponentialODipEqual dedupsplit maxagep028 1e-9 200 1e-7 1e-5"
+# "Parainfluenza3 260505 ExponentialODipEqual dedupsplit maxagep028 1e-9 200 1e-7 1e-5"
+# "InfluenzaB 260505 ExponentialODipEqual dedupsplit maxagep03 1e-9 200 1e-7 1e-5"
+# "Adenovirus 260505 ExponentialODipEqual dedupsplit maxagep03 1e-9 200 1e-7 1e-5"
 )
 
 for combination in "${combinations[@]}"; do
@@ -16,7 +14,7 @@ for combination in "${combinations[@]}"; do
 done
 
 # for combination in "${combinations[@]}"; do
-#     /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
+#     # /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
 #     if [[ $combination == *"optax" ]]; then
 #         /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_optax.py $combination
 #     else
