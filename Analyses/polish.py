@@ -40,10 +40,11 @@ if __name__ == "__main__":
     prefix, x, neg_log_likelihood = load_optimization_results("", pathogen, seed, lockdown, option1, option2)
 
     # if results file already exists, proced from x from the results file
-    with open(results_file, "rb") as f:
-        results = pickle.load(f)
-    print(f"Loaded results from disk: {results.keys()}")
-    x = results["final_x"]
+    if os.path.exists(results_file):
+        with open(results_file, "rb") as f:
+            results = pickle.load(f)
+        print(f"Loaded results from disk: {results.keys()}")
+        x = results["final_x"]
 
     # 1. Format the bounds for jaxopt: a tuple of (lower_bounds, upper_bounds)
     lower_bounds = bounds[:, 0]
