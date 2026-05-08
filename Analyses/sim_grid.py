@@ -256,7 +256,16 @@ def worker(args):
     infections_caused_by_age_summed = infections_caused_by_age.sum(axis=0)
     infections_caused_by_age_summed_by_season = infections_caused_by_age_summed.reshape((n_seasons, 365)).sum(axis=1)
     infections_caused_by_age_by_season = jnp.concatenate([infections_caused_by_age_by_season,
-    infections_caused_by_age_summed_by_season[:, None]], axis=1)
+        infections_caused_by_age_summed_by_season[:, None]], axis=1)
+    # weight by infection hospitalization ratio
+    P_OBS = params[8]
+    OBS_AGE = params[9]
+    hospitalizations_caused_by_age = jnp.sum(infections_matrix * P_OBS[:, None, None, None] * OBS_AGE[None, None, :, None], axis=(0, 2))
+    hospitalizations_caused_by_age_by_season = hospitalizations_caused_by_age.reshape((NAG, n_seasons, 365)).sum(axis=2).T
+    hospitalizations_caused_by_age_summed = hospitalizations_caused_by_age.sum(axis=0)
+    hospitalizations_caused_by_age_summed_by_season = hospitalizations_caused_by_age_summed.reshape((n_seasons, 365)).sum(axis=1)
+    hospitalizations_caused_by_age_by_season = jnp.concatenate([hospitalizations_caused_by_age_by_season,
+        hospitalizations_caused_by_age_summed_by_season[:, None]], axis=1)
     # what is the force of infection experienced by each age group each season?
     # Sum over all age groups that are causing infections (first dimension of foi_matrix)
     # foi_matrix shape: (NAG_causing, NAG_receiving, time)
@@ -270,7 +279,7 @@ def worker(args):
     foi_experienced_summed_by_season[:, None]], axis=1)
     
     # return as a 3d array
-    return jnp.stack([obs_per_season, peak_times, proportion_first_infectious, proportion_infectious, infections_caused_by_age_by_season, foi_experienced_by_age_by_season], axis=0)
+    return jnp.stack([obs_per_season, peak_times, proportion_first_infectious, proportion_infectious, infections_caused_by_age_by_season, foi_experienced_by_age_by_season, hospitalizations_caused_by_age_by_season], axis=0)
 
 def simulate_samples_chunked(samples, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
                              base_save_path, chunk_size, skip_existing=False, NAG=7):
@@ -468,6 +477,8 @@ def extract_target_values(all_results, outcome, **kwargs):
     if outcome == "age_time_shift": return jax.jit(jax.vmap(lambda x: age_time_shift(x, kwargs.get('idx_foc', 2), kwargs.get('idx_ref', 1), kwargs.get('threshold_factor', 1/2), kwargs.get('season_idx', None))))(all_results)
     if "infectors_in_class_" in outcome:
         return jax.vmap(lambda x: x[4, :5, int(outcome.split("_")[-1])].sum(axis=0)/x[4, :5, :-1].sum())(all_results)
+    if "hospitalizors_in_class_" in outcome:
+        return jax.vmap(lambda x: x[6, :5, int(outcome.split("_")[-1])].sum(axis=0)/x[6, :5, :-1].sum())(all_results)
     if "abs_foi_in_class_" in outcome:
         return jax.vmap(lambda x: x[5, :5, int(outcome.split("_")[-1])].sum(axis=0))(all_results)
     if "foi_in_class_" in outcome:
@@ -667,6 +678,9 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
     elif "infectors_in_class_" in outcome:
         age_group = int(outcome.split("_")[-1])
         label = f"Proportion of infectors in age group {age_group}"
+    elif "hospitalizors_in_class_" in outcome:
+        age_group = int(outcome.split("_")[-1])
+        label = f"Proportion of hospitalizations caused by infections from age group {age_group}"
     plt.colorbar(scatter, ax=ax, label=label)
 
     if outcome in ["time_to_rebound", "relative_size", "age_ratio", "age_time_shift"]:
@@ -783,7 +797,7 @@ if __name__ == "__main__":
         from Parameters.census_population import CENSUS_AGE_POP
         from Parameters.census_population import MEDIAN_AGE
     option2 = "flexagep05"
-    lockdown = "ExponentialInOutODipEqual"
+    lockdown = "ExponentialODipEqual"
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
     POINTS = np.array(date_to_t(PERIOD))
@@ -811,17 +825,25 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(figsize=(12, 6))
     generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
     plt.tight_layout()
-    plt.savefig("Figures/line_of_best_fit_ExponentialInOutODipEqualdedup_split.png", dpi=300)
+    plt.savefig("Figures/line_of_best_fit_ExponentialODipEqualdedupsplit.png", dpi=300)
     print("NAG", NAG)
-    # run_save_path = "Outputs/sim_grid_lh_n40000_chunk10000_seed260421_lockdownExponentialInOutODipEqual_onlyFluRSV_2d"
+    # run_save_path = "Outputs/sim_grid_lh_n40000_chunk10000_seed260421_lockdownExponentialODipEqual_onlyFluRSV_2d"
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-                                            seed=seed, n_samples=10000, dimension=2, chunk_size=5000)
+                                            seed=seed, n_samples=40000, dimension=2, chunk_size=10000)
 
-    fig, ax = plt.subplots(1, 2, figsize=(13,6.5))
-    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_time_shift", season_idx=7, idx_foc=0, idx_ref=7)
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_time_shift", season_idx=7, idx_foc=1, idx_ref=7)
+    fig, ax = plt.subplots(1, 2, figsize=(13,7), sharex=True, sharey=True)
+    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", threshold=2/3)
+    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_ratio", threshold=2/3)
     plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_agetimesoldz_ExponentialInOutODipEqualdedup_split_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdthird.png", dpi=300)
+    plt.savefig(f"Figures/heatmaps_time_to_rebound_age_ratio_ExponentialODipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdtwothirds.png", dpi=300)
+    
+    # fig, ax = plt.subplots(4, 2, figsize=(13,13), sharex=True, sharey=True)
+    # from Parameters.census_population import AGE_GROUP_NAMES_split as AGE_GROUP_NAMES
+    # for age_group in range(NAG):
+    #     generate_2d_heatmap_plot(ax[age_group//2, age_group%2], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome=f"infectors_in_class_{age_group}")
+    #     ax[age_group//2, age_group%2].set_title(AGE_GROUP_NAMES[age_group])
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmaps_infectors_ExponentialDipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
     
     # # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
     # # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)

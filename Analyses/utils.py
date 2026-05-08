@@ -409,10 +409,19 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     else:
         BETA = x[n]
         n+=1
-    SEASONALITY = x[n]
-    OFFSET = x[n+1]
+    if "seasp" in option2:
+        match = re.search(r'seasp(\d+)', option2)
+        SEASONALITY = int(match.group(1)) / (10 ** len(match.group(1)))
+    else:
+        SEASONALITY = x[n]
+        n+=1
+    if "phasep" in option2:
+        match = re.search(r'phasep(\d+)', option2)
+        OFFSET = int(match.group(1)) / (10 ** len(match.group(1)))
+    else:
+        OFFSET = x[n]
+        n+=1
     MATERNAL_IMMUNITY = jnp.zeros((len(FULL_POINTS), N_S))
-    n += 2
     if "wane" in option1:
         WANE = jnp.array([0.0,x[n],x[n+1]])
         n += 2
@@ -734,7 +743,11 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         return params
 
 def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
-    bounds_dict = {"WANE2": [0,1e-2], "SEASONALITY": [0,1], "OFFSET": [0,1]}
+    bounds_dict = {"WANE2": [0,1e-2]}
+    if "seasp" not in option2:
+        bounds_dict["SEASONALITY"] = [0,1]
+    if "phasep" not in option2:
+        bounds_dict["OFFSET"] = [0,1]
     if "fixbetap" not in option2:
         bounds_dict["BETA"] = [0,0.3]
     if "wane" in option1:
@@ -932,6 +945,7 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
     # evosax_DE format
         x = opt["final_population"][np.argmin(opt["final_fitness"])]
         neg_log_likelihood = np.min(opt["final_fitness"])
+        print("std of final fitness: "+str(jnp.std(opt["final_fitness"]))+"mean of final fitness: "+str(jnp.mean(opt["final_fitness"])) + "ratio: "+str(jnp.std(opt["final_fitness"])/jnp.abs(jnp.mean(opt["final_fitness"]))))
         if jnp.std(opt["final_fitness"]) <= 0.01 * jnp.abs(jnp.mean(opt["final_fitness"])):
             print("evosax converged according to scipy criteria")
         else:

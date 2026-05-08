@@ -478,7 +478,7 @@ if __name__ == "__main__":
         else:
             dmx = kpsc_proportion_positive_incidence_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, select_age_group=i_age, aggregation=aggregation, factor=10000, color="black", hosp=hosp, detrend=("detrend" in option1), linewidth=0.5, dedup=("dedup" in option1))
         mx = lockdown_incidence_plot(age_ax,STATE0,params,POINTS,date_to_t('2020-03-19'),label=None,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,solution=solution,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, select_age_group=i_age, color=hsv_colors[i_age], linewidth=0.5, NAG=NAG,AGE_GROUPS=AGE_GROUPS,max_month=max_month,
-                                    #  test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
+                                     test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
                                      )
         lockdown_incidence_format(age_ax,date_to_t('2020-03-19'),365,mx,year_window=2)
         age_ax.legend(frameon=False, fontsize=6)
@@ -513,7 +513,7 @@ if __name__ == "__main__":
     else:
         kpsc_proportion_positive_incidence_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data", hosp=hosp, detrend=("detrend" in option1), dedup=("dedup" in option1))
     mx = lockdown_incidence_plot(ax[0],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs,NAG=NAG,AGE_GROUPS=AGE_GROUPS,max_month=max_month,
-                                #  test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
+                                 test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
                                  )
     lockdown_incidence_format(ax[0],date_to_t('2020-03-19'),365,mx,year_window=2)
     ax[0].legend(frameon=False, fontsize=6)

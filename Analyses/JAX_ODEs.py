@@ -22,7 +22,7 @@ def deltas(t, state, args):
     susceptible = shaped_state[0:2*N_S:2, :]
     # # births
     birth_rate = jnp.interp(t, FULL_POINTS, BIRTH_RATE)
-    maternal_immunity = jnp.sum(interp_fn(t, FULL_POINTS, MATERNAL_IMMUNITY) * susceptible[:,4])  / jnp.sum(susceptible[:,4])
+    maternal_immunity = jnp.sum(interp_fn(t, FULL_POINTS, MATERNAL_IMMUNITY) * susceptible[:,NAG-3])  / jnp.sum(susceptible[:,NAG-3])
     delta_maternal = delta_maternal + maternal_immunity*birth_rate*pop_size
     delta = delta.at[0,0].add((1-maternal_immunity)*birth_rate*pop_size)
     # infections - calculate force of infection
