@@ -12,7 +12,7 @@ import os
 import re
 import glob
 
-from utils import consistent_x_from_DE, x_to_params, date_to_t
+from utils import consistent_x_from_DE, x_to_params, date_to_t, calculate_population_size
 from fit_MCMC import run_simulation
 from data_processing import calculate_proportion_positive_incidence
 # from Parameters.times_and_contacts import PERIOD
@@ -39,7 +39,7 @@ PARAMETER_NAMES = [
     "Immunity to severe disease after second infection", "Maternal immunity",
     "Contact reduction", "Contact recovery",
     "Disease susceptibility <3m", "Disease susceptibility 3–11m", "Disease susceptibility 1–4y",
-    "Disease susceptibility 5–7y", "Disease susceptibility 8–49y", "Disease susceptibility 50-64y", 
+    "Disease susceptibility 5–7y", "Disease susceptibility 8–17y", "Disease susceptibility 18–49y", "Disease susceptibility 50-64y", 
     "Disease susceptibility 65+y"
 ]
 
@@ -48,7 +48,7 @@ SHORT_PNAMES = [
     "immunity1", "immunity2", "disease_immunity1", "disease_immunity2", "maternal_immunity", 
     "contact_reduction", "contact_recovery",
     "susceptibility_0_3m", "susceptibility_3_11m", "susceptibility_1_4y", "susceptibility_5_7y", 
-    "susceptibility_8_49y", "susceptibility_50_64y", "susceptibility_65y"
+    "susceptibility_8_17y", "susceptibility_18_49y", "susceptibility_50_64y", "susceptibility_65y"
 ]
 
 PATHOGEN_SHORT_NAMES = {
@@ -177,7 +177,7 @@ def lh_sampling(parameter_sets, n_samples, dimension=None):
 def worker(args):
     """Worker function to run a single simulation and extract relevant metrics.
     Args:
-        args: A tuple containing (sample, lockdown, POINTS, STATE0, p_time_to_obs)
+        args: A tuple containing (sample, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
     Returns:
         A 3D array containing the following metrics for each season and age group:
         - Observed infections per season (shape: n_seasons x NAG)
@@ -201,8 +201,15 @@ def worker(args):
     obs_summed_age = obs.sum(axis=1)
     # sum obs over each season, starting with the first time point
     n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
-    # Curtail obs to fit exact seasons (ignore partial days due to leap years)
+    # Curtail pops and obs to fit exact seasons (ignore partial days due to leap years)
     days_to_keep = n_seasons * 365
+    population_size = calculate_population_size(values, NAG=NAG)
+    population_size_curtailed = population_size[:days_to_keep, :]
+    population_reshaped = population_size_curtailed.reshape((n_seasons, 365, NAG))
+    population_by_age_by_season = population_reshaped[:,0,:]
+    population_by_age_by_season_wsum = jnp.concatenate([population_by_age_by_season,
+    population_by_age_by_season.sum(axis=1)[:,None]], axis=1)
+
     obs_curtailed = obs[:days_to_keep, :]
     obs_summed_age_curtailed = obs_summed_age[:days_to_keep]
     obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
@@ -241,15 +248,15 @@ def worker(args):
     # how many infections are caused by each age group in each season?
     # Calculate force of infection from each age group to each receiving age group
     # Shape: (NAG_causing, NAG_receiving, time)
-    foi_matrix = params[4] * params[3][:, :, None] * all_infectious[None, :, :]
+    foi_matrix = params[4] * params[3][:, :, None] * all_infectious[None, :, :] / jnp.sum(population_size_curtailed, axis=1)[None, None, :]
     # Calculate new infections: susceptible * foi * susceptibility by class
     # susceptible shape: (N_S, NAG, time)
     # foi_matrix shape: (NAG_causing, NAG_receiving, time)
     # params[6] shape: (N_S,)
-    infections_matrix = params[6][:, None, None, None] * foi_matrix[None, :, :, :] * susceptible[:, None, :, :]
+    infections_matrix = params[6][:, None, None, None] * foi_matrix[None, :, :, :] * susceptible[:, :, None, :]
     # Sum over susceptibility classes and receiving age groups to get infections caused by each age group
     # Shape: (NAG_causing, time)
-    infections_caused_by_age = infections_matrix.sum(axis=(0, 2))
+    infections_caused_by_age = infections_matrix.sum(axis=(0, 1))
     # Reshape and sum by season
     infections_caused_by_age_by_season = infections_caused_by_age.reshape((NAG, n_seasons, 365)).sum(axis=2).T
     # summed version for consistency
@@ -260,7 +267,7 @@ def worker(args):
     # weight by infection hospitalization ratio
     P_OBS = params[8]
     OBS_AGE = params[9]
-    hospitalizations_caused_by_age = jnp.sum(infections_matrix * P_OBS[:, None, None, None] * OBS_AGE[None, None, :, None], axis=(0, 2))
+    hospitalizations_caused_by_age = jnp.sum(infections_matrix * P_OBS[:, None, None, None] * OBS_AGE[None, :, None, None], axis=(0, 1))
     hospitalizations_caused_by_age_by_season = hospitalizations_caused_by_age.reshape((NAG, n_seasons, 365)).sum(axis=2).T
     hospitalizations_caused_by_age_summed = hospitalizations_caused_by_age.sum(axis=0)
     hospitalizations_caused_by_age_summed_by_season = hospitalizations_caused_by_age_summed.reshape((n_seasons, 365)).sum(axis=1)
@@ -276,10 +283,10 @@ def worker(args):
     foi_experienced_summed = foi_experienced_by_age.sum(axis=0)
     foi_experienced_summed_by_season = foi_experienced_summed.reshape((n_seasons, 365)).sum(axis=1)
     foi_experienced_by_age_by_season = jnp.concatenate([foi_experienced_by_age_by_season,
-    foi_experienced_summed_by_season[:, None]], axis=1)
+        foi_experienced_summed_by_season[:, None]], axis=1)
     
     # return as a 3d array
-    return jnp.stack([obs_per_season, peak_times, proportion_first_infectious, proportion_infectious, infections_caused_by_age_by_season, foi_experienced_by_age_by_season, hospitalizations_caused_by_age_by_season], axis=0)
+    return jnp.stack([obs_per_season, peak_times, proportion_first_infectious, proportion_infectious, infections_caused_by_age_by_season, foi_experienced_by_age_by_season, hospitalizations_caused_by_age_by_season, population_by_age_by_season_wsum], axis=0)
 
 def simulate_samples_chunked(samples, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
                              base_save_path, chunk_size, skip_existing=False, NAG=7):
@@ -475,14 +482,24 @@ def extract_target_values(all_results, outcome, **kwargs):
     if outcome == "outbreak_in_season": return jax.jit(jax.vmap(lambda x: outbreak_in_season(x, kwargs.get('threshold_factor', 1/2), kwargs.get('season_idx', 6))))(all_results)
     if outcome == "age_shift": return jax.jit(jax.vmap(lambda x: age_ratio_of_rebound(x, kwargs.get('idx_num', 2), kwargs.get('idx_den', 1), kwargs.get('threshold_factor', 1/2)) > 1))(all_results)
     if outcome == "age_time_shift": return jax.jit(jax.vmap(lambda x: age_time_shift(x, kwargs.get('idx_foc', 2), kwargs.get('idx_ref', 1), kwargs.get('threshold_factor', 1/2), kwargs.get('season_idx', None))))(all_results)
-    if "infectors_in_class_" in outcome:
-        return jax.vmap(lambda x: x[4, :5, int(outcome.split("_")[-1])].sum(axis=0)/x[4, :5, :-1].sum())(all_results)
-    if "hospitalizors_in_class_" in outcome:
-        return jax.vmap(lambda x: x[6, :5, int(outcome.split("_")[-1])].sum(axis=0)/x[6, :5, :-1].sum())(all_results)
-    if "abs_foi_in_class_" in outcome:
+    if "infectors_in_group_" in outcome:
+        if "proportional" in outcome:
+            return jax.vmap(lambda x: (x[4, :5, int(outcome.split("_")[-1])]/x[7, :5, int(outcome.split("_")[-1])]).mean(axis=0))(all_results)
+        else:
+            return jax.vmap(lambda x: x[4, :5, int(outcome.split("_")[-1])].sum(axis=0)/x[4, :5, :-1].sum())(all_results)
+    if "hospitalizors_in_group_" in outcome:
+        if "proportional" in outcome:
+            digits = [int(d) for d in outcome.split("_")[-1]]
+            return jax.vmap(lambda x: jnp.sum(jnp.array([x[6, :5, i]/x[7, :5, i] for i in digits]), axis=0).mean(axis=0))(all_results)
+        else:
+            digits = [int(d) for d in outcome.split("_")[-1]]
+            return jax.vmap(lambda x: jnp.sum(jnp.array([x[6, :5, i] for i in digits]), axis=0).sum(axis=0)/x[6, :5, :-1].sum())(all_results)
+    if "abs_foi_in_group_" in outcome:
         return jax.vmap(lambda x: x[5, :5, int(outcome.split("_")[-1])].sum(axis=0))(all_results)
-    if "foi_in_class_" in outcome:
+    if "foi_in_group_" in outcome:
         return jax.vmap(lambda x: x[5, :5, int(outcome.split("_")[-1])].sum(axis=0)/x[5, :5, :-1].sum())(all_results) / kwargs.get('foi_scaling', 0.00016)
+    if "population_test_" in outcome:
+        return jax.vmap(lambda x: x[7, :5, int(outcome.split("_")[-1])].mean(axis=0))(all_results)
     return jax.jit(jax.vmap(lambda x: time_to_rebound(x, kwargs.get('threshold_factor', 1/2))))(all_results) / 365
 
 def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
@@ -594,20 +611,20 @@ def add_line_of_best_fit(ax, x_vals, y_vals):
     ax.fill_between(x_fit_ci_masked, ci_lower_masked, ci_upper_masked, alpha=0.3, color='gray', label='95% CI')
     ax.plot(x_fit_masked, y_fit_masked, color='black', linestyle='--', label='Line of best fit')
 
-def add_pathogen_labels(ax, good_simulations, p1=0, p2=8, color=None):
+def add_pathogen_labels(ax, good_simulations, p1=0, p2=8, NAG=7, color=None):
     if color is None:
         color = ["white"] * len(good_simulations)
     for i, pathogen_info in enumerate(good_simulations):
         pathogen, seed, lockdown, option1, option2 = pathogen_info
-        x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed)
+        x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
         if p1 == 0:
             val1 = 13.88 * x[2] / x[0]
         else:
             val1 = x[p1-1] / PARAM_SCALING[p1-1]
         val2 = x[p2-1] / PARAM_SCALING[p2-1]
         ax.scatter(val1, val2, s=50, color=color[i], edgecolor='black', zorder=5)
-        ax.annotate(PATHOGEN_SHORT_NAMES.get(pathogen, pathogen), (val1, val2), xytext=(5, -15),
-                textcoords='offset points', fontsize=18, ha="center", color='black', zorder=4,
+        ax.annotate(PATHOGEN_SHORT_NAMES.get(pathogen, pathogen), (val1, val2), xytext=(9, -9),
+                textcoords='offset points',  ha="left", color='black', zorder=4,
                 path_effects=[pe.Stroke(linewidth=2, foreground='white'), pe.Normal()])
 
 def add_extra_pathogens(ax):
@@ -643,7 +660,7 @@ def run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_t
     
     return run_save_path
 
-def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p2=8, outcome="time_to_rebound", **kwargs):
+def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p2=8, vmin=None, vmax=None, log=False, label=None, outcome="time_to_rebound", cbar=True, pathogen_vals=None, **kwargs):
     """Generates the heatmap/histogram background with simply the main pathogens overlaid."""
     all_results, all_samples = load_and_recombine_results(run_save_path)
     if all_results is None:
@@ -655,52 +672,64 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
     x_vals = get_parameter_values(valid_samples, p1)
     y_vals = get_parameter_values(valid_samples, p2)
 
+    if log:
+        valid_targets = jnp.log(valid_targets)
+
     # Heatmap
-    scatter = add_2d_heatmap_figure(ax, x_vals, y_vals, valid_targets, outcome=outcome)
-    if outcome == "time_to_rebound":
-        label = "Time to re-emergence (years)"
-    elif outcome == "outbreak_in_season":
-        label = "Outbreak in 2022-23 season"
-    elif outcome == "age_shift":
-        label = r"Age shift in re-emergence"
-    elif outcome == "age_time_shift":
-        label = r"Relative peak shift in re-emergence (days)"
-    elif outcome == "relative_size":
-        label = "Relative size of rebound"
-    elif outcome == "age_ratio":
-        label = "Ratio of 1-4y to 3-12m in rebound vs pre-pandemic"
-    elif "abs_foi_in_class_" in outcome:
-        age_group = int(outcome.split("_")[-1])
-        label = f"Force of infection in age group {age_group}"
-    elif "foi_in_class_" in outcome:
-        age_group = int(outcome.split("_")[-1])
-        label = f"Proportion of force of infection in age group {age_group}"
-    elif "infectors_in_class_" in outcome:
-        age_group = int(outcome.split("_")[-1])
-        label = f"Proportion of infectors in age group {age_group}"
-    elif "hospitalizors_in_class_" in outcome:
-        age_group = int(outcome.split("_")[-1])
-        label = f"Proportion of hospitalizations caused by infections from age group {age_group}"
-    plt.colorbar(scatter, ax=ax, label=label)
+    scatter = add_2d_heatmap_figure(ax, x_vals, y_vals, valid_targets, outcome=outcome, vmin=vmin, vmax=vmax)
+    if label is None:
+        if outcome == "time_to_rebound":
+            label = "Time to re-emergence (years)"
+        elif outcome == "outbreak_in_season":
+            label = "Outbreak in 2022-23 season"
+        elif outcome == "age_shift":
+            label = r"Age shift in re-emergence"
+        elif outcome == "age_time_shift":
+            label = r"Relative peak shift in re-emergence (days)"
+        elif outcome == "relative_size":
+            label = "Relative size of rebound"
+        elif outcome == "age_ratio":
+            label = "Ratio of 1-4y to 3-12m in rebound vs pre-pandemic"
+        elif "abs_foi_in_group_" in outcome:
+            age_group = int(outcome.split("_")[-1])
+            label = f"Force of infection in age group {age_group}"
+        elif "foi_in_group_" in outcome:
+            age_group = int(outcome.split("_")[-1])
+            label = f"Proportion of force of infection in age group {age_group}"
+        elif "infectors_in_group_" in outcome:
+            age_group = int(outcome.split("_")[-1])
+            label = f"Proportion of infectors in age group {age_group}"
+        elif "hospitalizors_in_group_" in outcome:
+            age_group = int(outcome.split("_")[-1])
+            label = f"Proportion of hospitalizations caused by infections from age group {age_group}"
+    if cbar:
+        plt.colorbar(scatter, ax=ax, label=label)
 
     if outcome in ["time_to_rebound", "relative_size", "age_ratio", "age_time_shift"]:
-        pathogen_vals = [extract_target_value_from_data(pathogen, outcome=outcome, NAG=NAG) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]]
-        pathogen_colors = cm.viridis((jnp.array(pathogen_vals) - np.nanmin(valid_targets)) / (np.nanmax(valid_targets) - np.nanmin(valid_targets)))
+        if pathogen_vals is None:
+            pathogen_vals = jnp.asarray([extract_target_value_from_data(pathogen, outcome=outcome, NAG=NAG) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]])
+        if log:
+            pathogen_vals = jnp.log(pathogen_vals)
+        pathogen_colors = cm.viridis((pathogen_vals - np.nanmin(valid_targets)) / (np.nanmax(valid_targets) - np.nanmin(valid_targets)))
         # where pathogen_vals is NA, set color to white
         pathogen_colors = [pathogen_colors[i] if not np.isnan(pathogen_vals[i]) else (1,1,1,1) for i in range(len(good_simulations))]
     else:
         pathogen_colors = ["white"] * len(good_simulations)
-    add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, color=pathogen_colors)
+    add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, color=pathogen_colors, NAG=NAG)
 
     ax.set_xlabel(PARAMETER_NAMES[p1])
     ax.set_ylabel(PARAMETER_NAMES[p2])
+    
+    # Extend x axis so RSV label fits
+    if p1 == 0:
+        ax.set_xlim(ax.get_xlim()[0], ax.get_xlim()[1] + 1)
 
     if "Immunity" in PARAMETER_NAMES[p1]: ax.set_xticklabels([f'{1.01+tick:.1f}' for tick in ax.get_xticks()])
     if "Immunity" in PARAMETER_NAMES[p2]: ax.set_yticklabels([f'{1.01+tick:.1f}' for tick in ax.get_yticks()])
 
-    return ax
+    return np.min(valid_targets), np.max(valid_targets)
 
-def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8):
+def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8, NAG=7):
     """Generates the scatter plot of pathogens + line of best fit."""
     
     val1, val2 = np.zeros(len(good_simulations)), np.zeros(len(good_simulations))
@@ -720,7 +749,7 @@ def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8):
 
     # Extra Pathogens & Line of Best Fit
     add_line_of_best_fit(ax, val1, val2)
-    add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2)
+    add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, NAG=NAG)
     add_extra_pathogens(ax)
         
     ax.set_xlabel(PARAMETER_NAMES[p1])
@@ -783,9 +812,174 @@ def plot_time_series_for_parameters(args, run_save_path, target_p1, target_p2, a
     
     fig.suptitle(f"9 Closest Simulations to Target: {PARAMETER_NAMES[p1]}={target_p1:.2f}, {PARAMETER_NAMES[p2]}={target_p2:.2f}")
     return axes
+
+def plot_outcome_along_linear_combination(
+    ax, 
+    run_save_path, 
+    good_simulations, 
+    p1=0, 
+    p2=8,
+    outcome="time_to_rebound",
+    direction='parallel', 
+    method='projection', 
+    num_bins=20, 
+    slice_width=0.1, 
+    log_target=False,
+    **kwargs
+):
+    """
+    Plots the average value of an outcome along a specific linear combination 
+    of log(R0) and Immunity.
+    
+    Parameters:
+    - ax: matplotlib Axes object to plot on.
+    - run_save_path: Path to LHS grid results.
+    - good_simulations: List of pathogens defining the parameter space fit.
+    - p1, p2: Parameter indices (default 0 for R0, 8 for Immunity).
+    - outcome: Name of the outcome variable to load.
+    - direction: 'parallel' (along line of best fit) or 'perpendicular'.
+    - method: 'projection' (project all points) or 'slice' (filter points close to the line).
+    - num_bins: Number of bins for averaging the outcome along the 1D path.
+    - slice_width: If method='slice', the width of the band around the line to include points.
+    - log_target: Whether to log-transform the outcome values.
+    """
+    
+    # ==========================================
+    # 1. Load Parameter Space Data (LHS Simulations)
+    # ==========================================
+    all_results, all_samples = load_and_recombine_results(run_save_path)
+    if all_results is None:
+        print("No simulation results found. Please run the simulation pipeline first.")
+        return ax
+        
+    valid_samples, valid_targets = extract_valid_data(all_samples, all_results, outcome=outcome, **kwargs)
+
+    x_vals_sim = get_parameter_values(valid_samples, p1)
+    y_vals_sim = get_parameter_values(valid_samples, p2)
+    outcome_vals_sim = jnp.log(valid_targets) if log_target else valid_targets
+    
+    x_sim_log = np.log(x_vals_sim)
+
+    # ==========================================
+    # 2. Load Pathogen Fits
+    # ==========================================
+    # Using the same extraction method as generate_best_fit_plot
+    val1, val2 = np.zeros(len(good_simulations)), np.zeros(len(good_simulations))
+    for i, pathogen_info in enumerate(good_simulations):
+        pathogen, seed, lockdown, option1, option2 = pathogen_info
+        x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed)
+        if p1 == 0:
+            val1[i] = 13.88 * x[2] / x[0]
+        else:
+            val1[i] = x[p1-1] * PARAM_SCALING[p1-1]
+        val2[i] = x[p2-1] * PARAM_SCALING[p2-1]
+        
+    pathogen_x = val1
+    pathogen_y = val2
+    x_path_log = np.log(pathogen_x)
+
+    # ==========================================
+    # 3. Calculate Vectors & Projection
+    # ==========================================
+    # Fit the linear regression on the known pathogens
+    model = LinearRegression()
+    model.fit(x_path_log.reshape(-1, 1), pathogen_y)
+    m = model.coef_[0]  # The slope
+    
+    # Define the direction vector in the 2D space (log(R0), Immunity)
+    if direction == 'parallel':
+        v = np.array([1.0, m])
+    elif direction == 'perpendicular':
+        v = np.array([m, -1.0])
+    else:
+        raise ValueError("Direction must be 'parallel' or 'perpendicular'.")
+        
+    v_norm = v / np.linalg.norm(v)
+    n_norm = np.array([-v_norm[1], v_norm[0]]) 
+    
+    # Prepare coordinates
+    points = np.column_stack([x_sim_log, y_vals_sim])
+    positions_along_line = points @ v_norm
+    perpendicular_positions = points @ n_norm
+    
+    # Find empirically the widest section of the simplex to drop the anchor
+    perp_bins = np.linspace(perpendicular_positions.min(), perpendicular_positions.max(), 100)
+    bin_indices = np.digitize(perpendicular_positions, perp_bins)
+    
+    max_range = 0
+    optimal_perp_pos = perpendicular_positions.mean()
+    
+    for i in range(1, len(perp_bins)):
+        in_bin = (bin_indices == i)
+        if np.any(in_bin):
+            current_range = positions_along_line[in_bin].max() - positions_along_line[in_bin].min()
+            if current_range > max_range:
+                max_range = current_range
+                optimal_perp_pos = (perp_bins[i] + perp_bins[i-1]) / 2.0
+                
+    distances_from_line = np.abs(perpendicular_positions - optimal_perp_pos)
+    
+    # ==========================================
+    # 4. Bin Data and Plot
+    # ==========================================
+    if method == 'slice':
+        mask = distances_from_line <= (slice_width / 2.0)
+        positions_along_line = positions_along_line[mask]
+        outcome_vals_sim = outcome_vals_sim[mask]
+        
+        if len(positions_along_line) == 0:
+            print(f"Warning: Slice width {slice_width} too narrow, no points found!")
+            return ax
+            
+    # Bin the data along the optimal 1D axis
+    bin_means, bin_edges, _ = stats.binned_statistic(
+        positions_along_line, outcome_vals_sim, statistic='mean', bins=num_bins
+    )
+    
+    bin_stds, _, _ = stats.binned_statistic(
+        positions_along_line, outcome_vals_sim, statistic='std', bins=num_bins
+    )
+    bin_counts, _, _ = stats.binned_statistic(
+        positions_along_line, outcome_vals_sim, statistic='count', bins=num_bins
+    )
+    
+    with np.errstate(divide='ignore', invalid='ignore'):
+        bin_sems = bin_stds / np.sqrt(bin_counts)
+    
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    valid_bins = ~np.isnan(bin_means)
+    
+    # Center the X axis relative to the middle of the longest path segment
+    path_center = (np.max(positions_along_line) + np.min(positions_along_line)) / 2.0
+    centered_x = bin_centers[valid_bins] - path_center
+
+    ax.plot(
+        centered_x, 
+        bin_means[valid_bins], 
+        color='blue' if direction == 'parallel' else 'purple', 
+        linewidth=2, 
+        label=f'{direction.title()} ({method})'
+    )
+    
+    ax.fill_between(
+        centered_x, 
+        bin_means[valid_bins] - bin_sems[valid_bins], 
+        bin_means[valid_bins] + bin_sems[valid_bins], 
+        color='blue' if direction == 'parallel' else 'purple', 
+        alpha=0.2
+    )
+    
+    ax.set_xlabel(f"Distance from widest center along {direction} line")
+    
+    label_outcome = outcome.replace("_", " ").title()
+    ax.set_ylabel(f"Average {label_outcome}" + (" (log)" if log_target else ""))
+    ax.grid(True, alpha=0.3)
+    # ax.legend()
+    
+    return ax
     
 if __name__ == "__main__":
-    plt.rcParams.update({'font.size': 18, 'font.family': 'serif', 'font.serif': ['Palatino']})
+    plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
     seed = 260505
     option1 = "dedupsplit"
@@ -822,28 +1016,81 @@ if __name__ == "__main__":
     if "split" in option1:
         PARAM_SCALING = np.concatenate((PARAM_SCALING, np.array([1e-2])))
 
-    fig, ax = plt.subplots(figsize=(12, 6))
-    generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
-    plt.tight_layout()
-    plt.savefig("Figures/line_of_best_fit_ExponentialODipEqualdedupsplit.png", dpi=300)
-    print("NAG", NAG)
-    # run_save_path = "Outputs/sim_grid_lh_n40000_chunk10000_seed260421_lockdownExponentialODipEqual_onlyFluRSV_2d"
-    run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-                                            seed=seed, n_samples=40000, dimension=2, chunk_size=10000)
-
-    fig, ax = plt.subplots(1, 2, figsize=(13,7), sharex=True, sharey=True)
-    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", threshold=2/3)
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_ratio", threshold=2/3)
-    plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_time_to_rebound_age_ratio_ExponentialODipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_thresholdtwothirds.png", dpi=300)
-    
-    # fig, ax = plt.subplots(4, 2, figsize=(13,13), sharex=True, sharey=True)
-    # from Parameters.census_population import AGE_GROUP_NAMES_split as AGE_GROUP_NAMES
-    # for age_group in range(NAG):
-    #     generate_2d_heatmap_plot(ax[age_group//2, age_group%2], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome=f"infectors_in_class_{age_group}")
-    #     ax[age_group//2, age_group%2].set_title(AGE_GROUP_NAMES[age_group])
+    # fig, ax = plt.subplots(figsize=(12, 6))
+    # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
     # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmaps_infectors_ExponentialDipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    # plt.savefig("Figures/line_of_best_fit_ExponentialODipEqualdedupsplit.png", dpi=300)
+    # print("NAG", NAG)
+    run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260505_lockdownExponentialODipEqual260513"
+    # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
+    #                                         seed=seed, n_samples=80000, dimension=2, chunk_size=10000,
+    #                                         run_save_path=run_save_path)
+    # print(run_save_path)
+
+    ## perpendicular / parallel plots
+    # fig, ax = plt.subplots(1, 2, figsize=(6.5,4))
+    # ax[0] = plot_outcome_along_linear_combination(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="age_of_first_infection", direction='parallel', method='slice', num_bins=20, log_target=False)
+    # ax[1] = plot_outcome_along_linear_combination(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="age_of_first_infection", direction='perpendicular', method='slice', num_bins=20, log_target=False)
+    # # ax[0].set_ylabel("Proportion of hospitalizations from <3m")
+    # # ax[1].set_ylabel("Proportion of hospitalizations from >65y")
+    # ax[0].set_xlabel("Relative sum of R0 and immunity")
+    # ax[1].set_xlabel("Relative excess in R0 vs immunity")
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/along_linear_combination_age_of_first_infection_ExponentialODipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_slice.png", dpi=300)
+
+    # ## singe planel outcome heatmap
+    # fig, ax = plt.subplots(figsize=(4, 4))
+    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_of_first_infection", cbar=True)
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmap_age_of_first_infection_ExponentialODipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+
+    ## two panel heatmap
+    # fig, ax = plt.subplots(1, 2, figsize=(6.5, 4), sharex=True, sharey=True)
+    # generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0", cbar=False)
+    # generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_7", cbar=False)
+    # ax[1].set_ylabel("")
+    # ax[0].set_title("Under 3 months")
+    # ax[1].set_title("Over 65 years")
+    # fig.subplots_adjust(right=0.85)
+    # cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
+    # norm = plt.Normalize(vmin=0, vmax=1)
+    # sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm)
+    # sm.set_array([])
+    # cbar = plt.colorbar(sm, cax=cbar_ax, label="Relative proportion of hospitalizations caused")
+    # # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmaps_hospitalizors_<3mvs>65y_ExponentialODipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    
+    # fig, ax = plt.subplots(4, 2, figsize=(6.5,8.5), sharex=True, sharey=True)
+    # from Parameters.census_population import AGE_GROUP_NAMES_split as AGE_GROUP_NAMES
+    # overall_min, overall_max = float('inf'), float('-inf')
+    # for age_group in range(NAG):
+    #     current_ax = ax[age_group//2, age_group%2]
+    #     min, max = generate_2d_heatmap_plot(current_ax, run_save_path, good_simulations, label="", NAG=NAG, p1=0, p2=8,
+    #                                         cbar=True, vmin=None, vmax=None, log = False,
+    #                                         outcome=f"hospitalizors_in_group_{age_group}", foi_scaling=1)
+    #     current_ax.set_title(AGE_GROUP_NAMES[age_group])
+    #     overall_min = min if min < overall_min else overall_min
+    #     overall_max = max if max > overall_max else overall_max
+    #     current_ax.set_xlabel("")
+    #     current_ax.set_ylabel("")
+    # print("Overall min:", overall_min, "Overall max:", overall_max)
+    # fig.supxlabel(f"{PARAMETER_NAMES[0]}", fontsize=11)
+    # fig.supylabel(f"{PARAMETER_NAMES[8]}", fontsize=11)
+
+    # # # add label on right for colorbars
+    # fig.text(0.95, 0.5, "Proportion of hospitalization-causing infectors in age group", va='center', rotation='vertical', fontsize=11)
+
+    # # # move figure to make space for colorbar
+    # # fig.subplots_adjust(right=0.8)
+    # # # add overall colorbar
+    # # cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
+    # # norm = plt.Normalize(vmin=7.3, vmax=16.5)
+    # # sm = plt.cm.ScalarMappable(cmap=cm.viridis, norm=norm)
+    # # sm.set_array([])
+    # # cbar = plt.colorbar(sm, cax=cbar_ax, label="Infectors in age group (log)")
+
+    # # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmaps_hospitalizors_ExponentialDipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
     
     # # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
     # # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)
@@ -851,9 +1098,17 @@ if __name__ == "__main__":
     # # plt.savefig(f"Figures/close_to_RSV_260415_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
 
-    # # for p1 in range(len(PARAMETER_NAMES)):
-    # #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
-    # #         fig, ax = plt.subplots(figsize=(10, 8))
-    # #         generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, outcome="time_to_rebound")
-    # #         plt.tight_layout()
-    # #         plt.savefig(f"Figures/sim_grids260415/heatmap_time_to_rebound_daycare_factortwothirds_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}.png", dpi=300)
+    pathogen_vals = jnp.asarray([extract_target_value_from_data(pathogen, outcome="time_to_rebound", NAG=NAG) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]])
+    # for p1 in range(15,len(PARAMETER_NAMES)):
+    for p1 in range(len(PARAMETER_NAMES)):
+        for p2 in range(len(PARAMETER_NAMES)-5, len(PARAMETER_NAMES)):
+            fig, ax = plt.subplots(figsize=(10, 8))
+            generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, NAG=NAG, outcome="time_to_rebound", threshold_factor=1/3, pathogen_vals=pathogen_vals)
+            plt.tight_layout()
+            plt.savefig(f"Figures/sim_grids260505/heatmap_time_to_rebound_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)
+    # for p1 in range(len(PARAMETER_NAMES)):
+    #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
+    #         fig, ax = plt.subplots(figsize=(10, 8))
+    #         generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, outcome="hospitalizors_in_group_0")
+    #         plt.tight_layout()
+    #         plt.savefig(f"Figures/sim_grids260505/heatmap_hospitalizors_in_group_0_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)
