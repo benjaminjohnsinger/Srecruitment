@@ -1,26 +1,28 @@
 combinations=(
-# "RSV 260423 ExponentialODipEqual split maxagep028 1e-9 5000 1e-10 1e-7"
-
-# "RSV 260505 ExponentialODipEqual dedupsplit maxagep028 1e-9 200 1e-7 1e-5"
-"InfluenzaA 260505 ExponentialODipEqual dedupsplit maxagep03 1e-9 200 1e-7 1e-5"
+# "InfluenzaA 260505 ExponentialODipEqual dedupsplit maxagep03 1e-9 200 1e-9 1e-6"
+# "RSV 260505 ExponentialODipEqual dedupsplit maxagep028 1e-9 200 1e-9 1e-6"
 # "Metapneumovirus 260505 ExponentialODipEqual dedupsplit maxagep028 1e-9 200 1e-7 1e-5"
 # "Parainfluenza3 260505 ExponentialODipEqual dedupsplit maxagep028 1e-9 200 1e-7 1e-5"
 # "InfluenzaB 260505 ExponentialODipEqual dedupsplit maxagep03 1e-9 200 1e-7 1e-5"
 # "Adenovirus 260505 ExponentialODipEqual dedupsplit maxagep03 1e-9 200 1e-7 1e-5"
+
+"Adenovirus 260514 ExponentialODipEqual dedupsplit maxagep003 1e-9 20 1 0.7 scipy_DE"
+"Adenovirus 260514 ExponentialODipEqual dedupsplit maxagep002 1e-9 20 1 0.7 scipy_DE"
+"Adenovirus 260514 ExponentialODipEqual dedupsplit maxagep004 1e-9 20 1 0.7 scipy_DE"
 )
 
-for combination in "${combinations[@]}"; do
-    /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/polish.py $combination
-done
-
 # for combination in "${combinations[@]}"; do
-#     # /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
-#     if [[ $combination == *"optax" ]]; then
-#         /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_optax.py $combination
-#     else
-#         /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_opt.py $combination
-#     fi
+#     /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/polish.py $combination
 # done
+
+for combination in "${combinations[@]}"; do
+    /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
+    if [[ $combination == *"optax" ]]; then
+        /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_optax.py $combination
+    else
+        /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_opt.py $combination
+    fi
+done
 
 # for i in {1..100}; do
 #     echo "Chunk $i"

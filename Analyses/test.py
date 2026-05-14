@@ -33,8 +33,100 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-x = jnp.array([0.204,0.171,0.393,0.278,0.033,0.121])
-print(x.sum()/len(x))
+from sim_grid import worker
+
+seed = 260505
+lockdown = "ExponentialODipEqual"
+option1 = "dedupsplit"
+option2 = "maxagep028"
+NAG = 8
+N_S = 3
+p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
+PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
+POINTS = np.array(date_to_t(PERIOD))
+## Initial conditions
+STATE0 = jnp.zeros((2*N_S+1,NAG))
+from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split
+STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP_split-1)
+STATE0 = STATE0.at[1,:].set(1)
+# # flatten initial state and add maternal immunity compartment
+STATE0 = STATE0.flatten()
+STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+
+
+# fig, ax = plt.subplots(7,7, sharex="col", sharey="row")
+# fig,ax = plt.subplots(3,3, sharex=True,sharey=True)
+matrix = np.zeros((3,6,8))
+pathogens = ["RSV", "Metapneumovirus", "Adenovirus","Parainfluenza3", "InfluenzaA", "InfluenzaB"]
+opt2s = ["maxagep028","maxagep028","maxagep03","maxagep028","maxagep03","maxagep03"]
+colors = ["#DC267F", "#FFB000",  "#FF832B", "#648FFF",  "#785EF0","k"]
+for i, (pathogen, option2, color) in enumerate(zip(pathogens,opt2s, colors)):
+    x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
+
+    outcome = worker((x, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG))
+
+    matrix[0,i] = outcome[5, :5, :-1].mean(axis=0)/(365)
+    matrix[1,i] = outcome[4, :5, :-1].mean(axis=0)/(outcome[7, 0, :-1]*365)
+    matrix[2,i] = outcome[6, :5, :-1].mean(axis=0)/(outcome[7, 0, :-1]*365)
+
+    # for i in range(7):
+    #     for j in range(1,8):
+    #         if j>i:
+    #             ax[i,j-1].scatter(hospitalizors[j], hospitalizors[i], color=color, label=pathogen)
+# # Age group control variables for plotting
+# age_group_x_idx = 0
+# age_group_x_name = AGE_GROUP_NAMES_split[age_group_x_idx]
+age_group_x_name = "<1y"
+age_group_y_idx = -1
+age_group_y_name = AGE_GROUP_NAMES_split[age_group_y_idx]
+
+fig, ax = plt.subplots(1,3, figsize=(6.5,2.5))
+for i in range(len(pathogens)):
+    ax[0].scatter(matrix[0,i,0:2].sum(), matrix[0,i,age_group_y_idx], color=colors[i], label=pathogens[i])
+    ax[1].scatter(matrix[1,i,0:2].sum(), matrix[1,i,age_group_y_idx], color=colors[i], label=pathogens[i])
+    ax[2].scatter(matrix[2,i,0:2].sum(), matrix[2,i,age_group_y_idx], color=colors[i], label=pathogens[i])
+ax[0].set_xlabel(age_group_x_name)
+ax[0].set_ylabel(age_group_y_name)
+ax[0].set_title("Force of infection")
+ax[1].set_xlabel(age_group_x_name)
+ax[1].set_title("Infectors")
+ax[2].set_xlabel(age_group_x_name)
+ax[2].set_title("Hospitalizors")
+handles, labels = ax[0].get_legend_handles_labels()
+fig.legend(handles, labels, frameon=False, fontsize=8, loc='lower center', ncol=len(pathogens), bbox_to_anchor=(0.5, -0.15))
+plt.tight_layout()
+plt.savefig(f"Figures/force_of_infection_infectors_hospitalizors_scatter_{age_group_x_name}_vs_{age_group_y_name}.png", dpi=300, bbox_inches='tight')
+
+# # print matrix[2] in tab-separated format to two significant figures, not in scientific notation
+# header = "," + ",".join(pathogens)
+# print(header)
+# for i, age_group in enumerate(AGE_GROUP_NAMES_split):
+#     row = [age_group]
+#     for j in range(len(pathogens)):
+#         val = matrix[2, j, i]
+#         # Format to 2 significant figures
+#         if val == 0:
+#             row.append("0")
+#         else:
+#             row.append(f"{val:.2g}")
+#     print(",".join(row))
+
+# # ax.legend()
+# matrix1 = matrix/np.sum(matrix, axis=1)[:,None,:]
+# matrix2 = matrix/np.sum(matrix, axis=2)[:,:,None]
+# for j,m in enumerate([matrix,matrix1,matrix2]):
+#     ax[j,0].imshow(np.log(m[0]))
+#     ax[j,1].imshow(np.log(m[1]))
+#     ax[j,2].imshow(np.log(m[2]))
+# ax[0,0].set_title("Force of infection")
+# ax[0,1].set_title("Infectors")
+# ax[0,2].set_title("Hospitalizors")
+# ax[0,0].set_yticks(range(6))
+# ax[0,0].set_yticklabels(pathogens)
+# ax[0,0].set_xticks(range(NAG))
+# ax[0,0].set_xticklabels(AGE_GROUP_NAMES_split)
+# plt.show()
+
 
 # ######
 # from Parameters.census_population import AGE_GROUPS_split as AGE_GROUPS

@@ -93,11 +93,16 @@ def lockdown_incidence_plot(
             pop_size_by_age = sum_age_to(pop_size_by_age, max_month, AGE_GROUPS)
         obs = factor * expected_obs
 
+        if relative:
+            divisor = np.max(obs[start_index:np.argmin(times <= T_LOCKDOWN)], axis=0)
+        else:
+            divisor = pop_size_by_age[start_index:end_index].T
+
         if selected_age_idx is None:
             for i_age in range(NAG):
                 ax.plot(
                     dates[(start_index + 1):end_index],
-                    obs[start_index:end_index, i_age] / pop_size_by_age[start_index:end_index, i_age],
+                    obs[start_index:end_index, i_age] / divisor[i_age],
                     label=AGE_GROUP_NAMES[i_age] if AGE_GROUP_NAMES is not None else f"Age {i_age}",
                     color=hsv_colors[i_age],
                     linewidth=linewidth,
@@ -105,7 +110,7 @@ def lockdown_incidence_plot(
                 )
             mx = 1.1 * np.max(np.max(obs / pop_size_by_age, axis=1)[start_index:end_index])
         else:
-            series = obs[start_index:end_index, selected_age_idx] / pop_size_by_age[start_index:end_index, selected_age_idx]
+            series = obs[start_index:end_index, selected_age_idx] / divisor[selected_age_idx]
             age_label = (
                 AGE_GROUP_NAMES[selected_age_idx]
                 if AGE_GROUP_NAMES is not None
