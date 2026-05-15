@@ -155,7 +155,8 @@ def lockdown_incidence_plot(
             pop_size_by_age = calculate_population_size(values, NAG=NAG)
             overall_hosp = daily_hospitalization_rates[:, selected_age_idx] * pop_size_by_age[start_index+1:end_index, selected_age_idx]
             expected_obs_col = expected_obs[start_index:end_index, selected_age_idx]
-            expected_prop = expected_obs_col / overall_hosp
+            with np.errstate(divide='ignore', invalid='ignore'):
+                expected_prop = expected_obs_col / overall_hosp
             n_tests = test_data[1:, selected_age_idx, 0]
             # Aggregate if needed
             if aggregation is not None:
@@ -173,13 +174,14 @@ def lockdown_incidence_plot(
                     'pop_size': pop_size_col,
                     'n_tests': n_tests
                 })
-                df_agg['date'] = pd.to_datetime(df_agg['date'])
+                df_agg.loc[:, 'date'] = pd.to_datetime(df_agg['date'])
                 df_agg = df_agg.set_index('date')
                 
                 expected_obs_col = df_agg['expected_obs'].resample(agg_freq).sum().values
                 overall_hosp = df_agg['overall_hosp'].resample(agg_freq).sum().values
                 pop_size_col = df_agg['pop_size'].resample(agg_freq).first().values
-                expected_prop = expected_obs_col / overall_hosp
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    expected_prop = expected_obs_col / overall_hosp
                 dates_agg = df_agg['expected_obs'].resample(agg_freq).sum().index.to_list()
                 n_tests = df_agg['n_tests'].resample(agg_freq).sum().values
             else:
@@ -225,7 +227,7 @@ def lockdown_incidence_plot(
                     'pop_size': pop_size_agg,
                     'n_tests': n_tests
                 })
-                df_agg['date'] = pd.to_datetime(df_agg['date'])
+                df_agg.loc[:, 'date'] = pd.to_datetime(df_agg['date'])
                 df_agg = df_agg.set_index('date')
                 
                 expected_obs_agg = df_agg['expected_obs'].resample(agg_freq).sum().values

@@ -514,6 +514,8 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
     # replace nans with zeros
     incidence = jnp.nan_to_num(incidence)
     incidence_summed_age = jnp.nan_to_num(incidence_summed_age)
+    PERIOD = pd.date_range(start=pd.to_datetime('2015-10-01'), end=pd.to_datetime('2025-10-01'), freq='D')
+    POINTS = np.array(date_to_t(PERIOD))
     n_seasons = int((POINTS[-1] - POINTS[0]) / 365)
     days_to_keep = n_seasons * 365
     obs_curtailed = incidence[:days_to_keep, :]
@@ -542,6 +544,8 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
         value = time_to_rebound(seasons)/365
     elif outcome == "age_time_shift":
         value = age_time_shift(seasons)
+    elif outcome == "peak_times":
+        value = peak_times
     return value
 
 def get_parameter_values(samples, p_idx):
@@ -1003,9 +1007,9 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     good_simulations = [
-        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", seed, lockdown, option1, "maxagep028"],
+        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", 260514, lockdown, option1, "maxagep005"],
         ["InfluenzaA", seed, lockdown, option1, "maxagep03"], ["InfluenzaB", seed, lockdown, option1, "maxagep03"],
-        ["Adenovirus", seed, lockdown, option1, "maxagep03"],["Parainfluenza3", seed, lockdown, option1, "maxagep028"],
+        ["Adenovirus", 260505, lockdown, option1, "betaboundp5maxagep002"],["Parainfluenza3", 260514, lockdown, option1, "maxagep005"],
     ]
     
     # Parameter scaling factors used in the model
@@ -1019,31 +1023,42 @@ if __name__ == "__main__":
     # fig, ax = plt.subplots(figsize=(12, 6))
     # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
     # plt.tight_layout()
-    # plt.savefig("Figures/line_of_best_fit_ExponentialODipEqualdedupsplit.png", dpi=300)
-    # print("NAG", NAG)
-    run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260505_lockdownExponentialODipEqual260513"
+    # plt.savefig("Figures/line_of_best_fit_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2.png", dpi=300)
+    # # print("NAG", NAG)
+    run_save_path = "Outputs/sim_grid_lh_n10000_chunk5000_seed260505_lockdownExponentialODipEqual_AdVPIV3hMPV_lowerIHR2"
     # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-    #                                         seed=seed, n_samples=80000, dimension=2, chunk_size=10000,
+    #                                         seed=seed, n_samples=10000, dimension=2, chunk_size=5000,
     #                                         run_save_path=run_save_path)
     # print(run_save_path)
 
-    ## perpendicular / parallel plots
+    # # perpendicular / parallel plots
     # fig, ax = plt.subplots(1, 2, figsize=(6.5,4))
-    # ax[0] = plot_outcome_along_linear_combination(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="age_of_first_infection", direction='parallel', method='slice', num_bins=20, log_target=False)
-    # ax[1] = plot_outcome_along_linear_combination(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="age_of_first_infection", direction='perpendicular', method='slice', num_bins=20, log_target=False)
+    # ax[0] = plot_outcome_along_linear_combination(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="age_of_first_infection", direction='parallel', method='projection', num_bins=20, log_target=False)
+    # ax[1] = plot_outcome_along_linear_combination(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="age_of_first_infection", direction='perpendicular', method='projection', num_bins=20, log_target=False)
     # # ax[0].set_ylabel("Proportion of hospitalizations from <3m")
     # # ax[1].set_ylabel("Proportion of hospitalizations from >65y")
     # ax[0].set_xlabel("Relative sum of R0 and immunity")
     # ax[1].set_xlabel("Relative excess in R0 vs immunity")
     # plt.tight_layout()
-    # plt.savefig(f"Figures/along_linear_combination_age_of_first_infection_ExponentialODipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_slice.png", dpi=300)
+    # plt.savefig(f"Figures/along_linear_combination_age_of_first_infection_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_projection.png", dpi=300)
 
-    # ## singe planel outcome heatmap
-    # fig, ax = plt.subplots(figsize=(4, 4))
-    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_of_first_infection", cbar=True)
-    # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmap_age_of_first_infection_ExponentialODipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    ## single panel outcome heatmap
+    fig, ax = plt.subplots(figsize=(4, 4))
+    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_of_first_infection", cbar=True)
+    plt.tight_layout()
+    plt.savefig(f"Figures/heatmap_age_of_first_infection_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
+    ## single panel outcome heatmap
+    fig, ax = plt.subplots(figsize=(4, 4))
+    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True)
+    plt.tight_layout()
+    plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+
+    ## single panel outcome heatmap
+    fig, ax = plt.subplots(figsize=(4, 4))
+    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True, threshold_factor=1/3)
+    plt.tight_layout()
+    plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold_third.png", dpi=300)
     ## two panel heatmap
     # fig, ax = plt.subplots(1, 2, figsize=(6.5, 4), sharex=True, sharey=True)
     # generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0", cbar=False)
@@ -1098,14 +1113,14 @@ if __name__ == "__main__":
     # # plt.savefig(f"Figures/close_to_RSV_260415_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
 
-    pathogen_vals = jnp.asarray([extract_target_value_from_data(pathogen, outcome="time_to_rebound", NAG=NAG) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]])
-    # for p1 in range(15,len(PARAMETER_NAMES)):
-    for p1 in range(len(PARAMETER_NAMES)):
-        for p2 in range(len(PARAMETER_NAMES)-5, len(PARAMETER_NAMES)):
-            fig, ax = plt.subplots(figsize=(10, 8))
-            generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, NAG=NAG, outcome="time_to_rebound", threshold_factor=1/3, pathogen_vals=pathogen_vals)
-            plt.tight_layout()
-            plt.savefig(f"Figures/sim_grids260505/heatmap_time_to_rebound_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)
+    # pathogen_vals = jnp.asarray([extract_target_value_from_data(pathogen, outcome="time_to_rebound", NAG=NAG) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]])
+    # # for p1 in range(15,len(PARAMETER_NAMES)):
+    # for p1 in range(len(PARAMETER_NAMES)):
+    #     for p2 in range(len(PARAMETER_NAMES)-5, len(PARAMETER_NAMES)):
+    #         fig, ax = plt.subplots(figsize=(10, 8))
+    #         generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, NAG=NAG, outcome="time_to_rebound", threshold_factor=1/3, pathogen_vals=pathogen_vals)
+    #         plt.tight_layout()
+    #         plt.savefig(f"Figures/sim_grids260505/heatmap_time_to_rebound_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)
     # for p1 in range(len(PARAMETER_NAMES)):
     #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
     #         fig, ax = plt.subplots(figsize=(10, 8))

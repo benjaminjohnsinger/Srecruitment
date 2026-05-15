@@ -198,31 +198,31 @@ if __name__ == "__main__":
     # # full_likelihood = full_likelihood.at[90:90+mask[0]].set(normalized_likelihood[:mask[0]]).at[90+mask[1]:90+mask[1]+(len(normalized_likelihood)-mask[0])].set(normalized_likelihood[mask[0]:])
     # # # print(full_likelihood)
 
-    # # # for each season from the 2015/16 season onwards, sum the total number of infections
-    # seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
-    # season_infection_array = np.zeros((len(seasons)-1,3))
-    # season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
-    # first_infections = np.zeros((len(seasons)-1,NAG))
-    # population_size = calculate_population_size(values, NAG=NAG)
-    # for i in range(len(seasons)-1):
-    #     # get the number of infections in each season
-    #     season_start = np.argmax(times>=seasons[i])
-    #     season_end = np.argmax(times>=seasons[i+1])
-    #     pop_size = np.sum(values[:-NAG,season_start])
-    #     age_pops = population_size[season_start]
-    #     first_infections[i,:] = np.sum(values[1:1+NAG,season_start:season_end],axis=1)
-    #     season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
-    #     season_infection_array[i,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end])*REC_UP[1]/pop_size
-    #     season_infection_array[i,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end])*REC_SAME[2]/pop_size
-    #     season_infection_by_age[i,:,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end],axis=1)*REC_UP[0]/age_pops
-    #     season_infection_by_age[i,:,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end],axis=1)*REC_UP[1]/age_pops
-    #     season_infection_by_age[i,:,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end],axis=1)*REC_SAME[2]/age_pops 
-    # # average_age_of_first_infection = np.sum(first_infections*jnp.array(MEDIAN_AGE).reshape((1,NAG)),axis=1)/jnp.sum(first_infections,axis=1)
-    # season_infections = np.sum(season_infection_array,axis=1)
-    # season_infection_by_age = np.sum(season_infection_by_age,axis=2)
-    # # print("Average age of first infection per season:",average_age_of_first_infection/12)
-    # print("Proportion infected per season (including reinfections):",season_infections)
-    # print("Proportion infected in last season (by age):",season_infection_by_age[-1,:])
+    # # for each season from the 2015/16 season onwards, sum the total number of infections
+    seasons = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-05-01']])
+    season_infection_array = np.zeros((len(seasons)-1,3))
+    season_infection_by_age = np.zeros((len(seasons)-1,NAG,3))
+    first_infections = np.zeros((len(seasons)-1,NAG))
+    population_size = calculate_population_size(values, NAG=NAG)
+    for i in range(len(seasons)-1):
+        # get the number of infections in each season
+        season_start = np.argmax(times>=seasons[i])
+        season_end = np.argmax(times>=seasons[i+1])
+        pop_size = np.sum(values[:-NAG,season_start])
+        age_pops = population_size[season_start]
+        first_infections[i,:] = np.sum(values[1:1+NAG,season_start:season_end],axis=1)
+        season_infection_array[i,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end])*REC_UP[0]/pop_size
+        season_infection_array[i,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end])*REC_UP[1]/pop_size
+        season_infection_array[i,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end])*REC_SAME[2]/pop_size
+        season_infection_by_age[i,:,0] = np.sum(values[1+NAG:1+2*NAG,season_start:season_end],axis=1)*REC_UP[0]/age_pops
+        season_infection_by_age[i,:,1] = np.sum(values[1+3*NAG:1+4*NAG,season_start:season_end],axis=1)*REC_UP[1]/age_pops
+        season_infection_by_age[i,:,2] = np.sum(values[1+5*NAG:1+6*NAG,season_start:season_end],axis=1)*REC_SAME[2]/age_pops 
+    # average_age_of_first_infection = np.sum(first_infections*jnp.array(MEDIAN_AGE).reshape((1,NAG)),axis=1)/jnp.sum(first_infections,axis=1)
+    season_infections = np.sum(season_infection_array,axis=1)
+    season_infection_by_age = np.sum(season_infection_by_age,axis=2)
+    # print("Average age of first infection per season:",average_age_of_first_infection/12)
+    print("Proportion infected per season (including reinfections):",season_infections)
+    print("Proportion infected in last season (by age):",season_infection_by_age[-1,:])
 
     shaped_values = values[1:,].reshape((1+2*N_S, NAG, -1))
     infectious = shaped_values[1:2*N_S:2, :, :]
@@ -634,8 +634,12 @@ if __name__ == "__main__":
     # likelihood as subtitle
     fig.text(0.5, 0.92, "Log-Likelihood: "+str(np.round(-log_likelihood*N,0)), ha='center', fontsize=8)
 
+    ax[0].plot(POINTS, mx*(params[10][-len(POINTS):]-1+x[1]), color = "red")
+    # make sure lower limit of y axis is at zero
+    ax[0].set_ylim(bottom=0)
+
     # plt.tight_layout()
-    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+".pdf",dpi=300)
+    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_test.png",dpi=300)
     plt.close()
 
     # fig, ax = plt.subplots(figsize=(4,4))

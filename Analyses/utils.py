@@ -599,7 +599,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         dipdates = jnp.array([date_to_t(EPOCH),
                     date_to_t('2021-12-15'),
                     date_to_t('2022-03-01')])
-        dipvalues = jnp.array([1, 1-FO, 1])
+        dipvalues = jnp.array([1, FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
     elif "ODipLinear" in lockdown:
@@ -607,7 +607,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         dipdates = jnp.array([date_to_t(EPOCH),
                     date_to_t('2021-12-15'),
                     date_to_t('2022-03-01')])
-        dipvalues = jnp.array([1, 1-FO, 1])
+        dipvalues = jnp.array([1, FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
     elif "ODipEqual" in lockdown:
@@ -615,7 +615,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         dipdates = jnp.array([date_to_t(EPOCH),
                     date_to_t('2021-12-15'),
                     date_to_t('2022-03-01')])
-        dipvalues = jnp.array([1, 1-FO, 1])
+        dipvalues = jnp.array([1, FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
     if "months" in option1:
@@ -749,7 +749,12 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
     if "phasep" not in option2:
         bounds_dict["OFFSET"] = [0,1]
     if "fixbetap" not in option2:
-        bounds_dict["BETA"] = [0,0.3]
+        if "betaboundp" not in option2:
+            bounds_dict["BETA"] = [0,0.3]
+        else:
+            match = re.search(r'betaboundp(\d+)', option2)
+            upper_bound = int(match.group(1)) / (10 ** len(match.group(1)))
+            bounds_dict["BETA"] = [0, upper_bound]
     if "wane" in option1:
         bounds_dict["WANE1"] = [0,1e-2]
     if option1 == "nb":
