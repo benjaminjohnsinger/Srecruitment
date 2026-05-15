@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=piv005
+#SBATCH --job-name=mpv005
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -21,7 +21,7 @@ module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
 combinations=(
-"Parainfluenza3 260514 ExponentialODipEqual dedupsplit maxagep005 1e-9 200 1000 0.7"
+"Metapneumovirus 260514 ExponentialODipEqual dedupsplit maxagep005 1e-9 200 1000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
