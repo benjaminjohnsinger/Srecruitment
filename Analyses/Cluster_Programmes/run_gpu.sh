@@ -12,7 +12,7 @@
 #SBATCH --time=24:00:00
 
 # Array job specifications:
-#SBATCH --array=0-5
+#SBATCH --array=0-3
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 
@@ -21,12 +21,10 @@ module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
 combinations=(
-"RSV 260514 ExponentialODipEqual dedupsplit maxagep028 1e-9 200 2000 0.7"
 "InfluenzaA 260514 ExponentialODipEqual dedupsplit maxagep03 1e-9 200 2000 0.7"
 "InfluenzaB 260514 ExponentialODipEqual dedupsplit maxagep03 1e-9 200 2000 0.7"
 "Metapneumovirus 260514 ExponentialODipEqual dedupsplit maxagep007 1e-9 200 2000 0.7"
 "Adenovirus 260514 ExponentialODipEqual dedupsplit betaboundp5maxagep002 1e-9 200 2000 0.7"
-"Parainfluenza3 260514 ExponentialODipEqual dedupsplit maxagep005 1e-9 200 1000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
