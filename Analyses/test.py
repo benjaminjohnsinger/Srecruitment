@@ -35,6 +35,8 @@ plt.rcParams['font.serif'] = ['Palatino']
 
 from sim_grid import worker, extract_target_value_from_data
 
+print(date_to_t("2020-01-01")-date_to_t("2015-10-01"))
+
 seed = 260505
 lockdown = "ExponentialODipEqual"
 option1 = "dedupsplit"
@@ -57,128 +59,109 @@ STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 # fig, ax = plt.subplots(7,7, sharex="col", sharey="row")
 # fig,ax = plt.subplots(3,3, sharex=True,sharey=True)
 # matrix = np.zeros((3,6,8))
-pre_pandemic_cog = np.zeros(6)
-data_cog = np.zeros(6)
-beta = np.zeros(6)
-seasonality = np.zeros(6)
-phase = np.zeros(6)
-wane = np.zeros(6)
-srel1 = np.zeros(6)
-srel2 = np.zeros(6)
+same_inf = np.zeros((6,NAG))
+diff_inf = np.zeros((6,NAG))
+# pre_pandemic_cog = np.zeros(6)
+# data_cog = np.zeros(6)
+# beta = np.zeros(6)
+# seasonality = np.zeros(6)
+# phase = np.zeros(6)
+# wane = np.zeros(6)
+# srel1 = np.zeros(6)
+# srel2 = np.zeros(6)
 pathogens = ["RSV", "Metapneumovirus", "Adenovirus","Parainfluenza3", "InfluenzaA", "InfluenzaB"]
 opt2s = ["maxagep028","maxagep028","maxagep03","maxagep028","maxagep03","maxagep03"]
 colors = ["#DC267F", "#FFB000",  "#FF832B", "#648FFF",  "#785EF0","k"]
 for i, (pathogen, option2, color) in enumerate(zip(pathogens,opt2s, colors)):
     x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
+    params = x_to_params(x, "sim", lockdown, option1+"mimmwane", option2+"nr", NAG=NAG)
+    solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+    # find total observed infections each season in each age group
+    values = solution.ys.T
+    shaped_values = values[1:, :].reshape((1+2*N_S, NAG, -1))
+    infectious = shaped_values[1:2*N_S:2, :, :]
+    susceptible = shaped_values[0:2*N_S:2, :, :]
+    all_infectious = infectious.sum(axis=0)
+    population_size = calculate_population_size(values, NAG=NAG)
+    foi_matrix = params[4] * params[3][:, :, None] * all_infectious[None, :, :] / jnp.sum(population_size, axis=1)[None, None, :]
+    infections_matrix = params[6][:, None, None, None] * foi_matrix[None, :, :, :] * susceptible[:, :, None, :]
+    
+    age_infections_matrix = infections_matrix.sum(axis=0)[:1553].mean(axis=-1)
+    same_inf[i,:] = np.diag(age_infections_matrix)/np.sum(age_infections_matrix, axis=1)
+    for age_infected in range(NAG):
+        diff_inf[i,age_infected] = np.sum([age_infections_matrix[age_infected, age_infector] for age_infector in range(NAG) if age_infector != age_infected])
+    diff_inf[i, :] /= np.sum(age_infections_matrix, axis=1)
 
-    outcome = worker((x, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG))
+    # outcome = worker((x, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG))
 
     # matrix[0,i] = outcome[5, :5, :-1].mean(axis=0)/(365)
     # matrix[1,i] = outcome[4, :5, :-1].mean(axis=0)/(outcome[7, 0, :-1]*365)
     # matrix[2,i] = outcome[6, :5, :-1].mean(axis=0)/(outcome[7, 0, :-1]*365)
-    print(outcome[1, :5, :-1])
-    print(jnp.sum(outcome[1, :5, :-1]*outcome[7, 0, :-1], axis=1)/jnp.sum(outcome[7, 0, :-1]))
-    pre_pandemic_cog[i] = (jnp.sum(outcome[1, :5, :-1]*outcome[7, 0, :-1], axis=1)/jnp.sum(outcome[7, 0, :-1])).mean()
-    peak_times = extract_target_value_from_data(pathogen, "peak_times", NAG=8)
-    print(peak_times)
-    data_cog[i] = (jnp.sum(peak_times[:5, :-1]*outcome[7, 0, :-1], axis=1)/jnp.sum(outcome[7, 0, :-1])).mean()
-    beta[i] = x[2]
-    seasonality[i] = x[3]
-    phase[i] = x[4]*365
-    wane[i] = x[6]*365
-    srel1[i] = x[7]
-    srel2[i] = x[8]
+    # pre_pandemic_cog[i] = (jnp.sum(outcome[1, :5, :-1]*outcome[7, 0, :-1], axis=1)/jnp.sum(outcome[7, 0, :-1])).mean()
+    # peak_times = extract_target_value_from_data(pathogen, "peak_times", NAG=8)
+    # print(peak_times)
+    # data_cog[i] = (jnp.sum(peak_times[:5, :-1]*outcome[7, 0, :-1], axis=1)/jnp.sum(outcome[7, 0, :-1])).mean()
+    # beta[i] = x[2]
+    # seasonality[i] = x[3]
+    # phase[i] = x[4]*365
+    # wane[i] = x[6]*365
+    # srel1[i] = x[7]
+    # srel2[i] = x[8]
 
     # for i in range(7):
     #     for j in range(1,8):
     #         if j>i:
     #             ax[i,j-1].scatter(hospitalizors[j], hospitalizors[i], color=color, label=pathogen)
-print(pre_pandemic_cog)
-print(data_cog)
-print(phase)
-print(wane)
-fig, ax = plt.subplots(2,2, sharex="col")
-ax[0,0].scatter(phase, pre_pandemic_cog, color=colors)
-ax[0,0].plot(phase, phase, 'k-', alpha=0.5, label="y=x")
-# plot dotted lines from pathogens down to y=x
-for i in range(len(phase)):
-    ax[0,0].plot([phase[i], phase[i]], [pre_pandemic_cog[i], phase[i]], 'k--', alpha=0.5)
-ax[0,0].set_ylabel("Simulated peak day of season")
-ax[0,1].scatter((beta+1-srel2), pre_pandemic_cog - phase, color=colors)
-z1 = np.polyfit((beta+1-srel2), pre_pandemic_cog - phase, 1)
-p1 = np.poly1d(z1)
-x1_line = np.linspace((beta+1-srel2).min(), (beta+1-srel2).max(), 100)
-ax[0,1].plot(x1_line, p1(x1_line), 'k-', alpha=0.5, label="line of best fit")
-# ax[0,1].set_xlabel("Beta")
-ax[0,1].set_ylabel("Simulated peak - Phase (days)")
-y_err = 1.96 * np.std(pre_pandemic_cog - phase - p1((beta+1-srel2))) / np.sqrt(len(pre_pandemic_cog))
-ax[0,1].fill_between(x1_line, p1(x1_line) - y_err, p1(x1_line) + y_err, color='gray', alpha=0.2)
-# ax[0,2].scatter(seasonality, pre_pandemic_cog - phase, color=colors)
-# z2 = np.polyfit(seasonality, pre_pandemic_cog - phase, 1)
-# p2 = np.poly1d(z2)
-# x2_line = np.linspace(seasonality.min(), seasonality.max(), 100)
-# ax[0,2].plot(x2_line, p2(x2_line), 'k-', alpha=0.5)
-# # ax[0,2].set_xlabel("Seasonality")
-# ax[0,2].set_ylabel("Simulated COG - Phase (days)")
-# ax[0,3].scatter(wane, pre_pandemic_cog - phase, color=colors)
-# z3 = np.polyfit(wane, pre_pandemic_cog - phase, 1)
-# p3 = np.poly1d(z3)
-# x3_line = np.linspace(wane.min(), wane.max(), 100)
-# ax[0,3].plot(x3_line, p3(x3_line), 'k-', alpha=0.5)
-# # ax[0,3].set_xlabel("Waning (days)")
-# ax[0,3].set_ylabel("Simulated COG - Phase (days)")
-# ax[0,4].scatter(srel2, pre_pandemic_cog - phase, color=colors)
-# z3 = np.polyfit(srel2, pre_pandemic_cog - phase, 1)
-# p3 = np.poly1d(z3)
-# x3_line = np.linspace(srel2.min(), srel2.max(), 100)
-# ax[0,4].plot(x3_line, p3(x3_line), 'k-', alpha=0.5)
-# ax[0,4].set_xlabel("Acquired immunity")
-# ax[0,4].set_ylabel("Simulated COG - Phase (days)")
-ax[1,0].scatter(phase, data_cog, color=colors)
-ax[1,0].plot(phase, phase, 'k-', alpha=0.5, label="y=x")
-ax[1,0].set_xlabel("Phase (days)")
-ax[1,0].set_ylabel("Data peak day of season")
-for i in range(len(phase)):
-    ax[1,0].plot([phase[i], phase[i]], [data_cog[i], phase[i]], 'k--', alpha=0.5)
-ax[1,1].scatter((beta+1-srel2), data_cog - phase, color=colors)
-z4 = np.polyfit((beta+1-srel2), data_cog - phase, 1)
-p4 = np.poly1d(z4)
-x4_line = np.linspace((beta+1-srel2).min(), (beta+1-srel2).max(), 100)
-ax[1,1].plot(x4_line, p4(x4_line), 'k-', alpha=0.5, label="line of best fit")
-ax[1,1].set_xlabel("Beta + Acquired immunity")
-ax[1,1].set_ylabel("Data peak - Phase (days)")
-# add uncertainty shaded region to ax[1,1] based on 95% confidence intervals of polyfit
-y_err = 1.96 * np.std(data_cog - phase - p4((beta+1-srel2))) / np.sqrt(len(data_cog))
-ax[1,1].fill_between(x4_line, p4(x4_line) - y_err, p4(x4_line) + y_err, color='gray', alpha=0.2)
-# ax[1,2].scatter(seasonality, data_cog - phase, color=colors)
-# z5 = np.polyfit(seasonality, data_cog - phase, 1)
-# p5 = np.poly1d(z5)
-# x5_line = np.linspace(seasonality.min(), seasonality.max(), 100)
-# ax[1,2].plot(x5_line, p5(x5_line), 'k-', alpha=0.5)
-# ax[1,2].set_xlabel("Seasonality")
-# ax[1,2].set_ylabel("Data COG - Phase (days)")
-# ax[1,3].scatter(wane, data_cog - phase, color=colors)
-# z6 = np.polyfit(wane, data_cog - phase, 1)
-# p6 = np.poly1d(z6)
-# x6_line = np.linspace(wane.min(), wane.max(), 100)
-# ax[1,3].plot(x6_line, p6(x6_line), 'k-', alpha=0.5)
-# ax[1,3].set_xlabel("Waning (days)")
-# ax[1,3].set_ylabel("Data COG - Phase (days)")
-# ax[1,4].scatter(srel2, data_cog - phase, color=colors)
-# z6 = np.polyfit(srel2, data_cog - phase, 1)
-# p6 = np.poly1d(z6)
-# x6_line = np.linspace(srel2.min(), srel2.max(), 100)
-# ax[1,4].plot(x6_line, p6(x6_line), 'k-', alpha=0.5)
-# ax[1,4].set_xlabel("Acquired immunity")
-# ax[1,4].set_ylabel("Data COG - Phase (days)")
-# legend of pathogen colors along bottom
-for axis in ax.flatten():
-    axis.legend(loc='upper left', frameon=False, fontsize=8)
-handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=8) for color in colors]
-labels = pathogens
-fig.legend(handles, labels, frameon=False, fontsize=8, loc='lower center', ncol=len(pathogens), bbox_to_anchor=(0.5, -0.05))
-plt.tight_layout()
-plt.savefig(f"Figures/COG_vs_phase_beta_seasonality_srel2_diff.png", dpi=300, bbox_inches='tight')
+
+# fig, ax = plt.subplots(2,2, sharex="col")
+# ax[0,0].scatter(phase, pre_pandemic_cog, color=colors)
+# ax[0,0].plot(phase, phase, 'k-', alpha=0.5, label="y=x")
+# # plot dotted lines from pathogens down to y=x
+# for i in range(len(phase)):
+#     ax[0,0].plot([phase[i], phase[i]], [pre_pandemic_cog[i], phase[i]], 'k--', alpha=0.5)
+# ax[0,0].set_ylabel("Simulated peak day of season")
+# ax[0,1].scatter((beta*(1-srel2)*wane), pre_pandemic_cog - phase, color=colors)
+# z1 = np.polyfit((beta*(1-srel2)*wane), pre_pandemic_cog - phase, 1)
+# p1 = np.poly1d(z1)
+# x1_line = np.linspace((beta*(1-srel2)*wane).min(), (beta*(1-srel2)*wane).max(), 100)
+# ax[0,1].plot(x1_line, p1(x1_line), 'k-', alpha=0.5, label="line of best fit")
+# # ax[0,1].set_xlabel("Beta")
+# ax[0,1].set_ylabel("Simulated peak - Phase (days)")
+# y_err = 1.96 * np.std(pre_pandemic_cog - phase - p1((beta*(1-srel2)*wane))) / np.sqrt(len(pre_pandemic_cog))
+# ax[0,1].fill_between(x1_line, p1(x1_line) - y_err, p1(x1_line) + y_err, color='gray', alpha=0.2)
+# ax[1,0].scatter(phase, data_cog, color=colors)
+# ax[1,0].plot(phase, phase, 'k-', alpha=0.5, label="y=x")
+# ax[1,0].set_xlabel("Phase (days)")
+# ax[1,0].set_ylabel("Data peak day of season")
+# for i in range(len(phase)):
+#     ax[1,0].plot([phase[i], phase[i]], [data_cog[i], phase[i]], 'k--', alpha=0.5)
+# ax[1,1].scatter((beta*(1-srel2)*wane), data_cog - phase, color=colors)
+# z4 = np.polyfit((beta*(1-srel2)*wane), data_cog - phase, 1)
+# p4 = np.poly1d(z4)
+# x4_line = np.linspace((beta*(1-srel2)*wane).min(), (beta*(1-srel2)*wane).max(), 100)
+# ax[1,1].plot(x4_line, p4(x4_line), 'k-', alpha=0.5, label="line of best fit")
+# ax[1,1].set_xlabel("Beta + Acquired immunity")
+# ax[1,1].set_ylabel("Data peak - Phase (days)")
+# # add uncertainty shaded region to ax[1,1] based on 95% confidence intervals of polyfit
+# y_err = 1.96 * np.std(data_cog - phase - p4((beta*(1-srel2)*wane))) / np.sqrt(len(data_cog))
+# ax[1,1].fill_between(x4_line, p4(x4_line) - y_err, p4(x4_line) + y_err, color='gray', alpha=0.2)
+# # legend of pathogen colors along bottom
+# for axis in ax.flatten():
+#     axis.legend(loc='upper left', frameon=False, fontsize=8)
+# handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=8) for color in colors]
+# labels = pathogens
+# fig.legend(handles, labels, frameon=False, fontsize=8, loc='lower center', ncol=len(pathogens), bbox_to_anchor=(0.5, -0.05))
+# plt.tight_layout()
+# plt.savefig(f"Figures/COG_vs_phase_beta_seasonality_srel2_wane_times.png", dpi=300, bbox_inches='tight')
+
+fig, ax = plt.subplots(2,4,figsize=(6.5,6.5),sharex=True,sharey=True)
+for ai in range(NAG):
+    ax[ai//4,ai%4].plot([0,0.5],[1,0.5],'k-')
+    for pi in range(len(pathogens)):
+        ax[ai//4,ai%4].scatter(same_inf[pi,ai], diff_inf[pi,ai], color=colors[pi], label=pathogens[pi])
+handles, labels = ax[0,0].get_legend_handles_labels()
+fig.legend(handles, labels, frameon=False, fontsize=8, loc='lower center', ncol=len(pathogens), bbox_to_anchor=(0.5, -0.15))
+plt.show()
 
 # # Age group control variables for plotting
 # age_group_x_idx = 0
