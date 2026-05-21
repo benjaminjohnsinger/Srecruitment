@@ -12,7 +12,7 @@
 #SBATCH --time=24:00:00
 
 # Array job specifications:
-#SBATCH --array=0-3
+#SBATCH --array=0-2
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 
