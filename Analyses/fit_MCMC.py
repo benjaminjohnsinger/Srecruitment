@@ -273,9 +273,9 @@ def prior_distribution(filename, bounds, n=1000, dist_type="multilog", varlim=No
 
     return prior_dist, fit_means
 
-def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-9, samples=1000, varlim=None, ts_length=3500, mask=[3135,3288]):
-    params, _, bounds, tests, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seed)
-    daily_hospitalization_rates = jnp.asarray(pd.read_csv('Data/Processed/KPSC_ARI_hospitalization_rates_by_day_age_group.csv',index_col=0).fillna(0).values)
+def fit_MCMC(pathogen, lockdown, option1, option2, seed, import_multiplier = 1e-9, samples=1000, varlim=None, ts_length=3500, mask=[3135,3288], NAG=7):
+    params, _, bounds, tests, p_time_to_obs = parameters_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
+    daily_hospitalization_rates = jnp.asarray(pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group'+["","_split"][NAG==8]+'_dedup.csv.csv',index_col=0).fillna(0).values)
     p_time_to_obs_flipped = jnp.flip(p_time_to_obs.flatten())
     def obs_convolution(x):
         return jnp.convolve(x, p_time_to_obs_flipped, mode='same')

@@ -603,7 +603,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
     elif "ODipLinear" in lockdown:
-        FO = 0.75*FF[1] + 0.25
+        FO = 1-(0.75*(1-FF[1])) + 0.25
         dipdates = jnp.array([date_to_t(EPOCH),
                     date_to_t('2021-12-15'),
                     date_to_t('2022-03-01')])
@@ -612,6 +612,14 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
     elif "ODipEqual" in lockdown:
         FO = FF[1]
+        dipdates = jnp.array([date_to_t(EPOCH),
+                    date_to_t('2021-12-15'),
+                    date_to_t('2022-03-01')])
+        dipvalues = jnp.array([1, FO, 1])
+        ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
+        RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
+    elif "ODipLegacy" in lockdown:
+        FO = 1-FF[1]
         dipdates = jnp.array([date_to_t(EPOCH),
                     date_to_t('2021-12-15'),
                     date_to_t('2022-03-01')])
@@ -847,12 +855,12 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
     
     return param_names, bounds
 
-def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=None, import_multiplier=1e-9):
+def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=None, import_multiplier=1e-9, NAG=7, dedup=True):
     base_path = "Data/Processed/results"+str(seed)[:6]+"/"
     filename_pattern = pathogen+lockdown+option1+option2+str(seed)+".pickle"
     opt = None
     prefix = ""
-    for test_prefix in ["DE_opt_", "evosax_DE_"]:
+    for test_prefix in ["DE_opt_", "evosax_DE_", "scipy_DE_", "evosax_DiffusionEvolution_"]:
         filepath = base_path + test_prefix + filename_pattern
         try:
             with open(filepath, "rb") as f:
@@ -864,7 +872,7 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
             continue
 
     if opt is None:
-        print('File not found with either prefix (DE_opt_ or evosax_DE_)')
+        print('File not found with any of the prefixes (DE_opt_, evosax_DE_, scipy_DE_, evosax_DiffusionEvolution_)')
         sys.exit()
 
     # Detect file type and extract results accordingly
@@ -886,7 +894,7 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
         from Parameters.census_population import AGING_RATE_split as AGING_RATE
     else:
         from Parameters.census_population import AGING_RATE
-    REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests = pathogen_parameters(pathogen, import_multiplier=import_multiplier)
+    REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, tests = pathogen_parameters(pathogen, import_multiplier=import_multiplier, NAG=NAG, dedup=dedup)
     CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][ "split" in option1] +'_contact_all_US_Census.csv', delimiter=',', header=None).values)
     BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
 
@@ -896,14 +904,14 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
     FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
     FULL_POINTS = np.array(date_to_t(FULL_PERIOD))
 
-    param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
+    param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 
     if lockdown_x is not None:
         for i,name in enumerate(param_names):
             if name in lockdown_x.keys():
                 x[i] = lockdown_x[name]
-        bounds = jnp.array([[0,1]]*7)
-    params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, REC_UP, REC_SAME, IMPORT_STRENGTH), import_multiplier=import_multiplier)
+        bounds = jnp.array([[0,1]]*NAG)
+    params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG, fixed_params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, REC_UP, REC_SAME, IMPORT_STRENGTH), import_multiplier=import_multiplier)
 
     return params, param_names, bounds, tests, p_time_to_obs
 
