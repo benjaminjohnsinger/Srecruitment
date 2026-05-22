@@ -8,6 +8,9 @@ import emcee
 import numpyro
 from numpyro import distributions as dist
 
+import os
+import matplotlib.pyplot as plt
+
 from utils import load_optimization_results, parameters_names_bounds
 from fit_opt import get_likelihood
 
@@ -61,19 +64,39 @@ def run_nuts(key, pathogen, lockdown, option1, option2, seed, NAG=7, num_warmup=
     mcmc.print_summary()
     return mcmc.get_samples()
 
-def run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=7, num_walkers=32, num_steps=1000):
-    _, xDE, _ = load_optimization_results("", pathogen, seed, lockdown, option1, option2)
+def run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=7, prefix="", num_walkers=32, num_steps=1000):
+    _, xDE, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
     log_posterior = get_emcee_model(pathogen, lockdown, option1, option2, NAG)
-    # set random seed from key
-    np.random.seed(int(key[0]))
-    # initialize walkers in a small Gaussian ball around the DE solution
-    jitter = 1.0 + 1e-4 * jax.random.normal(key, shape=(num_walkers, len(xDE)))
-    initial_pos = xDE * jitter
-    sampler = emcee.EnsembleSampler(num_walkers, len(xDE), log_posterior, vectorize=True)
+    # initialize walkers randomly within 3% of parameter values, within bounds
+    _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+    lower_bounds = jnp.asarray(bounds[:, 0])
+    upper_bounds = jnp.asarray(bounds[:, 1])
+    xDE = jnp.asarray(xDE)
+    
+    # generate perturbations for all walkers
+    key, subkey = jax.random.split(key)
+    perturbations = jax.random.uniform(subkey, shape=(num_walkers, len(xDE)), minval=-0.03, maxval=0.03) * xDE
+    candidates = xDE[jnp.newaxis, :] + perturbations
+    # ensure candidates are within bounds
+    initial_pos = jnp.clip(candidates, lower_bounds + 1e-5, upper_bounds - 1e-5)
+    
+    sampler = emcee.EnsembleSampler(num_walkers, len(xDE), log_posterior, vectorize=True,
+                                    moves=emcee.moves.DEMove())
     sampler.run_mcmc(initial_pos, num_steps, progress=True)
-    tau = sampler.get_autocorr_time()
-    print(f"Autocorrelation time: {tau}")
-    return sampler.get_chain(flat=True)
+    return sampler
+
+def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2, seed):
+    _, n_walkers, n_params = mcmc_samples.shape
+    # make directory Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}
+    os.makedirs(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
+    for j in range(n_walkers):
+        fig, ax = plt.subplots(3,5, figsize=(10,6))
+        for i in range(n_params):
+            ax[i//5, i%5].plot(mcmc_samples[:,j,i], color='k')
+            ax[i//5, i%5].set_title(param_names[i])
+        plt.tight_layout()
+        plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}/walker_{j}.png", dpi=300, bbox_inches='tight')
+        plt.close(fig)
 
 if __name__ == "__main__":
     pathogen = "RSV"
@@ -82,14 +105,21 @@ if __name__ == "__main__":
     option1 = "dedupsplit"
     option2 = "maxagep028"
     NAG = 8
+    prefix = "jaxopt_polish"
     from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
 
-    key = jax.random.PRNGKey(260521)
-    samples = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG, num_walkers=64, num_steps=1000)
-    print("MCMC sampling completed. Sample shape:", samples.shape)
+    key = jax.random.PRNGKey(260522)
+    sampler = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG, prefix=prefix, num_walkers=64, num_steps=500)
+    tau = sampler.get_autocorr_time()
+    acceptance_fraction = np.mean(sampler.acceptance_fraction)
+    print(f"Autocorrelation time: {tau}, Acceptance fraction: {acceptance_fraction:.4f}")
+    samples = sampler.get_chain(flat=True)
     # save samples to disk
-    results_file = f"Outputs/mcmc_samples_emcee_{pathogen}_{lockdown}_{option1}_{option2}_{seed}.csv"
+    results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}.csv"
     np.savetxt(results_file, samples, delimiter=",")
+
+    param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+    plot_traces(sampler.get_chain(), param_names, pathogen, lockdown, option1, option2, seed)
 
     # key = jax.random.PRNGKey(260521)
     # samples = run_nuts(key, pathogen, lockdown, option1, option2, seed, NAG, num_warmup=150, num_samples=300)

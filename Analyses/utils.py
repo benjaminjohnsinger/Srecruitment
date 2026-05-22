@@ -927,7 +927,7 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
     # Try both DE_opt and evosax_DE prefixes
     opt = None
     if prefix == "":
-        for test_prefix in ["DE_opt", "evosax_DE", "scipy_DE", "evosax_DiffusionEvolution"]:
+        for test_prefix in ["DE_opt", "evosax_DE", "scipy_DE", "evosax_DiffusionEvolution", "jaxopt_polish"]:
             filepath = base_path + test_prefix + filename_pattern
             try:
                 with open(filepath, "rb") as f:
@@ -963,6 +963,9 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
             print("evosax converged according to scipy criteria")
         else:
             print("evosax did not converge according to scipy criteria")
+    elif "jaxopt_polish" in prefix:
+        x = opt["final_x"]
+        neg_log_likelihood = None
     # scipy.optimize.differential_evolution format
     elif ("scipy_DE" in prefix) or ("DE_opt" in prefix):
         if opt.success:

@@ -27,6 +27,7 @@ hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 from fit_MCMC import SIS_likelihood, run_simulation
 import time
 import pickle
+import os
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 plt.rcParams.update({'font.size':8})
@@ -45,161 +46,193 @@ NAG = 8
 N_S = 3
 from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split
 
-# pathogen = "RSV"
-# option2 = "maxagep028"
-# filepath = f"Data/Processed/results260505/evosax_DE_{pathogen}ExponentialODipEqualdedupsplit{option2}260505.pickle"
-# with open(filepath, "rb") as f:
-#     results = pickle.load(f)
-# print(f"Loaded results from disk: {results.keys()}")
-# metrics_log = results["metrics_log"]
-# print(metrics_log.keys())
+mcmc_filepath = f"Outputs/mcmc_samples_emcee_{pathogen}_{lockdown}_{option1}_{option2}_{seed}.csv"
+mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
+# 32 walkers, so 32 samples per iteration, so reshape to (n_iterations, 32, n_params)
+n_iterations = 1000
+n_walkers = 32
+param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+n_params = len(param_names)
+mcmc_samples = mcmc_samples.reshape((n_iterations, n_walkers, n_params))
+
+# Reshape it back to 3D to separate the walkers properly
+chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, -1)
+
+# Now apply the Case A math
+moved = np.any(chain_3d[1:] != chain_3d[:-1], axis=-1)
+mean_acceptance = np.mean(moved)
+
+print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
+
+# make directory Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}
+
+# os.makedirs(f"Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
+
+fig, ax = plt.subplots(3,5, figsize=(10,6))
+for j in range(n_walkers):
+    for i in range(n_params):
+        ax[i//5, i%5].plot(mcmc_samples[:,j,i], alpha=0.5)
+        ax[i//5, i%5].set_title(param_names[i])
+    plt.tight_layout()
+plt.savefig(f"Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers.png", dpi=300, bbox_inches='tight')
+plt.close(fig)
 
 
-##### exploratory figures to understand age distribution of infections in the model
-p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
-PERIOD = pd.date_range(start=pd.to_datetime('2015-10-01'), end=pd.to_datetime('2025-10-01'), freq='D')
-POINTS = np.array(date_to_t(PERIOD))
-## Initial conditions
-STATE0 = jnp.zeros((2*N_S+1,NAG))
-STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP_split-1)
-STATE0 = STATE0.at[1,:].set(1)
-# # flatten initial state and add maternal immunity compartment
-STATE0 = STATE0.flatten()
-STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-# fig, ax = plt.subplots(7,7, sharex="col", sharey="row")
-# fig,ax = plt.subplots(3,3, sharex=True,sharey=True)
-# matrix = np.zeros((3,6,8))
-same_inf = np.zeros((6,NAG))
-diff_inf = np.zeros((6,NAG))
-# pre_pandemic_cog = np.zeros(6)
-# data_cog = np.zeros(6)
-# beta = np.zeros(6)
-# seasonality = np.zeros(6)
-# phase = np.zeros(6)
-# wane = np.zeros(6)
-# srel1 = np.zeros(6)
-# srel2 = np.zeros(6)
-pathogens = ["RSV", "Metapneumovirus", "Adenovirus","Parainfluenza3", "InfluenzaA", "InfluenzaB"]
-opt2s = ["maxagep028","maxagep028","maxagep03","maxagep028","maxagep03","maxagep03"]
-colors = ["#DC267F", "#FFB000",  "#FF832B", "#648FFF",  "#785EF0","k"]
-for i, (pathogen, option2, color) in enumerate(zip(pathogens,opt2s, colors)):
-    x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
-    params = x_to_params(x, "sim", lockdown, option1+"mimmwane", option2+"nr", NAG=NAG)
-    solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
-    # find total observed infections each season in each age group
-    values = solution.ys.T
-    shaped_values = values[1:, :].reshape((1+2*N_S, NAG, -1))
-    infectious = shaped_values[1:2*N_S:2, :, :]
-    susceptible = shaped_values[0:2*N_S:2, :, :]
-    all_infectious = infectious.sum(axis=0)
-    population_size = calculate_population_size(values, NAG=NAG)
-    foi_matrix = params[4] * params[3][:, :, None] * all_infectious[None, :, :] / jnp.sum(population_size, axis=1)[None, None, :]
-    infections_matrix = params[6][:, None, None, None] * foi_matrix[None, :, :, :] * susceptible[:, :, None, :]
+# # pathogen = "RSV"
+# # option2 = "maxagep028"
+# # filepath = f"Data/Processed/results260505/evosax_DE_{pathogen}ExponentialODipEqualdedupsplit{option2}260505.pickle"
+# # with open(filepath, "rb") as f:
+# #     results = pickle.load(f)
+# # print(f"Loaded results from disk: {results.keys()}")
+# # metrics_log = results["metrics_log"]
+# # print(metrics_log.keys())
+
+
+# ##### exploratory figures to understand age distribution of infections in the model
+# p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
+# PERIOD = pd.date_range(start=pd.to_datetime('2015-10-01'), end=pd.to_datetime('2025-10-01'), freq='D')
+# POINTS = np.array(date_to_t(PERIOD))
+# ## Initial conditions
+# STATE0 = jnp.zeros((2*N_S+1,NAG))
+# STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP_split-1)
+# STATE0 = STATE0.at[1,:].set(1)
+# # # flatten initial state and add maternal immunity compartment
+# STATE0 = STATE0.flatten()
+# STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+# # fig, ax = plt.subplots(7,7, sharex="col", sharey="row")
+# # fig,ax = plt.subplots(3,3, sharex=True,sharey=True)
+# # matrix = np.zeros((3,6,8))
+# same_inf = np.zeros((6,NAG))
+# diff_inf = np.zeros((6,NAG))
+# # pre_pandemic_cog = np.zeros(6)
+# # data_cog = np.zeros(6)
+# # beta = np.zeros(6)
+# # seasonality = np.zeros(6)
+# # phase = np.zeros(6)
+# # wane = np.zeros(6)
+# # srel1 = np.zeros(6)
+# # srel2 = np.zeros(6)
+# pathogens = ["RSV", "Metapneumovirus", "Adenovirus","Parainfluenza3", "InfluenzaA", "InfluenzaB"]
+# opt2s = ["maxagep028","maxagep028","maxagep03","maxagep028","maxagep03","maxagep03"]
+# colors = ["#DC267F", "#FFB000",  "#FF832B", "#648FFF",  "#785EF0","k"]
+# for i, (pathogen, option2, color) in enumerate(zip(pathogens,opt2s, colors)):
+#     x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
+#     params = x_to_params(x, "sim", lockdown, option1+"mimmwane", option2+"nr", NAG=NAG)
+#     solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+#     # find total observed infections each season in each age group
+#     values = solution.ys.T
+#     shaped_values = values[1:, :].reshape((1+2*N_S, NAG, -1))
+#     infectious = shaped_values[1:2*N_S:2, :, :]
+#     susceptible = shaped_values[0:2*N_S:2, :, :]
+#     all_infectious = infectious.sum(axis=0)
+#     population_size = calculate_population_size(values, NAG=NAG)
+#     foi_matrix = params[4] * params[3][:, :, None] * all_infectious[None, :, :] / jnp.sum(population_size, axis=1)[None, None, :]
+#     infections_matrix = params[6][:, None, None, None] * foi_matrix[None, :, :, :] * susceptible[:, :, None, :]
     
-    age_infections_matrix = infections_matrix.sum(axis=0)[:1553].mean(axis=-1)
-    same_inf[i,:] = np.diag(age_infections_matrix)/np.sum(age_infections_matrix, axis=1)
-    for age_infected in range(NAG):
-        diff_inf[i,age_infected] = np.sum([age_infections_matrix[age_infected, age_infector] for age_infector in range(NAG) if age_infector != age_infected])
-    diff_inf[i, :] /= np.sum(age_infections_matrix, axis=1)
+#     age_infections_matrix = infections_matrix.sum(axis=0)[:1553].mean(axis=-1)
+#     same_inf[i,:] = np.diag(age_infections_matrix)/np.sum(age_infections_matrix, axis=1)
+#     for age_infected in range(NAG):
+#         diff_inf[i,age_infected] = np.sum([age_infections_matrix[age_infected, age_infector] for age_infector in range(NAG) if age_infector != age_infected])
+#     diff_inf[i, :] /= np.sum(age_infections_matrix, axis=1)
 
-    # outcome = worker((x, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG))
+#     # outcome = worker((x, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG))
 
-    # matrix[0,i] = outcome[5, :5, :-1].mean(axis=0)/(365)
-    # matrix[1,i] = outcome[4, :5, :-1].mean(axis=0)/(outcome[7, 0, :-1]*365)
-    # matrix[2,i] = outcome[6, :5, :-1].mean(axis=0)/(outcome[7, 0, :-1]*365)
-    # pre_pandemic_cog[i] = (jnp.sum(outcome[1, :5, :-1]*outcome[7, 0, :-1], axis=1)/jnp.sum(outcome[7, 0, :-1])).mean()
-    # peak_times = extract_target_value_from_data(pathogen, "peak_times", NAG=8)
-    # print(peak_times)
-    # data_cog[i] = (jnp.sum(peak_times[:5, :-1]*outcome[7, 0, :-1], axis=1)/jnp.sum(outcome[7, 0, :-1])).mean()
-    # beta[i] = x[2]
-    # seasonality[i] = x[3]
-    # phase[i] = x[4]*365
-    # wane[i] = x[6]*365
-    # srel1[i] = x[7]
-    # srel2[i] = x[8]
+#     # matrix[0,i] = outcome[5, :5, :-1].mean(axis=0)/(365)
+#     # matrix[1,i] = outcome[4, :5, :-1].mean(axis=0)/(outcome[7, 0, :-1]*365)
+#     # matrix[2,i] = outcome[6, :5, :-1].mean(axis=0)/(outcome[7, 0, :-1]*365)
+#     # pre_pandemic_cog[i] = (jnp.sum(outcome[1, :5, :-1]*outcome[7, 0, :-1], axis=1)/jnp.sum(outcome[7, 0, :-1])).mean()
+#     # peak_times = extract_target_value_from_data(pathogen, "peak_times", NAG=8)
+#     # print(peak_times)
+#     # data_cog[i] = (jnp.sum(peak_times[:5, :-1]*outcome[7, 0, :-1], axis=1)/jnp.sum(outcome[7, 0, :-1])).mean()
+#     # beta[i] = x[2]
+#     # seasonality[i] = x[3]
+#     # phase[i] = x[4]*365
+#     # wane[i] = x[6]*365
+#     # srel1[i] = x[7]
+#     # srel2[i] = x[8]
 
-    # for i in range(7):
-    #     for j in range(1,8):
-    #         if j>i:
-    #             ax[i,j-1].scatter(hospitalizors[j], hospitalizors[i], color=color, label=pathogen)
+#     # for i in range(7):
+#     #     for j in range(1,8):
+#     #         if j>i:
+#     #             ax[i,j-1].scatter(hospitalizors[j], hospitalizors[i], color=color, label=pathogen)
 
-# fig, ax = plt.subplots(2,2, sharex="col")
-# ax[0,0].scatter(phase, pre_pandemic_cog, color=colors)
-# ax[0,0].plot(phase, phase, 'k-', alpha=0.5, label="y=x")
-# # plot dotted lines from pathogens down to y=x
-# for i in range(len(phase)):
-#     ax[0,0].plot([phase[i], phase[i]], [pre_pandemic_cog[i], phase[i]], 'k--', alpha=0.5)
-# ax[0,0].set_ylabel("Simulated peak day of season")
-# ax[0,1].scatter((beta*(1-srel2)*wane), pre_pandemic_cog - phase, color=colors)
-# z1 = np.polyfit((beta*(1-srel2)*wane), pre_pandemic_cog - phase, 1)
-# p1 = np.poly1d(z1)
-# x1_line = np.linspace((beta*(1-srel2)*wane).min(), (beta*(1-srel2)*wane).max(), 100)
-# ax[0,1].plot(x1_line, p1(x1_line), 'k-', alpha=0.5, label="line of best fit")
-# # ax[0,1].set_xlabel("Beta")
-# ax[0,1].set_ylabel("Simulated peak - Phase (days)")
-# y_err = 1.96 * np.std(pre_pandemic_cog - phase - p1((beta*(1-srel2)*wane))) / np.sqrt(len(pre_pandemic_cog))
-# ax[0,1].fill_between(x1_line, p1(x1_line) - y_err, p1(x1_line) + y_err, color='gray', alpha=0.2)
-# ax[1,0].scatter(phase, data_cog, color=colors)
-# ax[1,0].plot(phase, phase, 'k-', alpha=0.5, label="y=x")
-# ax[1,0].set_xlabel("Phase (days)")
-# ax[1,0].set_ylabel("Data peak day of season")
-# for i in range(len(phase)):
-#     ax[1,0].plot([phase[i], phase[i]], [data_cog[i], phase[i]], 'k--', alpha=0.5)
-# ax[1,1].scatter((beta*(1-srel2)*wane), data_cog - phase, color=colors)
-# z4 = np.polyfit((beta*(1-srel2)*wane), data_cog - phase, 1)
-# p4 = np.poly1d(z4)
-# x4_line = np.linspace((beta*(1-srel2)*wane).min(), (beta*(1-srel2)*wane).max(), 100)
-# ax[1,1].plot(x4_line, p4(x4_line), 'k-', alpha=0.5, label="line of best fit")
-# ax[1,1].set_xlabel("Beta + Acquired immunity")
-# ax[1,1].set_ylabel("Data peak - Phase (days)")
-# # add uncertainty shaded region to ax[1,1] based on 95% confidence intervals of polyfit
-# y_err = 1.96 * np.std(data_cog - phase - p4((beta*(1-srel2)*wane))) / np.sqrt(len(data_cog))
-# ax[1,1].fill_between(x4_line, p4(x4_line) - y_err, p4(x4_line) + y_err, color='gray', alpha=0.2)
-# # legend of pathogen colors along bottom
-# for axis in ax.flatten():
-#     axis.legend(loc='upper left', frameon=False, fontsize=8)
-# handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=8) for color in colors]
-# labels = pathogens
-# fig.legend(handles, labels, frameon=False, fontsize=8, loc='lower center', ncol=len(pathogens), bbox_to_anchor=(0.5, -0.05))
-# plt.tight_layout()
-# plt.savefig(f"Figures/COG_vs_phase_beta_seasonality_srel2_wane_times.png", dpi=300, bbox_inches='tight')
+# # fig, ax = plt.subplots(2,2, sharex="col")
+# # ax[0,0].scatter(phase, pre_pandemic_cog, color=colors)
+# # ax[0,0].plot(phase, phase, 'k-', alpha=0.5, label="y=x")
+# # # plot dotted lines from pathogens down to y=x
+# # for i in range(len(phase)):
+# #     ax[0,0].plot([phase[i], phase[i]], [pre_pandemic_cog[i], phase[i]], 'k--', alpha=0.5)
+# # ax[0,0].set_ylabel("Simulated peak day of season")
+# # ax[0,1].scatter((beta*(1-srel2)*wane), pre_pandemic_cog - phase, color=colors)
+# # z1 = np.polyfit((beta*(1-srel2)*wane), pre_pandemic_cog - phase, 1)
+# # p1 = np.poly1d(z1)
+# # x1_line = np.linspace((beta*(1-srel2)*wane).min(), (beta*(1-srel2)*wane).max(), 100)
+# # ax[0,1].plot(x1_line, p1(x1_line), 'k-', alpha=0.5, label="line of best fit")
+# # # ax[0,1].set_xlabel("Beta")
+# # ax[0,1].set_ylabel("Simulated peak - Phase (days)")
+# # y_err = 1.96 * np.std(pre_pandemic_cog - phase - p1((beta*(1-srel2)*wane))) / np.sqrt(len(pre_pandemic_cog))
+# # ax[0,1].fill_between(x1_line, p1(x1_line) - y_err, p1(x1_line) + y_err, color='gray', alpha=0.2)
+# # ax[1,0].scatter(phase, data_cog, color=colors)
+# # ax[1,0].plot(phase, phase, 'k-', alpha=0.5, label="y=x")
+# # ax[1,0].set_xlabel("Phase (days)")
+# # ax[1,0].set_ylabel("Data peak day of season")
+# # for i in range(len(phase)):
+# #     ax[1,0].plot([phase[i], phase[i]], [data_cog[i], phase[i]], 'k--', alpha=0.5)
+# # ax[1,1].scatter((beta*(1-srel2)*wane), data_cog - phase, color=colors)
+# # z4 = np.polyfit((beta*(1-srel2)*wane), data_cog - phase, 1)
+# # p4 = np.poly1d(z4)
+# # x4_line = np.linspace((beta*(1-srel2)*wane).min(), (beta*(1-srel2)*wane).max(), 100)
+# # ax[1,1].plot(x4_line, p4(x4_line), 'k-', alpha=0.5, label="line of best fit")
+# # ax[1,1].set_xlabel("Beta + Acquired immunity")
+# # ax[1,1].set_ylabel("Data peak - Phase (days)")
+# # # add uncertainty shaded region to ax[1,1] based on 95% confidence intervals of polyfit
+# # y_err = 1.96 * np.std(data_cog - phase - p4((beta*(1-srel2)*wane))) / np.sqrt(len(data_cog))
+# # ax[1,1].fill_between(x4_line, p4(x4_line) - y_err, p4(x4_line) + y_err, color='gray', alpha=0.2)
+# # # legend of pathogen colors along bottom
+# # for axis in ax.flatten():
+# #     axis.legend(loc='upper left', frameon=False, fontsize=8)
+# # handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=8) for color in colors]
+# # labels = pathogens
+# # fig.legend(handles, labels, frameon=False, fontsize=8, loc='lower center', ncol=len(pathogens), bbox_to_anchor=(0.5, -0.05))
+# # plt.tight_layout()
+# # plt.savefig(f"Figures/COG_vs_phase_beta_seasonality_srel2_wane_times.png", dpi=300, bbox_inches='tight')
 
-fig, ax = plt.subplots(2,4,figsize=(6.5,4),sharex=True,sharey=True)
-for ai in range(NAG):
-    ax[ai//4,ai%4].plot([0,0.7],[1,0.3],color='silver',zorder=0)
-    for pi in range(len(pathogens)):
-        ax[ai//4,ai%4].scatter(same_inf[pi,ai], diff_inf[pi,ai], color=colors[pi], label=pathogens[pi])
-    ax[ai//4,ai%4].set_title(AGE_GROUP_NAMES_split[ai])
-handles, labels = ax[0,0].get_legend_handles_labels()
-# overall xlabel and y label
-fig.text(0.5, 0.04, "Proportion of infections from same age group", ha='center', va='center')
-fig.text(0.06, 0.5, "Proportion of infections from different age groups", ha='center', va='center', rotation='vertical')
-fig.legend(handles, labels, frameon=False, fontsize=8, loc='lower center', ncol=len(pathogens), bbox_to_anchor=(0.5, -0.15))
-plt.savefig(f"Figures/same_inf_vs_diff_inf_by_age_group.png", dpi=300, bbox_inches='tight')
-
-# # Age group control variables for plotting
-# age_group_x_idx = 0
-# age_group_x_name = AGE_GROUP_NAMES_split[age_group_x_idx]
-# age_group_x_name = "<1y"
-# age_group_y_idx = -1
-# age_group_y_name = AGE_GROUP_NAMES_split[age_group_y_idx]
-
-# fig, ax = plt.subplots(1,3, figsize=(6.5,2.5))
-# for i in range(len(pathogens)):
-#     ax[0].scatter(matrix[0,i,0:2].sum(), matrix[0,i,age_group_y_idx], color=colors[i], label=pathogens[i])
-#     ax[1].scatter(matrix[1,i,0:2].sum(), matrix[1,i,age_group_y_idx], color=colors[i], label=pathogens[i])
-#     ax[2].scatter(matrix[2,i,0:2].sum(), matrix[2,i,age_group_y_idx], color=colors[i], label=pathogens[i])
-# ax[0].set_xlabel(age_group_x_name)
-# ax[0].set_ylabel(age_group_y_name)
-# ax[0].set_title("Force of infection")
-# ax[1].set_xlabel(age_group_x_name)
-# ax[1].set_title("Infectors")
-# ax[2].set_xlabel(age_group_x_name)
-# ax[2].set_title("Hospitalizors")
-# handles, labels = ax[0].get_legend_handles_labels()
+# fig, ax = plt.subplots(2,4,figsize=(6.5,4),sharex=True,sharey=True)
+# for ai in range(NAG):
+#     ax[ai//4,ai%4].plot([0,0.7],[1,0.3],color='silver',zorder=0)
+#     for pi in range(len(pathogens)):
+#         ax[ai//4,ai%4].scatter(same_inf[pi,ai], diff_inf[pi,ai], color=colors[pi], label=pathogens[pi])
+#     ax[ai//4,ai%4].set_title(AGE_GROUP_NAMES_split[ai])
+# handles, labels = ax[0,0].get_legend_handles_labels()
+# # overall xlabel and y label
+# fig.text(0.5, 0.04, "Proportion of infections from same age group", ha='center', va='center')
+# fig.text(0.06, 0.5, "Proportion of infections from different age groups", ha='center', va='center', rotation='vertical')
 # fig.legend(handles, labels, frameon=False, fontsize=8, loc='lower center', ncol=len(pathogens), bbox_to_anchor=(0.5, -0.15))
-# plt.tight_layout()
-# plt.savefig(f"Figures/force_of_infection_infectors_hospitalizors_scatter_{age_group_x_name}_vs_{age_group_y_name}.png", dpi=300, bbox_inches='tight')
+# plt.savefig(f"Figures/same_inf_vs_diff_inf_by_age_group.png", dpi=300, bbox_inches='tight')
+
+# # # Age group control variables for plotting
+# # age_group_x_idx = 0
+# # age_group_x_name = AGE_GROUP_NAMES_split[age_group_x_idx]
+# # age_group_x_name = "<1y"
+# # age_group_y_idx = -1
+# # age_group_y_name = AGE_GROUP_NAMES_split[age_group_y_idx]
+
+# # fig, ax = plt.subplots(1,3, figsize=(6.5,2.5))
+# # for i in range(len(pathogens)):
+# #     ax[0].scatter(matrix[0,i,0:2].sum(), matrix[0,i,age_group_y_idx], color=colors[i], label=pathogens[i])
+# #     ax[1].scatter(matrix[1,i,0:2].sum(), matrix[1,i,age_group_y_idx], color=colors[i], label=pathogens[i])
+# #     ax[2].scatter(matrix[2,i,0:2].sum(), matrix[2,i,age_group_y_idx], color=colors[i], label=pathogens[i])
+# # ax[0].set_xlabel(age_group_x_name)
+# # ax[0].set_ylabel(age_group_y_name)
+# # ax[0].set_title("Force of infection")
+# # ax[1].set_xlabel(age_group_x_name)
+# # ax[1].set_title("Infectors")
+# # ax[2].set_xlabel(age_group_x_name)
+# # ax[2].set_title("Hospitalizors")
+# # handles, labels = ax[0].get_legend_handles_labels()
+# # fig.legend(handles, labels, frameon=False, fontsize=8, loc='lower center', ncol=len(pathogens), bbox_to_anchor=(0.5, -0.15))
+# # plt.tight_layout()
+# # plt.savefig(f"Figures/force_of_infection_infectors_hospitalizors_scatter_{age_group_x_name}_vs_{age_group_y_name}.png", dpi=300, bbox_inches='tight')
 
 # # print matrix[2] in tab-separated format to two significant figures, not in scientific notation
 # header = "," + ",".join(pathogens)

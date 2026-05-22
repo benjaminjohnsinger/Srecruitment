@@ -631,12 +631,12 @@ if __name__ == "__main__":
     # likelihood as subtitle
     fig.text(0.5, 0.92, "Log-Likelihood: "+str(np.round(-log_likelihood*N,0)), ha='center', fontsize=8)
 
-    ax[0].plot(POINTS, mx*(params[10][-len(POINTS):]-1+x[1]), color = "red")
-    # make sure lower limit of y axis is at zero
-    ax[0].set_ylim(bottom=0)
+    # ax[0].plot(POINTS, mx*(params[10][-len(POINTS):]-1+x[1]), color = "red")
+    # # make sure lower limit of y axis is at zero
+    # ax[0].set_ylim(bottom=0)
 
     # plt.tight_layout()
-    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_jaxopt.png",dpi=300)
+    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+".png",dpi=300)
     plt.close()
 
     # fig, ax = plt.subplots(figsize=(4,4))

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from fit_opt import get_likelihood
 import jaxopt
 
-from utils import parameters_names_bounds
+from utils import parameters_names_bounds, load_optimization_results
 
 pathogen = "RSV"
 seed = 260505
@@ -19,14 +19,13 @@ option1 = "dedupsplit"
 option2 = "maxagep028"
 NAG = 8
 N_S = 3
+prefix = "jaxopt_polish"
 from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split
 
 
 likelihood, N = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, constant_step=0.5, normalize=False, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP_split)
 
-x = jnp.asarray([0.29562485, 0.0415738, 0.2034551, 0.00266355, 0.34350356, 0.13780835, 
-                    0.29689163, 0.00255838, 0.27368402, 0.15749407, 0.0621079, 0.00690575, 
-                    0.00931627, 0.04031972, 0.3540249])
+_, x, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
 
 ml = likelihood(x)
 print(f"Likelihood at DE solution: {ml}")
@@ -40,18 +39,7 @@ def fix_beta_likelihood(x, beta=0.29562485):
     x_fixed = jnp.concatenate((jnp.array([beta]), x))
     return likelihood(x_fixed)
 
-perts = jnp.array([-0.01, -0.005, -0.001, 0, 0.001, 0.005, 0.01])
-
-# # lbfgsb = jaxopt.LBFGSB(
-# #     fun=fix_beta_likelihood,
-# # )
-# # def solve_for_pert(p):
-# #     # jaxopt automatically routes the extra 'beta' kwarg directly to fix_beta_likelihood
-# #     return lbfgsb.run(x[1:], bounds=bounds_tuple, beta=0.29562485 + p).params
-# # vmap_solve = jax.jit(jax.vmap(solve_for_pert))
-# # start_time = time.time()
-# # results = vmap_solve(perts).block_until_ready()  # Ensure computation finishes before timing
-# # end_time = time.time()
+perts = jnp.array([-0.02, -0.01, -0.005, -0.001, 0, 0.001, 0.005, 0.01, 0.02])
 
 np.random.seed(260521)
 
@@ -64,15 +52,15 @@ lbfgsb = jaxopt.ScipyBoundedMinimize(
 start_time = time.time()
 results = []
 for p in perts:
-    print(f"Optimizing with beta fixed at {0.29562485 + p:.5f}...")
-    result = lbfgsb.run(x[1:], beta=0.29562485+p, bounds=bounds_tuple).params
+    print(f"Optimizing with beta fixed at {x[0] + p:.5f}...")
+    result = lbfgsb.run(x[1:], beta=x[0]+p, bounds=bounds_tuple).params
     results.append(result)
 results = jnp.array(results)
 end_time = time.time()
 
 
 print(f"Optimization for {len(perts)} values completed in {end_time - start_time:.2f} seconds")
-final_xs = jnp.concatenate(((0.29562485+perts)[:, None], results), axis=1)
+final_xs = jnp.concatenate(((x[0]+perts)[:, None], results), axis=1)
 final_likelihoods = jax.jit(jax.vmap(likelihood))(final_xs)
 print("Final parameters for each perturbed beta:", final_xs)
 print("Final likelihoods for each perturbed beta:", final_likelihoods)
@@ -101,7 +89,7 @@ else:
 # calculate profile likelihood at these points
 liks = []
 for pert in [root1, root2]:
-    beta_value = 0.29562485 + pert
+    beta_value = x[0] + pert
     # optimize the other parameters with beta fixed at this value
     result = lbfgsb.run(x[1:], beta=beta_value, bounds=bounds_tuple).params
     x_fixed = jnp.concatenate((jnp.array([beta_value]), result))
@@ -120,7 +108,7 @@ plt.plot(full_perts, full_likelihoods, marker='o')
 plt.xlabel("Perturbation to beta")
 plt.ylabel("Final likelihood")
 plt.title("Sensitivity of likelihood to perturbations in beta")
-plt.axhline(final_likelihoods[3]+1.92, color='k', linestyle='--', label="Original beta")
+plt.axhline(ml+1.92, color='k', linestyle='--', label="Original beta")
 plt.legend()
 plt.tight_layout()
-plt.savefig(f"Figures/sensitivity_of_likelihood_to_beta_perturbations_fine.png", dpi=300, bbox_inches='tight')
+plt.savefig(f"Figures/sensitivity_of_likelihood_to_beta_perturbations_{pathogen}.png", dpi=300, bbox_inches='tight')

@@ -90,7 +90,8 @@ if __name__ == "__main__":
     # # # # save results to disk
     with open(results_file, "wb") as f:
         pickle.dump({
-            "final_x": final_x
+            "final_x": final_x,
+            "final_likelihood": final_likelihood,
         }, f)
     # load results from disk
     # with open(results_file, "rb") as f:
