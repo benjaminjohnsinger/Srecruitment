@@ -2,8 +2,9 @@
 ## Code to explore how susceptibles recruitment affects outbreak dynamics
 ## BJS August 2024
 
-import jax.numpy as jnp
 import jax
+jax.config.update("jax_enable_x64", True)
+import jax.numpy as jnp
 import jax.scipy as jsp
 import matplotlib.pyplot as plt
 import scipy as sp
@@ -35,27 +36,36 @@ plt.rcParams['font.serif'] = ['Palatino']
 
 from sim_grid import worker, extract_target_value_from_data
 
-print(date_to_t("2020-01-01")-date_to_t("2015-10-01"))
-
+pathogen = "RSV"
 seed = 260505
 lockdown = "ExponentialODipEqual"
 option1 = "dedupsplit"
 option2 = "maxagep028"
 NAG = 8
 N_S = 3
+from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split
+
+# pathogen = "RSV"
+# option2 = "maxagep028"
+# filepath = f"Data/Processed/results260505/evosax_DE_{pathogen}ExponentialODipEqualdedupsplit{option2}260505.pickle"
+# with open(filepath, "rb") as f:
+#     results = pickle.load(f)
+# print(f"Loaded results from disk: {results.keys()}")
+# metrics_log = results["metrics_log"]
+# print(metrics_log.keys())
+
+
+##### exploratory figures to understand age distribution of infections in the model
 p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
 PERIOD = pd.date_range(start=pd.to_datetime('2015-10-01'), end=pd.to_datetime('2025-10-01'), freq='D')
 POINTS = np.array(date_to_t(PERIOD))
 ## Initial conditions
 STATE0 = jnp.zeros((2*N_S+1,NAG))
-from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split
 STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP_split-1)
 STATE0 = STATE0.at[1,:].set(1)
 # # flatten initial state and add maternal immunity compartment
 STATE0 = STATE0.flatten()
 STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-
-
 # fig, ax = plt.subplots(7,7, sharex="col", sharey="row")
 # fig,ax = plt.subplots(3,3, sharex=True,sharey=True)
 # matrix = np.zeros((3,6,8))
@@ -154,14 +164,18 @@ for i, (pathogen, option2, color) in enumerate(zip(pathogens,opt2s, colors)):
 # plt.tight_layout()
 # plt.savefig(f"Figures/COG_vs_phase_beta_seasonality_srel2_wane_times.png", dpi=300, bbox_inches='tight')
 
-fig, ax = plt.subplots(2,4,figsize=(6.5,6.5),sharex=True,sharey=True)
+fig, ax = plt.subplots(2,4,figsize=(6.5,4),sharex=True,sharey=True)
 for ai in range(NAG):
-    ax[ai//4,ai%4].plot([0,0.5],[1,0.5],'k-')
+    ax[ai//4,ai%4].plot([0,0.7],[1,0.3],color='silver',zorder=0)
     for pi in range(len(pathogens)):
         ax[ai//4,ai%4].scatter(same_inf[pi,ai], diff_inf[pi,ai], color=colors[pi], label=pathogens[pi])
+    ax[ai//4,ai%4].set_title(AGE_GROUP_NAMES_split[ai])
 handles, labels = ax[0,0].get_legend_handles_labels()
+# overall xlabel and y label
+fig.text(0.5, 0.04, "Proportion of infections from same age group", ha='center', va='center')
+fig.text(0.06, 0.5, "Proportion of infections from different age groups", ha='center', va='center', rotation='vertical')
 fig.legend(handles, labels, frameon=False, fontsize=8, loc='lower center', ncol=len(pathogens), bbox_to_anchor=(0.5, -0.15))
-plt.show()
+plt.savefig(f"Figures/same_inf_vs_diff_inf_by_age_group.png", dpi=300, bbox_inches='tight')
 
 # # Age group control variables for plotting
 # age_group_x_idx = 0

@@ -85,7 +85,6 @@ if __name__ == "__main__":
     # set seed
     np.random.seed(seed)
     prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
-
     # x[1] = 0.03
    # prefix = "sampling_parameters_"
     # x = jnp.asarray([0.12032066,0.14603744,0.05796923,0.00512616,0.5582736 ,0.95180595,0.31741548,0.00618303,0.25081336,0.28657508,0.15262091,0.01914573,0.15551174,0.20378447,0.99823165])
@@ -186,8 +185,8 @@ if __name__ == "__main__":
     values = solution.ys.T
     times = solution.ts
 
-    # likelihood = SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, mask=mask, incidence_data=("incidence_data" in option1), return_sum=True, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
-    # print("DE likelihood:", -N*log_likelihood, ", calculated likelihood:", likelihood)
+    likelihood = SIS_likelihood(data, daily_hospitalization_rates, params, POINTS, STATE0, p_time_to_obs, mask=mask, incidence_data=("incidence_data" in option1), return_sum=True, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
+    print("DE likelihood:", -N*log_likelihood, ", calculated likelihood:", likelihood)
     # # # print(likelihood.shape)
     # # age_summed_likelihood = jnp.sum(likelihood, axis=1)
     # # # print(jnp.min(age_summed_likelihood))
@@ -231,8 +230,7 @@ if __name__ == "__main__":
     mean_ages_of_first_infection = jnp.mean(first_infectious_by_age[:,:365*4],axis=1)/jnp.sum(jnp.mean(first_infectious_by_age[:,:365*4],axis=1))
     mean_age_of_first_infection = jnp.sum(first_infectious_by_age*jnp.array(MEDIAN_AGE_split).reshape((NAG,1)),axis=0)/jnp.sum(first_infectious_by_age,axis=0)
     # mean over time to get average age of first infection
-    print("--!!!--- Mean Age of First Infection --!!!---")
-    print(f"{mean_ages_of_first_infection.sum():.2g}")
+    print("Mean Age of First Infection:", f"{mean_ages_of_first_infection.sum():.2g}")
     print("Age distribution of first infection (%):", [f"{x:.2g}" for x in 100*mean_ages_of_first_infection])
     # print sum of first three elements of mean_ages_of_first_ifnection
     print("Proportion of first infections under five:", f"{mean_ages_of_first_infection[:3].sum():.2g}")
@@ -293,9 +291,9 @@ if __name__ == "__main__":
             return np.array(results)
 
     peak_times_by_season = incidence.groupby(incidence.index.map(get_season_start)).apply(center_of_gravity)
-    print("Peak times by season:\n", peak_times_by_season)
+    # print("Peak times by season:\n", peak_times_by_season)
     # peak_times_by_season is now a Series of arrays; convert to list of time indices per season
-    peak_times = [pd.to_timedelta(np.asarray(pt, dtype=int), unit='D') if isinstance(pt, np.ndarray) else pd.to_timedelta(int(pt), unit='D') for pt in peak_times_by_season]
+    peak_times = [pd.to_timedelta(np.asarray(pt, dtype='float64'), unit='D') if isinstance(pt, np.ndarray) else pd.to_timedelta(int(pt), unit='D') for pt in peak_times_by_season]
     array_of_year_starts = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-10-01']])
     peak_times_in_year = [pt - pd.to_timedelta(array_of_year_starts[i], unit='D') for i, pt in enumerate(peak_times)]
     # convert from TimedeltaIndex to numeric days
@@ -303,7 +301,7 @@ if __name__ == "__main__":
     # convert negative values to NA
     peak_times_in_year = np.array([np.where(pt < 0, np.nan, pt) for pt in peak_times_in_year])
     def plot_peak_times_by_age_group(ax, peak_times_in_year, obs_per_season, first_age_group=0, last_age_group=7, marker='o'):
-        print("Peak time of each season (in days since season start):\n", peak_times_in_year)
+        # print("Peak time of each season (in days since season start):\n", peak_times_in_year)
         if first_age_group == "<1":
             first_age_group = 0
             first_age_group_name = "<1y"
@@ -330,7 +328,6 @@ if __name__ == "__main__":
     # print("Peak time of each season:\n", peak_times)
     # difference between 2017/18 and 2022/23 seasons
     peak_time_diff = (peak_times[7] - peak_times[2]).days - 365*5
-    # this pritns in vertical format, just printa s a list
     print("Difference in peak times between 2017/18 and 2022/23 seasons (in days):", peak_time_diff.tolist())
 
     population_size = calculate_population_size(values, N_S=N_S, NAG=NAG)
@@ -415,8 +412,8 @@ if __name__ == "__main__":
 
     from sim_grid import age_ratio_of_rebound
 
-    print(age_ratio_of_rebound(jnp.stack([obs_per_season, obs_per_season], axis=0), idx_num=2, idx_den=None, season_idx=5+rebound_season_idx))
-    print(age_ratio_of_rebound(jnp.stack([expected_obs_per_season, expected_obs_per_season], axis=0), idx_num=2, idx_den=None, season_idx=5+rebound_season_idx))
+    # print(age_ratio_of_rebound(jnp.stack([obs_per_season, obs_per_season], axis=0), idx_num=2, idx_den=None, season_idx=5+rebound_season_idx))
+    # print(age_ratio_of_rebound(jnp.stack([expected_obs_per_season, expected_obs_per_season], axis=0), idx_num=2, idx_den=None, season_idx=5+rebound_season_idx))
     
     obs_ratio_matrix = np.zeros((NAG_eff, NAG_eff))
     for i in range(NAG_eff):
@@ -639,7 +636,7 @@ if __name__ == "__main__":
     ax[0].set_ylim(bottom=0)
 
     # plt.tight_layout()
-    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_test.png",dpi=300)
+    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_jaxopt.png",dpi=300)
     plt.close()
 
     # fig, ax = plt.subplots(figsize=(4,4))

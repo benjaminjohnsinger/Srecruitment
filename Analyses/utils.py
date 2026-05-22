@@ -610,15 +610,15 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         dipvalues = jnp.array([1, FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
-    elif "ODipEqual" in lockdown:
-        FO = FF[1]
+    elif "ODipEqual" in lockdown: # legacy ODip, inverse of original lockdown
+        FO = 1-FF[1]
         dipdates = jnp.array([date_to_t(EPOCH),
                     date_to_t('2021-12-15'),
                     date_to_t('2022-03-01')])
         dipvalues = jnp.array([1, FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
-    elif "ODipLegacy" in lockdown:
+    elif "ODipEqualTrue" in lockdown:
         FO = 1-FF[1]
         dipdates = jnp.array([date_to_t(EPOCH),
                     date_to_t('2021-12-15'),

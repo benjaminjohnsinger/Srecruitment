@@ -36,7 +36,7 @@ def run_simulation(params, y0, t1, saveat_ts, constant_step=False, hessian=False
         adjoint = DirectAdjoint()
     else:
         adjoint = RecursiveCheckpointAdjoint()
-    if constant_step or hessian:
+    if constant_step:
         step_controller = ConstantStepSize()
         # if constant_step is a float, use that as the step size, otherwise use 0.05
         if isinstance(constant_step, float):
