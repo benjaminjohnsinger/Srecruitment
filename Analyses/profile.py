@@ -15,7 +15,6 @@ import jaxopt
 from fit_opt import get_likelihood
 from utils import parameters_names_bounds, load_optimization_results
 from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split
-
 def main(pathogen, seed, lockdown, option1, option2, param_name):
     NAG = 7 + ("split" in option1)
     prefix = "jaxopt_polish"
@@ -28,10 +27,10 @@ def main(pathogen, seed, lockdown, option1, option2, param_name):
         # Convert to list in case it returns a numpy array or tuple
         param_idx = list(names).index(param_name)
     except ValueError:
-        print(f"Error: Parameter '{param_name}' not found. Available parameters are: {names}")
+        print(f"Error: Parameter '{param_name}' not found. Available parameters are: {names}", flush=True)
         sys.exit(1)
 
-    print(f"Profiling parameter '{param_name}' (Index: {param_idx}) for {pathogen}...")
+    print(f"Profiling parameter '{param_name}' (Index: {param_idx}) for {pathogen}...", flush=True)
 
     # Load likelihood function and optimization results
     likelihood, N = get_likelihood(
@@ -41,7 +40,7 @@ def main(pathogen, seed, lockdown, option1, option2, param_name):
 
     _, x, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
     ml = likelihood(x)
-    print(f"Likelihood at DE solution: {ml}")
+    print(f"Likelihood at DE solution: {ml}", flush=True)
 
     # Dynamically extract bounds, excluding the parameter we are profiling
     lower_bounds = np.delete(bounds[:, 0], param_idx)
@@ -71,29 +70,23 @@ def main(pathogen, seed, lockdown, option1, option2, param_name):
     
     for p in perts:
         fixed_val = param_opt_val * (1 + p)
-        print(f"Optimizing with {param_name} fixed at {fixed_val:.5f}...")
+        print(f"Optimizing with {param_name} fixed at {fixed_val:.5f}...", flush=True)
         result = lbfgsb.run(x_initial_rest, fixed_val=fixed_val, bounds=bounds_tuple).params
         results.append(result)
         
     results = jnp.array(results)
     end_time = time.time()
 
-    print(f"Optimization for {len(perts)} values completed in {end_time - start_time:.2f} seconds")
+    print(f"Optimization for {len(perts)} values completed in {end_time - start_time:.2f} seconds", flush=True)
 
     # Reconstruct the full parameter arrays
     final_xs_list = [jnp.insert(res, param_idx, param_opt_val * (1 + p)) for res, p in zip(results, perts)]
     final_xs = jnp.array(final_xs_list)
     final_likelihoods = jax.jit(jax.vmap(likelihood))(final_xs)
     
-    print(f"Final parameters for each perturbed {param_name}:", final_xs)
-    print(f"Final likelihoods for each perturbed {param_name}:", final_likelihoods)
+    print(f"Final parameters for each perturbed {param_name}:", final_xs, flush=True)
+    print(f"Final likelihoods for each perturbed {param_name}:", final_likelihoods, flush=True)
 
-    # Plotting preparation
-    lenperts = len(perts)
-    perts = jnp.concatenate((perts[:lenperts//2], jnp.array([0.0]), perts[lenperts//2:]))
-    final_xs = jnp.concatenate((final_xs[:lenperts//2], jnp.array([x]), final_xs[lenperts//2:]))
-    final_likelihoods = jnp.concatenate((final_likelihoods[:lenperts//2], jnp.array([ml]), final_likelihoods[lenperts//2:]))
-    
     # Fit a parabola to the final_likelihoods and pert values
     coeffs = np.polyfit(perts, final_likelihoods, 2)
     a, b, c = coeffs
@@ -105,7 +98,7 @@ def main(pathogen, seed, lockdown, option1, option2, param_name):
     if delta >= 0:
         root1 = (-b + np.sqrt(delta)) / (2*a)
         root2 = (-b - np.sqrt(delta)) / (2*a)
-        print(f"Estimated {param_name} values where likelihood crosses original + 1.92: {root1:.5f}, {root2:.5f}")
+        print(f"Estimated {param_name} values where likelihood crosses original + 1.92: {root1:.5f}, {root2:.5f}", flush=True)
         
         # Calculate profile likelihood at these points
         liks = []
@@ -115,13 +108,13 @@ def main(pathogen, seed, lockdown, option1, option2, param_name):
             x_fixed = jnp.insert(result, param_idx, fixed_val)
             lik = likelihood(x_fixed)
             liks.append(lik)
-            print(f"Profile likelihood at {param_name}={fixed_val:.5f}: {lik:.2f}")
+            print(f"Profile likelihood at {param_name}={fixed_val:.5f}: {lik:.2f}", flush=True)
             
         full_perts = np.concatenate((perts, [root1, root2]))
         full_likelihoods = np.concatenate((final_likelihoods, [liks[0], liks[1]]))
     else:
-        print("Parabola does not cross original likelihood + 1.92, cannot estimate confidence interval.")
-        print(f"Parabola coefficients: a={a}, b={b}, c={c}")
+        print("Parabola does not cross original likelihood + 1.92, cannot estimate confidence interval.", flush=True)
+        print(f"Parabola coefficients: a={a}, b={b}, c={c}", flush=True)
         full_perts = perts
         full_likelihoods = final_likelihoods
 
