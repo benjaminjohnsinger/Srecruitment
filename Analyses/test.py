@@ -44,16 +44,33 @@ option1 = "dedupsplit"
 option2 = "maxagep028"
 NAG = 8
 N_S = 3
-from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split
+from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split as CENSUS_AGE_POP
 
-mcmc_filepath = f"Outputs/mcmc_samples_emcee_{pathogen}_{lockdown}_{option1}_{option2}_{seed}.csv"
+mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{pathogen}{lockdown}{option1}{option2}{seed}.csv"
 mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
 # 32 walkers, so 32 samples per iteration, so reshape to (n_iterations, 32, n_params)
-n_iterations = 1000
-n_walkers = 32
+n_iterations = 1500
+n_walkers = 64
 param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 n_params = len(param_names)
 mcmc_samples = mcmc_samples.reshape((n_iterations, n_walkers, n_params))
+
+# get final parameter values for each walker
+final_params = mcmc_samples[-1, :, :]
+from fit_opt import get_likelihood
+likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, normalize=False, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP)
+vmap_likelihood = jax.jit(jax.vmap(likelihood))
+final_likelihoods = vmap_likelihood(final_params)
+print(f"Minimum negative log-likelihood across walkers: {final_likelihoods.min():.4f}")
+print(f"Median negative log-likelihood across walkers: {jnp.median(final_likelihoods):.4f}")
+print(f"Maximum negative log-likelihood across walkers: {final_likelihoods.max():.4f}")
+
+# print parameters at minimum nll
+best_idx = jnp.argmin(final_likelihoods)
+print("Best parameter set found by MCMC:")
+print(final_params[best_idx])
+for name, val in zip(param_names, final_params[best_idx]):
+    print(f"{name}: {val:.4f}")
 
 # Reshape it back to 3D to separate the walkers properly
 chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, -1)
@@ -74,7 +91,7 @@ for j in range(n_walkers):
         ax[i//5, i%5].plot(mcmc_samples[:,j,i], alpha=0.5)
         ax[i//5, i%5].set_title(param_names[i])
     plt.tight_layout()
-plt.savefig(f"Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers.png", dpi=300, bbox_inches='tight')
+plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers.png", dpi=300, bbox_inches='tight')
 plt.close(fig)
 
 
