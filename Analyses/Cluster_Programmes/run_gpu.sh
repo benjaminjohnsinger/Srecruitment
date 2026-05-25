@@ -21,8 +21,8 @@ module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
 combinations=(
-"RSV 260521 ExponentialODipLinear dedupsplit maxagep028 1e-9 200 1000 0.7"
-"Metapneumovirus 260521 ExponentialODipLinear dedupsplit maxagep005 1e-9 200 2000 0.7"
+"Parainfluenza3 260521 ExponentialODipLinear dedupsplit maxagep004 1e-9 200 1000 0.7"
+"Metapneumovirus 260521 ExponentialODipLinear dedupsplit maxagep005 1e-9 200 1000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
