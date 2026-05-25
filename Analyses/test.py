@@ -46,10 +46,10 @@ NAG = 8
 N_S = 3
 from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split as CENSUS_AGE_POP
 
-mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{pathogen}{lockdown}{option1}{option2}{seed}.csv"
+mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}.csv"
 mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
 # 32 walkers, so 32 samples per iteration, so reshape to (n_iterations, 32, n_params)
-n_iterations = 1500
+n_iterations = 600
 n_walkers = 64
 param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 n_params = len(param_names)

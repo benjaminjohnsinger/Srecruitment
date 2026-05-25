@@ -101,35 +101,43 @@ def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2,
         plt.close(fig)
 
 if __name__ == "__main__":
-    pathogen = "RSV"
-    seed = 260505
-    lockdown = "ExponentialODipEqual"
+    seed = 260521
+    lockdown = "ExponentialODipLinear"
     option1 = "dedupsplit"
-    option2 = "maxagep028"
     NAG = 8
-    prefix = ""
+    prefix = "evosax_DE"
     from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
+    pathogens = ["InfluenzaA", "RSV", "InfluenzaB", "Adenovirus", "Parainfluenza3", "Metapneumovirus"]
+    option2s = ["maxagep03", "maxagep028", "maxagep03", "betaboundp5maxagep003", "maxagep004", "maxagep005"]
+    for pathogen, option2 in zip(pathogens, option2s):
+        key = jax.random.PRNGKey(260522)
+        sampler = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix=prefix, spread=3e-2, sigma=1e-4, num_walkers=64, num_steps=500)
+        acceptance_fraction = np.mean(sampler.acceptance_fraction)
+        print(f"Acceptance fraction: {acceptance_fraction:.4f}")
+        samples = sampler.get_chain()
+        # save samples
+        results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        np.savetxt(results_file, samples.reshape(-1, samples.shape[-1]), delimiter=",")
+        lobprob = sampler.get_log_prob()
+        np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", lobprob, delimiter=",")    
 
-    xprevious = jnp.array([0.29464161, 0.0410644,  0.19039358, 0.00252051, 0.34881436, 0.10757191,
-                           0.28791884, 0.00251545, 0.30185958, 0.16247068, 0.06761075, 0.00799269,
-                           0.01020043, 0.04489354, 0.38874871])
+        param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+        plot_traces(sampler.get_chain(), param_names, pathogen, lockdown, option1, option2, seed)
 
-    key = jax.random.PRNGKey(260522)
-    sampler = run_emcee(key, pathogen, lockdown, option1, option2, seed, startx=xprevious, NAG=NAG, prefix=prefix, spread=1e-4, num_walkers=64, num_steps=600)
-    acceptance_fraction = np.mean(sampler.acceptance_fraction)
-    print(f"Acceptance fraction: {acceptance_fraction:.4f}")
-    samples = sampler.get_chain()
-    # save samples
-    results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}.csv"
-    np.savetxt(results_file, samples.reshape(-1, samples.shape[-1]), delimiter=",")
-    lobprob = sampler.get_log_prob()
-    np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}.csv", lobprob, delimiter=",")    
+        best_idx = np.unravel_index(np.argmax(sampler.get_log_prob()), sampler.get_log_prob().shape)
+        best_params = sampler.get_chain()[best_idx]
+        sampler2 = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=NAG, startx=best_params, spread=1e-4, sigma=1e-5, num_walkers=64, num_steps=2000)
+        acceptance_fraction = np.mean(sampler2.acceptance_fraction)
+        print(f"Acceptance fraction (refined): {acceptance_fraction:.4f}")
+        samples2 = sampler2.get_chain()
+        # save refined samples
+        results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+        np.savetxt(results_file, samples2.reshape(-1, samples2.shape[-1]), delimiter=",")
+        lobprob2 = sampler2.get_log_prob()
+        np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv", lobprob2, delimiter=",")    
 
-    param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
-    plot_traces(sampler.get_chain(), param_names, pathogen, lockdown, option1, option2, seed)
-
-    tau = sampler.get_autocorr_time()
-    print(f"Autocorrelation time: {tau}")
+        tau = sampler2.get_autocorr_time()
+        print(f"Autocorrelation time: {tau}")
     # key = jax.random.PRNGKey(260521)
     # samples = run_nuts(key, pathogen, lockdown, option1, option2, seed, NAG, num_warmup=150, num_samples=300)
     # print("MCMC sampling completed. Sample shape:", samples["x"].shape)
