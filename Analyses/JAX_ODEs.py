@@ -30,8 +30,8 @@ def deltas(t, state, args):
     import_strength = jnp.interp(t, FULL_POINTS, IMPORT_STRENGTH)
     CONTACT_t = relative_contact[:, None] * relative_contact[None, :] * CONTACT_MATRIX
     infectious_by_age = jnp.sum(I_REL[:, None] * infectious, axis=0)
-    infectious_contact = jnp.dot(CONTACT_t,infectious_by_age)/pop_size
-    import_contact = import_strength*jnp.dot(CONTACT_t,age_pops)/pop_size
+    infectious_contact = jnp.dot(CONTACT_t,infectious_by_age/age_pops)
+    import_contact = import_strength*jnp.sum(CONTACT_t, axis=1)
     force_of_infection = BETA*(infectious_contact + import_contact)
     # multiply by susceptibles in each age group and susceptibility class
     new_infections = S_REL[:, None] * force_of_infection[None, :] * susceptible

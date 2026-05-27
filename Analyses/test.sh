@@ -1,10 +1,10 @@
 combinations=(
-"Metapneumovirus 260521 ExponentialODipLinear dedupsplit maxagep005 1e-9 200 2000 0.7"
-"Parainfluenza3 260521 ExponentialODipLinear dedupsplit maxagep004 1e-9 200 2000 0.7"
-# "RSV 260521 ExponentialODipLinear dedupsplit maxagep028 1e-9 200 2000 0.7"
-# "InfluenzaA 260521 ExponentialODipLinear dedupsplit maxagep03 1e-9 200 2000 0.7"
-# "InfluenzaB 260521 ExponentialODipLinear dedupsplit maxagep03 1e-9 200 2000 0.7"
-# "Adenovirus 260521 ExponentialODipLinear dedupsplit betaboundp5maxagep003 1e-9 200 2000 0.7"
+"Metapneumovirus 260527 ExponentialODipLinear dedupsplit betaboundp9maxagep005 1e-9 20 1 0.7 scipy_DE"
+"Parainfluenza3 260527 ExponentialODipLinear dedupsplit betaboundp9maxagep004 1e-9 20 1 0.7 scipy_DE"
+"RSV 260527 ExponentialODipLinear dedupsplit betaboundp9maxagep028 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaA 260527 ExponentialODipLinear dedupsplit betaboundp9maxagep03 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaB 260527 ExponentialODipLinear dedupsplit betaboundp9maxagep03 1e-9 20 1 0.7 scipy_DE"
+"Adenovirus 260527 ExponentialODipLinear dedupsplit betaboundp9maxagep003 1e-9 20 1 0.7 scipy_DE"
 )
 
 # for combination in "${combinations[@]}"; do
@@ -12,7 +12,7 @@ combinations=(
 # done
 
 for combination in "${combinations[@]}"; do
-    # /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
+    /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
     if [[ $combination == *"optax" ]]; then
         /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_optax.py $combination
     else
