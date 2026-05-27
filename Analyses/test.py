@@ -81,6 +81,15 @@ mean_acceptance = np.mean(moved)
 
 print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
 
+# calculate autocorrelation time
+def autocorrelation_time(chain, max_lag=100):
+    n_samples = len(chain)
+    mean = np.mean(chain)
+    var = np.var(chain)
+    autocorr = np.correlate(chain - mean, chain - mean, mode='full')[n_samples-1:] / (var * n_samples)
+    return 1 + 2 * np.sum(autocorr[1:max_lag])
+autocorr_times = [autocorrelation_time(chain_3d[:, i, j]) for i in range(n_walkers) for j in range(n_params)]
+
 # make directory Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}
 
 # os.makedirs(f"Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
