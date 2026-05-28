@@ -7,7 +7,8 @@ PREM_WORK = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_work
 PREM_SCHOOL = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_school.csv', delimiter=',')
 PREM_OTHERS = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_others.csv', delimiter=',')
 PREM_ALL = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_all.csv', delimiter=',')
-
+print(PREM_ALL)
+print(np.sum(PREM_ALL, axis=1))
 # Load population by each age in months from 0 to 1199
 AGE_POP = np.genfromtxt('Data/Processed/US_Census_population_by_age.csv', delimiter=',')
 AGE_POP_norm = AGE_POP/np.sum(AGE_POP)
@@ -43,30 +44,31 @@ KP_HOME = np.dot(np.dot(AGE_INC,PREM_HOME),AGE_MAP.T)
 KP_WORK = np.dot(np.dot(AGE_INC,PREM_WORK),AGE_MAP.T)
 KP_OTHERS = np.dot(np.dot(AGE_INC,PREM_OTHERS),AGE_MAP.T)
 KP_ALL = np.dot(np.dot(AGE_INC,PREM_ALL),AGE_MAP.T)
+KP_SCHOOL = np.dot(np.dot(AGE_INC,PREM_SCHOOL),AGE_MAP.T)
 
-# For school contacts, the first PREM age group (<5y) should be mapped entirely
-# to the 1-4y KP age group (index 2), since infants (<3m, 3-11m) don't attend school/daycare.
-# Build a modified AGE_MAP for school contacts where the first PREM column's weight
-# is shifted entirely to the third KP age group (index 2).
-AGE_MAP_SCHOOL = AGE_MAP.copy()
-AGE_MAP_SCHOOL[:, 0] = 0.0
-AGE_MAP_SCHOOL[2, 0] = 1.0
-AGE_INC_SCHOOL = AGE_INC.copy()
-AGE_INC_SCHOOL[0, :] = 0.0
-AGE_INC_SCHOOL[1, :] = 0.0
+# # For school contacts, the first PREM age group (<5y) should be mapped entirely
+# # to the 1-4y KP age group (index 2), since infants (<3m, 3-11m) don't attend school/daycare.
+# # Build a modified AGE_MAP for school contacts where the first PREM column's weight
+# # is shifted entirely to the third KP age group (index 2).
+# AGE_MAP_SCHOOL = AGE_MAP.copy()
+# AGE_MAP_SCHOOL[:, 0] = 0.0
+# AGE_MAP_SCHOOL[2, 0] = 1.0
+# AGE_INC_SCHOOL = AGE_INC.copy()
+# AGE_INC_SCHOOL[0, :] = 0.0
+# AGE_INC_SCHOOL[1, :] = 0.0
 
-KP_SCHOOL = np.dot(np.dot(AGE_INC_SCHOOL,PREM_SCHOOL),AGE_MAP_SCHOOL.T)
+# KP_SCHOOL = np.dot(np.dot(AGE_INC_SCHOOL,PREM_SCHOOL),AGE_MAP_SCHOOL.T)
 
-# print(KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS - KP_ALL)
+# # print(KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS - KP_ALL)
 
-# # Shift contacts between first two age groups to the third age group
-# print(KP_HOME)
-for i in range(2):
-    infant_contacts = KP_HOME[i,0] + KP_HOME[i,1]
-    KP_HOME[i,2] += infant_contacts
-    KP_HOME[i,0] = 0
-    KP_HOME[i,1] = 0
-# print(KP_HOME)
+# # # Shift contacts between first two age groups to the third age group
+# # print(KP_HOME)
+# for i in range(2):
+#     infant_contacts = KP_HOME[i,0] + KP_HOME[i,1]
+#     KP_HOME[i,2] += infant_contacts
+#     KP_HOME[i,0] = 0
+#     KP_HOME[i,1] = 0
+# # print(KP_HOME)
 
 KP_ALL = KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS
 
@@ -75,13 +77,25 @@ KP_ALL = KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS
 # print(f'Average number of contacts per person per day (Prem et al. 2021, USA, KPSC age groups): {avg_contacts:.2f}')
 
 # ## Plot contact matrices
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 # # Derive age group boundaries in years from KP_AGE_GROUPS
-# kp_boundaries = sorted(set([int(age)/12 for group in KP_AGE_GROUPS for age in [group[0], group[-1]+1]]))
+kp_boundaries = sorted(set([int(age)/12 for group in KP_AGE_GROUPS for age in [group[0], group[-1]+1]]))
 # print(kp_boundaries)
 # # Define age group boundaries in years for PREM
-# prem_boundaries = [i*5 for i in range(17)]  # 0, 5, 10, ..., 75, 80
+prem_boundaries = [i*5 for i in range(17)]  # 0, 5, 10, ..., 75, 80
+
+fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+im = ax.pcolormesh(kp_boundaries, kp_boundaries, KP_ALL, shading='auto', cmap='viridis', vmin=0, vmax=10)
+ax.set_title('All contacts')
+ax.set_aspect('equal')
+ax.set_xlabel('Age (years)')
+ax.set_ylabel('Age (years)')
+ax.xaxis.set_minor_locator(plt.MultipleLocator(5))
+ax.yaxis.set_minor_locator(plt.MultipleLocator(5))
+fig.colorbar(im, ax=ax, label='Average contacts per person per day')
+plt.tight_layout()
+plt.savefig('Figures/contact_matrix_KP_all.png', dpi=300, bbox_inches='tight')
 
 # # fig, ax = plt.subplots(4, 2, figsize=(7, 9))
 

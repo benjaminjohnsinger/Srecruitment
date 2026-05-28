@@ -248,7 +248,8 @@ def worker(args):
     # how many infections are caused by each age group in each season?
     # Calculate force of infection from each age group to each receiving age group
     # Shape: (NAG_recieving, NAG_causing, time)
-    foi_matrix = params[4] * params[3][:, :, None] * all_infectious[None, :, :] / jnp.sum(population_size_curtailed, axis=1)[None, None, :]
+    relative_contact = params[10]
+    foi_matrix = params[4] * relative_contact[:, None, :] * relative_contact[None, :, :] * params[3][:, :, None] * (all_infectious[None, :, :] / jnp.sum(population_size_curtailed, axis=1)[None, None, :])
     # Calculate new infections: susceptible * foi * susceptibility by class
     # susceptible shape: (N_S, NAG, time)
     # foi_matrix shape: (NAG_recieving, NAG_causing, time)

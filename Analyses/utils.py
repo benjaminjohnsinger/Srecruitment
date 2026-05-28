@@ -758,7 +758,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
         bounds_dict["OFFSET"] = [0,1]
     if "fixbetap" not in option2:
         if "betaboundp" not in option2:
-            bounds_dict["BETA"] = [0,0.3]
+            bounds_dict["BETA"] = [0,1]
         else:
             match = re.search(r'betaboundp(\d+)', option2)
             upper_bound = int(match.group(1)) / (10 ** len(match.group(1)))

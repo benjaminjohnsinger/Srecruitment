@@ -140,7 +140,7 @@ def lockdown_incidence_plot(
             mx = 1.1 * np.max(obs[start_index:end_index]) / pre_mx
         else:
             ax.plot(
-                dates[(start_index + 1):end_index],
+                dates[(start_index+1):end_index],
                 obs[start_index:end_index],
                 label=label,
                 color=color,
