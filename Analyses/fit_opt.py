@@ -53,6 +53,8 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     N_S = 3
     if "months" in option1:
         from Parameters.census_population import AGING_RATE_months as AGING_RATE
+    elif "sac" in option1:
+        from Parameters.census_population import AGING_RATE_sac as AGING_RATE
     elif NAG > 7:
         from Parameters.census_population import AGING_RATE_split as AGING_RATE
     else:
@@ -60,19 +62,19 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     if "months" in option1:
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/MONTHS_contact_all_US_Census.csv', delimiter=',', header=None).values)
     else:
-        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
+        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+['_sac', '']["sac" in option1]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
     BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
     if "incidence_data" in option1:
         if "old" in option1:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data="Old", smoothed=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1))
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data="Old", smoothed=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1), sac=("sac" in option1),)
         elif "orig" in option1:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data="orig", smoothed=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1))
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data="orig", smoothed=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1), sac=("sac" in option1),)
         elif "smoothed" in option1:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True, hosp=hosp, NAG=NAG, dedup=("dedup" in option1))
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True, hosp=hosp, NAG=NAG, dedup=("dedup" in option1), sac=("sac" in option1),)
         else:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1))
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1), sac=("sac" in option1),)
     else:
-        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1))
+        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1), sac=("sac" in option1),)
     fixed_params = (FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX, REC_UP, REC_SAME, IMPORT_STRENGTH)
 
     # # trim incidence so that Date is between START and END
@@ -81,12 +83,12 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     data = data_full[start_idx:end_idx]
 
     if "incidence_data" not in option1 and "peaks_and_times" not in option1:
-        daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group'+['', '_split'][NAG>7]+['', '_detrended']["detrend" in option1]+['', '_dedup']["dedup" in option1]+'.csv',index_col=0,parse_dates=True)
+        daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group'+['', '_split'][NAG>7]+['_sac', '']["sac" in option1]+['', '_detrended']["detrend" in option1]+['', '_dedup']["dedup" in option1]+'.csv',index_col=0,parse_dates=True)
         daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
         daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
         daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
     if ("peaks_and_times" in option1) or ("combo" in option1):
-        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp, NAG=NAG)
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=hosp, NAG=NAG, sac=("sac" in option1), dedup=("dedup" in option1))
         incidence = incidence.fillna(0)
         obs_per_season = jnp.asarray(calculate_observations_per_season(incidence, age_groups=True))
         peak_times = incidence.groupby(incidence.index.map(get_season_start)).idxmax()
@@ -228,6 +230,9 @@ if __name__ == '__main__':
         from Parameters.census_population import CENSUS_AGE_POP_months as CENSUS_AGE_POP
         from Parameters.census_population import AGE_GROUPS_split as AGE_GROUPS
         NAG = 65
+    elif "sac" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
+        NAG = 7
     elif "split" in option1:
         from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
         NAG = 8
@@ -250,21 +255,6 @@ if __name__ == '__main__':
 
     # set seed
     np.random.seed(seed)
-
-    # # #scipy version of DE
-    # vmap_likelihood = jax.jit(jax.vmap(likelihood))
-    # def scipy_objective(x):
-    #     x_transposed = x.T
-    #     return jnp.asarray(vmap_likelihood(x_transposed))
-    # multiprocessing.set_start_method('spawn', force=True)
-    # opt = sp.optimize.differential_evolution(scipy_objective,bounds,popsize=opt_size,mutation=(0.5,opt_rate1),recombination=opt_rate2,init="halton",seed=seed,updating="deferred",
-    # strategy="currenttobest1bin", vectorized=True)
-    # # if there's no Data/Processed/results<seed> directory, create it
-    # if not os.path.exists("Data/Processed/results"+str(seed)[:6]):
-    #     os.makedirs("Data/Processed/results"+str(seed)[:6])
-    # with open("Data/Processed/results"+str(seed)[:6]+"/DE_opt_"+pathogen+lockdown+option1+option2+str(seed)+".pickle","wb") as f:
-    #     pickle.dump(opt,f)
-
 
     names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
     for name, i in zip(names, range(len(names))):

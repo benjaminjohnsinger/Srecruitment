@@ -38,6 +38,10 @@ if __name__ == "__main__":
         from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
         NAG = 8
         max_month = None
+    elif "sac" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
+        NAG = 7
+        max_month = None
     else:
         from Parameters.census_population import CENSUS_AGE_POP
         NAG = 7
@@ -123,19 +127,19 @@ if __name__ == "__main__":
     # option1 = "incidence_data"
     if "incidence_data" in option1:
         if "old" in option1:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data="Old", smoothed=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1))
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data="Old", smoothed=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1), sac=("sac" in option1),)
         elif "smoothed" in option1:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True, hosp=hosp, NAG=NAG, dedup=("dedup" in option1))
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=True, hosp=hosp, NAG=NAG, dedup=("dedup" in option1), sac=("sac" in option1),)
         else:
-            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1))
+            REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1), sac=("sac" in option1),)
     else:
-        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1))
+        REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1), sac=("sac" in option1),)
     print(data_full.shape)
     N_S = 3
     if "months" in option1:
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/MONTHS_contact_all_US_Census.csv', delimiter=',', header=None).values)
     else:
-        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
+        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+['', '_sac']["sac" in option1]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
     BIRTH_RATE = np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=',')
 
     EPOCH = pd.to_datetime('1970-01-01')
@@ -150,7 +154,7 @@ if __name__ == "__main__":
     end_idx = int(date_to_t(end_date) - date_to_t('2015-10-01'))
     data = data_full[start_idx:end_idx]
 
-    daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group'+['','_split'][NAG>7]+['','_detrended']["detrend" in option1]+["","_dedup"]["dedup" in option1]+'.csv',index_col=0,parse_dates=True)
+    daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group'+['','_split'][NAG>7]+['','_sac']["sac" in option1]+['','_detrended']["detrend" in option1]+["","_dedup"]["dedup" in option1]+'.csv',index_col=0,parse_dates=True)
     daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
     daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
     daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
@@ -160,12 +164,15 @@ if __name__ == "__main__":
     # print(x)
     # print("Log-Likelihood:", log_likelihood*N)
 
-    if NAG == 7:
-        from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUPS, AGE_GROUP_NAMES, MEDIAN_AGE
+    if "split" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP, AGE_GROUPS_split as AGE_GROUPS, AGE_GROUP_NAMES_split as AGE_GROUP_NAMES, MEDIAN_AGE_split as MEDIAN_AGE
+    elif "sac" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP, AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac as AGE_GROUP_NAMES, MEDIAN_AGE_sac as MEDIAN_AGE
     elif "months" in option1:
         from Parameters.census_population import CENSUS_AGE_POP_months as CENSUS_AGE_POP, AGE_GROUPS_split as AGE_GROUPS, AGE_GROUP_NAMES_split as AGE_GROUP_NAMES, MEDIAN_AGE_split as MEDIAN_AGE
     else:
-        from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP, AGE_GROUPS_split as AGE_GROUPS, AGE_GROUP_NAMES_split as AGE_GROUP_NAMES, MEDIAN_AGE_split as MEDIAN_AGE
+        from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUPS, AGE_GROUP_NAMES, MEDIAN_AGE
+
     ## Initial conditions
     STATE0 = jnp.zeros((2*N_S+1,NAG))
     STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
@@ -174,7 +181,7 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-    params = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=False, NAG=NAG, wrong_aging=int(str(seed)[:6])<260414, birth_rate_multiplier=birth_rate_multiplier)
+    params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True, NAG=NAG, wrong_aging=int(str(seed)[:6])<260414, birth_rate_multiplier=birth_rate_multiplier)
     # print(cntct.shape)
 
     # names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
@@ -226,9 +233,8 @@ if __name__ == "__main__":
     shaped_values = values[1:,].reshape((1+2*N_S, NAG, -1))
     infectious = shaped_values[1:2*N_S:2, :, :]
     first_infectious_by_age = infectious[0, :, :]
-    from Parameters.census_population import MEDIAN_AGE_split
     mean_ages_of_first_infection = jnp.mean(first_infectious_by_age[:,:365*4],axis=1)/jnp.sum(jnp.mean(first_infectious_by_age[:,:365*4],axis=1))
-    mean_age_of_first_infection = jnp.sum(first_infectious_by_age*jnp.array(MEDIAN_AGE_split).reshape((NAG,1)),axis=0)/jnp.sum(first_infectious_by_age,axis=0)
+    mean_age_of_first_infection = jnp.sum(first_infectious_by_age*jnp.array(MEDIAN_AGE).reshape((NAG,1)),axis=0)/jnp.sum(first_infectious_by_age,axis=0)
     # mean over time to get average age of first infection
     print("Mean Age of First Infection:", f"{mean_ages_of_first_infection.sum():.2g}")
     print("Age distribution of first infection (%):", [f"{x:.2g}" for x in 100*mean_ages_of_first_infection])
@@ -568,7 +574,7 @@ if __name__ == "__main__":
         elif option1 == "old_incidence_data":
             dmx = kpsc_positive_test_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, color="k", legend=False, aggregation=aggregation, factor=10000, select_age_group=i_age, linewidth=0.5)
         else:
-            dmx = kpsc_proportion_positive_incidence_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, select_age_group=i_age, aggregation=aggregation, factor=10000, color="black", hosp=hosp, detrend=("detrend" in option1), linewidth=0.5, dedup=("dedup" in option1))
+            dmx = kpsc_proportion_positive_incidence_plot(age_ax, pathogen, AGE_GROUPS, AGE_GROUP_NAMES, select_age_group=i_age, aggregation=aggregation, factor=10000, color="black", hosp=hosp, detrend=("detrend" in option1), linewidth=0.5, dedup=("dedup" in option1), sac=("sac" in option1))
         mx = lockdown_incidence_plot(age_ax,STATE0,params,POINTS,date_to_t('2020-03-19'),label=None,by_age=True,AGE_GROUP_NAMES=AGE_GROUP_NAMES,solution=solution,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs, select_age_group=i_age, color=hsv_colors[i_age], linewidth=0.5, NAG=NAG,AGE_GROUPS=AGE_GROUPS,max_month=max_month,
                                      test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
                                      )
@@ -603,7 +609,7 @@ if __name__ == "__main__":
     elif "orig_incidence_data" in option1:
         kpsc_positive_test_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data", orig=True)
     else:
-        kpsc_proportion_positive_incidence_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data", hosp=hosp, detrend=("detrend" in option1), dedup=("dedup" in option1))
+        kpsc_proportion_positive_incidence_plot(ax[0], pathogen, None, AGE_GROUP_NAMES, aggregation=aggregation, factor=10000, color="black", label="Data", hosp=hosp, detrend=("detrend" in option1), dedup=("dedup" in option1), sac=("sac" in option1))
     mx = lockdown_incidence_plot(ax[0],STATE0,params,POINTS,date_to_t('2020-03-19'),solution=solution,label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(aggregation)]*10000,p_time_to_obs=p_time_to_obs,NAG=NAG,AGE_GROUPS=AGE_GROUPS,max_month=max_month,
                                  test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
                                  )
@@ -636,7 +642,7 @@ if __name__ == "__main__":
     # ax[0].set_ylim(bottom=0)
 
     # plt.tight_layout()
-    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+".png",dpi=300)
+    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_w14offset.png",dpi=300)
     plt.close()
 
     # fig, ax = plt.subplots(figsize=(4,4))

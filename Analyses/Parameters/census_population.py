@@ -29,6 +29,14 @@ AGE_GROUPS_split = [
     jnp.arange(18*12,40*12),
     jnp.arange(40*12,65*12),
     jnp.arange(65*12,100*12)]
+AGE_GROUPS_sac = [
+    jnp.arange(3),
+    jnp.arange(3,12),
+    jnp.arange(12,5*12),
+    jnp.arange(5*12,18*12),
+    jnp.arange(18*12,40*12),
+    jnp.arange(40*12,65*12),
+    jnp.arange(65*12,100*12)]
 AGE_GROUPS_months = [
     jnp.arange(n,n+1) for n in range(5*12)
     ] + [
@@ -41,6 +49,7 @@ AGE_GROUPS_months = [
 # AGE_GROUPS = [range(0,6),range(6,12),range(12,2*12),range(2*12,3*12),range(3*12,4*12),range(4*12,5*12),range(5*12,10*12),range(10*12,15*12),range(15*12,20*12),range(20*12,25*12),range(25*12,30*12),range(30*12,35*12),range(35*12,40*12),range(40*12,45*12),range(45*12,50*12),range(50*12,55*12),range(55*12,60*12),range(60*12,65*12),range(65*12,70*12),range(70*12,75*12),range(75*12,80*12),range(80*12,85*12),range(85*12,90*12),range(90*12,95*12),range(95*12,100*12)]
 MEDIAN_AGE = [jnp.median(group) for group in AGE_GROUPS]
 MEDIAN_AGE_split = [jnp.median(group) for group in AGE_GROUPS_split]
+MEDIAN_AGE_sac = [jnp.median(group) for group in AGE_GROUPS_sac]
 # AGE_GROUP_NAMES = [
 #     'Newborns',
 #     'Infants',
@@ -51,17 +60,21 @@ MEDIAN_AGE_split = [jnp.median(group) for group in AGE_GROUPS_split]
 #     'Older adults']
 AGE_GROUP_NAMES = ['<3m','3-11m','1-4y','5-7y','8-39y','40-64y','>=65y']
 AGE_GROUP_NAMES_split = ['<3m','3-11m','1-4y','5-7y','8-17y','18-39y','40-64y','>=65y']
+AGE_GROUP_NAMES_sac = ['<3m','3-11m','1-4y','5-17y','18-39y','40-64y','>=65y']
+AGE_GROUP_NAMES_months = [f'{i}m' for i in range(5*12)] + ['5-7y','8-17y','18-39y','40-64y','>=65y']
 # AGE_GROUP_NAMES = ['0y','1y','2y','3y','4y','5y','10y','15y','20y','25y','30y','35y','40y','45y','50y','55y','60y','65y','70y','75y','80y','85y','90y','95y','100y']
 
 # Age group proportions for California in 2022
 AGE_PROPORTION = jnp.array([jnp.sum(AGE_POP[group]) for group in AGE_GROUPS])/jnp.sum(AGE_POP)
 AGE_PROPORTION_split = jnp.array([jnp.sum(AGE_POP[group]) for group in AGE_GROUPS_split])/jnp.sum(AGE_POP)
+AGE_PROPORTION_sac = jnp.array([jnp.sum(AGE_POP[group]) for group in AGE_GROUPS_sac])/jnp.sum(AGE_POP)
 AGE_PROPORTION_months = jnp.array([jnp.sum(AGE_POP[group]) for group in AGE_GROUPS_months])/jnp.sum(AGE_POP)
 # age_array = [x for xs in [[i]*AGE_POP[i] for i in group] for x in xs]
 # print(MEDIAN_AGE)
 # print([jnp.median(jnp.array([x for xs in [[i]*int(AGE_POP[i]) for i in group] for x in xs])) for group in AGE_GROUPS])
 CENSUS_AGE_POP = AGE_PROPORTION*POP_SIZE
 CENSUS_AGE_POP_split = AGE_PROPORTION_split*POP_SIZE
+CENSUS_AGE_POP_sac = AGE_PROPORTION_sac*POP_SIZE
 CENSUS_AGE_POP_months = AGE_PROPORTION_months*POP_SIZE
 
 # Rate of aging out of each age group. Last rate informed by US life expectancy at age 65.
@@ -69,6 +82,7 @@ CENSUS_AGE_POP_months = AGE_PROPORTION_months*POP_SIZE
 # Same with last rate informed by US life expectancy at birth. This leads to a more stable age distribution and population size.
 AGING_RATE = 1/jnp.array([3/12*365,9/12*365,4*365,3*365,32*365,25*365,12.43*365])
 AGING_RATE_split = 1/jnp.array([3/12*365,9/12*365,4*365,3*365,10*365,22*365,25*365,12.43*365])
+AGING_RATE_sac = 1/jnp.array([3/12*365,9/12*365,4*365,13*365,22*365,25*365,12.43*365])
 AGING_RATE_months = 1/jnp.array([1/12*365] * 12*5 + [3*365,10*365,22*365,25*365,12.43*365])
 # AGING_RATE = 1/np.array([len(group)/12*365 for group in AGE_GROUPS])
 

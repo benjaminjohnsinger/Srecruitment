@@ -38,9 +38,9 @@ plt.rcParams['font.serif'] = ['Palatino']
 from sim_grid import worker, extract_target_value_from_data
 
 pathogen = "InfluenzaA"
-seed = 260527
+seed = 260528
 lockdown = "ExponentialODipLinear"
-option1 = "dedupsplit"
+option1 = "ireldedupsplit"
 option2 = "maxagep03"
 NAG = 8
 N_S = 3
@@ -165,8 +165,8 @@ diff_inf = np.zeros((6,NAG))
 # wane = np.zeros(6)
 # srel1 = np.zeros(6)
 # srel2 = np.zeros(6)
-pathogens = ["RSV", "InfluenzaA", "InfluenzaB", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]
-opt2s = ["betaboundp9maxagep028", "betaboundp9maxagep03", "betaboundp9maxagep03", "betaboundp9maxagep01", "betaboundp9maxagep01", "betaboundp9maxagep0045"]
+pathogens = ["RSV",  "Metapneumovirus", "Parainfluenza3", "InfluenzaB", "Adenovirus", "InfluenzaA"]
+opt2s = ["maxagep028", "maxagep0085", "maxagep007", "maxagep04", "maxagep004", "maxagep04"]
 colors = ["#DC267F", "#FFB000",  "#FF832B", "#648FFF",  "#785EF0","k"]
 for i, (pathogen, option2, color) in enumerate(zip(pathogens,opt2s, colors)):
     # x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
@@ -265,7 +265,7 @@ handles, labels = ax[0,0].get_legend_handles_labels()
 fig.text(0.5, 0.04, "Proportion of infections from same age group", ha='center', va='center')
 fig.text(0.06, 0.5, "Proportion of infections from different age groups", ha='center', va='center', rotation='vertical')
 fig.legend(handles, labels, frameon=False, fontsize=8, loc='lower center', ncol=len(pathogens), bbox_to_anchor=(0.5, -0.15))
-plt.savefig(f"Figures/same_inf_vs_diff_inf_by_age_group_05027.png", dpi=300, bbox_inches='tight')
+plt.savefig(f"Figures/same_inf_vs_diff_inf_by_age_group_irel05028.png", dpi=300, bbox_inches='tight')
 
 # # Age group control variables for plotting
 # age_group_x_idx = 0

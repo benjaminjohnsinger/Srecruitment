@@ -7,8 +7,6 @@ PREM_WORK = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_work
 PREM_SCHOOL = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_school.csv', delimiter=',')
 PREM_OTHERS = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_others.csv', delimiter=',')
 PREM_ALL = np.genfromtxt('Data/Processed/contact_matrices/Prem_contact_USA_all.csv', delimiter=',')
-print(PREM_ALL)
-print(np.sum(PREM_ALL, axis=1))
 # Load population by each age in months from 0 to 1199
 AGE_POP = np.genfromtxt('Data/Processed/US_Census_population_by_age.csv', delimiter=',')
 AGE_POP_norm = AGE_POP/np.sum(AGE_POP)
@@ -18,7 +16,7 @@ AGE_POP_norm = AGE_POP/np.sum(AGE_POP)
 PREM_AGE_GROUPS = [range(i*5*12,(i+1)*5*12) for i in range(15)]
 PREM_AGE_GROUPS.append(range(75*12,100*12))
 # KP_AGE_GROUPS = [np.arange(0,3),np.arange(3,12),np.arange(12,5*12),np.arange(5*12,8*12),np.arange(8*12,40*12),np.arange(40*12,65*12),np.arange(65*12,100*12)]
-from Parameters.census_population import AGE_GROUPS_split as KP_AGE_GROUPS
+from Parameters.census_population import AGE_GROUPS_sac as KP_AGE_GROUPS
 from Parameters.census_population import AGE_GROUPS_months as MONTHS_AGE_GROUPS
 PITZER_AGE_GROUPS = [range(0,6),range(6,12),range(12,2*12),range(2*12,3*12),range(3*12,4*12),range(4*12,5*12),range(5*12,10*12),range(10*12,15*12),range(15*12,20*12),range(20*12,25*12),range(25*12,30*12),range(30*12,35*12),range(35*12,40*12),range(40*12,45*12),range(45*12,50*12),range(50*12,55*12),range(55*12,60*12),range(60*12,65*12),range(65*12,70*12),range(70*12,75*12),range(75*12,80*12),range(80*12,85*12),range(85*12,90*12),range(90*12,95*12),range(95*12,120*12)]
 MIKE_AGE_GROUPS = [range(0,4*12),range(4*12,6*12),range(6*12,18*12),range(18*12,120*12)]
@@ -70,7 +68,7 @@ KP_SCHOOL = np.dot(np.dot(AGE_INC,PREM_SCHOOL),AGE_MAP.T)
 #     KP_HOME[i,1] = 0
 # # print(KP_HOME)
 
-KP_ALL = KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS
+# KP_ALL = KP_HOME + KP_WORK + KP_SCHOOL + KP_OTHERS
 
 # # average number of contacts per person per day
 # avg_contacts = np.sum(KP_ALL.T * KP_AGE_POP)
@@ -95,7 +93,7 @@ ax.xaxis.set_minor_locator(plt.MultipleLocator(5))
 ax.yaxis.set_minor_locator(plt.MultipleLocator(5))
 fig.colorbar(im, ax=ax, label='Average contacts per person per day')
 plt.tight_layout()
-plt.savefig('Figures/contact_matrix_KP_all.png', dpi=300, bbox_inches='tight')
+plt.savefig('Figures/contact_matrix_KP_sac_all.png', dpi=300, bbox_inches='tight')
 
 # # fig, ax = plt.subplots(4, 2, figsize=(7, 9))
 
@@ -136,8 +134,8 @@ plt.savefig('Figures/contact_matrix_KP_all.png', dpi=300, bbox_inches='tight')
 
 
 # Save contact matrices
-np.savetxt('Data/Processed/contact_matrices/KP_mod_split_contact_home_US_Census.csv',KP_HOME,delimiter=',')
-# np.savetxt('Data/Processed/contact_matrices/KP_mod_split_contact_work_US_Census.csv',KP_WORK,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/KP_mod_split_contact_school_US_Census.csv',KP_SCHOOL,delimiter=',')
-# np.savetxt('Data/Processed/contact_matrices/KP_mod_split_contact_others_US_Census.csv',KP_OTHERS,delimiter=',')
-np.savetxt('Data/Processed/contact_matrices/KP_mod_split_contact_all_US_Census.csv',KP_ALL,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_sac_contact_home_US_Census.csv',KP_HOME,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_sac_contact_work_US_Census.csv',KP_WORK,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_sac_contact_school_US_Census.csv',KP_SCHOOL,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_sac_contact_others_US_Census.csv',KP_OTHERS,delimiter=',')
+np.savetxt('Data/Processed/contact_matrices/KP_sac_contact_all_US_Census.csv',KP_ALL,delimiter=',')
