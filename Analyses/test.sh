@@ -1,7 +1,5 @@
 combinations=(
-"Adenovirus 260528 ExponentialODipLinear dedupsac maxagep0035 1e-9 20 1 0.7 scipy_DE"
-"Adenovirus 260528 ExponentialODipLinear dedupsac maxagep004 1e-9 20 1 0.7 scipy_DE"
-"Adenovirus 260528 ExponentialODipLinear dedupsac maxagep0045 1e-9 20 1 0.7 scipy_DE"
+"Parainfluenza3 260529 ExponentialODipLinear dedupsac maxagep0075 1e-9 20 1 0.7 scipy_DE"
 )
 
 # for combination in "${combinations[@]}"; do

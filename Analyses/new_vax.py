@@ -103,43 +103,44 @@ if __name__ == "__main__":
     # # Test the function and plot results
     FULL_POINTS = jnp.arange(0, 22000)  # Example time points
     print(flu_eff_vax_rate(FULL_POINTS, max_eff=0.5).shape)
-    # # S_REL = jnp.array([1, 0.3, 0.3*0.25])
-    # # P_OBS = jnp.array([1, 0.46, 0.31])
-    # # protection_param = S_REL * P_OBS
-    # # max_eff0 = 1-protection_param[-1]
-    # # max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
-    # # rates = rsv_eff_vax_rate(FULL_POINTS, max_eff0, max_eff1)
-    # mat_imm = rsv_maternal_immunity(FULL_POINTS)
-    # fig, ax = plt.subplots(figsize=(10, 6))
-    # # Convert time points to dates
-    # dates = pd.to_datetime(FULL_POINTS, unit='D', origin='1970-01-01')
-    # ax.plot(dates, mat_imm)
-    # ax.set_title("RSV Maternal Immunity")
-    # ax.set_ylabel("Proportion with Maternal Immunity")
-    # ax.set_xlabel("Date")
-    # ax.set_xlim(pd.to_datetime('2015-01-01'), pd.to_datetime('2026-01-01'))
-    # plt.tight_layout()
-    # plt.savefig("Figures/RSV_effective_maternal_immunity.png")
-
-    # S_REL = jnp.array([1, 0.51, 0.21])
-    # P_OBS = jnp.array([1, 0.51, 0.21])
+    # S_REL = jnp.array([1, 0.3, 0.3*0.25])
+    # P_OBS = jnp.array([1, 0.46, 0.31])
     # protection_param = S_REL * P_OBS
-    # max_eff_test = (protection_param[-2]-protection_param[-1])/protection_param[-2]
-    # rates = flu_eff_vax_rate(FULL_POINTS, max_eff_test)
-    # fig, ax = plt.subplots(figsize=(10, 6))
+    # max_eff0 = 1-protection_param[-1]
+    # max_eff1 = (protection_param[-2]-protection_param[-1])/protection_param[-2]
+    # rates = rsv_eff_vax_rate(FULL_POINTS, max_eff0, max_eff1)
+    mat_imm = rsv_maternal_immunity(FULL_POINTS)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    # Convert time points to dates
+    dates = pd.to_datetime(FULL_POINTS, unit='D', origin='1970-01-01')
+    ax.plot(dates, mat_imm)
+    ax.set_title("RSV Maternal Immunity")
+    ax.set_ylabel("Proportion with Maternal Immunity")
+    ax.set_xlabel("Date")
+    ax.set_xlim(pd.to_datetime('2015-01-01'), pd.to_datetime('2026-01-01'))
+    plt.tight_layout()
+    plt.savefig("Figures/RSV_effective_maternal_immunity.png")
+
+    S_REL = jnp.array([1, 0.98, 0.69])
+    P_OBS = jnp.array([1, 0.98, 0.78])
+    protection_param = S_REL * P_OBS
+    max_eff_test = (protection_param[-2]-protection_param[-1])/protection_param[-2]
+    rates = flu_eff_vax_rate(FULL_POINTS, max_eff_test)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    hsv_colors = plt.cm.hsv(-0.02+np.arange(7)/7)
+    hsv_colors[3] = plt.cm.hsv((3/7)+0.04)
+    # Convert time points to dates
+    dates = pd.to_datetime(FULL_POINTS, unit='D', origin='1970-01-01')
     
-    # # Convert time points to dates
-    # dates = pd.to_datetime(FULL_POINTS, unit='D', origin='1970-01-01')
-    
-    # for i, age_group in enumerate(AGE_GROUP_NAMES):
-    #     ax.plot(dates, rates[:, i], label=age_group, color=hsv_colors[i])
-    # ax.set_title("Effective Influenza Vaccination Rates by Age Group")
-    # ax.set_ylabel("Vaccination Rate Per Day")
-    # ax.set_xlabel("Date")
-    # ax.set_xlim(pd.to_datetime('2015-01-01'), pd.to_datetime('2026-01-01'))
-    # ax.legend()
-    # plt.tight_layout()
-    # plt.savefig("Figures/Influenza_effective_vaccination_rates_by_age_test.png")
+    for i, age_group in enumerate(AGE_GROUP_NAMES):
+        ax.plot(dates, rates[:, i], label=age_group, color=hsv_colors[i])
+    ax.set_title("Effective Influenza Vaccination Rates by Age Group")
+    ax.set_ylabel("Vaccination Rate Per Day")
+    ax.set_xlabel("Date")
+    ax.set_xlim(pd.to_datetime('2015-01-01'), pd.to_datetime('2026-01-01'))
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig("Figures/Influenza_effective_vaccination_rates_by_age_test260529.png")
 
 # ############## Processing vaccine/demographic data ###############
 # demographics = pd.read_sas("Data/Raw/KPSC/demographics_20260128.sas7bdat", format="sas7bdat", encoding="utf-8")
