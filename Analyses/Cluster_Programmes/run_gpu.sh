@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=cmupd
+#SBATCH --job-name=sac
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -21,12 +21,12 @@ module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
 combinations=(
-"RSV 260528 ExponentialODipLinear dedupsplit maxagep028 1e-9 200 2000 0.7"
-"InfluenzaA 260528 ExponentialODipLinear dedupsplit maxagep04 1e-9 200 2000 0.7"
-"Parainfluenza3 260528 ExponentialODipLinear dedupsplit maxagep007 1e-9 200 2000 0.7"
-"InfluenzaB 260528 ExponentialODipLinear dedupsplit maxagep04 1e-9 200 2000 0.7"
-"Adenovirus 260528 ExponentialODipLinear dedupsplit maxagep004 1e-9 200 2000 0.7"
-"Metapneumovirus 260528 ExponentialODipLinear dedupsplit maxagep0085 1e-9 200 2000 0.7"
+"RSV 260529 ExponentialODipLinear dedupsac maxagep028 1e-9 200 3000 0.7"
+"InfluenzaA 260529 ExponentialODipLinear dedupsac maxagep04 1e-9 200 2000 0.7"
+"Parainfluenza3 260529 ExponentialODipLinear dedupsac maxagep007 1e-9 200 3000 0.7"
+"InfluenzaB 260529 ExponentialODipLinear dedupsac maxagep04 1e-9 200 3000 0.7"
+"Adenovirus 260529 ExponentialODipLinear dedupsac maxagep003 1e-9 200 2000 0.7"
+"Metapneumovirus 260529 ExponentialODipLinear dedupsac maxagep008 1e-9 200 3000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
