@@ -101,16 +101,16 @@ def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2,
         plt.close(fig)
 
 if __name__ == "__main__":
-    seed = 260521
+    seed = 260528
     lockdown = "ExponentialODipLinear"
     option1 = "dedupsplit"
     NAG = 8
     prefix = "evosax_DE"
     from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
     pathogens = ["InfluenzaA", "RSV", "InfluenzaB", "Adenovirus", "Parainfluenza3", "Metapneumovirus"]
-    option2s = ["maxagep03", "maxagep028", "maxagep03", "betaboundp5maxagep003", "maxagep004", "maxagep005"]
+    option2s = ["maxagep04", "maxagep028", "maxagep04", "maxagep004", "maxagep007", "maxagep0085"]
     for pathogen, option2 in zip(pathogens, option2s):
-        key = jax.random.PRNGKey(260522)
+        key = jax.random.PRNGKey(260530)
         if pathogen != "InfluenzaA":
             sampler = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix=prefix, spread=3e-2, sigma=1e-4, num_walkers=64, num_steps=500)
             acceptance_fraction = np.mean(sampler.acceptance_fraction)
