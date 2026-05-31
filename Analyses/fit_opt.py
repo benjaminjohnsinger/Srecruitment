@@ -62,7 +62,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     if "months" in option1:
         CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/MONTHS_contact_all_US_Census.csv', delimiter=',', header=None).values)
     else:
-        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+['_sac', '']["sac" in option1]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
+        CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_split'][NAG>7]+['', '_sac']["sac" in option1]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
     BIRTH_RATE = jnp.asarray(np.genfromtxt('Data/Processed/birth_rate_daily.csv', delimiter=','))
     if "incidence_data" in option1:
         if "old" in option1:
@@ -83,7 +83,7 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
     data = data_full[start_idx:end_idx]
 
     if "incidence_data" not in option1 and "peaks_and_times" not in option1:
-        daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group'+['', '_split'][NAG>7]+['_sac', '']["sac" in option1]+['', '_detrended']["detrend" in option1]+['', '_dedup']["dedup" in option1]+'.csv',index_col=0,parse_dates=True)
+        daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group'+['', '_split'][NAG>7]+['', '_sac']["sac" in option1]+['', '_detrended']["detrend" in option1]+['', '_dedup']["dedup" in option1]+'.csv',index_col=0,parse_dates=True)
         daily_hospitalization_rates_pd = daily_hospitalization_rates_pd.fillna(0)
         daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
         daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]

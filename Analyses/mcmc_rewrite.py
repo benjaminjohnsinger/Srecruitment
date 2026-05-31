@@ -101,30 +101,29 @@ def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2,
         plt.close(fig)
 
 if __name__ == "__main__":
-    seed = 260528
+    seed = 260529
     lockdown = "ExponentialODipLinear"
-    option1 = "dedupsplit"
-    NAG = 8
+    option1 = "dedupsac"
+    NAG = 7
     prefix = "evosax_DE"
-    from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
+    from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
     pathogens = ["InfluenzaA", "RSV", "InfluenzaB", "Adenovirus", "Parainfluenza3", "Metapneumovirus"]
-    option2s = ["maxagep04", "maxagep028", "maxagep04", "maxagep004", "maxagep007", "maxagep0085"]
+    option2s = ["maxagep04", "maxagep028", "maxagep04", "maxagep003", "maxagep007", "maxagep008"]
     for pathogen, option2 in zip(pathogens, option2s):
         key = jax.random.PRNGKey(260530)
-        if pathogen != "InfluenzaA":
-            sampler = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix=prefix, spread=3e-2, sigma=1e-4, num_walkers=64, num_steps=500)
-            acceptance_fraction = np.mean(sampler.acceptance_fraction)
-            print(f"Acceptance fraction: {acceptance_fraction:.4f}")
-            samples = sampler.get_chain()
-            # save samples
-            results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-            np.savetxt(results_file, samples.reshape(-1, samples.shape[-1]), delimiter=",")
-            lobprob = sampler.get_log_prob()
-            np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", lobprob, delimiter=",")    
-        else:
-            samples = np.genfromtxt(f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", delimiter=',')
-            samples = samples.reshape(-1, 64, samples.shape[-1]) # reshape to (n_iterations, n_walkers, n_params)
-            lobprob = np.genfromtxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", delimiter=',')
+        sampler = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix=prefix, spread=3e-2, sigma=1e-4, num_walkers=64, num_steps=500)
+        acceptance_fraction = np.mean(sampler.acceptance_fraction)
+        print(f"Acceptance fraction: {acceptance_fraction:.4f}")
+        samples = sampler.get_chain()
+        # save samples
+        results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        np.savetxt(results_file, samples.reshape(-1, samples.shape[-1]), delimiter=",")
+        lobprob = sampler.get_log_prob()
+        np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", lobprob, delimiter=",")    
+        # else:
+        #     samples = np.genfromtxt(f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", delimiter=',')
+        #     samples = samples.reshape(-1, 64, samples.shape[-1]) # reshape to (n_iterations, n_walkers, n_params)
+        #     lobprob = np.genfromtxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", delimiter=',')
 
         param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
         plot_traces(samples, param_names, pathogen, lockdown, option1, option2, seed)
