@@ -101,17 +101,21 @@ def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2,
         plt.close(fig)
 
 if __name__ == "__main__":
-    seed = 260529
+    seed = 260531
     lockdown = "ExponentialODipLinear"
     option1 = "dedupsac"
     NAG = 7
     prefix = "evosax_DE"
     from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
-    pathogens = ["InfluenzaA", "RSV", "InfluenzaB", "Adenovirus", "Parainfluenza3", "Metapneumovirus"]
-    option2s = ["maxagep04", "maxagep028", "maxagep04", "maxagep003", "maxagep007", "maxagep008"]
+
+    n_walkers = 64
+    burn_in_size = 500
+
+    pathogens = ["InfluenzaA", "InfluenzaB"]
+    option2s = ["maxagep035", "maxagep035"]
     for pathogen, option2 in zip(pathogens, option2s):
-        key = jax.random.PRNGKey(260530)
-        sampler = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix=prefix, spread=3e-2, sigma=1e-4, num_walkers=64, num_steps=500)
+        key = jax.random.PRNGKey(260601)
+        sampler = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix=prefix, spread=3e-2, sigma=1e-4, num_walkers=n_walkers, num_steps=burn_in_size)
         acceptance_fraction = np.mean(sampler.acceptance_fraction)
         print(f"Acceptance fraction: {acceptance_fraction:.4f}")
         samples = sampler.get_chain()
@@ -120,28 +124,53 @@ if __name__ == "__main__":
         np.savetxt(results_file, samples.reshape(-1, samples.shape[-1]), delimiter=",")
         lobprob = sampler.get_log_prob()
         np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", lobprob, delimiter=",")    
-        # else:
-        #     samples = np.genfromtxt(f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", delimiter=',')
-        #     samples = samples.reshape(-1, 64, samples.shape[-1]) # reshape to (n_iterations, n_walkers, n_params)
-        #     lobprob = np.genfromtxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", delimiter=',')
-
         param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
         plot_traces(samples, param_names, pathogen, lockdown, option1, option2, seed)
 
+    n_samples = 5000
+    chunk_size = 500
+
+    samplers_by_pathogen = {}
+
+    for pathogen, option2 in zip(pathogens, option2s):
+        samples = np.genfromtxt(f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", delimiter=',')
+        samples = samples.reshape(-1, n_walkers, samples.shape[-1]) # reshape to (n_iterations, n_walkers, n_params)
+        lobprob = np.genfromtxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", delimiter=',')
         best_idx = np.unravel_index(np.argmax(lobprob), lobprob.shape)
         best_params = samples[best_idx]
-        sampler2 = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=NAG, startx=best_params, spread=1e-4, sigma=1e-5, num_walkers=64, num_steps=2000)
-        acceptance_fraction = np.mean(sampler2.acceptance_fraction)
-        print(f"Acceptance fraction (refined): {acceptance_fraction:.4f}")
-        samples2 = sampler2.get_chain()
-        # save refined samples
+        psampler = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=NAG, startx=best_params, spread=1e-4, sigma=1e-5, num_walkers=n_walkers, num_steps=chunk_size)
+        samplers_by_pathogen[pathogen] = psampler
+        acceptance_fraction = np.mean(psampler.acceptance_fraction)
+        print(f"Acceptance fraction (chunk 0): {acceptance_fraction:.4f}")
+        psamples = psampler.get_chain()
         results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-        np.savetxt(results_file, samples2.reshape(-1, samples2.shape[-1]), delimiter=",")
-        lobprob2 = sampler2.get_log_prob()
+        np.savetxt(results_file, psamples.reshape(-1, psamples.shape[-1]), delimiter=",")
+        lobprob2 = psampler.get_log_prob()
         np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv", lobprob2, delimiter=",")    
 
-        tau = sampler2.get_autocorr_time()
-        print(f"Autocorrelation time: {tau}")
+    for chunk_n in range(n_samples // chunk_size + 1):
+        for pathogen, option2 in zip(pathogens, option2s):
+            key = jax.random.PRNGKey(260601 + chunk_n)
+            samples = np.genfromtxt(f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv", delimiter=',')
+            samples = samples.reshape(-1, n_walkers, samples.shape[-1]) # reshape to (n_iterations, n_walkers, n_params)
+            logprob = np.genfromtxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv", delimiter=',')
+            # extract final positions of walkers from previous chunk
+            
+            final_positions = samples[-1]
+            psampler = samplers_by_pathogen[pathogen]
+            psampler.run_mcmc(final_positions, chunk_size, progress=True)
+
+            acceptance_fraction = np.mean(psampler.acceptance_fraction)
+            print(f"Acceptance fraction (chunk {chunk_n}): {acceptance_fraction:.4f}")
+            # concatenate with previous samples
+            psamples = np.concatenate((samples, psampler.get_chain()), axis=0)
+            logprob = np.concatenate((logprob, psampler.get_log_prob()), axis=0)
+            results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+            np.savetxt(results_file, psamples.reshape(-1, psamples.shape[-1]), delimiter=",")
+            np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv", logprob, delimiter=",")    
+
+        # tau = sampler2.get_autocorr_time()
+        # print(f"Autocorrelation time: {tau}")
     # key = jax.random.PRNGKey(260521)
     # samples = run_nuts(key, pathogen, lockdown, option1, option2, seed, NAG, num_warmup=150, num_samples=300)
     # print("MCMC sampling completed. Sample shape:", samples["x"].shape)
