@@ -152,8 +152,8 @@ if __name__ == "__main__":
     n_walkers = 64
     burn_in_size = 500
 
-    pathogens = ["InfluenzaA", "InfluenzaB"]
-    option2s = ["maxagep035", "maxagep035"]
+    pathogens = ["RSV", "Parainfluenza3"]
+    option2s = ["maxagep028", "maxagep008"]
 
     pools = {}
     for pathogen, option2 in zip(pathogens, option2s):
@@ -215,9 +215,8 @@ if __name__ == "__main__":
 
             acceptance_fraction = np.mean(psampler.acceptance_fraction)
             print(f"Acceptance fraction (chunk {chunk_n}): {acceptance_fraction:.4f}")
-            # concatenate with previous samples
-            psamples = np.concatenate((samples, psampler.get_chain()), axis=0)
-            logprob = np.concatenate((logprob, psampler.get_log_prob()), axis=0)
+            psamples = psampler.get_chain()
+            logprob = psampler.get_log_prob()
             results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
             np.savetxt(results_file, psamples.reshape(-1, psamples.shape[-1]), delimiter=",")
             np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv", logprob, delimiter=",")    

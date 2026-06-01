@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import scipy as sp
 import pandas as pd
+import emcee
 # import itertools as it
 from plotting import lockdown_incidence_plot, lockdown_incidence_format, kpsc_positive_test_plot
 # from math import comb
@@ -64,11 +65,11 @@ plt.rcParams['font.serif'] = ['Palatino']
 # ax.grid(True, which="minor", axis="x", linewidth=0.4, alpha=0.2)
 # plt.show()
 
-pathogen = "InfluenzaB"
+pathogen = "RSV"
 seed = 260531
 lockdown = "ExponentialODipLinear"
 option1 = "dedupsac"
-option2 = "maxagep035"
+option2 = "maxagep028"
 NAG = 7
 N_S = 3
 from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split as CENSUS_AGE_POP
@@ -109,15 +110,17 @@ mean_acceptance = np.mean(moved)
 
 print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
 
-# calculate autocorrelation time
-def autocorrelation_time(chain, max_lag=100):
-    n_samples = len(chain)
-    mean = np.mean(chain)
-    var = np.var(chain)
-    autocorr = np.correlate(chain - mean, chain - mean, mode='full')[n_samples-1:] / (var * n_samples)
-    return 1 + 2 * np.sum(autocorr[1:max_lag])
-autocorr_times = np.array([[autocorrelation_time(chain_3d[:, i, j]) for i in range(n_walkers)] for j in range(n_params)])
-print(np.mean(autocorr_times, axis=1))
+# calculate ensemble-aware autocorrelation time and ESS
+try:
+    autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
+except emcee.autocorr.AutocorrError as error:
+    autocorr_times = np.asarray(error.tau)
+    print("Warning: chain may be too short for reliable autocorrelation estimates.")
+
+autocorr_times = np.asarray(autocorr_times, dtype=float)
+effective_sample_sizes = (n_iterations * n_walkers) / autocorr_times
+print("Autocorrelation times:\n", autocorr_times)
+print("Effective sample sizes:\n", effective_sample_sizes)
 
 chain_3d_every100 = chain_3d[500:][::100]
 median_value_by_parameter = np.median(chain_3d_every100, axis=(0,1))

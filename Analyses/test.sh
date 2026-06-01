@@ -1,10 +1,8 @@
 combinations=(
-"Adenovirus 260529 ExponentialODipLinear dedupsac maxagep002 1e-9 20 1 0.7 scipy_DE"
-"Adenovirus 260529 ExponentialODipLinear dedupsac maxagep0025 1e-9 20 1 0.7 scipy_DE"
-"Adenovirus 260529 ExponentialODipLinear dedupsac maxagep004 1e-9 20 1 0.7 scipy_DE"
-"InfluenzaA 260529 ExponentialODipLinear dedupsac maxagep03 1e-9 20 1 0.7 scipy_DE"
-"InfluenzaA 260529 ExponentialODipLinear dedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
-"InfluenzaA 260529 ExponentialODipLinear dedupsac maxagep05 1e-9 20 1 0.7 scipy_DE"
+"RSV 260531 ExponentialODipLinear dedupsac maxagep028 1e-9 200 3000 0.7"
+# "InfluenzaA 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 2000 0.7"
+"Parainfluenza3 260531 ExponentialODipLinear dedupsac maxagep008 1e-9 200 3000 0.7"
+# "InfluenzaB 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 3000 0.7"
 )
 
 # for combination in "${combinations[@]}"; do
@@ -12,7 +10,7 @@ combinations=(
 # done
 
 for combination in "${combinations[@]}"; do
-    /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
+    # /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
     if [[ $combination == *"optax" ]]; then
         /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_optax.py $combination
     else
