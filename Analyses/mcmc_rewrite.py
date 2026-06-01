@@ -150,7 +150,7 @@ if __name__ == "__main__":
     from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
 
     n_walkers = 64
-    burn_in_size = 10
+    burn_in_size = 500
 
     pathogens = ["InfluenzaA", "InfluenzaB"]
     option2s = ["maxagep035", "maxagep035"]
@@ -179,8 +179,8 @@ if __name__ == "__main__":
         param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
         plot_traces(samples, param_names, pathogen, lockdown, option1, option2, seed)
 
-    n_samples = 100
-    chunk_size = 10
+    n_samples = 5000
+    chunk_size = 500
 
     samplers_by_pathogen = {}
 
