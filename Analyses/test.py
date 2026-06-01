@@ -37,106 +37,108 @@ plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
 
-scraped_arrivals = pd.read_csv("Data/Processed/scraped_arrivals.csv")
-scraped_arrivals["Date"] = pd.to_datetime(scraped_arrivals["Date"], errors="coerce")
-scraped_arrivals = scraped_arrivals.dropna(subset=["Date"]).sort_values(by="Date")
-arrivals_daily = np.genfromtxt("Data/Processed/arrivals_daily.csv", delimiter=',')
-# arrivals daily is just a column of numbers by day from 1970-01-01, so add date
-arrivals_daily = pd.DataFrame({
-    "Date": pd.date_range(start="1970-01-01", periods=len(arrivals_daily)),
-    "Total Arrivals": arrivals_daily
-})
-# crop to 2009-01 to 2025-05
-arrivals_daily = arrivals_daily[(arrivals_daily["Date"] >= "2009-01-01")]
-# Scale daily arrivals to a monthly-equivalent magnitude
-arrivals_monthly = arrivals_daily[["Date", "Total Arrivals"]].copy()
-arrivals_monthly["Total Arrivals"] = arrivals_monthly["Total Arrivals"] * 30.44
-print(arrivals_monthly.head())
-print(scraped_arrivals.head())
+# scraped_arrivals = pd.read_csv("Data/Processed/scraped_arrivals.csv")
+# scraped_arrivals["Date"] = pd.to_datetime(scraped_arrivals["Date"], errors="coerce")
+# scraped_arrivals = scraped_arrivals.dropna(subset=["Date"]).sort_values(by="Date")
+# arrivals_daily = np.genfromtxt("Data/Processed/arrivals_daily.csv", delimiter=',')
+# # arrivals daily is just a column of numbers by day from 1970-01-01, so add date
+# arrivals_daily = pd.DataFrame({
+#     "Date": pd.date_range(start="1970-01-01", periods=len(arrivals_daily)),
+#     "Total Arrivals": arrivals_daily
+# })
+# # crop to 2009-01 to 2025-05
+# arrivals_daily = arrivals_daily[(arrivals_daily["Date"] >= "2009-01-01")]
+# # Scale daily arrivals to a monthly-equivalent magnitude
+# arrivals_monthly = arrivals_daily[["Date", "Total Arrivals"]].copy()
+# arrivals_monthly["Total Arrivals"] = arrivals_monthly["Total Arrivals"] * 30.44
+# print(arrivals_monthly.head())
+# print(scraped_arrivals.head())
 
-fig, ax = plt.subplots(figsize=(4,3))
-scraped_arrivals.plot(x="Date", y="Total Arrivals", ax=ax)
-arrivals_monthly.plot(x="Date", y="Total Arrivals", ax=ax)
-ax.xaxis.set_major_locator(mdates.YearLocator())
-ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-ax.xaxis.set_minor_locator(mdates.MonthLocator())
-ax.grid(True, which="major", axis="x", linewidth=0.8, alpha=0.5)
-ax.grid(True, which="minor", axis="x", linewidth=0.4, alpha=0.2)
-plt.show()
+# fig, ax = plt.subplots(figsize=(4,3))
+# scraped_arrivals.plot(x="Date", y="Total Arrivals", ax=ax)
+# arrivals_monthly.plot(x="Date", y="Total Arrivals", ax=ax)
+# ax.xaxis.set_major_locator(mdates.YearLocator())
+# ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+# ax.xaxis.set_minor_locator(mdates.MonthLocator())
+# ax.grid(True, which="major", axis="x", linewidth=0.8, alpha=0.5)
+# ax.grid(True, which="minor", axis="x", linewidth=0.4, alpha=0.2)
+# plt.show()
 
-# pathogen = "InfluenzaA"
-# seed = 260528
-# lockdown = "ExponentialODipLinear"
-# option1 = "ireldedupsplit"
-# option2 = "maxagep03"
-# NAG = 8
-# N_S = 3
-# from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split as CENSUS_AGE_POP
+pathogen = "InfluenzaB"
+seed = 260531
+lockdown = "ExponentialODipLinear"
+option1 = "dedupsac"
+option2 = "maxagep035"
+NAG = 7
+N_S = 3
+from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split as CENSUS_AGE_POP
+_, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 
-# mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined_newmac.csv"
-# mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
-# n_iterations = 2000
-# n_walkers = 64
-# param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
-# n_params = len(param_names)
-# mcmc_samples = mcmc_samples.reshape((n_iterations, n_walkers, n_params))
+mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
+n_params = bounds.shape[0]
+n_walkers = 64
+n_iterations = len(mcmc_samples) // n_walkers
+param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+n_params = len(param_names)
+mcmc_samples = mcmc_samples.reshape((-1, n_walkers, n_params))
 
-# # # get final parameter values for each walker
-# # final_params = mcmc_samples[-1, :, :]
-# # from fit_opt import get_likelihood
-# # likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, normalize=False, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP)
-# # vmap_likelihood = jax.jit(jax.vmap(likelihood))
-# # final_likelihoods = vmap_likelihood(final_params)
-# # print(f"Minimum negative log-likelihood across walkers: {final_likelihoods.min():.4f}")
-# # print(f"Median negative log-likelihood across walkers: {jnp.median(final_likelihoods):.4f}")
-# # print(f"Maximum negative log-likelihood across walkers: {final_likelihoods.max():.4f}")
+# # get final parameter values for each walker
+# final_params = mcmc_samples[-1, :, :]
+# from fit_opt import get_likelihood
+# likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, normalize=False, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP)
+# vmap_likelihood = jax.jit(jax.vmap(likelihood))
+# final_likelihoods = vmap_likelihood(final_params)
+# print(f"Minimum negative log-likelihood across walkers: {final_likelihoods.min():.4f}")
+# print(f"Median negative log-likelihood across walkers: {jnp.median(final_likelihoods):.4f}")
+# print(f"Maximum negative log-likelihood across walkers: {final_likelihoods.max():.4f}")
 
-# # # print parameters at minimum nll
-# # best_idx = jnp.argmin(final_likelihoods)
-# # print("Best parameter set found by MCMC:")
-# # print(final_params[best_idx])
-# # for name, val in zip(param_names, final_params[best_idx]):
-# #     print(f"{name}: {val:.4f}")
+# # print parameters at minimum nll
+# best_idx = jnp.argmin(final_likelihoods)
+# print("Best parameter set found by MCMC:")
+# print(final_params[best_idx])
+# for name, val in zip(param_names, final_params[best_idx]):
+#     print(f"{name}: {val:.4f}")
 
-# # Reshape it back to 3D to separate the walkers properly
-# chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, -1)
+# Reshape it back to 3D to separate the walkers properly
+chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
 
-# # Now apply the Case A math
-# moved = np.any(chain_3d[1:] != chain_3d[:-1], axis=-1)
-# mean_acceptance = np.mean(moved)
+# Now apply the Case A math
+moved = np.any(chain_3d[1:] != chain_3d[:-1], axis=-1)
+mean_acceptance = np.mean(moved)
 
-# print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
+print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
 
-# # calculate autocorrelation time
-# def autocorrelation_time(chain, max_lag=100):
-#     n_samples = len(chain)
-#     mean = np.mean(chain)
-#     var = np.var(chain)
-#     autocorr = np.correlate(chain - mean, chain - mean, mode='full')[n_samples-1:] / (var * n_samples)
-#     return 1 + 2 * np.sum(autocorr[1:max_lag])
-# autocorr_times = np.array([[autocorrelation_time(chain_3d[:, i, j]) for i in range(n_walkers)] for j in range(n_params)])
-# print(np.mean(autocorr_times, axis=1))
+# calculate autocorrelation time
+def autocorrelation_time(chain, max_lag=100):
+    n_samples = len(chain)
+    mean = np.mean(chain)
+    var = np.var(chain)
+    autocorr = np.correlate(chain - mean, chain - mean, mode='full')[n_samples-1:] / (var * n_samples)
+    return 1 + 2 * np.sum(autocorr[1:max_lag])
+autocorr_times = np.array([[autocorrelation_time(chain_3d[:, i, j]) for i in range(n_walkers)] for j in range(n_params)])
+print(np.mean(autocorr_times, axis=1))
 
-# chain_3d_every100 = chain_3d[500:][::100]
-# median_value_by_parameter = np.median(chain_3d_every100, axis=(0,1))
-# lower_value = np.percentile(chain_3d_every100, 2.5, axis=(0,1))
-# upper_value = np.percentile(chain_3d_every100, 97.5, axis=(0,1))
-# print(median_value_by_parameter)
-# print(lower_value)
-# print(upper_value)
+chain_3d_every100 = chain_3d[500:][::100]
+median_value_by_parameter = np.median(chain_3d_every100, axis=(0,1))
+lower_value = np.percentile(chain_3d_every100, 2.5, axis=(0,1))
+upper_value = np.percentile(chain_3d_every100, 97.5, axis=(0,1))
+print(median_value_by_parameter)
+print(lower_value)
+print(upper_value)
 
-# # make directory Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}
+# make directory Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}
 
-# # os.makedirs(f"Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
+# os.makedirs(f"Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
 
-# # fig, ax = plt.subplots(4,5, figsize=(10,6))
-# # for j in range(n_walkers):
-# #     for i in range(n_params):
-# #         ax[i//5, i%5].plot(mcmc_samples[:,j,i], alpha=0.5)
-# #         ax[i//5, i%5].set_title(param_names[i])
-# #     plt.tight_layout()
-# # plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers.png", dpi=300, bbox_inches='tight')
-# # plt.close(fig)
+fig, ax = plt.subplots(4,4, figsize=(10,6))
+for j in range(n_walkers):
+    for i in range(n_params):
+        ax[i//4, i%4].plot(mcmc_samples[:,j,i], alpha=0.4)
+        ax[i//4, i%4].set_title(param_names[i])
+    plt.tight_layout()
+plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers.png", dpi=300, bbox_inches='tight')
+plt.close(fig)
 
 
 # pathogen = "RSV"
