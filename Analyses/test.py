@@ -65,11 +65,11 @@ plt.rcParams['font.serif'] = ['Palatino']
 # ax.grid(True, which="minor", axis="x", linewidth=0.4, alpha=0.2)
 # plt.show()
 
-pathogen = "Parainfluenza3"
+pathogen = "RSV"
 seed = 260531
 lockdown = "ExponentialODipLinear"
 option1 = "dedupsac"
-option2 = "maxagep008"
+option2 = "maxagep028"
 NAG = 7
 N_S = 3
 from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split as CENSUS_AGE_POP
@@ -132,15 +132,11 @@ print(median_value_by_parameter)
 print(lower_value)
 print(upper_value)
 
-import corner
-# corner plot of all walkers after burn-in and thinning
-fig = corner.corner(chain_3d[500:].reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-plt.savefig(f"Figures/mcmc_corner_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}.pdf", bbox_inches='tight')
-fig.clear()
-
-# make directory Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}
-
-# os.makedirs(f"Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
+# import corner
+# # corner plot of all walkers after burn-in and thinning
+# fig = corner.corner(chain_3d[500:].reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
+# plt.savefig(f"Figures/mcmc_corner_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}.pdf", bbox_inches='tight')
+# fig.clear()
 
 fig, ax = plt.subplots(4,4, figsize=(10,6))
 for j in range(n_walkers):

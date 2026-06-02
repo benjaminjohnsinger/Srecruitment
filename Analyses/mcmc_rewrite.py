@@ -179,7 +179,7 @@ if __name__ == "__main__":
         param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
         plot_traces(samples, param_names, pathogen, lockdown, option1, option2, seed)
 
-    n_samples = 5000
+    n_samples = 30000
     chunk_size = 500
 
     samplers_by_pathogen = {}
@@ -194,7 +194,7 @@ if __name__ == "__main__":
                              census_age_pop=CENSUS_AGE_POP, pool=pools[pathogen])
         samplers_by_pathogen[pathogen] = psampler
         acceptance_fraction = np.mean(psampler.acceptance_fraction)
-        print(f"Acceptance fraction (chunk 0): {acceptance_fraction:.4f}")
+        print(f"Acceptance fraction (chunk 0 of {n_samples // chunk_size}): {acceptance_fraction:.4f}")
         psamples = psampler.get_chain()
         results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
         np.savetxt(results_file, psamples.reshape(-1, psamples.shape[-1]), delimiter=",")
@@ -214,7 +214,7 @@ if __name__ == "__main__":
             psampler.run_mcmc(final_positions, chunk_size, progress=True)
 
             acceptance_fraction = np.mean(psampler.acceptance_fraction)
-            print(f"Acceptance fraction (chunk {chunk_n}): {acceptance_fraction:.4f}")
+            print(f"Acceptance fraction (chunk {chunk_n} of {n_samples // chunk_size}): {acceptance_fraction:.4f}")
             psamples = psampler.get_chain()
             logprob = psampler.get_log_prob()
             results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
