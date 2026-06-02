@@ -65,11 +65,11 @@ plt.rcParams['font.serif'] = ['Palatino']
 # ax.grid(True, which="minor", axis="x", linewidth=0.4, alpha=0.2)
 # plt.show()
 
-pathogen = "RSV"
+pathogen = "Parainfluenza3"
 seed = 260531
 lockdown = "ExponentialODipLinear"
 option1 = "dedupsac"
-option2 = "maxagep028"
+option2 = "maxagep008"
 NAG = 7
 N_S = 3
 from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split as CENSUS_AGE_POP
@@ -122,13 +122,21 @@ effective_sample_sizes = (n_iterations * n_walkers) / autocorr_times
 print("Autocorrelation times:\n", autocorr_times)
 print("Effective sample sizes:\n", effective_sample_sizes)
 
-chain_3d_every100 = chain_3d[500:][::100]
-median_value_by_parameter = np.median(chain_3d_every100, axis=(0,1))
-lower_value = np.percentile(chain_3d_every100, 2.5, axis=(0,1))
-upper_value = np.percentile(chain_3d_every100, 97.5, axis=(0,1))
+maximum_autocorr_time = int(np.ceil(np.max(autocorr_times)))
+
+chain_3d_pruned = chain_3d[500:][::maximum_autocorr_time]
+median_value_by_parameter = np.median(chain_3d_pruned, axis=(0,1))
+lower_value = np.percentile(chain_3d_pruned, 2.5, axis=(0,1))
+upper_value = np.percentile(chain_3d_pruned, 97.5, axis=(0,1))
 print(median_value_by_parameter)
 print(lower_value)
 print(upper_value)
+
+import corner
+# corner plot of all walkers after burn-in and thinning
+fig = corner.corner(chain_3d[500:].reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
+plt.savefig(f"Figures/mcmc_corner_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}.pdf", bbox_inches='tight')
+fig.clear()
 
 # make directory Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}
 
