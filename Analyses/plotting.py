@@ -979,6 +979,7 @@ def plot_same_age_infection(ax, matrices, age_group_idx, pathogens, colors):
         ax.scatter(matrix[age_group_idx,age_group_idx], len(matrices)-i, label=pathogens[i], color=colors[i])
     # only have x axis, no border
     ax.set_ylim(-2,8)
+    ax.ticklabel_format(axis='x', style='sci', scilimits=(0, 0), useMathText=True)
     ax.set_yticks([])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -987,6 +988,8 @@ def plot_same_age_infection(ax, matrices, age_group_idx, pathogens, colors):
 def plot_infections_versus(ax, matrices, age_group_indices, pathogens, colors):
     for i, matrix in enumerate(matrices):
         ax.scatter(matrix[:,age_group_indices[0]].sum(), matrix[:,age_group_indices[1]].sum(), label=pathogens[i], color=colors[i])
+    ax.ticklabel_format(axis='x', style='sci', scilimits=(0, 0), useMathText=True)
+    ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0), useMathText=True)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
