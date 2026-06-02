@@ -7,6 +7,7 @@ import jax
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import numpy as np
+import pickle
 from multiprocessing import Pool
 
 import emcee
@@ -86,22 +87,47 @@ def run_nuts(key, pathogen, lockdown, option1, option2, seed, NAG=7, num_warmup=
     mcmc.print_summary()
     return mcmc.get_samples()
 
-def run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=7, startx=None, prefix="", num_walkers=32, spread=0.03, sigma=1e-5, num_steps=1000, census_age_pop=None, pool=None):
+def run_emcee(
+    key,
+    pathogen,
+    lockdown,
+    option1,
+    option2,
+    seed,
+    NAG=7,
+    startx=None,
+    initial_pos=None,
+    prefix="",
+    num_walkers=32,
+    spread=0.03,
+    sigma=1e-5,
+    num_steps=1000,
+    census_age_pop=None,
+    pool=None,
+):
     if startx is None:
         _, startx, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
-    log_posterior = get_emcee_model(pathogen, lockdown, option1, option2, NAG)
     # initialize walkers randomly within 3% of parameter values, within bounds
     _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
     lower_bounds = jnp.asarray(bounds[:, 0])
     upper_bounds = jnp.asarray(bounds[:, 1])
     startx = jnp.asarray(startx)
-    
-    # generate perturbations for all walkers
-    key, subkey = jax.random.split(key)
-    perturbations = jax.random.uniform(subkey, shape=(num_walkers, len(startx)), minval=-spread, maxval=spread) * startx
-    candidates = startx[jnp.newaxis, :] + perturbations
-    # ensure candidates are within bounds
-    initial_pos = jnp.clip(candidates, lower_bounds + 1e-5, upper_bounds - 1e-5)
+    if startx.ndim > 1:
+        # When resuming, callers may pass walker positions; use one parameter vector for shape metadata.
+        startx = startx[0]
+
+    if initial_pos is None:
+        # generate perturbations for all walkers
+        key, subkey = jax.random.split(key)
+        perturbations = jax.random.uniform(subkey, shape=(num_walkers, len(startx)), minval=-spread, maxval=spread) * startx
+        candidates = startx[jnp.newaxis, :] + perturbations
+        # ensure candidates are within bounds
+        initial_pos = jnp.clip(candidates, lower_bounds + 1e-5, upper_bounds - 1e-5)
+    else:
+        initial_pos = jnp.asarray(initial_pos)
+        initial_pos = jnp.clip(initial_pos, lower_bounds + 1e-5, upper_bounds - 1e-5)
+
+    n_dim = int(initial_pos.shape[-1])
     # # loop to resample candidates that give -inf log posterior until all walkers have valid initial positions
     # log_posteriors = log_posterior(initial_pos)
     # while jnp.any(log_posteriors == -jnp.inf):
@@ -117,7 +143,7 @@ def run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=7, startx=Non
 
     sampler = emcee.EnsembleSampler(
         num_walkers, 
-        len(startx), 
+        n_dim,
         _worker_log_prob_wrapper,  # Pass the picklable top-level wrapper
         pool=pool
     )
@@ -141,22 +167,73 @@ def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2,
         plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}/walker_{j}.png", dpi=300, bbox_inches='tight')
         plt.close(fig)
 
+def _load_saved_chain(sample_path, log_prob_path, n_walkers):
+    if not os.path.exists(sample_path) or not os.path.exists(log_prob_path):
+        return None, None
+
+    samples = np.genfromtxt(sample_path, delimiter=',')
+    log_prob = np.genfromtxt(log_prob_path, delimiter=',')
+
+    samples = np.atleast_2d(samples)
+    log_prob = np.atleast_2d(log_prob)
+
+    if samples.size == 0 or log_prob.size == 0:
+        return None, None
+
+    samples = samples.reshape(-1, n_walkers, samples.shape[-1])
+    log_prob = log_prob.reshape(-1, n_walkers)
+    return samples, log_prob
+
+def run_burn_in_for_pathogen(key, pathogen, lockdown, option1, option2, seed, NAG, prefix, n_walkers, burn_in_size, census_age_pop, pool):
+    sampler = run_emcee(
+        key,
+        pathogen,
+        lockdown,
+        option1,
+        option2,
+        seed,
+        NAG=NAG,
+        prefix=prefix,
+        spread=3e-2,
+        sigma=1e-4,
+        num_walkers=n_walkers,
+        num_steps=burn_in_size,
+        census_age_pop=census_age_pop,
+        pool=pool,
+    )
+    return sampler
+
+def load_refined_chain_or_burnin(burnin_sample_path, burnin_log_prob_path, refined_sample_path, refined_log_prob_path, n_walkers, chunk_size):
+    burnin_samples = np.genfromtxt(burnin_sample_path, delimiter=',')
+    burnin_samples = np.atleast_2d(burnin_samples)
+    burnin_samples = burnin_samples.reshape(-1, n_walkers, burnin_samples.shape[-1])
+    burnin_log_prob = np.genfromtxt(burnin_log_prob_path, delimiter=',')
+    burnin_log_prob = np.atleast_2d(burnin_log_prob).reshape(-1, n_walkers)
+
+    saved_samples, saved_log_prob = _load_saved_chain(refined_sample_path, refined_log_prob_path, n_walkers)
+    if saved_samples is None:
+        return burnin_samples, burnin_log_prob, 0
+
+    completed_chunks = saved_samples.shape[0] // chunk_size
+    return saved_samples, saved_log_prob, completed_chunks
+
 if __name__ == "__main__":
-    seed = 260531
+    # seed = 260602
     lockdown = "ExponentialODipLinear"
     option1 = "dedupsac"
     NAG = 7
-    prefix = "evosax_DE"
+    prefix = ""
     from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
 
     n_walkers = 64
     burn_in_size = 500
 
-    pathogens = ["RSV", "Parainfluenza3"]
-    option2s = ["maxagep028", "maxagep008"]
+    pathogens = ["Parainfluenza3",]
+    option2s = ["maxagep003",]
+    seeds = [260602,]
 
     pools = {}
-    for pathogen, option2 in zip(pathogens, option2s):
+    for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         pool = Pool(
             processes=64//2, 
             initializer=_init_worker, 
@@ -164,62 +241,126 @@ if __name__ == "__main__":
         )
         pools[pathogen] = pool
 
-    for pathogen, option2 in zip(pathogens, option2s):
+    for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         key = jax.random.PRNGKey(260601)
-        sampler = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix=prefix, spread=3e-2, sigma=1e-4, num_walkers=n_walkers, num_steps=burn_in_size,
-                            census_age_pop=CENSUS_AGE_POP, pool=pools[pathogen])
-        acceptance_fraction = np.mean(sampler.acceptance_fraction)
+        burnin_sample_path = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+
+        if os.path.exists(burnin_sample_path) and os.path.exists(burnin_log_prob_path):
+            print(f"Found existing burn-in files for {pathogen}. Skipping burn-in and moving to refinement.")
+            continue
+
+        burnin_sampler = run_burn_in_for_pathogen(
+            key,
+            pathogen,
+            lockdown,
+            option1,
+            option2,
+            seed,
+            NAG,
+            prefix,
+            n_walkers,
+            burn_in_size,
+            CENSUS_AGE_POP,
+            pools[pathogen],
+        )
+        acceptance_fraction = np.mean(burnin_sampler.acceptance_fraction)
         print(f"Acceptance fraction: {acceptance_fraction:.4f}")
-        samples = sampler.get_chain()
-        # save samples
-        results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        np.savetxt(results_file, samples.reshape(-1, samples.shape[-1]), delimiter=",")
-        lobprob = sampler.get_log_prob()
-        np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", lobprob, delimiter=",")    
+        samples = burnin_sampler.get_chain()
+        log_prob = burnin_sampler.get_log_prob()
+        np.savetxt(burnin_sample_path, samples.reshape(-1, samples.shape[-1]), delimiter=',')
+        np.savetxt(burnin_log_prob_path, log_prob, delimiter=',')
         param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
         plot_traces(samples, param_names, pathogen, lockdown, option1, option2, seed)
 
-    n_samples = 30000
-    chunk_size = 500
+    n_samples = 100000
+    chunk_size = 1000
+    total_chunks = n_samples // chunk_size
 
-    samplers_by_pathogen = {}
+    refined_state = {}
 
-    for pathogen, option2 in zip(pathogens, option2s):
-        samples = np.genfromtxt(f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", delimiter=',')
-        samples = samples.reshape(-1, n_walkers, samples.shape[-1]) # reshape to (n_iterations, n_walkers, n_params)
-        lobprob = np.genfromtxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv", delimiter=',')
-        best_idx = np.unravel_index(np.argmax(lobprob), lobprob.shape)
-        best_params = samples[best_idx]
-        psampler = run_emcee(key, pathogen, lockdown, option1, option2, seed, NAG=NAG, startx=best_params, spread=1e-4, sigma=1e-5, num_walkers=n_walkers, num_steps=chunk_size,
-                             census_age_pop=CENSUS_AGE_POP, pool=pools[pathogen])
-        samplers_by_pathogen[pathogen] = psampler
-        acceptance_fraction = np.mean(psampler.acceptance_fraction)
-        print(f"Acceptance fraction (chunk 0 of {n_samples // chunk_size}): {acceptance_fraction:.4f}")
-        psamples = psampler.get_chain()
-        results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-        np.savetxt(results_file, psamples.reshape(-1, psamples.shape[-1]), delimiter=",")
-        lobprob2 = psampler.get_log_prob()
-        np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv", lobprob2, delimiter=",")    
+    for pathogen, option2, seed in zip(pathogens, option2s, seeds):
+        key = jax.random.PRNGKey(260601)
+        burnin_sample_path = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        refined_sample_path = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+        refined_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
 
-    for chunk_n in range(1, n_samples // chunk_size):
-        for pathogen, option2 in zip(pathogens, option2s):
-            key = jax.random.PRNGKey(260601 + chunk_n)
-            samples = np.genfromtxt(f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv", delimiter=',')
-            samples = samples.reshape(-1, n_walkers, samples.shape[-1]) # reshape to (n_iterations, n_walkers, n_params)
-            logprob = np.genfromtxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv", delimiter=',')
-            # extract final positions of walkers from previous chunk
-            
-            final_positions = samples[-1]
-            psampler = samplers_by_pathogen[pathogen]
-            psampler.run_mcmc(final_positions, chunk_size, progress=True)
+        current_samples, current_log_prob, completed_chunks = load_refined_chain_or_burnin(
+            burnin_sample_path,
+            burnin_log_prob_path,
+            refined_sample_path,
+            refined_log_prob_path,
+            n_walkers,
+            chunk_size,
+        )
+
+        if completed_chunks == 0:
+            print(f"Starting refined chain from burn-in for {pathogen}.")
+        else:
+            print(f"Resuming refined chain for {pathogen} from chunk {completed_chunks}.")
+
+        refined_state[pathogen] = {
+            "key": key,
+            "option2": option2,
+            "burnin_sample_path": burnin_sample_path,
+            "burnin_log_prob_path": burnin_log_prob_path,
+            "refined_sample_path": refined_sample_path,
+            "refined_log_prob_path": refined_log_prob_path,
+            "current_samples": current_samples,
+            "current_log_prob": current_log_prob,
+            "completed_chunks": completed_chunks,
+        }
+
+    for chunk_n in range(total_chunks):
+        for pathogen in pathogens:
+            state = refined_state[pathogen]
+            if chunk_n < state["completed_chunks"]:
+                continue
+
+            initial_pos = state["current_samples"][-1]
+            psampler = run_emcee(
+                state["key"],
+                pathogen,
+                lockdown,
+                option1,
+                state["option2"],
+                seed,
+                NAG=NAG,
+                startx=initial_pos,
+                initial_pos=initial_pos,
+                spread=1e-4,
+                sigma=1e-5,
+                num_walkers=n_walkers,
+                num_steps=chunk_size,
+                census_age_pop=CENSUS_AGE_POP,
+                pool=pools[pathogen],
+            )
 
             acceptance_fraction = np.mean(psampler.acceptance_fraction)
-            print(f"Acceptance fraction (chunk {chunk_n} of {n_samples // chunk_size}): {acceptance_fraction:.4f}")
-            psamples = psampler.get_chain()
-            logprob = psampler.get_log_prob()
-            results_file = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-            np.savetxt(results_file, psamples.reshape(-1, psamples.shape[-1]), delimiter=",")
-            np.savetxt(f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv", logprob, delimiter=",")    
+            print(f"Acceptance fraction ({pathogen}, chunk {chunk_n} of {total_chunks}): {acceptance_fraction:.4f}")
+
+            new_samples = psampler.get_chain()
+            new_log_prob = psampler.get_log_prob()
+            state["current_samples"] = np.concatenate([state["current_samples"], new_samples], axis=0)
+            state["current_log_prob"] = np.concatenate([state["current_log_prob"], new_log_prob], axis=0)
+            np.savetxt(state["refined_sample_path"], state["current_samples"].reshape(-1, state["current_samples"].shape[-1]), delimiter=',')
+            np.savetxt(state["refined_log_prob_path"], state["current_log_prob"], delimiter=',')
+
+            best_idx = np.unravel_index(np.argmax(state["current_log_prob"]), state["current_log_prob"].shape)
+            best_params = np.asarray(state["current_samples"][best_idx], dtype=np.float64)
+            best_neg_log_likelihood = float(-state["current_log_prob"][best_idx])
+            results_dir = f"Data/Processed/results{str(seed)[:6]}"
+            os.makedirs(results_dir, exist_ok=True)
+            emcee_results_path = f"{results_dir}/emcee_{pathogen}{lockdown}{option1}{state['option2']}{seed}.pickle"
+            with open(emcee_results_path, "wb") as f:
+                pickle.dump(
+                    {
+                        "final_population": np.asarray([best_params]),
+                        "final_fitness": np.asarray([best_neg_log_likelihood]),
+                    },
+                    f,
+                )
 
     print("Closing processing pools...")
     for p in pools.values():

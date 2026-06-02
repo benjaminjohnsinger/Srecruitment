@@ -878,7 +878,10 @@ def parameters_from_DE(pathogen, lockdown, option1, option2, seed, lockdown_x=No
             continue
 
     if opt is None:
-        print('File not found with any of the prefixes (DE_opt_, evosax_DE_, scipy_DE_, evosax_DiffusionEvolution_)')
+        if prefix != "":
+            print(f"File not found with prefix: {prefix}")
+        else:
+            print('File not found with any of the prefixes (DE_opt_, evosax_DE_, scipy_DE_, evosax_DiffusionEvolution_)')
         sys.exit()
 
     # Detect file type and extract results accordingly
@@ -932,10 +935,13 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
     base_path = "Data/Processed/results"+str(seed)[:6]+"/"
     filename_pattern = "_"+pathogen+lockdown_search+option1+option2+str(seed)+".pickle"
 
+    if prefix.endswith("_"):
+        prefix = prefix[:-1]
+
     # Try both DE_opt and evosax_DE prefixes
     opt = None
     if prefix == "":
-        for test_prefix in ["DE_opt", "evosax_DE", "scipy_DE", "evosax_DiffusionEvolution", "jaxopt_polish"]:
+        for test_prefix in ["emcee", "DE_opt", "evosax_DE", "scipy_DE", "evosax_DiffusionEvolution", "jaxopt_polish",]:
             filepath = base_path + test_prefix + filename_pattern
             try:
                 with open(filepath, "rb") as f:
@@ -962,15 +968,16 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
         sys.exit()
 
     # Detect file type and extract results accordingly
-    if "evosax" in prefix:
+    if ("evosax" in prefix) or ("emcee" in prefix):
     # evosax_DE format
         x = opt["final_population"][np.argmin(opt["final_fitness"])]
         neg_log_likelihood = np.min(opt["final_fitness"])
-        print("std of final fitness: "+str(jnp.std(opt["final_fitness"]))+"mean of final fitness: "+str(jnp.mean(opt["final_fitness"])) + "ratio: "+str(jnp.std(opt["final_fitness"])/jnp.abs(jnp.mean(opt["final_fitness"]))))
-        if jnp.std(opt["final_fitness"]) <= 0.01 * jnp.abs(jnp.mean(opt["final_fitness"])):
-            print("evosax converged according to scipy criteria")
-        else:
-            print("evosax did not converge according to scipy criteria")
+        if "evosax" in prefix:
+            print("std of final fitness: "+str(jnp.std(opt["final_fitness"]))+"mean of final fitness: "+str(jnp.mean(opt["final_fitness"])) + "ratio: "+str(jnp.std(opt["final_fitness"])/jnp.abs(jnp.mean(opt["final_fitness"]))))
+            if jnp.std(opt["final_fitness"]) <= 0.01 * jnp.abs(jnp.mean(opt["final_fitness"])):
+                print("evosax converged according to scipy criteria")
+            else:
+                print("evosax did not converge according to scipy criteria")
     elif "jaxopt_polish" in prefix:
         x = opt["final_x"]
         neg_log_likelihood = None

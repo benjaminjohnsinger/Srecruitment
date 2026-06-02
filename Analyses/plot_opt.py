@@ -89,6 +89,7 @@ if __name__ == "__main__":
     # set seed
     np.random.seed(seed)
     prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
+
     # x[1] = 0.03
    # prefix = "sampling_parameters_"
     # x = jnp.asarray([0.12032066,0.14603744,0.05796923,0.00512616,0.5582736 ,0.95180595,0.31741548,0.00618303,0.25081336,0.28657508,0.15262091,0.01914573,0.15551174,0.20378447,0.99823165])
@@ -160,9 +161,8 @@ if __name__ == "__main__":
     daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
 
     N = np.prod(daily_hospitalization_rates.shape)
-
-    # print(x)
-    # print("Log-Likelihood:", log_likelihood*N)
+    if prefix == "emcee":
+        log_likelihood = log_likelihood/N
 
     if "split" in option1:
         from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP, AGE_GROUPS_split as AGE_GROUPS, AGE_GROUP_NAMES_split as AGE_GROUP_NAMES, MEDIAN_AGE_split as MEDIAN_AGE

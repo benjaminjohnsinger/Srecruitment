@@ -1,8 +1,9 @@
 combinations=(
+"Metapneumovirus 260531 ExponentialODipLinear dedupsac maxagep006 1e-9 200 3000 0.7"
+"Adenovirus 260531 ExponentialODipLinear dedupsac maxagep003 1e-9 200 2000 0.7"
+"Parainfluenza3 260531 ExponentialODipLinear dedupsac maxagep005 1e-9 200 3000 0.7"
 "RSV 260531 ExponentialODipLinear dedupsac maxagep028 1e-9 200 3000 0.7"
-# "InfluenzaA 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 2000 0.7"
-"Parainfluenza3 260531 ExponentialODipLinear dedupsac maxagep008 1e-9 200 3000 0.7"
-# "InfluenzaB 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 3000 0.7"
+"Parainfluenza3 260531 ExponentialODipLinear dedupsac maxagep008 1e-9 200 2000 0.7"
 )
 
 # for combination in "${combinations[@]}"; do

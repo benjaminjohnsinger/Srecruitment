@@ -37,115 +37,123 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
+fig, ax = plt.subplots(2, 3, figsize = (6.5,4), sharex=True, sharey=True)
+for pi, pathogen in enumerate(["RSV", "Metapneumovirus", "Parainfluenza3", "InfluenzaB", "Adenovirus", "InfluenzaA"]):
+    pp = np.genfromtxt(f"Data/Processed/{pathogen}_positivity_daily.csv", delimiter=',')
+    # this is a 1d array by day from 1970-01-01. Plot against dates from 2015-10-01 to 2025-05-01
+    start_date = pd.to_datetime('2015-10-01')
+    end_date = pd.to_datetime('2025-05-01')
+    start_idx = (start_date - pd.to_datetime('1970-01-01')).days
+    dates = pd.date_range(start=start_date, end=end_date, freq='D')
+    ax[pi//3, pi%3].plot(dates, pp[start_idx:start_idx+len(dates)], label="Data", color='k')
+    ax[pi//3, pi%3].set_title(pathogen)
+plt.show()
 
-# scraped_arrivals = pd.read_csv("Data/Processed/scraped_arrivals.csv")
-# scraped_arrivals["Date"] = pd.to_datetime(scraped_arrivals["Date"], errors="coerce")
-# scraped_arrivals = scraped_arrivals.dropna(subset=["Date"]).sort_values(by="Date")
-# arrivals_daily = np.genfromtxt("Data/Processed/arrivals_daily.csv", delimiter=',')
-# # arrivals daily is just a column of numbers by day from 1970-01-01, so add date
-# arrivals_daily = pd.DataFrame({
-#     "Date": pd.date_range(start="1970-01-01", periods=len(arrivals_daily)),
-#     "Total Arrivals": arrivals_daily
-# })
-# # crop to 2009-01 to 2025-05
-# arrivals_daily = arrivals_daily[(arrivals_daily["Date"] >= "2009-01-01")]
-# # Scale daily arrivals to a monthly-equivalent magnitude
-# arrivals_monthly = arrivals_daily[["Date", "Total Arrivals"]].copy()
-# arrivals_monthly["Total Arrivals"] = arrivals_monthly["Total Arrivals"] * 30.44
-# print(arrivals_monthly.head())
-# print(scraped_arrivals.head())
+# pathogen = "Metapneumovirus"
+# seed = 260602
+# lockdown = "ExponentialODipLinear"
+# option1 = "dedupsac"
+# option2 = "maxagep01"
+# NAG = 7
+# N_S = 3
+# from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
+# _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 
-# fig, ax = plt.subplots(figsize=(4,3))
-# scraped_arrivals.plot(x="Date", y="Total Arrivals", ax=ax)
-# arrivals_monthly.plot(x="Date", y="Total Arrivals", ax=ax)
-# ax.xaxis.set_major_locator(mdates.YearLocator())
-# ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-# ax.xaxis.set_minor_locator(mdates.MonthLocator())
-# ax.grid(True, which="major", axis="x", linewidth=0.8, alpha=0.5)
-# ax.grid(True, which="minor", axis="x", linewidth=0.4, alpha=0.2)
-# plt.show()
+# mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+# # mcmc_filepath = "Outputs/mcmc_samples_DEmove_RSV_ExponentialODipLinear_dedupsac_maxagep028_260531_refined.csv"
+# mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
+# n_params = bounds.shape[0]
+# n_walkers = 64
+# n_iterations = len(mcmc_samples) // n_walkers
+# param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+# n_params = len(param_names)
+# mcmc_samples = mcmc_samples.reshape((-1, n_walkers, n_params))
 
-pathogen = "RSV"
-seed = 260531
-lockdown = "ExponentialODipLinear"
-option1 = "dedupsac"
-option2 = "maxagep028"
-NAG = 7
-N_S = 3
-from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split as CENSUS_AGE_POP
-_, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+# fig, ax = plt.subplots(4,4, figsize=(10,6))
+# for j in range(n_walkers):
+#     for i in range(n_params):
+#         ax[i//4, i%4].plot(mcmc_samples[:,j,i], alpha=0.4)
+#         ax[i//4, i%4].set_title(param_names[i])
+#     plt.tight_layout()
+# plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers_new.png", dpi=300, bbox_inches='tight')
+# plt.close(fig)
 
-mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
-n_params = bounds.shape[0]
-n_walkers = 64
-n_iterations = len(mcmc_samples) // n_walkers
-param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
-n_params = len(param_names)
-mcmc_samples = mcmc_samples.reshape((-1, n_walkers, n_params))
-
-# # get final parameter values for each walker
-# final_params = mcmc_samples[-1, :, :]
-# from fit_opt import get_likelihood
-# likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, normalize=False, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP)
-# vmap_likelihood = jax.jit(jax.vmap(likelihood))
-# final_likelihoods = vmap_likelihood(final_params)
-# print(f"Minimum negative log-likelihood across walkers: {final_likelihoods.min():.4f}")
-# print(f"Median negative log-likelihood across walkers: {jnp.median(final_likelihoods):.4f}")
-# print(f"Maximum negative log-likelihood across walkers: {final_likelihoods.max():.4f}")
-
+# # load logprob
+# logprob_filepath = f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+# log_prob_samples = np.genfromtxt(logprob_filepath, delimiter=',', skip_header=0)
 # # print parameters at minimum nll
-# best_idx = jnp.argmin(final_likelihoods)
-# print("Best parameter set found by MCMC:")
-# print(final_params[best_idx])
-# for name, val in zip(param_names, final_params[best_idx]):
-#     print(f"{name}: {val:.4f}")
+# log_prob_2d = np.atleast_2d(log_prob_samples)
+# best_idx = np.unravel_index(np.argmax(log_prob_2d), log_prob_2d.shape)
+# mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
+# flat_best_idx = best_idx[0] * log_prob_2d.shape[1] + best_idx[1]
+# best_params = mcmc_samples_2d[flat_best_idx]
+# best_log_prob = float(log_prob_2d[best_idx])
+# best_neg_log_likelihood = -best_log_prob
+# # for name, val in zip(param_names, best_params):
+# #     print(f"{name}: {val:.4f}")
 
-# Reshape it back to 3D to separate the walkers properly
-chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
+# # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
+# WRITE_EMCEE_ADHOC_EXPORT = True
+# if WRITE_EMCEE_ADHOC_EXPORT:
+#     results_dir = f"Data/Processed/results{str(seed)[:6]}"
+#     os.makedirs(results_dir, exist_ok=True)
+#     emcee_results_file = f"{results_dir}/emcee_{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
+#     with open(emcee_results_file, "wb") as f:
+#         pickle.dump(
+#             {
+#                 "final_population": np.asarray([best_params]),
+#                 "final_fitness": np.asarray([best_neg_log_likelihood]),
+#             },
+#             f,
+#         )
+#     print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
+# # --- END AD-HOC EMCEE EXPORT BLOCK ---
 
-# Now apply the Case A math
-moved = np.any(chain_3d[1:] != chain_3d[:-1], axis=-1)
-mean_acceptance = np.mean(moved)
+# # # cut off burn-in
+# # n_iterations -= 1000
+# # mcmc_samples = mcmc_samples[1000:, :, :] 
 
-print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
+# # Reshape it back to 3D to separate the walkers properly
+# chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
 
-# calculate ensemble-aware autocorrelation time and ESS
-try:
-    autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
-except emcee.autocorr.AutocorrError as error:
-    autocorr_times = np.asarray(error.tau)
-    print("Warning: chain may be too short for reliable autocorrelation estimates.")
+# # Now apply the Case A math
+# moved = np.any(chain_3d[1:] != chain_3d[:-1], axis=-1)
+# mean_acceptance = np.mean(moved)
 
-autocorr_times = np.asarray(autocorr_times, dtype=float)
-effective_sample_sizes = (n_iterations * n_walkers) / autocorr_times
-print("Autocorrelation times:\n", autocorr_times)
-print("Effective sample sizes:\n", effective_sample_sizes)
+# print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
 
-maximum_autocorr_time = int(np.ceil(np.max(autocorr_times)))
+# # calculate ensemble-aware autocorrelation time and ESS
+# try:
+#     autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
+# except emcee.autocorr.AutocorrError as error:
+#     autocorr_times = np.asarray(error.tau)
+#     print("Warning: chain may be too short for reliable autocorrelation estimates.")
 
-chain_3d_pruned = chain_3d[500:][::maximum_autocorr_time]
-median_value_by_parameter = np.median(chain_3d_pruned, axis=(0,1))
-lower_value = np.percentile(chain_3d_pruned, 2.5, axis=(0,1))
-upper_value = np.percentile(chain_3d_pruned, 97.5, axis=(0,1))
-print(median_value_by_parameter)
-print(lower_value)
-print(upper_value)
+# autocorr_times = np.asarray(autocorr_times, dtype=float)
+# effective_sample_sizes = (n_iterations * n_walkers) / autocorr_times
+# print("Autocorrelation times:\n", autocorr_times)
+# print("Effective sample sizes:\n", effective_sample_sizes)
+
+# maximum_autocorr_time = int(np.ceil(np.max(autocorr_times)))
+
+# # chain_3d_pruned = chain_3d[500:][::maximum_autocorr_time]
+# median_value_by_parameter = np.median(chain_3d, axis=(0,1))
+# lower_value = np.percentile(chain_3d, 2.5, axis=(0,1))
+# upper_value = np.percentile(chain_3d, 97.5, axis=(0,1))
+# # print(median_value_by_parameter)
+# # print(lower_value)
+# # print(upper_value)
+
+# # print best parameter set with credible intervals
+# print("Best parameter set found by MCMC, with negative log-likelihood:", best_neg_log_likelihood)
+# for i in range(n_params):
+#     print(f"{param_names[i]}: {best_params[i]:.4f} ({lower_value[i]:.4f}–{upper_value[i]:.4f})")
 
 # import corner
-# # corner plot of all walkers after burn-in and thinning
-# fig = corner.corner(chain_3d[500:].reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-# plt.savefig(f"Figures/mcmc_corner_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}.pdf", bbox_inches='tight')
+# fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
+# plt.savefig(f"Figures/mcmc_corner_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_new.pdf", bbox_inches='tight')
 # fig.clear()
 
-fig, ax = plt.subplots(4,4, figsize=(10,6))
-for j in range(n_walkers):
-    for i in range(n_params):
-        ax[i//4, i%4].plot(mcmc_samples[:,j,i], alpha=0.4)
-        ax[i//4, i%4].set_title(param_names[i])
-    plt.tight_layout()
-plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers.png", dpi=300, bbox_inches='tight')
-plt.close(fig)
 
 
 # pathogen = "RSV"
@@ -168,7 +176,7 @@ plt.close(fig)
 # # N_S = 3
 # # from Parameters.census_population import AGE_GROUP_NAMES_split, CENSUS_AGE_POP_split as CENSUS_AGE_POP
 
-# p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
+# p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/RSV_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
 # PERIOD = pd.date_range(start=pd.to_datetime('2015-10-01'), end=pd.to_datetime('2025-10-01'), freq='D')
 # POINTS = np.array(date_to_t(PERIOD))
 # ## Initial conditions
@@ -179,15 +187,20 @@ plt.close(fig)
 # STATE0 = STATE0.flatten()
 # STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-# # fig, ax = plt.subplots(figsize=(3,3))
-# # for _ in range(10):
-# #     # random x from chain
-# #     x = chain_3d[np.random.randint(500, n_iterations), np.random.randint(0, n_walkers), :]
-# #     params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
-# #     mx = lockdown_incidence_plot(ax,STATE0,params,POINTS,date_to_t('2020-03-19'), alpha=0.3, color='k', label="Simulation",by_age=False,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(None)]*10000,p_time_to_obs=p_time_to_obs,NAG=NAG,)
-# # plt.tight_layout()
-# # plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_incidence.png", dpi=300, bbox_inches='tight')
-# # plt.close(fig)
+# fig, ax = plt.subplots(2, 4, figsize=(3,3))
+# for _ in range(100):
+#     # random x from chain
+#     x = chain_3d[np.random.randint(500, n_iterations), np.random.randint(0, n_walkers), :]
+#     params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
+#     age_obs_2 = x[8]
+#     # # red to blue gradient for age_obs2 from 0.25 to 0.325
+#     # color = plt.cm.RdBu((age_obs_2 - 0.25) / (0.325 - 0.25))
+#     color = ['r', 'b'][(age_obs_2 > 0.285).astype(int)]
+#     for age_group in range(NAG):
+#         mx = lockdown_incidence_plot(ax[age_group//4, age_group%4],STATE0,params,POINTS,date_to_t('2020-03-19'), alpha=0.3, color=color, label="Simulation",by_age=True,select_age_group=age_group,AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(None)]*10000,p_time_to_obs=p_time_to_obs,NAG=NAG,)
+# plt.tight_layout()
+# plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_incidence_colored_by_age_obs_2.png", dpi=300, bbox_inches='tight')
+# plt.close(fig)
 # # fig, ax = plt.subplots(7,7, sharex="col", sharey="row")
 # # fig,ax = plt.subplots(3,3, sharex=True,sharey=True)
 # # matrix = np.zeros((3,6,8))
