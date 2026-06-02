@@ -22,9 +22,9 @@ source activate /global/scratch/users/bjsinger/jax_env
 
 combinations=(
 "Adenovirus 260531 ExponentialODipLinear dedupsac maxagep003 1e-9 200 2000 0.7"
-"Parainfluenza3 260531 ExponentialODipLinear dedupsac maxagep008 1e-9 200 2000 0.7"
 "Parainfluenza3 260531 ExponentialODipLinear dedupsac maxagep005 1e-9 200 3000 0.7"
 "RSV 260531 ExponentialODipLinear dedupsac maxagep028 1e-9 200 3000 0.7"
+"Parainfluenza3 260531 ExponentialODipLinear dedupsac maxagep008 1e-9 200 2000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
