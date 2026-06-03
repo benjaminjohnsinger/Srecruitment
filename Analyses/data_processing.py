@@ -379,29 +379,33 @@ def get_daily_test_counts(test_data, assigned_date="Hospitalization date"):
 
 
 
-if __name__ == "__main__" and False:
+if __name__ == "__main__":
     from Parameters.census_population import AGE_GROUP_NAMES_sac as AGE_GROUP_NAMES
     NAG = len(AGE_GROUP_NAMES)
     hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
     hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
-    fig, ax = plt.subplots(4, 2, figsize=(13.3, 7.5), sharex=True)
+    fig, ax = plt.subplots(3, 2, figsize=(13.3, 7.5), sharex=True)
     
-    for pi, pathogen in enumerate(["InfluenzaA", "RSV", "Adenovirus", "InfluenzaB", "Metapneumovirus", "Parainfluenza3"]):
-        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="D", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=True, pp_only=False, hosp=True, NAG=NAG, dedup=True, sac=True)        
-        for i, age_group in enumerate(AGE_GROUP_NAMES):
-            ax[pi % 4, pi // 4].plot(incidence.index, incidence[age_group] * 100000, color=hsv_colors[i], label=AGE_GROUP_NAMES[i], linewidth=1.5)
-        ax[pi % 4, pi // 4].set_title(f"{pathogen}")
-        ax[pi % 4, pi // 4].set_ylabel('Incidence per 100k')
+    for pi, pathogen in enumerate(["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus", "InfluenzaA", "InfluenzaB", ]):
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="MS", window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, pp_only=False, hosp=True, NAG=NAG, dedup=True, sac=True)        
+        # for i, age_group in enumerate(AGE_GROUP_NAMES):
+        #     ax[pi % 4, pi // 4].plot(incidence.index, incidence[age_group] * 100000, color=hsv_colors[i], label=AGE_GROUP_NAMES[i], linewidth=1.5)
+        ax[pi // 2, pi % 2].plot(incidence.index, incidence['Total'] * 100000, color='black', label='Total', linewidth=2)
+        ax[pi // 2, pi % 2].set_title(f"{pathogen}")
+        ax[pi // 2, pi % 2].set_ylabel('Incidence per 100k')
+        # add dashed hline at 0.5, 1.5
+        print(pathogen, incidence['Total'].max() * 100000 / 25)
+        ax[pi // 2, pi % 2].axhline(incidence['Total'].max() * 100000 / 25, color='gray', linestyle='--', linewidth=1)
     
-    ax[3, 1].axis('off')
-    ax[3, 1].legend(handles=[Rectangle((0, 0), 1, 1, color=hsv_colors[i]) for i in range(NAG)], labels=AGE_GROUP_NAMES, loc='center')
+    # ax[3, 1].axis('off')
+    # ax[3, 1].legend(handles=[Rectangle((0, 0), 1, 1, color=hsv_colors[i]) for i in range(NAG)], labels=AGE_GROUP_NAMES, loc='center')
     
     plt.tight_layout()
-    plt.savefig("Figures/KPSC_panel_all_pathogens_incidence_by_age_group_daily_sac_dedup.png", dpi=300)
+    plt.savefig("Figures/KPSC_panel_all_pathogens_incidence_monthly_sac_dedup.png", dpi=300)
 
 
 #### 
-if __name__ == "__main__":
+if __name__ == "__main__" and False:
     from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac as AGE_GROUP_NAMES
     AGE_GROUPS = [
         np.arange(3),
