@@ -37,122 +37,124 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-fig, ax = plt.subplots(2, 3, figsize = (6.5,4), sharex=True, sharey=True)
-for pi, pathogen in enumerate(["RSV", "Metapneumovirus", "Parainfluenza3", "InfluenzaB", "Adenovirus", "InfluenzaA"]):
-    pp = np.genfromtxt(f"Data/Processed/{pathogen}_positivity_daily.csv", delimiter=',')
-    # this is a 1d array by day from 1970-01-01. Plot against dates from 2015-10-01 to 2025-05-01
-    start_date = pd.to_datetime('2015-10-01')
-    end_date = pd.to_datetime('2025-05-01')
-    start_idx = (start_date - pd.to_datetime('1970-01-01')).days
-    dates = pd.date_range(start=start_date, end=end_date, freq='D')
-    ax[pi//3, pi%3].plot(dates, pp[start_idx:start_idx+len(dates)], label="Data", color='k')
-    ax[pi//3, pi%3].set_title(pathogen)
-plt.show()
+# ### plot percent positivity
+# fig, ax = plt.subplots(2, 3, figsize = (6.5,4), sharex=True, sharey=True)
+# for pi, pathogen in enumerate(["RSV", "Metapneumovirus", "Parainfluenza3", "InfluenzaB", "Adenovirus", "InfluenzaA"]):
+#     pp = np.genfromtxt(f"Data/Processed/{pathogen}_positivity_daily.csv", delimiter=',')
+#     # this is a 1d array by day from 1970-01-01. Plot against dates from 2015-10-01 to 2025-05-01
+#     start_date = pd.to_datetime('2015-10-01')
+#     end_date = pd.to_datetime('2025-05-01')
+#     start_idx = (start_date - pd.to_datetime('1970-01-01')).days
+#     dates = pd.date_range(start=start_date, end=end_date, freq='D')
+#     ax[pi//3, pi%3].plot(dates, pp[start_idx:start_idx+len(dates)], label="Data", color='k')
+#     ax[pi//3, pi%3].set_title(pathogen)
+# plt.show()
 
-# pathogen = "Metapneumovirus"
-# seed = 260602
-# lockdown = "ExponentialODipLinear"
-# option1 = "dedupsac"
-# option2 = "maxagep01"
-# NAG = 7
-# N_S = 3
-# from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
-# _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+### plot mcmc output
+pathogen = "Parainfluenza3"
+seed = 260602
+lockdown = "ExponentialODipLinear"
+option1 = "dedupsac"
+option2 = "maxagep004"
+NAG = 7
+N_S = 3
+from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
+_, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 
-# mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-# # mcmc_filepath = "Outputs/mcmc_samples_DEmove_RSV_ExponentialODipLinear_dedupsac_maxagep028_260531_refined.csv"
-# mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
-# n_params = bounds.shape[0]
-# n_walkers = 64
-# n_iterations = len(mcmc_samples) // n_walkers
-# param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
-# n_params = len(param_names)
-# mcmc_samples = mcmc_samples.reshape((-1, n_walkers, n_params))
+mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+# mcmc_filepath = "Outputs/mcmc_samples_DEmove_RSV_ExponentialODipLinear_dedupsac_maxagep028_260531_refined.csv"
+mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
+n_params = bounds.shape[0]
+n_walkers = 64
+n_iterations = len(mcmc_samples) // n_walkers
+param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+n_params = len(param_names)
+mcmc_samples = mcmc_samples.reshape((-1, n_walkers, n_params))
 
-# fig, ax = plt.subplots(4,4, figsize=(10,6))
-# for j in range(n_walkers):
-#     for i in range(n_params):
-#         ax[i//4, i%4].plot(mcmc_samples[:,j,i], alpha=0.4)
-#         ax[i//4, i%4].set_title(param_names[i])
-#     plt.tight_layout()
-# plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers_new.png", dpi=300, bbox_inches='tight')
-# plt.close(fig)
+fig, ax = plt.subplots(4,4, figsize=(10,6))
+for j in range(n_walkers):
+    for i in range(n_params):
+        ax[i//4, i%4].plot(mcmc_samples[:,j,i], alpha=0.4)
+        ax[i//4, i%4].set_title(param_names[i])
+    plt.tight_layout()
+plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers_new.png", dpi=300, bbox_inches='tight')
+plt.close(fig)
 
-# # load logprob
-# logprob_filepath = f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-# log_prob_samples = np.genfromtxt(logprob_filepath, delimiter=',', skip_header=0)
-# # print parameters at minimum nll
-# log_prob_2d = np.atleast_2d(log_prob_samples)
-# best_idx = np.unravel_index(np.argmax(log_prob_2d), log_prob_2d.shape)
-# mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
-# flat_best_idx = best_idx[0] * log_prob_2d.shape[1] + best_idx[1]
-# best_params = mcmc_samples_2d[flat_best_idx]
-# best_log_prob = float(log_prob_2d[best_idx])
-# best_neg_log_likelihood = -best_log_prob
-# # for name, val in zip(param_names, best_params):
-# #     print(f"{name}: {val:.4f}")
+# load logprob
+logprob_filepath = f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+log_prob_samples = np.genfromtxt(logprob_filepath, delimiter=',', skip_header=0)
+# print parameters at minimum nll
+log_prob_2d = np.atleast_2d(log_prob_samples)
+best_idx = np.unravel_index(np.argmax(log_prob_2d), log_prob_2d.shape)
+mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
+flat_best_idx = best_idx[0] * log_prob_2d.shape[1] + best_idx[1]
+best_params = mcmc_samples_2d[flat_best_idx]
+best_log_prob = float(log_prob_2d[best_idx])
+best_neg_log_likelihood = -best_log_prob
+# for name, val in zip(param_names, best_params):
+#     print(f"{name}: {val:.4f}")
 
-# # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
-# WRITE_EMCEE_ADHOC_EXPORT = True
-# if WRITE_EMCEE_ADHOC_EXPORT:
-#     results_dir = f"Data/Processed/results{str(seed)[:6]}"
-#     os.makedirs(results_dir, exist_ok=True)
-#     emcee_results_file = f"{results_dir}/emcee_{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
-#     with open(emcee_results_file, "wb") as f:
-#         pickle.dump(
-#             {
-#                 "final_population": np.asarray([best_params]),
-#                 "final_fitness": np.asarray([best_neg_log_likelihood]),
-#             },
-#             f,
-#         )
-#     print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
-# # --- END AD-HOC EMCEE EXPORT BLOCK ---
+# --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
+WRITE_EMCEE_ADHOC_EXPORT = True
+if WRITE_EMCEE_ADHOC_EXPORT:
+    results_dir = f"Data/Processed/results{str(seed)[:6]}"
+    os.makedirs(results_dir, exist_ok=True)
+    emcee_results_file = f"{results_dir}/emcee_{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
+    with open(emcee_results_file, "wb") as f:
+        pickle.dump(
+            {
+                "final_population": np.asarray([best_params]),
+                "final_fitness": np.asarray([best_neg_log_likelihood]),
+            },
+            f,
+        )
+    print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
+# --- END AD-HOC EMCEE EXPORT BLOCK ---
 
-# # # cut off burn-in
-# # n_iterations -= 1000
-# # mcmc_samples = mcmc_samples[1000:, :, :] 
+# # cut off burn-in
+# n_iterations -= 1000
+# mcmc_samples = mcmc_samples[1000:, :, :] 
 
-# # Reshape it back to 3D to separate the walkers properly
-# chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
+# Reshape it back to 3D to separate the walkers properly
+chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
 
-# # Now apply the Case A math
-# moved = np.any(chain_3d[1:] != chain_3d[:-1], axis=-1)
-# mean_acceptance = np.mean(moved)
+# Now apply the Case A math
+moved = np.any(chain_3d[1:] != chain_3d[:-1], axis=-1)
+mean_acceptance = np.mean(moved)
 
-# print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
+print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
 
-# # calculate ensemble-aware autocorrelation time and ESS
-# try:
-#     autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
-# except emcee.autocorr.AutocorrError as error:
-#     autocorr_times = np.asarray(error.tau)
-#     print("Warning: chain may be too short for reliable autocorrelation estimates.")
+# calculate ensemble-aware autocorrelation time and ESS
+try:
+    autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
+except emcee.autocorr.AutocorrError as error:
+    autocorr_times = np.asarray(error.tau)
+    print("Warning: chain may be too short for reliable autocorrelation estimates.")
 
-# autocorr_times = np.asarray(autocorr_times, dtype=float)
-# effective_sample_sizes = (n_iterations * n_walkers) / autocorr_times
-# print("Autocorrelation times:\n", autocorr_times)
-# print("Effective sample sizes:\n", effective_sample_sizes)
+autocorr_times = np.asarray(autocorr_times, dtype=float)
+effective_sample_sizes = (n_iterations * n_walkers) / autocorr_times
+print("Autocorrelation times:\n", autocorr_times)
+print("Effective sample sizes:\n", effective_sample_sizes)
 
-# maximum_autocorr_time = int(np.ceil(np.max(autocorr_times)))
+maximum_autocorr_time = int(np.ceil(np.max(autocorr_times)))
 
-# # chain_3d_pruned = chain_3d[500:][::maximum_autocorr_time]
-# median_value_by_parameter = np.median(chain_3d, axis=(0,1))
-# lower_value = np.percentile(chain_3d, 2.5, axis=(0,1))
-# upper_value = np.percentile(chain_3d, 97.5, axis=(0,1))
-# # print(median_value_by_parameter)
-# # print(lower_value)
-# # print(upper_value)
+# chain_3d_pruned = chain_3d[500:][::maximum_autocorr_time]
+median_value_by_parameter = np.median(chain_3d, axis=(0,1))
+lower_value = np.percentile(chain_3d, 2.5, axis=(0,1))
+upper_value = np.percentile(chain_3d, 97.5, axis=(0,1))
+# print(median_value_by_parameter)
+# print(lower_value)
+# print(upper_value)
 
-# # print best parameter set with credible intervals
-# print("Best parameter set found by MCMC, with negative log-likelihood:", best_neg_log_likelihood)
-# for i in range(n_params):
-#     print(f"{param_names[i]}: {best_params[i]:.4f} ({lower_value[i]:.4f}–{upper_value[i]:.4f})")
+# print best parameter set with credible intervals
+print("Best parameter set found by MCMC, with negative log-likelihood:", best_neg_log_likelihood)
+for i in range(n_params):
+    print(f"{param_names[i]}: {best_params[i]:.4f} ({lower_value[i]:.4f}–{upper_value[i]:.4f})")
 
-# import corner
-# fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-# plt.savefig(f"Figures/mcmc_corner_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_new.pdf", bbox_inches='tight')
-# fig.clear()
+import corner
+fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
+plt.savefig(f"Figures/mcmc_corner_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_new.pdf", bbox_inches='tight')
+fig.clear()
 
 
 
