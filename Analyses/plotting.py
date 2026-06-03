@@ -974,9 +974,12 @@ def plot_infection_matrix(ax, pathogen=None, seed=None, lockdown=None, option1=N
     ax.invert_yaxis()
     return im
 
-def plot_same_age_infection(ax, matrices, age_group_idx, pathogens, colors):
+def plot_same_age_infection(ax, matrices, age_group_idx, pathogens, colors, census_age_pop=None):
     for i, matrix in enumerate(matrices):
-        ax.scatter(matrix[age_group_idx,age_group_idx], len(matrices)-i, label=pathogens[i], color=colors[i])
+        value = matrix[age_group_idx,age_group_idx]/matrix[age_group_idx,:].sum()
+        if census_age_pop is not None:
+            value *= census_age_pop.sum()/census_age_pop[age_group_idx]
+        ax.scatter(value, len(matrices)-i, label=pathogens[i], color=colors[i])
     # only have x axis, no border
     ax.set_ylim(-2,8)
     ax.ticklabel_format(axis='x', style='sci', scilimits=(0, 0), useMathText=True)
@@ -985,13 +988,66 @@ def plot_same_age_infection(ax, matrices, age_group_idx, pathogens, colors):
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_visible(False)
 
-def plot_infections_versus(ax, matrices, age_group_indices, pathogens, colors):
+def plot_infections_versus(ax, matrices, age_group_indices, pathogens, colors, census_age_pop):
     for i, matrix in enumerate(matrices):
-        ax.scatter(matrix[:,age_group_indices[0]].sum(), matrix[:,age_group_indices[1]].sum(), label=pathogens[i], color=colors[i])
+        x_value = matrix[:,age_group_indices[0]].sum()/census_age_pop[age_group_indices[0]].sum()
+        y_value = matrix[:,age_group_indices[1]].sum()/census_age_pop[age_group_indices[1]].sum()
+        ax.scatter(x_value, y_value, label=pathogens[i], color=colors[i])
+    # find minimum of x and y limits and set equal, find maximum of x and y limits and set equal
+    x_min, x_max = ax.get_xlim()
+    y_min, y_max = ax.get_ylim()
+    min_limit = min(x_min, y_min)
+    max_limit = max(x_max, y_max)
+    ax.set_xlim(min_limit, max_limit)
+    ax.set_ylim(min_limit, max_limit)
     ax.ticklabel_format(axis='x', style='sci', scilimits=(0, 0), useMathText=True)
     ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0), useMathText=True)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+
+def plot_age_figure(ax, pathogens, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=False):
+    matrices = {}
+    hosp_matrices = {}
+    for pi, (pathogen, option2, seed) in enumerate(zip(pathogens, option2s, seeds)):
+        age_infections_matrix = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=False, prefix="")
+        normalized_age_infections_matrix = age_infections_matrix / CENSUS_AGE_POP[:, None]
+        age_hospitalizations_matrix = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=True, prefix="")
+        plot_infection_matrix(ax[pi//3, pi%3], age_group_names=AGE_GROUP_NAMES, NAG=7, matrix=normalized_age_infections_matrix)
+        ax[pi//3, pi%3].set_title(nice_names.get(pathogen, pathogen))
+        matrices[pathogen] = age_infections_matrix
+        hosp_matrices[pathogen] = age_hospitalizations_matrix
+    colors = ["#DC267F", "#FFB000",  "#FF832B", "#648FFF",  "#785EF0","k"]
+    for age_group_idx in range(NAG):
+        if age_adjusted:
+            pop_arg = CENSUS_AGE_POP
+        else:            
+            pop_arg = None
+        plot_same_age_infection(ax[2+age_group_idx//4, age_group_idx%4], [matrices[pathogen] for pathogen in pathogens], age_group_idx, pathogens, colors, pop_arg)
+        ax[2+age_group_idx//4, age_group_idx%4].set_xlabel(AGE_GROUP_NAMES[age_group_idx])
+    plot_infections_versus(ax[0,3], [matrices[pathogen] for pathogen in pathogens], [slice(0, 3), -1], pathogens, colors, CENSUS_AGE_POP)
+    ax[0,3].set_xlabel("<1y")
+    ax[0,3].set_ylabel(">65y")
+    plot_infections_versus(ax[1,3], [hosp_matrices[pathogen] for pathogen in pathogens], [slice(0, 3), -1], pathogens, colors, CENSUS_AGE_POP)
+    ax[1,3].set_xlabel("<1y")
+    ax[1,3].set_ylabel(">65y")
+    legend_handles = [
+        plt.Line2D(
+            [0], [0], marker="o", linestyle="None", markersize=5,
+            markerfacecolor=colors[i], markeredgecolor=colors[i],
+            label=nice_names.get(pathogen, pathogen)
+        )
+        for i, pathogen in enumerate(pathogens)
+    ]
+    ax[3,3].axis("off")
+    ax[3,3].legend(handles=legend_handles, loc="center", frameon=False, title="Pathogen")
+    
+    # labels - big bold A in top left, B in top left of ax[0,3], C in top left of ax[1,3], and D in top left of ax[2,0]
+    ax[0,0].text(-0.3, 1.1, "A", transform=ax[0,0].transAxes, fontsize=16, fontweight="bold")
+    ax[0,3].text(-0.3, 1.1, "B", transform=ax[0,3].transAxes, fontsize=16, fontweight="bold")
+    ax[1,3].text(-0.3, 1.1, "C", transform=ax[1,3].transAxes, fontsize=16, fontweight="bold")
+    ax[2,0].text(-0.3, 1.1, "D", transform=ax[2,0].transAxes, fontsize=16, fontweight="bold")
+    
+
 
 if __name__ == "__main__":
     plt.rcParams.update({'font.size':8})
@@ -1014,49 +1070,9 @@ if __name__ == "__main__":
     pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
     option2s = ["maxagep028","maxagep01","maxagep005","maxagep003","maxagep035","maxagep035",]
     seeds = [260531, 260602, 260531, 260531, 260531, 260531,]
-    matrices = {}
-    revnormal_matrices = {}
-    revnormal_hosp_matrices = {}
-    for pi, (pathogen, option2, seed) in enumerate(zip(pathogens, option2s, seeds)):
-        age_infections_matrix = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=False, prefix="")
-        normalized_age_infections_matrix = age_infections_matrix / CENSUS_AGE_POP[:, None]
-        revnormal_age_infections_matrix = age_infections_matrix / CENSUS_AGE_POP[None, :]
-        age_hospitalizations_matrix = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=True, prefix="")
-        revnormal_age_hospitalizations_matrix = age_hospitalizations_matrix / CENSUS_AGE_POP[None, :]
-        plot_infection_matrix(ax[pi//3, pi%3], age_group_names=AGE_GROUP_NAMES, NAG=7, matrix=normalized_age_infections_matrix)
-        ax[pi//3, pi%3].set_title(nice_names.get(pathogen, pathogen))
-        matrices[pathogen] = normalized_age_infections_matrix
-        revnormal_matrices[pathogen] = revnormal_age_infections_matrix
-        revnormal_hosp_matrices[pathogen] = revnormal_age_hospitalizations_matrix
-    colors = ["#DC267F", "#FFB000",  "#FF832B", "#648FFF",  "#785EF0","k"]
-    for age_group_idx in range(NAG):
-        plot_same_age_infection(ax[2+age_group_idx//4, age_group_idx%4], [matrices[pathogen] for pathogen in pathogens], age_group_idx, pathogens, colors)
-        ax[2+age_group_idx//4, age_group_idx%4].set_xlabel(AGE_GROUP_NAMES[age_group_idx])
-    plot_infections_versus(ax[0,3], [revnormal_matrices[pathogen] for pathogen in pathogens], [0, -1], pathogens, colors)
-    ax[0,3].set_xlabel("<3m")
-    ax[0,3].set_ylabel(">65y")
-    plot_infections_versus(ax[1,3], [revnormal_hosp_matrices[pathogen] for pathogen in pathogens], [0, -1], pathogens, colors)
-    ax[1,3].set_xlabel("<3m")
-    ax[1,3].set_ylabel(">65y")
-    legend_handles = [
-        plt.Line2D(
-            [0], [0], marker="o", linestyle="None", markersize=5,
-            markerfacecolor=colors[i], markeredgecolor=colors[i],
-            label=nice_names.get(pathogen, pathogen)
-        )
-        for i, pathogen in enumerate(pathogens)
-    ]
-    ax[3,3].axis("off")
-    ax[3,3].legend(handles=legend_handles, loc="center", frameon=False, title="Pathogen")
-    
-    # labels - big bold A in top left, B in top left of ax[0,3], C in top left of ax[1,3], and D in top left of ax[2,0]
-    ax[0,0].text(-0.3, 1.1, "A", transform=ax[0,0].transAxes, fontsize=16, fontweight="bold")
-    ax[0,3].text(-0.3, 1.1, "B", transform=ax[0,3].transAxes, fontsize=16, fontweight="bold")
-    ax[1,3].text(-0.3, 1.1, "C", transform=ax[1,3].transAxes, fontsize=16, fontweight="bold")
-    ax[2,0].text(-0.3, 1.1, "D", transform=ax[2,0].transAxes, fontsize=16, fontweight="bold")
-    
+    plot_age_figure(ax, pathogens, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES)
     plt.tight_layout()
-    plt.savefig(f"Figures/infection_matrices_{seed}_{option1}_{lockdown}_test.png", dpi=300)
+    plt.savefig(f"Figures/infection_matrices_{seed}_{option1}_{lockdown}.png", dpi=300)
 
     # # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     
