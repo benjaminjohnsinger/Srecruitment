@@ -997,7 +997,7 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
 # unified x from DE, i.e. x is same length regardless of model options. assume option2=flexage, lockdown=FlexStepwise
 def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", NAG=7):
     _, x_DE, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
-    REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True)
+    REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True, dedup=("dedup" in option1), NAG=NAG)
     x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential" or "ExponentialODip" in lockdown or "ExponentialInOutODip" in lockdown) + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0415" or lockdown=="FlexStepwise") + NAG)
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC
     x_consistent = x_consistent.at[2:5].set(x_DE[0:3]) # BETA, SEASONALITY, OFFSET
