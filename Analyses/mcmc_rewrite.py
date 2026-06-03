@@ -222,15 +222,15 @@ if __name__ == "__main__":
     lockdown = "ExponentialODipLinear"
     option1 = "dedupsac"
     NAG = 7
-    prefix = ""
+    prefix = "evosax_DE"
     from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
 
     n_walkers = 64
     burn_in_size = 500
 
-    pathogens = ["Adenovirus","RSV"]
-    option2s = ["maxagep003","maxagep028"]
-    seeds = [260531,260531]
+    pathogens = ["Parainfluenza3","Adenovirus","RSV","InfluenzaA","InfluenzaB",]
+    option2s = ["maxagep004","maxagep003","maxagep028","maxagep035","maxagep035",]
+    seeds = [260602,260531,260531,260531,260531,]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
@@ -243,8 +243,8 @@ if __name__ == "__main__":
 
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         key = jax.random.PRNGKey(260601)
-        burnin_sample_path = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_sample_path = f"Outputs/mcmc_samples_DEmove_{prefix}_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{prefix}_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
 
         if os.path.exists(burnin_sample_path) and os.path.exists(burnin_log_prob_path):
             print(f"Found existing burn-in files for {pathogen}. Skipping burn-in and moving to refinement.")
@@ -281,10 +281,10 @@ if __name__ == "__main__":
 
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         key = jax.random.PRNGKey(260601)
-        burnin_sample_path = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        refined_sample_path = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-        refined_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+        burnin_sample_path = f"Outputs/mcmc_samples_DEmove_{prefix}_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{prefix}_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        refined_sample_path = f"Outputs/mcmc_samples_DEmove_{prefix}_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+        refined_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{prefix}_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
 
         current_samples, current_log_prob, completed_chunks = load_refined_chain_or_burnin(
             burnin_sample_path,
@@ -352,7 +352,7 @@ if __name__ == "__main__":
             best_neg_log_likelihood = float(-state["current_log_prob"][best_idx])
             results_dir = f"Data/Processed/results{str(seed)[:6]}"
             os.makedirs(results_dir, exist_ok=True)
-            emcee_results_path = f"{results_dir}/emcee_{pathogen}{lockdown}{option1}{state['option2']}{seed}.pickle"
+            emcee_results_path = f"{results_dir}/emcee_{prefix}{pathogen}{lockdown}{option1}{state['option2']}{seed}.pickle"
             with open(emcee_results_path, "wb") as f:
                 pickle.dump(
                     {
