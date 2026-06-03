@@ -20,14 +20,14 @@ if "Cuda" in str(jax.devices()):
 from Parameters.times_and_contacts import *
 
 from utils import *
-from fit_MCMC import SIS_likelihood, peaks_and_times_likelihood
+from fit_MCMC import run_simulation, SIS_likelihood, peaks_and_times_likelihood
 from plotting import calculate_observations_per_season, get_season_start
 from data_processing import calculate_proportion_positive_incidence
 
 # import scipy as sp
 # import multiprocessing
 
-def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=True, hosp=True, constant_step=False, hessian=False, NAG=7, AGE_GROUPS=None, CENSUS_AGE_POP=None, birth_rate_multiplier=1.0):
+def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, normalize=True, hosp=True, constant_step=False, hessian=False, NAG=7, AGE_GROUPS=None, CENSUS_AGE_POP=None, first_infection_bounds=None, attack_rate_bounds=None, birth_rate_multiplier=1.0):
     ### load data and parameters
     start_date = '2015-07-04'
     end_date = '2025-05-01'
@@ -170,15 +170,39 @@ def get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, norm
             return filtered_lh
     else:
         N = jnp.prod(jnp.asarray(daily_hospitalization_rates.shape))
-        def likelihood(x, pp_opt=None):
+        def likelihood(x, pp_opt=None, solution=None):
             sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
                                     #  , rescale=bounds
                                     )
             if "pp" in option2:
                 pp_opt = sim_params[8]
-            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, mask=mask, obs_age=pp_opt, constant_step=constant_step, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
+            lh = -SIS_likelihood(data, daily_hospitalization_rates, sim_params, POINTS, STATE0, p_time_to_obs, solution=solution, mask=mask, obs_age=pp_opt, constant_step=constant_step, hessian=hessian, NAG=NAG, AGE_GROUPS=AGE_GROUPS, max_month=max_month)
             if normalize:
                 lh = lh / N # normalize by number of data points
+            return lh
+    if (first_infection_bounds is not None) or (attack_rate_bounds is not None):
+        original_likelihood = likelihood
+        def likelihood(x, pp_opt=None):
+            sim_params = x_to_params(x, pathogen, lockdown, option1, option2, fixed_params=fixed_params, NAG=NAG, birth_rate_multiplier=birth_rate_multiplier,
+                                    #  , rescale=bounds
+                                    )
+            solution = run_simulation(sim_params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+            lh = original_likelihood(x, pp_opt=pp_opt, solution=solution)
+            values = solution.ys.T
+            shaped_values = values[1:,].reshape((1+2*N_S, NAG, -1))
+            infectious = shaped_values[1:2*N_S:2, :, :]
+            if first_infection_bounds is not None:
+                first_infectious_by_age = infectious[0, :, :]
+                mean_ages_of_first_infection = jnp.mean(first_infectious_by_age[:,:365*4],axis=1)/jnp.sum(jnp.mean(first_infectious_by_age[:,:365*4],axis=1))
+                proportion_under_five = mean_ages_of_first_infection[:3].sum()
+                # use jnp.where to return inf if proportion_under_five is outside of bounds, otherwise return lh
+                lh = jnp.where((proportion_under_five < first_infection_bounds[0]) | (proportion_under_five > first_infection_bounds[1]), jnp.inf, lh)
+            if attack_rate_bounds is not None:
+                age_pops = calculate_population_size(values, NAG=NAG)
+                REC = jnp.array([REC_UP[0], REC_UP[1], REC_SAME[2]])
+                first_season_infection = infectious[:, :, :365].sum(axis=2) * REC[:, None] / age_pops[0, :]
+                attack_rate = first_season_infection.sum()
+                lh = jnp.where((attack_rate < attack_rate_bounds[0]) | (attack_rate > attack_rate_bounds[1]), jnp.inf, lh)
             return lh
     return likelihood, N
 
@@ -240,6 +264,15 @@ if __name__ == '__main__':
         from Parameters.census_population import CENSUS_AGE_POP
         NAG = 7
 
+    if "first_infection" in option1:
+        first_infection_bounds = get_first_infection_bounds(pathogen)
+    else:
+        first_infection_bounds = None
+    if "attack_rate" in option1:
+        attack_rate_bounds = get_attack_rate_bounds(pathogen)
+    else:
+        attack_rate_bounds = None
+
     if len(sys.argv) > 10:
         algorithm = sys.argv[10]
         if len(sys.argv) > 11:
@@ -262,7 +295,7 @@ if __name__ == '__main__':
     # bounds = jnp.zeros(unlogged_bounds.shape)
     # bounds = bounds.at[:, 1].set(10)
     # bounds = bounds.at[:, 0].set(-10)
-    likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, NAG=NAG, AGE_GROUPS=AGE_GROUPS, CENSUS_AGE_POP=CENSUS_AGE_POP, birth_rate_multiplier=birth_rate_multiplier)
+    likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, import_multiplier, NAG=NAG, AGE_GROUPS=AGE_GROUPS, CENSUS_AGE_POP=CENSUS_AGE_POP, birth_rate_multiplier=birth_rate_multiplier, first_infection_bounds=first_infection_bounds, attack_rate_bounds=attack_rate_bounds)
     def new_likelihood(x):
         lik =  likelihood(x)
         # remove nans

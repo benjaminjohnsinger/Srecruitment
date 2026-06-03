@@ -1071,6 +1071,20 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", 
     x_consistent = x_consistent.at[obs_age_start:obs_age_start+NAG].set(OBS_AGE) # AGE_OBS_1 to AGE_OBS_7
     return x_consistent
 
+def get_first_infection_bounds(pathogen):
+    if ("Influenza" in pathogen):
+        return [0,1]
+    elif ("Adenovirus" in pathogen):
+        return [0.7,0.9]
+    else:
+        return [0.8,1]
+
+def get_attack_rate_bounds(pathogen):
+    if ("Influenza" in pathogen):
+        return [0.05,0.2]
+    else:
+        return [0,0.5]
+
 ####### Generating interesting quantities from ODE results #######
 
 def observations(result, POINTS, params, OBS_AGE, incidence=False,cap=False,N_C=2,time_conversion=30.44):
