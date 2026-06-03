@@ -56,6 +56,49 @@ PATHOGEN_SHORT_NAMES = {
     "InfluenzaB": "FluB", "Adenovirus": "AdV", "Parainfluenza3": "PIV3"
 }
 
+
+def suppression_duration_single_series(obs_series, anchor_idx, threshold_divisor=25.0):
+    """Measure suppression length using dip/rebound logic from plotting + FluNet scripts.
+
+    Uses: threshold = max(post-anchor incidence) / threshold_divisor.
+    Duration is from the point immediately before first dip below threshold,
+    until first rebound above threshold (or right-censored at series end).
+    """
+    n_time = obs_series.shape[0]
+    invalid_anchor = anchor_idx >= (n_time - 1)
+    indices = jnp.arange(n_time)
+
+    post_anchor_mask = indices > anchor_idx
+    # Avoid dynamic slicing so this stays JAX-jittable under vmap.
+    post_anchor_vals = jnp.where(post_anchor_mask, obs_series, -jnp.inf)
+    threshold = jnp.max(post_anchor_vals) / threshold_divisor
+
+    dip_mask = post_anchor_mask & (obs_series < threshold)
+    dip_found = jnp.any(dip_mask)
+    first_dip_idx = jnp.argmax(dip_mask)
+    last_pre_idx = jnp.maximum(first_dip_idx - 1, 0)
+
+    rebound_mask = (indices > last_pre_idx) & (obs_series > threshold)
+    rebound_found = jnp.any(rebound_mask)
+    first_rebound_idx = jnp.argmax(rebound_mask)
+
+    duration_observed = first_rebound_idx - last_pre_idx
+    duration_right_censored = (n_time - 1) - last_pre_idx
+    duration = jnp.where(rebound_found, duration_observed, duration_right_censored)
+
+    return jnp.where(jnp.logical_not(invalid_anchor) & dip_found, duration.astype(float), jnp.nan)
+
+
+def suppression_duration_by_age(obs_by_age, obs_summed_age, anchor_idx, threshold_divisor=25.0):
+    """Return suppression duration for each age group plus summed incidence."""
+    suppression_by_age = jax.vmap(
+        lambda x: suppression_duration_single_series(x, anchor_idx, threshold_divisor),
+        in_axes=1,
+        out_axes=0,
+    )(obs_by_age)
+    suppression_summed_age = suppression_duration_single_series(obs_summed_age, anchor_idx, threshold_divisor)
+    return jnp.concatenate([suppression_by_age, suppression_summed_age[None]], axis=0)
+
 # ==========================================
 # DEFINE SAMPLING SPACE
 # ==========================================
@@ -186,6 +229,9 @@ def worker(args):
         - Proportion of all infectious compartments per season (shape: n_seasons x NAG)
         - Infections caused by each age group per season (shape: n_seasons x NAG)
         - Force of infection experienced by each age group per season (shape: n_seasons x NAG)
+        - Hospitalization-causing infections by age group per season (shape: n_seasons x NAG)
+        - Population by age group per season (shape: n_seasons x NAG)
+        - Suppression length in days by age group (shape: n_seasons x NAG, repeated each season)
     """
     sample, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG = args
     params = x_to_params(sample, "sim", lockdown, option1+"mimmwane", option2+"nr", NAG=NAG)
@@ -212,6 +258,24 @@ def worker(args):
 
     obs_curtailed = obs[:days_to_keep, :]
     obs_summed_age_curtailed = obs_summed_age[:days_to_keep]
+
+    # Aggregate daily obs to monthly (30-day buckets) for suppression duration calculation.
+    # This matches the monthly aggregation used for pathogen data in extract_target_value_from_data.
+    days_per_month = 30
+    n_months = days_to_keep // days_per_month
+    obs_monthly = obs_curtailed[:n_months * days_per_month, :].reshape((n_months, days_per_month, NAG)).sum(axis=1)
+    obs_summed_age_monthly = obs_summed_age_curtailed[:n_months * days_per_month].reshape((n_months, days_per_month)).sum(axis=1)
+    anchor_t = date_to_t(pd.to_datetime("2020-01-01"))
+    anchor_day_idx = int(np.searchsorted(np.asarray(POINTS[:days_to_keep]), anchor_t, side='right')) - 1
+    anchor_month_idx = anchor_day_idx // days_per_month
+    suppression_duration = suppression_duration_by_age(
+        obs_monthly,
+        obs_summed_age_monthly,
+        anchor_idx=anchor_month_idx,
+        threshold_divisor=25.0,
+    )  # duration is now in months (each index = 1 month)
+    suppression_duration_by_season = jnp.tile(suppression_duration[None, :], (n_seasons, 1))
+
     obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
     obs_summed_age_per_season = obs_summed_age_curtailed.reshape((n_seasons, 365)).sum(axis=1)
     # concatenate to obs_per_season
@@ -248,7 +312,7 @@ def worker(args):
     # how many infections are caused by each age group in each season?
     # Calculate force of infection from each age group to each receiving age group
     # Shape: (NAG_recieving, NAG_causing, time)
-    relative_contact = params[10]
+    relative_contact = params[10][-days_to_keep:].T
     foi_matrix = params[4] * relative_contact[:, None, :] * relative_contact[None, :, :] * params[3][:, :, None] * (all_infectious[None, :, :] / jnp.sum(population_size_curtailed, axis=1)[None, None, :])
     # Calculate new infections: susceptible * foi * susceptibility by class
     # susceptible shape: (N_S, NAG, time)
@@ -287,7 +351,17 @@ def worker(args):
         foi_experienced_summed_by_season[:, None]], axis=1)
     
     # return as a 3d array
-    return jnp.stack([obs_per_season, peak_times, proportion_first_infectious, proportion_infectious, infections_caused_by_age_by_season, foi_experienced_by_age_by_season, hospitalizations_caused_by_age_by_season, population_by_age_by_season_wsum], axis=0)
+    return jnp.stack([
+        obs_per_season,
+        peak_times,
+        proportion_first_infectious,
+        proportion_infectious,
+        infections_caused_by_age_by_season,
+        foi_experienced_by_age_by_season,
+        hospitalizations_caused_by_age_by_season,
+        population_by_age_by_season_wsum,
+        suppression_duration_by_season,
+    ], axis=0)
 
 def simulate_samples_chunked(samples, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
                              base_save_path, chunk_size, skip_existing=False, NAG=7):
@@ -473,6 +547,11 @@ def age_of_infector(x):
 def foi_weighted_age(x):
     return jnp.mean(jnp.sum(x[5, :5, :-1] * jnp.array(MEDIAN_AGE), axis=1) / jnp.sum(x[5, :5, :-1], axis=1)) / 12
 
+
+def suppression_length(x, idx=-1):
+    # Suppression row is repeated across seasons for shape compatibility, so take season 0.
+    return x[8, 0, idx]
+
 # ==========================================
 # ANALYSIS & PROCESSING
 # ==========================================
@@ -480,9 +559,12 @@ def extract_target_values(all_results, outcome, **kwargs):
     if outcome == "relative_size": return jax.jit(jax.vmap(relative_size_of_rebound))(all_results)
     if outcome == "age_ratio": return jax.jit(jax.vmap(lambda x: age_ratio_of_rebound(x, kwargs.get('idx_num', 2), kwargs.get('idx_den', 1), kwargs.get('threshold_factor', 1/2))))(all_results)
     if outcome == "age_of_first_infection": return jax.jit(jax.vmap(age_of_first_infection))(all_results)
+    if outcome == "suppression_length": return jax.jit(jax.vmap(lambda x: suppression_length(x, kwargs.get('idx', -1))))(all_results)
     if outcome == "outbreak_in_season": return jax.jit(jax.vmap(lambda x: outbreak_in_season(x, kwargs.get('threshold_factor', 1/2), kwargs.get('season_idx', 6))))(all_results)
     if outcome == "age_shift": return jax.jit(jax.vmap(lambda x: age_ratio_of_rebound(x, kwargs.get('idx_num', 2), kwargs.get('idx_den', 1), kwargs.get('threshold_factor', 1/2)) > 1))(all_results)
     if outcome == "age_time_shift": return jax.jit(jax.vmap(lambda x: age_time_shift(x, kwargs.get('idx_foc', 2), kwargs.get('idx_ref', 1), kwargs.get('threshold_factor', 1/2), kwargs.get('season_idx', None))))(all_results)
+    if "suppression_length_in_group_" in outcome:
+        return jax.jit(jax.vmap(lambda x: suppression_length(x, int(outcome.split("_")[-1]))))(all_results)
     if "infectors_in_group_" in outcome:
         if "proportional" in outcome:
             return jax.vmap(lambda x: (x[4, :5, int(outcome.split("_")[-1])]/x[7, :5, int(outcome.split("_")[-1])]).mean(axis=0))(all_results)
@@ -521,6 +603,27 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
     days_to_keep = n_seasons * 365
     obs_curtailed = incidence[:days_to_keep, :]
     obs_summed_age_curtailed = incidence_summed_age[:days_to_keep]
+
+    # Aggregate daily obs to monthly for suppression duration, matching the worker convention.
+    days_per_month = 30
+    n_months = days_to_keep // days_per_month
+    DATES = pd.date_range(start=pd.to_datetime('2015-10-01'), periods=days_to_keep, freq='D')
+    obs_df = pd.DataFrame(np.asarray(obs_curtailed), index=DATES)
+    obs_sum_df = pd.Series(np.asarray(obs_summed_age_curtailed), index=DATES)
+    obs_monthly_np = obs_df.resample('MS').sum().values
+    obs_sum_monthly_np = obs_sum_df.resample('MS').sum().values
+    obs_monthly = jnp.array(obs_monthly_np)
+    obs_summed_age_monthly = jnp.array(obs_sum_monthly_np)
+    anchor_date = pd.to_datetime("2020-01-01")
+    monthly_dates = obs_df.resample('MS').sum().index
+    anchor_month_idx = int(np.searchsorted(monthly_dates, anchor_date, side='right')) - 1
+    suppression_duration = suppression_duration_by_age(
+        obs_monthly,
+        obs_summed_age_monthly,
+        anchor_idx=anchor_month_idx,
+        threshold_divisor=25.0,
+    )  # duration in months
+
     # calculate obs per season by summing over each 365-day period, then concatenate the summed age version
     obs_per_season = obs_curtailed.reshape((n_seasons, 365, NAG)).sum(axis=1)
     obs_summed_age_per_season = obs_summed_age_curtailed.reshape((n_seasons, 365)).sum(axis=1)
@@ -545,6 +648,10 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
         value = time_to_rebound(seasons)/365
     elif outcome == "age_time_shift":
         value = age_time_shift(seasons)
+    elif outcome == "suppression_length":
+        value = suppression_duration[-1]
+    elif "suppression_length_in_group_" in outcome:
+        value = suppression_duration[int(outcome.split("_")[-1])]
     elif outcome == "peak_times":
         value = peak_times
     return value
@@ -695,6 +802,11 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
             label = "Relative size of rebound"
         elif outcome == "age_ratio":
             label = "Ratio of 1-4y to 3-12m in rebound vs pre-pandemic"
+        elif outcome == "suppression_length":
+            label = "Suppression length (months)"
+        elif "suppression_length_in_group_" in outcome:
+            age_group = int(outcome.split("_")[-1])
+            label = f"Suppression length in age group {age_group} (months)"
         elif "abs_foi_in_group_" in outcome:
             age_group = int(outcome.split("_")[-1])
             label = f"Force of infection in age group {age_group}"
@@ -710,7 +822,7 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
     if cbar:
         plt.colorbar(scatter, ax=ax, label=label)
 
-    if outcome in ["time_to_rebound", "relative_size", "age_ratio", "age_time_shift"]:
+    if outcome in ["time_to_rebound", "relative_size", "age_ratio", "age_time_shift", "suppression_length"] or "suppression_length_in_group_" in outcome:
         if pathogen_vals is None:
             pathogen_vals = jnp.asarray([extract_target_value_from_data(pathogen, outcome=outcome, NAG=NAG) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]])
         if log:
@@ -986,17 +1098,20 @@ def plot_outcome_along_linear_combination(
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260505
-    option1 = "dedupsplit"
+    seed = 260531
+    option1 = "dedupsac"
     NAG = 7 + ("split" in option1)
     if "split" in option1:
         from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
         from Parameters.census_population import MEDIAN_AGE_split as MEDIAN_AGE
+    if "sac" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
+        from Parameters.census_population import MEDIAN_AGE_sac as MEDIAN_AGE
     else:
         from Parameters.census_population import CENSUS_AGE_POP
         from Parameters.census_population import MEDIAN_AGE
     option2 = "flexagep05"
-    lockdown = "ExponentialODipEqual"
+    lockdown = "ExponentialODipLinear"
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
     POINTS = np.array(date_to_t(PERIOD))
@@ -1008,9 +1123,9 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     good_simulations = [
-        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", 260514, lockdown, option1, "maxagep005"],
-        ["InfluenzaA", seed, lockdown, option1, "maxagep03"], ["InfluenzaB", seed, lockdown, option1, "maxagep03"],
-        ["Adenovirus", 260505, lockdown, option1, "betaboundp5maxagep002"],["Parainfluenza3", 260514, lockdown, option1, "maxagep005"],
+        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", 260602, lockdown, option1, "maxagep01"],
+        ["InfluenzaA", seed, lockdown, option1, "maxagep035"], ["InfluenzaB", seed, lockdown, option1, "maxagep035"],
+        ["Adenovirus", seed, lockdown, option1, "maxagep003"],["Parainfluenza3", 260602, lockdown, option1, "maxagep004"],
     ]
     
     # Parameter scaling factors used in the model
@@ -1021,15 +1136,16 @@ if __name__ == "__main__":
     if "split" in option1:
         PARAM_SCALING = np.concatenate((PARAM_SCALING, np.array([1e-2])))
 
-    # fig, ax = plt.subplots(figsize=(12, 6))
-    # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
-    # plt.tight_layout()
-    # plt.savefig("Figures/line_of_best_fit_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2.png", dpi=300)
+    fig, ax = plt.subplots(figsize=(12, 6))
+    generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
+    plt.tight_layout()
+    plt.savefig("Figures/line_of_best_fit_ExponentialODipLinearsac.png", dpi=300)
     # # print("NAG", NAG)
-    run_save_path = "Outputs/sim_grid_lh_n10000_chunk5000_seed260505_lockdownExponentialODipEqual_AdVPIV3hMPV_lowerIHR2"
-    # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-    #                                         seed=seed, n_samples=10000, dimension=2, chunk_size=5000,
-    #                                         run_save_path=run_save_path)
+    # run_save_path = "Outputs/sim_grid_lh_n10000_chunk5000_seed260505_lockdownExponentialODipEqual_AdVPIV3hMPV_lowerIHR2"
+    run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
+                                            seed=seed, n_samples=10002, dimension=2, chunk_size=5002,
+                                            # run_save_path=run_save_path
+                                            )
     # print(run_save_path)
 
     # # perpendicular / parallel plots
@@ -1043,38 +1159,38 @@ if __name__ == "__main__":
     # plt.tight_layout()
     # plt.savefig(f"Figures/along_linear_combination_age_of_first_infection_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_projection.png", dpi=300)
 
-    ## single panel outcome heatmap
-    fig, ax = plt.subplots(figsize=(4, 4))
-    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_of_first_infection", cbar=True)
-    plt.tight_layout()
-    plt.savefig(f"Figures/heatmap_age_of_first_infection_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    # ## single panel outcome heatmap
+    # fig, ax = plt.subplots(figsize=(4, 4))
+    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True)
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmap_suppression_length_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
-    ## single panel outcome heatmap
-    fig, ax = plt.subplots(figsize=(4, 4))
-    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True)
-    plt.tight_layout()
-    plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    # ## single panel outcome heatmap
+    # fig, ax = plt.subplots(figsize=(4, 4))
+    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True)
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
-    ## single panel outcome heatmap
-    fig, ax = plt.subplots(figsize=(4, 4))
-    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True, threshold_factor=1/3)
-    plt.tight_layout()
-    plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold_third.png", dpi=300)
-    ## two panel heatmap
-    # fig, ax = plt.subplots(1, 2, figsize=(6.5, 4), sharex=True, sharey=True)
-    # generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0", cbar=False)
-    # generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_7", cbar=False)
-    # ax[1].set_ylabel("")
-    # ax[0].set_title("Under 3 months")
-    # ax[1].set_title("Over 65 years")
-    # fig.subplots_adjust(right=0.85)
-    # cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
-    # norm = plt.Normalize(vmin=0, vmax=1)
-    # sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm)
-    # sm.set_array([])
-    # cbar = plt.colorbar(sm, cax=cbar_ax, label="Relative proportion of hospitalizations caused")
-    # # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmaps_hospitalizors_<3mvs>65y_ExponentialODipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    # ## single panel outcome heatmap
+    # fig, ax = plt.subplots(figsize=(4, 4))
+    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True, threshold_factor=1/3)
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold_third.png", dpi=300)
+    # two panel heatmap
+    fig, ax = plt.subplots(1, 2, figsize=(6.5, 4), sharex=True, sharey=True)
+    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0", cbar=False)
+    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_6", cbar=False)
+    ax[1].set_ylabel("")
+    ax[0].set_title("Under 3 months")
+    ax[1].set_title("Over 65 years")
+    fig.subplots_adjust(right=0.85)
+    cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
+    norm = plt.Normalize(vmin=0, vmax=1)
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm)
+    sm.set_array([])
+    cbar = plt.colorbar(sm, cax=cbar_ax, label="Relative proportion of hospitalizations caused")
+    # plt.tight_layout()
+    plt.savefig(f"Figures/heatmaps_hospitalizors_<3mvs>65y_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
     
     # fig, ax = plt.subplots(4, 2, figsize=(6.5,8.5), sharex=True, sharey=True)
     # from Parameters.census_population import AGE_GROUP_NAMES_split as AGE_GROUP_NAMES
