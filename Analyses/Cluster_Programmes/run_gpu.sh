@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=topup
+#SBATCH --job-name=hmpvihr
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -21,8 +21,8 @@ module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
 combinations=(
-"Parainfluenza3 260602 ExponentialODipLinear dedupsac maxagep004 1e-9 200 3000 0.7"
-"Metapneumovirus 260602 ExponentialODipLinear dedupsac maxagep01 1e-9 200 3000 0.7"
+"Metapneumovirus 260603 ExponentialODipLinear dedupsac maxagep015 1e-9 200 2000 0.7"
+"Metapneumovirus 260603 ExponentialODipLinear dedupsac maxagep02 1e-9 200 2000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
