@@ -780,10 +780,6 @@ def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None,
         threshold = incidence[incidence.index < pd.to_datetime("2020-01-01")]["Total"].max() / 20
         dip_time = incidence[(incidence.index > pd.to_datetime("2020-01-01")) & (incidence["Total"] < threshold)].index.min()
         dip_idx = incidence.index.get_loc(dip_time)
-        if pathogen == "InfluenzaA":
-            # print full incidence
-            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-                print(incidence["Total"])
         # Use the previous observed time point so this works for daily, weekly, or monthly aggregation.
         last_pre_time = incidence.index[max(dip_idx - 1, 0)]
         rebound_time = incidence[(incidence.index > last_pre_time) & (incidence["Total"] > threshold)].index.min()
@@ -1079,13 +1075,14 @@ def plot_age_figure(ax, pathogens, option1, option2s, seeds, lockdown, NAG, CENS
 def plot_single_pathogen_violin(ax, pathogen_data, color, pathogen_name):
     """Plot violin for a single pathogen."""
     data_clean = pathogen_data.dropna()
-    parts = ax.violinplot(data_clean, positions=[0], vert=False, showmedians=True)
+    parts = ax.violinplot(data_clean, positions=[0], vert=True, showmedians=True)
     
     # Add scattered individual points with random vertical offset
     np.random.seed(260603)
     jitter = np.random.normal(0, 0.04, size=len(data_clean))
-    ax.scatter(data_clean, np.full(len(data_clean), 0) + jitter, 
-              color=color, s=20, alpha=0.6, edgecolors='none')
+    print(f"Plotting {len(data_clean)} points for {pathogen_name}")
+    ax.scatter(np.full(len(data_clean), 0) + jitter, data_clean, 
+              color=color, s=20, alpha=4/np.sqrt(len(data_clean)), edgecolors='none')
     
     # Style violin as dashed outline in black
     for pc in parts['bodies']:
@@ -1102,16 +1099,16 @@ def plot_single_pathogen_violin(ax, pathogen_data, color, pathogen_name):
     
     # Annotate median value
     median_val = data_clean.median()
-    ax.text(median_val, 0.25, f'{median_val:.1f}', 
+    ax.text(0.25, median_val, f'{median_val:.1f}', 
             va='center', ha='center', fontsize=7, color='black')
     
     # Turn off borders
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
     
-    ax.set_yticks([])
-    ax.set_ylabel(short_names.get(pathogen_name, pathogen_name), rotation=0, labelpad=15, ha='right')
+    ax.set_xticks([])
+    ax.set_xlabel(short_names.get(pathogen_name, pathogen_name))
 
     return data_clean.max() * 1.05  # Return max value for consistent x-axis limits
 
@@ -1125,32 +1122,33 @@ def supression_violin(axes, pathogens, colors):
         # pathogen_name = nice_names.get(pathogen, pathogen)
         max_val = plot_single_pathogen_violin(axes[i], pathogen_data, colors[i], pathogen)
         xmax = max(xmax, max_val)
-        # Only show x-axis label on bottom plot
-        if i < len(pathogens) - 1:
-            axes[i].spines['bottom'].set_visible(False)
-            axes[i].set_xticks([])
-        else:
-            axes[i].set_xlabel("Suppression duration (months)", fontsize=9)
-    
-    for i in range(len(pathogens)):
-        axes[i].set_xlim(0, xmax)
-    axes[i].set_xticks(np.arange(0, xmax+1, 12))
+        # Only show y-axis label on leftmost plot
+        if i > 0:
+            axes[i].spines['left'].set_visible(False)
+            axes[i].set_yticks([])
+    for ax in axes:
+        ax.set_ylim(0, xmax)
+    axes[0].set_ylabel("Suppression duration (months)", fontsize=9)
+    axes[0].set_yticks(np.arange(0, xmax+1, 12))
 
 def plot_FluNet(ax, pathogen, country, color='k', linewidth=1):
     data = pd.read_csv(f"Data/Processed/FluNetTimeseries/{country}__{pathogen}.csv", parse_dates=['month_start'])
+    supression_data = pd.read_csv("Data/Processed/FluNet_suppression_duration_by_country_pathogen.csv")
     # restrict to month_start >= 2015-10-01
-    data = data[data["month_start"] >= pd.to_datetime("2015-10-01")]
+    data = data[(data["month_start"] >= pd.to_datetime("2015-10-01")) & (data["month_start"] < pd.to_datetime("2025-05-01"))]
     if data["count"].max() > 0:
         ax.plot(data["month_start"], data["count"], label=country, color=color, linewidth=linewidth)
         
         # Add suppression period indicator
-        pre_2020_data = data[data["month_start"] < pd.to_datetime("2020-01-01")]
+        pre_2020_data = data[data["month_start"] < pd.to_datetime("2020-03-01")]
         if len(pre_2020_data) > 0:
             pre_2020_max = pre_2020_data["count"].max()
             threshold = pre_2020_max / 20
-            post_2020_data = data[data["month_start"] >= pd.to_datetime("2020-01-01")]
+            post_2020_data = data[data["month_start"] >= pd.to_datetime("2020-03-01")]
             suppressed = post_2020_data[post_2020_data["count"] < threshold]
-            if len(suppressed) > 0:
+            if ((supression_data["pathogen"] == pathogen) & (supression_data["country"] == country) & (supression_data["status"] == "excluded")).any():
+                ax.plot([0.1], [0.9], marker='x', markersize=10, color='grey', transform=ax.transAxes)
+            elif len(suppressed) > 0:
                 supp_start = suppressed.iloc[0]["month_start"]
                 not_suppressed = post_2020_data[(post_2020_data["month_start"] > supp_start) & (post_2020_data["count"] >= threshold)]
                 supp_end = not_suppressed.iloc[0]["month_start"] if len(not_suppressed) > 0 else suppressed.iloc[-1]["month_start"]
@@ -1158,11 +1156,106 @@ def plot_FluNet(ax, pathogen, country, color='k', linewidth=1):
                 ax.plot([supp_start, supp_end], [y_pos, y_pos], color='red', linewidth=linewidth)
                 time_diff = supp_end - supp_start
                 time_amount = f"{time_diff.days // 30}"
-                last_pre_time = data[data["month_start"] < pd.to_datetime("2020-01-01")]["month_start"].iloc[-1]
+                last_pre_time = data[data["month_start"] < pd.to_datetime("2020-03-01")]["month_start"].iloc[-1]
                 ax.annotate(time_amount, xy=(last_pre_time + time_diff/2, threshold), xytext=(0,2), textcoords='offset points', ha='center', va="bottom", color='red')
-
     else:
         ax.axis('off')
+
+def plot_suppression_durations(fig, pathogens, countries, colors):
+    gs = fig.add_gridspec(8, 6, height_ratios=[1, 0.1, 1, 1, 1, 1, 1, 3], hspace=0.1)
+    
+    # KPSC plots in top row (row 0)
+    kpsc_pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    kpsc_axis = np.empty(len(kpsc_pathogens), dtype=object)
+    for i, pathogen in enumerate(kpsc_pathogens):
+        ax = fig.add_subplot(gs[0, i])
+        kpsc_axis[i] = ax
+        # color = colors[i]
+        kpsc_proportion_positive_incidence_plot(
+            ax, pathogen=pathogen, AGE_GROUP_NAMES=AGE_GROUP_NAMES, title="",
+            color="k", aggregation="MS", factor=100000,
+            annotations="simple", definition="", label="Data", hosp=True, dedup=True)
+        ax.set_yticklabels([])
+        ax.set_xticklabels([])
+        # Remove all spines except bottom
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.set_ylabel("")
+        ax.set_yticks([])
+        if i==0:
+            ax.set_ylabel("KPSC", rotation=0, ha='right', labelpad=25)
+            ax2 = ax.twinx()
+            ax2.set_ylabel("Estimated\n+ve hospitalizations", rotation=90, va='center')
+            ax2.set_yticks([])
+            ax2.spines['right'].set_visible(False)
+            ax2.spines['left'].set_visible(True)
+            ax2.spines['top'].set_visible(False)
+            ax2.yaxis.set_label_position('left')
+            ax2.yaxis.tick_left()
+
+        ax.set_title(short_names.get(pathogen, pathogen))
+        ax.set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
+        ax.set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025",], fontsize=6)
+        for label in ax.get_xticklabels():
+            label.set_rotation(45)
+            label.set_horizontalalignment('right')
+            label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+    
+    # FluNet plots in middle rows (rows 1-5)
+    country_axes = np.empty((len(countries), len(pathogens)), dtype=object)
+    for j, country in enumerate(countries):
+        for i, pathogen in enumerate(pathogens):
+            ax = fig.add_subplot(gs[j+2, i])
+            country_axes[j, i] = ax
+            plot_FluNet(ax, pathogen, country, linewidth=1)
+            ax.set_yticklabels([])
+            ax.set_xticklabels([])
+            # Remove all spines except bottom
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['left'].set_visible(False)
+            ax.set_yticks([])
+            # Add x tick labels only for middle column
+            ax.set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
+            # if i == 5:
+            #     ax.set_xticklabels(["'16", "", "", "", "'20", "", "", "", "'24", "", ""])
+            # Add "Date" label only to middle column bottom row
+            # Add country titles at left
+            if j == 0:
+                ax.set_title(short_names.get(pathogen, pathogen))
+            if i == 0:
+                ax.set_ylabel(country, rotation=0, ha='right', labelpad=20)
+                ax2 = ax.twinx()
+                ax2.set_ylabel("Detected cases", rotation=90, va='center')
+                ax2.set_yticks([])
+                ax2.spines['right'].set_visible(False)
+                ax2.spines['left'].set_visible(True)
+                ax2.spines['top'].set_visible(False)
+                ax2.yaxis.set_label_position('left')
+                ax2.yaxis.tick_left()
+            # in last row add small x-axis labels every two years at 45 degrees
+            if j == len(countries)-1:
+                ax.set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025",], fontsize=6)
+                for label in ax.get_xticklabels():
+                    label.set_rotation(45)
+                    label.set_horizontalalignment('right')
+                    label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+            # if j == 0:
+            #     ax.set_ylabel(short_names.get(pathogen, pathogen), rotation=0, ha='right')
+    
+    # Violin plots in bottom row (row 7)
+    violin_axis = np.empty(len(pathogens), dtype=object)
+    for i in range(len(pathogens)):
+        violin_axis[i] = fig.add_subplot(gs[7, i])
+    supression_violin(violin_axis, pathogens, colors)
+    
+    # big label "C" on top left of kpsc plots, "B" on top left of country plots, "A" on top left of violin plots
+    kpsc_axis[0].text(-0.5, 1.1, "A", transform=kpsc_axis[0].transAxes, fontsize=16, fontweight="bold")
+    country_axes[0,0].text(-0.5, 1.1, "B", transform=country_axes[0,0].transAxes, fontsize=16, fontweight="bold")
+    violin_axis[0].text(-0.5, 1.1, "C", transform=violin_axis[0].transAxes, fontsize=16, fontweight="bold")
+
+
 
 if __name__ == "__main__":
     plt.rcParams.update({'font.size':8})
@@ -1181,71 +1274,15 @@ if __name__ == "__main__":
         from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUP_NAMES
     lockdown = "ExponentialODipLinear"
 
-    # fig, ax = plt.subplots(6, 1, figsize=(4.5,4), sharex=False)
-    fig = plt.figure(layout="constrained", figsize=(6.5,4))
-    gs = fig.add_gridspec(6, 8, width_ratios=[3, 1, 1, 1, 1, 1, 0.1, 1], wspace=0.1)
+    # ## Generate Figure 1: timeseries and suppression duration figure
+    # fig = plt.figure(layout="constrained", figsize=(6.5,8.5))
+    # pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
+    # countries = ["Brazil", "Canada", "India", "Japan", "Tunisia"]
+    # colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "k"]
+    # plot_suppression_durations(fig, pathogens, countries, colors)
+    # plt.savefig(f"Figures/supression_durations_vertical.png", dpi=300)
 
-    pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
-    colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "k"]
-    violin_axis = np.empty(len(pathogens), dtype=object)
-    for i in range(len(pathogens)):
-        violin_axis[i] = fig.add_subplot(gs[i, 0])
-    supression_violin(violin_axis, pathogens, colors)
-
-    countries = [ "Australia", "Brazil", "Canada", "Japan", "Tunisia"]
-    country_axes = np.empty((len(pathogens), len(countries)), dtype=object)
-    for i, pathogen in enumerate(pathogens):
-        for j, country in enumerate(countries):
-            ax = fig.add_subplot(gs[i, j+1])
-            country_axes[i, j] = ax
-            plot_FluNet(ax, pathogen, country, linewidth=1)
-            ax.set_yticklabels([])
-            ax.set_xticklabels([])
-            # Remove all spines except bottom
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-            ax.spines['left'].set_visible(False)
-            ax.set_yticks([])
-            # Add x tick labels only for middle column
-            ax.set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01", "2026-01-01"]))
-            # if i == 5:
-            #     ax.set_xticklabels(["'16", "", "", "", "'20", "", "", "", "'24", "", ""])
-            # Add "Date" label only to middle column bottom row
-            if i == len(pathogens) - 1 and j == 2:
-                ax.set_xlabel("Year")
-            # Add country titles at top
-            if i == 0:
-                ax.set_title(country)
-            # if j == 0:
-            #     ax.set_ylabel(short_names.get(pathogen, pathogen), rotation=0, ha='right')
-    # in last column plot kpsc positive proportion plots with annotations
-    kpsc_pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-    kpsc_axis = np.empty(len(kpsc_pathogens), dtype=object)
-    for i, pathogen in enumerate(kpsc_pathogens):
-        ax = fig.add_subplot(gs[i, 7])
-        kpsc_axis[i] = ax
-        color = colors[i]
-        kpsc_proportion_positive_incidence_plot(
-            ax, pathogen=pathogen, AGE_GROUP_NAMES=AGE_GROUP_NAMES, title="",
-            color="k", aggregation="MS", factor=100000,
-            annotations="simple", definition="", label="Data", hosp=True, dedup=True)
-        ax.set_yticklabels([])
-        ax.set_xticklabels([])
-        # Remove all spines except bottom
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_visible(False)
-        ax.set_ylabel("")
-        ax.set_yticks([])
-        if i==0:
-            ax.set_title("KPSC")
-        if i == len(kpsc_pathogens) - 1:
-            ax.set_xlabel("Year")
-    # big label "A" on top left of violin plots, "B" on top left of country plots, "C" on top left of kpsc plots
-    violin_axis[0].text(-0.5, 1.1, "A", transform=violin_axis[0].transAxes, fontsize=16, fontweight="bold")
-    country_axes[0,0].text(-0.5, 1.1, "B", transform=country_axes[0,0].transAxes, fontsize=16, fontweight="bold")
-    kpsc_axis[0].text(-0.5, 1.1, "C", transform=kpsc_axis[0].transAxes, fontsize=16, fontweight="bold")
-    plt.savefig(f"Figures/supression_durations.png", dpi=300)
+    ## Generate Figure 2: age-structured fits figure
 
     # ## Generate Figure 4: age infection figure
     # fig = plt.figure(figsize=(6.5, 6), layout="constrained")

@@ -80,7 +80,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--anchor-date",
         type=str,
-        default="2020-01-01",
+        default="2020-03-01",
         help="Suppression search anchor date (YYYY-MM-DD)",
     )
     parser.add_argument(
@@ -325,7 +325,7 @@ def build_country_data_quality_diagnostics(
         }
 
         post_mask = full_month_idx >= dq_post_start_date
-        pre2020_mask = full_month_idx < pd.Timestamp("2020-01-01")
+        pre2020_mask = full_month_idx < pd.Timestamp("2020-03-01")
         post_month_idx = full_month_idx[post_mask]
         row["dq_post_n_months"] = int(len(post_month_idx))
 
@@ -406,7 +406,7 @@ def evaluate_suppression(
     if max_value <= 0:
         return empty_exclusion("all_zero", series.index.max())
 
-    pre_2020 = series[series.index < pd.Timestamp("2020-01-01")]
+    pre_2020 = series[series.index < pd.Timestamp("2020-03-01")]
     if pre_2020.empty:
         return empty_exclusion("insufficient_pre2020_baseline", series.index.max())
 
@@ -415,7 +415,7 @@ def evaluate_suppression(
         return empty_exclusion("no_pre2020_signal", series.index.max())
 
     threshold = pre_2020_max / threshold_divisor
-    pre2020_end = pd.Timestamp("2020-01-01")
+    pre2020_end = pd.Timestamp("2020-03-01")
     lookback_start = pre2020_end - pd.DateOffset(years=pre2020_max_lookback_years)
     above_monitoring = pre_2020[pre_2020 > pre2020_monitoring_threshold]
     if not above_monitoring.empty:
@@ -521,6 +521,15 @@ def build_results(
         full_month_idx = pd.date_range(country_df.index.min(), country_df.index.max(), freq="MS")
         country_diag = country_dq_idx.loc[country]
         processed_series = country_df[SPEC_PROCESSED_COLUMN].reindex(full_month_idx, fill_value=0.0)
+        # SPEC_PROCESSED_NB is influenza-focused; keep months with any pathogen detections
+        # from being treated as "zero testing" in suppression-window checks.
+        any_pathogen_positive = sum(
+            country_df[spec["column"]].reindex(full_month_idx, fill_value=0.0) for spec in PATHOGEN_SPECS
+        ) > 0
+        processed_series_for_zero_testing = processed_series.mask(
+            (processed_series <= 0) & any_pathogen_positive,
+            1.0,
+        )
         country_rows: list[dict] = []
 
         for spec in PATHOGEN_SPECS:
@@ -541,7 +550,7 @@ def build_results(
             else:
                 out = evaluate_suppression(
                     series=series,
-                    processed_series=processed_series,
+                    processed_series=processed_series_for_zero_testing,
                     anchor_date=anchor_date,
                     threshold_divisor=threshold_divisor,
                     min_months=min_months,
