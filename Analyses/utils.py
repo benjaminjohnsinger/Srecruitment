@@ -632,7 +632,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         true_OBS_AGE = jnp.zeros(true_NAG)
         NAG = 7 + ("split" in option1)
     if ('maxagep' in option2) & ('dynamic' not in option1):
-        if "RSV" in pathogen:
+        if ("RSV" in pathogen) and not ("old" in option2):
             fixed_age_index = 0
         else:
             fixed_age_index = -1
@@ -803,7 +803,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             for i in range(1,NAG+1):
                 bounds_dict[f"AGE_OBS_{i}"] = [0, upper_bound]
         elif "maxagep" in option2:
-            start_index = "RSV" in pathogen
+            start_index = ("RSV" in pathogen) and not ("old" in option2)
             for i in range(1+start_index,NAG+start_index):
                 bounds_dict[f"AGE_OBS_{i}"] = [0, 1]
     if "pp" in option2:
@@ -1060,7 +1060,7 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", 
         match = re.search(r'maxagep(\d+)', option2)
         obs_age_max = int(match.group(1)) / (10 ** len(match.group(1)))
         OBS_AGE = jnp.zeros(NAG)
-        if "RSV" in pathogen:
+        if ("RSV" in pathogen) and not ("old" in option2):
             OBS_AGE = OBS_AGE.at[0].set(obs_age_max)
             OBS_AGE = OBS_AGE.at[1:].set(obs_age_max * x_DE[n:n+NAG-1])
         else:
