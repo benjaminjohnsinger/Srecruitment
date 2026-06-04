@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -9,20 +10,20 @@ import pandas as pd
 
 
 PATHOGEN_SPECS = [
-    {"key": "flu_a", "label": "Flu A", "column": "INF_A"},
-    {"key": "flu_b", "label": "Flu B", "column": "INF_B"},
-    {"key": "rsv", "label": "RSV", "column": "RSV"},
-    {"key": "hmpv", "label": "hMPV", "column": "METAPNEUMO"},
-    {"key": "piv", "label": "PIV", "column": "PARAINFLUENZA"},
-    {"key": "adv", "label": "AdV", "column": "ADENO"},
+    {"key": "RSV", "label": "RSV", "column": "RSV"},
+    {"key": "Metapneumovirus", "label": "Metapneumovirus", "column": "METAPNEUMO"},
+    {"key": "Parainfluenza", "label": "Parainfluenza", "column": "PARAINFLUENZA"},
+    {"key": "Adenovirus", "label": "Adenovirus", "column": "ADENO"},
+    {"key": "InfluenzaA", "label": "InfluenzaA", "column": "INF_A"},
+    {"key": "InfluenzaB", "label": "InfluenzaB", "column": "INF_B"},
 ]
 
 PATHOGEN_COLUMN_BY_KEY = {spec["key"]: spec["column"] for spec in PATHOGEN_SPECS}
 SPEC_PROCESSED_COLUMN = "SPEC_PROCESSED_NB"
 DQ_ZERO_RUN_SETS = [
-    ("set3", {"adv", "piv", "hmpv"}),
-    ("set4", {"adv", "piv", "hmpv", "rsv"}),
-    ("set6", {"adv", "piv", "hmpv", "rsv", "flu_a", "flu_b"}),
+    ("set3", {"Adenovirus", "Parainfluenza", "Metapneumovirus"}),
+    ("set4", {"Adenovirus", "Parainfluenza", "Metapneumovirus", "RSV"}),
+    ("set6", {"Adenovirus", "Parainfluenza", "Metapneumovirus", "RSV", "InfluenzaA", "InfluenzaB"}),
 ]
 
 
@@ -71,6 +72,12 @@ def parse_args() -> argparse.Namespace:
         help="Path to save pathogen-country time-series example plot",
     )
     parser.add_argument(
+        "--output-timeseries-dir",
+        type=Path,
+        default=repo_root / "Data/Processed/FluNetTimeseries",
+        help="Directory to write one monthly time-series CSV per country-pathogen",
+    )
+    parser.add_argument(
         "--anchor-date",
         type=str,
         default="2020-01-01",
@@ -79,7 +86,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--threshold-divisor",
         type=float,
-        default=25.0,
+        default=20.0,
         help="Threshold divisor used in suppression definition (max/divisor)",
     )
     parser.add_argument(
@@ -151,13 +158,48 @@ def parse_args() -> argparse.Namespace:
         help="Random seed used to sample example countries",
     )
     parser.add_argument(
+        "--allow-partial-example-countries",
+        action="store_true",
+        help="Allow example countries even if not all six pathogens pass inclusion tests",
+    )
+    parser.add_argument(
         "--example-country-pathogen",
         type=str,
         default=None,
-        choices=[spec["key"] for spec in PATHOGEN_SPECS],
-        help="If set, sample example countries only from those with this pathogen included (status==ok)",
+        help=(
+            "Optional pathogen filter for example-country sampling. "
+            "Use one of: RSV, Metapneumovirus, Parainfluenza, Adenovirus, InfluenzaA, InfluenzaB; "
+            "or pass none/None/null to disable."
+        ),
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if args.example_country_pathogen is not None:
+        token = args.example_country_pathogen.strip()
+        token_lower = token.lower()
+        canonical_by_lower = {k.lower(): k for k in PATHOGEN_COLUMN_BY_KEY}
+        legacy_aliases = {
+            "rsv": "RSV",
+            "hmpv": "Metapneumovirus",
+            "piv": "Parainfluenza",
+            "adv": "Adenovirus",
+            "flu_a": "InfluenzaA",
+            "flu_b": "InfluenzaB",
+        }
+        if token_lower in {"", "none", "null"}:
+            args.example_country_pathogen = None
+        elif token_lower in canonical_by_lower:
+            args.example_country_pathogen = canonical_by_lower[token_lower]
+        elif token_lower in legacy_aliases:
+            args.example_country_pathogen = legacy_aliases[token_lower]
+        else:
+            valid = ", ".join(sorted(PATHOGEN_COLUMN_BY_KEY))
+            parser.error(
+                f"Invalid --example-country-pathogen '{args.example_country_pathogen}'. "
+                f"Use one of: {valid}, or none."
+            )
+
+    return args
 
 
 def load_and_aggregate_monthly(input_path: Path) -> pd.DataFrame:
@@ -424,11 +466,9 @@ def evaluate_suppression(
             "pre2020_effective_baseline_run_months": pre2020_effective_baseline_run,
             "excess_gap_months": excess_gap_months,
             "suppression_zero_processed_run_months": zero_processed_run_months,
+            "country_level_no_excess_gap_warning": False,
         }
-        if duration_months <= pre2020_effective_baseline_run:
-            out["status"] = "excluded"
-            out["reason"] = "no_excess_gap_vs_pre2020"
-        elif zero_processed_run_months >= excess_gap_months and excess_gap_months > 0:
+        if zero_processed_run_months >= excess_gap_months and excess_gap_months > 0:
             out["status"] = "excluded"
             out["reason"] = "zero_testing_explains_excess_gap"
         return out
@@ -452,11 +492,9 @@ def evaluate_suppression(
         "pre2020_effective_baseline_run_months": pre2020_effective_baseline_run,
         "excess_gap_months": excess_gap_months,
         "suppression_zero_processed_run_months": zero_processed_run_months,
+        "country_level_no_excess_gap_warning": False,
     }
-    if duration_months <= pre2020_effective_baseline_run:
-        out["status"] = "excluded"
-        out["reason"] = "no_excess_gap_vs_pre2020"
-    elif zero_processed_run_months >= excess_gap_months and excess_gap_months > 0:
+    if zero_processed_run_months >= excess_gap_months and excess_gap_months > 0:
         out["status"] = "excluded"
         out["reason"] = "zero_testing_explains_excess_gap"
     return out
@@ -483,6 +521,7 @@ def build_results(
         full_month_idx = pd.date_range(country_df.index.min(), country_df.index.max(), freq="MS")
         country_diag = country_dq_idx.loc[country]
         processed_series = country_df[SPEC_PROCESSED_COLUMN].reindex(full_month_idx, fill_value=0.0)
+        country_rows: list[dict] = []
 
         for spec in PATHOGEN_SPECS:
             column = spec["column"]
@@ -515,10 +554,10 @@ def build_results(
             if dq_set_triggered in {"set3", "set4", "set6"}:
                 dq_longest_run = country_diag.get(f"{dq_set_triggered}_longest_zero_run_months", np.nan)
 
-            rows.append(
+            country_rows.append(
                 {
                     "country": country,
-                    "pathogen_key": key,
+                    "pathogen": key,
                     "pathogen_label": spec["label"],
                     "pathogen_column": column,
                     "max_count": float(series.max()),
@@ -532,6 +571,20 @@ def build_results(
                     **out,
                 }
             )
+
+        candidate_rows = [row for row in country_rows if row["dq_pass"] and row["status"] == "ok"]
+        if candidate_rows:
+            any_candidate_has_gap = any(float(row.get("excess_gap_months", np.nan)) > 0 for row in candidate_rows)
+            if not any_candidate_has_gap:
+                for row in candidate_rows:
+                    row["status"] = "excluded"
+                    row["reason"] = "no_excess_gap_vs_pre2020_country_level"
+            else:
+                for row in candidate_rows:
+                    if float(row.get("excess_gap_months", np.nan)) <= 0:
+                        row["country_level_no_excess_gap_warning"] = True
+
+        rows.extend(country_rows)
     return pd.DataFrame(rows)
 
 
@@ -639,35 +692,85 @@ def summarize_by_pathogen(results: pd.DataFrame) -> pd.DataFrame:
     return summary
 
 
+def sanitize_filename_token(value: str) -> str:
+    token = re.sub(r"[^A-Za-z0-9._-]+", "_", value.strip())
+    token = token.strip("._-")
+    return token or "unknown"
+
+
+def export_country_pathogen_timeseries(monthly_df: pd.DataFrame, output_dir: Path) -> int:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    files_written = 0
+    used_names: set[str] = set()
+
+    for country, country_df in monthly_df.groupby("COUNTRY_AREA_TERRITORY"):
+        country_df = country_df.set_index("month_start").sort_index()
+        full_month_idx = pd.date_range(country_df.index.min(), country_df.index.max(), freq="MS")
+        processed_series = country_df[SPEC_PROCESSED_COLUMN].reindex(full_month_idx, fill_value=0.0)
+        country_token = sanitize_filename_token(str(country))
+
+        for spec in PATHOGEN_SPECS:
+            pathogen_series = country_df[spec["column"]].reindex(full_month_idx, fill_value=0.0)
+            out_df = pd.DataFrame(
+                {
+                    "country": country,
+                    "pathogen": spec["key"],
+                    "pathogen_label": spec["label"],
+                    "pathogen_column": spec["column"],
+                    "month_start": full_month_idx,
+                    "count": pathogen_series.values,
+                    "spec_processed_nb": processed_series.values,
+                }
+            )
+
+            base_name = f"{country_token}__{spec['key']}.csv"
+            file_name = base_name
+            suffix = 2
+            while file_name in used_names:
+                file_name = f"{country_token}__{spec['key']}__{suffix}.csv"
+                suffix += 1
+            used_names.add(file_name)
+
+            out_df.to_csv(output_dir / file_name, index=False)
+            files_written += 1
+
+    return files_written
+
+
 def choose_example_countries(
     results: pd.DataFrame,
     n_countries: int,
     random_seed: int,
     required_pathogen_key: str | None = None,
+    require_all_pathogens: bool = True,
 ) -> list[str]:
     ok = results[results["status"] == "ok"].copy()
     if ok.empty:
         raise RuntimeError("No valid country-pathogen results are available for example-country plotting.")
 
-    n_required = len(PATHOGEN_SPECS)
-    ok_counts = ok.groupby("country")["pathogen_key"].nunique()
-    countries_all_six_ok = set(ok_counts[ok_counts == n_required].index)
-
-    if not countries_all_six_ok:
-        raise RuntimeError("No countries found where all six pathogens pass inclusion tests (status == ok).")
-
     if required_pathogen_key is not None:
-        ok = ok[ok["pathogen_key"] == required_pathogen_key]
+        ok = ok[ok["pathogen"] == required_pathogen_key]
         if ok.empty:
             raise RuntimeError(
                 f"No valid country-pathogen rows found for example-country-pathogen='{required_pathogen_key}'."
             )
 
-    eligible = np.array(sorted(set(ok["country"]).intersection(countries_all_six_ok)))
+    if require_all_pathogens:
+        n_required = len(PATHOGEN_SPECS)
+        ok_counts = ok.groupby("country")["pathogen"].nunique()
+        eligible_countries = set(ok_counts[ok_counts == n_required].index)
+        if not eligible_countries:
+            raise RuntimeError("No countries found where all six pathogens pass inclusion tests (status == ok).")
+        eligible = np.array(sorted(set(ok["country"]).intersection(eligible_countries)))
+    else:
+        eligible = np.array(sorted(ok["country"].unique()))
+
     if eligible.size == 0:
-        raise RuntimeError(
-            "No countries satisfy both all-six-pathogens inclusion and the requested example-country-pathogen filter."
-        )
+        if require_all_pathogens:
+            raise RuntimeError(
+                "No countries satisfy both all-six-pathogens inclusion and the requested example-country-pathogen filter."
+            )
+        raise RuntimeError("No countries satisfy the requested example-country-pathogen filter.")
 
     n_pick = min(max(n_countries, 1), len(eligible))
     rng = np.random.default_rng(random_seed)
@@ -682,7 +785,7 @@ def plot_example_country_timeseries(
     output_path: Path,
 ) -> None:
     monthly_idx = monthly_df.set_index(["COUNTRY_AREA_TERRITORY", "month_start"]).sort_index()
-    result_idx = results.set_index(["country", "pathogen_key"])
+    result_idx = results.set_index(["country", "pathogen"])
     n_rows = len(PATHOGEN_SPECS)
     n_cols = len(example_countries)
 
@@ -730,6 +833,7 @@ def plot_example_country_timeseries(
                 duration = info["suppression_duration_months"]
                 is_censored = bool(info["is_right_censored"]) if pd.notna(info["is_right_censored"]) else False
                 series_end = pd.to_datetime(info["series_end"], errors="coerce")
+                no_excess_gap_warning = bool(info.get("country_level_no_excess_gap_warning", False))
 
                 if status == "ok" and pd.notna(last_pre_time):
                     end_time = rebound_time if pd.notna(rebound_time) else series_end
@@ -753,6 +857,17 @@ def plot_example_country_timeseries(
                         )
                     if pd.notna(dip_time):
                         ax.axvline(dip_time, color="#ef4444", linestyle="--", linewidth=0.8, alpha=0.6)
+                    if no_excess_gap_warning:
+                        ax.text(
+                            0.02,
+                            0.95,
+                            "no excess gap vs pre2020",
+                            transform=ax.transAxes,
+                            ha="left",
+                            va="top",
+                            fontsize=6,
+                            color="#b45309",
+                        )
                 else:
                     ax.text(
                         0.5,
@@ -815,6 +930,10 @@ def main() -> None:
         raise ValueError(f"Invalid dq-post-start-date: {args.dq_post_start_date}")
 
     monthly_df = load_and_aggregate_monthly(args.input)
+    n_timeseries_files = export_country_pathogen_timeseries(
+        monthly_df=monthly_df,
+        output_dir=args.output_timeseries_dir,
+    )
     country_dq = build_country_data_quality_diagnostics(
         monthly_df=monthly_df,
         min_months=args.min_months,
@@ -855,6 +974,7 @@ def main() -> None:
         n_countries=args.n_example_countries,
         random_seed=args.random_seed,
         required_pathogen_key=args.example_country_pathogen,
+        require_all_pathogens=not args.allow_partial_example_countries,
     )
     plot_example_country_timeseries(
         monthly_df=monthly_df,
@@ -868,6 +988,7 @@ def main() -> None:
     print(f"Saved detailed results: {args.output_csv}")
     print(f"Saved country DQ diagnostics: {args.output_dq_csv}")
     print(f"Saved summary results: {args.output_summary_csv}")
+    print(f"Saved country-pathogen timeseries CSVs ({n_timeseries_files}): {args.output_timeseries_dir}")
     print(f"Saved violin plot: {args.output_figure}")
     print(f"Saved example time-series plot: {args.output_example_figure}")
     print(f"Example countries ({len(example_countries)}): {', '.join(example_countries)}")

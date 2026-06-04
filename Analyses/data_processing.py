@@ -393,6 +393,10 @@ if __name__ == "__main__":
         ax[pi // 2, pi % 2].plot(incidence.index, incidence['Total'] * 100000, color='black', label='Total', linewidth=2)
         ax[pi // 2, pi % 2].set_title(f"{pathogen}")
         ax[pi // 2, pi % 2].set_ylabel('Incidence per 100k')
+        if pathogen == "InfluenzaA":
+            # print full array
+            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                print(incidence['Total'] * 100000)
         # add dashed hline at 0.5, 1.5
         print(pathogen, incidence['Total'].max() * 100000 / 25)
         ax[pi // 2, pi % 2].axhline(incidence['Total'].max() * 100000 / 25, color='gray', linestyle='--', linewidth=1)
@@ -401,7 +405,7 @@ if __name__ == "__main__":
     # ax[3, 1].legend(handles=[Rectangle((0, 0), 1, 1, color=hsv_colors[i]) for i in range(NAG)], labels=AGE_GROUP_NAMES, loc='center')
     
     plt.tight_layout()
-    plt.savefig("Figures/KPSC_panel_all_pathogens_incidence_monthly_sac_dedup.png", dpi=300)
+    # plt.savefig("Figures/KPSC_panel_all_pathogens_incidence_monthly_sac_dedup.png", dpi=300)
 
 
 #### 
