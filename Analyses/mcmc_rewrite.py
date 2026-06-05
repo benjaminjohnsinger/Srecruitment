@@ -273,8 +273,8 @@ if __name__ == "__main__":
         param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
         plot_traces(samples, param_names, pathogen, lockdown, option1, option2, seed)
 
-    n_samples = 100000
-    chunk_size = 1000
+    n_samples = 1000000
+    chunk_size = 10000
     total_chunks = n_samples // chunk_size
 
     refined_state = {}
