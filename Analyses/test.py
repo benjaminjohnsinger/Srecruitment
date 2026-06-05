@@ -51,110 +51,201 @@ plt.rcParams['font.serif'] = ['Palatino']
 # plt.show()
 
 ### plot mcmc output
-pathogen = "Parainfluenza3"
-seed = 260602
-lockdown = "ExponentialODipLinear"
-option1 = "dedupsac"
-option2 = "maxagep004"
-NAG = 7
-N_S = 3
-from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
-_, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+pathogens = ["RSV","Parainfluenza3","Adenovirus",]
+colors = ["#DC267F", "#FF832B", "#648FFF",]
+option2s = ["maxagep028","maxagep004","maxagep003",]
+seeds = [260531, 260602, 260531,]
+def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor):
+    srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
+    return srel[1]
+# fig, ax = plt.subplots()
+r0_samples_by_pathogen = {}
+immunity_samples_by_pathogen = {}
+for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
+    start_time = time.time()
+    # pathogen = "Metapneumovirus"
+    # seed = 260603
+    lockdown = "ExponentialODipLinear"
+    option1 = "dedupsac"
+    # option2 = "maxagep015"
+    prefix = ""
+    NAG = 7
+    N_S = 3
+    from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
+    param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 
-mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-# mcmc_filepath = "Outputs/mcmc_samples_DEmove_RSV_ExponentialODipLinear_dedupsac_maxagep028_260531_refined.csv"
-mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
-n_params = bounds.shape[0]
-n_walkers = 64
-n_iterations = len(mcmc_samples) // n_walkers
-param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
-n_params = len(param_names)
-mcmc_samples = mcmc_samples.reshape((-1, n_walkers, n_params))
+    mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined"+["","_studio"]["Metapneumovirus" not in pathogen]+".csv"
+    # mcmc_filepath = "Outputs/mcmc_samples_DEmove_RSV_ExponentialODipLinear_dedupsac_maxagep028_260531_refined_studio.csv"
+    mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
+    n_params = bounds.shape[0]
+    n_walkers = 64
+    n_iterations = len(mcmc_samples) // n_walkers
+    n_params = len(param_names)
 
-fig, ax = plt.subplots(4,4, figsize=(10,6))
-for j in range(n_walkers):
-    for i in range(n_params):
-        ax[i//4, i%4].plot(mcmc_samples[:,j,i], alpha=0.4)
-        ax[i//4, i%4].set_title(param_names[i])
+    import seaborn as sns
+    # find index of S_REL1 in pram_names
+    thinning = 100 if "Influenza" not in pathogen else 1000
+    thinned_samples = mcmc_samples[::thinning, :]
+    gamma = 4.9 if ("RSV" in pathogen) or "Metapneumovirus" in pathogen else 3.0
+    r0_samples = thinned_samples[:,0]*15.24*gamma
+    if "S_REL1" in param_names:
+        j = param_names.index("S_REL1")
+        srel1_samples = thinned_samples[:,j]
+    else:
+        eidx = param_names.index("EXTRA_IMMUNITY")
+        fidx = param_names.index("FIRST_IMMUNITY")
+        fdifdx = param_names.index("FIRST_DIS_INF_FACTOR")
+        srel1_samples = jax.jit(jax.vmap(get_srel1_from_constrained_immunity))(thinned_samples[:,eidx], thinned_samples[:,fidx], thinned_samples[:,fdifdx])
+    print(f"Thinning samples time for {pathogen}: {time.time() - start_time:.2f} seconds")
+    print(f"Median R0 for {pathogen}: {np.median(r0_samples):.2f}, Median S_REL1 for {pathogen}: {1-np.median(srel1_samples):.2f}")
+    r0_samples_by_pathogen[pathogen] = r0_samples
+    immunity_samples_by_pathogen[pathogen] = 1-srel1_samples
+    # if pathogen == "RSV":
+    #     mcmc_samples = mcmc_samples[-17000*64:, :]
+    mcmc_samples = mcmc_samples.reshape((-1, n_walkers, n_params))
+
+    # load logprob
+    logprob_filepath = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined_studio.csv"
+    log_prob_samples = np.genfromtxt(logprob_filepath, delimiter=',', skip_header=0)
+    if pathogen == "RSV":
+        log_prob_samples = log_prob_samples[-17000:]
+    print(log_prob_samples.shape)
+    # print parameters at minimum nll
+    log_prob_2d = np.atleast_2d(log_prob_samples)
+    best_idx = np.unravel_index(np.argmax(log_prob_2d), log_prob_2d.shape)
+    mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
+    flat_best_idx = best_idx[0] * log_prob_2d.shape[1] + best_idx[1]
+    best_params = mcmc_samples_2d[flat_best_idx]
+    best_log_prob = float(log_prob_2d[best_idx])
+    best_neg_log_likelihood = -best_log_prob
+    if "Influenza" in pathogen:
+        best_srel1 = get_srel1_from_constrained_immunity(best_params[eidx], best_params[fidx], best_params[fdifdx])
+    else:
+        best_srel1 = best_params[j]
+    print(f"Best R0 found by MCMC: {15.24*gamma*best_params[0]:.4f}, best immunity found by MCMC: {1-best_srel1:.4f}, with negative log-probability: {best_neg_log_likelihood:.4f}")
+    
+    fig, trax = plt.subplots(4,4, figsize=(10,6))
+    for param_idx in range(n_params):
+        for walker_idx in range(n_walkers):
+            # if best_idx[1] == walker_idx:
+            #     trax[param_idx//4, param_idx%4].plot(mcmc_samples[:,walker_idx,param_idx], alpha=1, zorder=10, color='k', label="Best fit walker")
+            # else:
+            trax[param_idx//4, param_idx%4].plot(mcmc_samples[:,walker_idx,param_idx], alpha=0.4)
+        trax[param_idx//4, param_idx%4].set_title(param_names[param_idx])
+        # trax[param_idx//4, param_idx%4].axvline(x=best_idx[0], color='k', linestyle='-', label="Best fit")
     plt.tight_layout()
-plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers_new.png", dpi=300, bbox_inches='tight')
-plt.close(fig)
+    plt.savefig(f"Figures/mcmc_traces_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers.png", dpi=300, bbox_inches='tight')
+    plt.close(fig)
 
-# load logprob
-logprob_filepath = f"Outputs/mcmc_log_prob_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-log_prob_samples = np.genfromtxt(logprob_filepath, delimiter=',', skip_header=0)
-# print parameters at minimum nll
-log_prob_2d = np.atleast_2d(log_prob_samples)
-best_idx = np.unravel_index(np.argmax(log_prob_2d), log_prob_2d.shape)
-mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
-flat_best_idx = best_idx[0] * log_prob_2d.shape[1] + best_idx[1]
-best_params = mcmc_samples_2d[flat_best_idx]
-best_log_prob = float(log_prob_2d[best_idx])
-best_neg_log_likelihood = -best_log_prob
-# for name, val in zip(param_names, best_params):
-#     print(f"{name}: {val:.4f}")
+    # # cut off burn-in
+    n_iterations -= 10000
+    mcmc_samples = mcmc_samples[10000:, :, :] 
 
-# --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
-WRITE_EMCEE_ADHOC_EXPORT = True
-if WRITE_EMCEE_ADHOC_EXPORT:
-    results_dir = f"Data/Processed/results{str(seed)[:6]}"
-    os.makedirs(results_dir, exist_ok=True)
-    emcee_results_file = f"{results_dir}/emcee_{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
-    with open(emcee_results_file, "wb") as f:
-        pickle.dump(
-            {
-                "final_population": np.asarray([best_params]),
-                "final_fitness": np.asarray([best_neg_log_likelihood]),
-            },
-            f,
-        )
-    print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
-# --- END AD-HOC EMCEE EXPORT BLOCK ---
+    # Reshape it back to 3D to separate the walkers properly
+    chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
 
-# # cut off burn-in
-# n_iterations -= 1000
-# mcmc_samples = mcmc_samples[1000:, :, :] 
+    # Now apply the Case A math
+    moved = np.any(chain_3d[1:] != chain_3d[:-1], axis=-1)
+    mean_acceptance = np.mean(moved)
 
-# Reshape it back to 3D to separate the walkers properly
-chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
+    print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
 
-# Now apply the Case A math
-moved = np.any(chain_3d[1:] != chain_3d[:-1], axis=-1)
-mean_acceptance = np.mean(moved)
+    # calculate ensemble-aware autocorrelation time and ESS
+    try:
+        autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
+    except emcee.autocorr.AutocorrError as error:
+        autocorr_times = np.asarray(error.tau)
+        print("Warning: chain may be too short for reliable autocorrelation estimates.")
 
-print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
+    autocorr_times = np.asarray(autocorr_times, dtype=float)
+    effective_sample_sizes = (n_iterations * n_walkers) / autocorr_times
+    print("Autocorrelation times:\n", autocorr_times)
+    print("Effective sample sizes:\n", effective_sample_sizes)
 
-# calculate ensemble-aware autocorrelation time and ESS
-try:
-    autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
-except emcee.autocorr.AutocorrError as error:
-    autocorr_times = np.asarray(error.tau)
-    print("Warning: chain may be too short for reliable autocorrelation estimates.")
+    maximum_autocorr_time = int(np.ceil(np.max(autocorr_times)))
 
-autocorr_times = np.asarray(autocorr_times, dtype=float)
-effective_sample_sizes = (n_iterations * n_walkers) / autocorr_times
-print("Autocorrelation times:\n", autocorr_times)
-print("Effective sample sizes:\n", effective_sample_sizes)
+    # chain_3d_pruned = chain_3d[500:][::maximum_autocorr_time]
+    median_value_by_parameter = np.median(chain_3d, axis=(0,1))
+    lower_value = np.percentile(chain_3d, 2.5, axis=(0,1))
+    upper_value = np.percentile(chain_3d, 97.5, axis=(0,1))
+    # print(median_value_by_parameter)
+    # print(lower_value)
+    # print(upper_value)
 
-maximum_autocorr_time = int(np.ceil(np.max(autocorr_times)))
+    # print best parameter set with credible intervals
+    print("Best parameter set found by MCMC, with negative log-likelihood:", best_neg_log_likelihood)
+    for i in range(n_params):
+        print(f"{param_names[i]}: {best_params[i]:.4f} ({lower_value[i]:.4f}–{upper_value[i]:.4f})")
 
-# chain_3d_pruned = chain_3d[500:][::maximum_autocorr_time]
-median_value_by_parameter = np.median(chain_3d, axis=(0,1))
-lower_value = np.percentile(chain_3d, 2.5, axis=(0,1))
-upper_value = np.percentile(chain_3d, 97.5, axis=(0,1))
-# print(median_value_by_parameter)
-# print(lower_value)
-# print(upper_value)
+    import corner
+    fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
+    plt.savefig(f"Figures/mcmc_corner_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_new.pdf", bbox_inches='tight')
+    plt.close(fig)
+    
+    # sns.kdeplot(ax=ax, x=r0_samples, y=1-srel1_samples, color=color, label=pathogen, fill=True)
+    # ax.plot(15.24*gamma*best_params[0], 1-best_srel1, marker='x', color='k', label="Best fit")
+    print(f"Plotting time for {pathogen}: {time.time() - start_time:.2f} seconds")
 
-# print best parameter set with credible intervals
-print("Best parameter set found by MCMC, with negative log-likelihood:", best_neg_log_likelihood)
-for i in range(n_params):
-    print(f"{param_names[i]}: {best_params[i]:.4f} ({lower_value[i]:.4f}–{upper_value[i]:.4f})")
+# # bootstrap line of best fit by pulling one sample from each pathogen to get confidence intervals on the slope and intercept
+# slope_samples = []
+# intercept_samples = []
+# for i in range(1000):
+#     r0_sample = []
+#     srel1_sample = []
+#     for pathogen in pathogens:
+#         sample_idx = np.random.choice(len(r0_samples_by_pathogen[pathogen]))
+#         r0_sample.append(r0_samples_by_pathogen[pathogen][sample_idx])
+#         srel1_sample.append(immunity_samples_by_pathogen[pathogen][sample_idx])
+#     r0_sample = np.log10(np.array(r0_sample))
+#     srel1_sample = np.array(srel1_sample)
+#     slope, intercept, r_value, p_value, std_err = sp.stats.linregress(r0_sample, srel1_sample)
+#     slope_samples = np.append(slope_samples, slope)
+#     intercept_samples = np.append(intercept_samples, intercept) 
 
-import corner
-fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-plt.savefig(f"Figures/mcmc_corner_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_new.pdf", bbox_inches='tight')
-fig.clear()
+# # build custom legend with colored squares
+# handles = [plt.Line2D([0], [0], marker='s', color='w', markerfacecolor=color, markersize=8) for color in colors]
+# labels = pathogens
+# # add to legend a black x for MAP estimate
+# handles.append(plt.Line2D([0], [0], marker='x', color='k', markersize=8, linestyle='None'))
+# labels.append("MAP estimate")
+# ax.legend(handles, labels, frameon=False, fontsize=8, loc='lower right')
+# # plot line of best fit with confidence interval from bootstrap
+# slope_median = np.median(slope_samples)
+# slope_lower = np.percentile(slope_samples, 2.5)
+# slope_upper = np.percentile(slope_samples, 97.5)
+# intercept_median = np.median(intercept_samples)
+# intercept_lower = np.percentile(intercept_samples, 2.5)
+# intercept_upper = np.percentile(intercept_samples, 97.5)
+# x = np.linspace(1, 7, 100)
+# y_median = slope_median * np.log10(x) + intercept_median
+# y_lower = slope_lower * np.log10(x) + intercept_lower
+# y_upper = slope_upper * np.log10(x) + intercept_upper
+# ax.plot(x, y_median, color='k', linestyle='-', label="Line of best fit")
+# ax.fill_between(x, y_lower, y_upper, color='k', alpha=0.2, label="95% CI")
+# ax.set_xscale('log')
+# ax.set_xticks([1,2,3,4,5,6,7])
+# ax.set_xlabel("Basic reproduction number (log scale)")
+# ax.set_ylabel("Immunity from first infection")
+# plt.savefig(f"Figures/mcmc_r0_vs_srel1_kde_thinned_w_best_fits_w_log10_bootstrapped_line.png", dpi=300, bbox_inches='tight')
+
+# # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
+# WRITE_EMCEE_ADHOC_EXPORT = True
+# if WRITE_EMCEE_ADHOC_EXPORT:
+#     results_dir = f"Data/Processed/results{str(seed)[:6]}"
+#     os.makedirs(results_dir, exist_ok=True)
+#     emcee_results_file = f"{results_dir}/emcee_{prefix}{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
+#     with open(emcee_results_file, "wb") as f:
+#         pickle.dump(
+#             {
+#                 "final_population": np.asarray([best_params]),
+#                 "final_fitness": np.asarray([best_neg_log_likelihood]),
+#             },
+#             f,
+#         )
+#     print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
+# # --- END AD-HOC EMCEE EXPORT BLOCK ---
+
+
 
 
 

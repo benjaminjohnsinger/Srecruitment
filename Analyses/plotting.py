@@ -18,7 +18,7 @@ import pickle
 import colorsys
 from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 
-from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, infections_by_age, observations, load_optimization_results, x_to_params, sum_age_to, pathogen_parameters
+from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, infections_by_age, observations, load_optimization_results, x_to_params, sum_age_to, pathogen_parameters, load_mcmc_chain, load_random_mcmc_result
 
 N_C = 2
 N_S = 3
@@ -30,13 +30,12 @@ hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 # '#ff0000', '#ffb700', '#6cff00', '#00ffc0', '#00bbff', '#1900ff', '#f300ff'
 
-##### Simple line plots #####
 def lockdown_incidence_plot(
     ax,state0,params,points,T_LOCKDOWN,solution=None,label='Observed cases',color='#648FFF',linewidth=1,alpha=1,
     by_age=False,AGE_GROUP_NAMES=None,select_age_group=None,relative=False,deltas=deltas,obs=None,times=None,
     start_t=date_to_t('2015-10-01'),end_t=date_to_t('2025-05-01'),factor=1,p_time_to_obs=[1],
     NAG=7, AGE_GROUPS=None, max_month=None,
-    test_data=None,daily_hospitalization_rates=None,aggregation=None
+    test_data=None,daily_hospitalization_rates=None,aggregation=None, uncertainty="confidence"
 ):
     if solution is None:
         term = ODETerm(deltas)
@@ -100,14 +99,15 @@ def lockdown_incidence_plot(
 
         if selected_age_idx is None:
             for i_age in range(NAG):
-                ax.plot(
-                    dates[(start_index + 1):end_index],
-                    obs[start_index:end_index, i_age] / divisor[i_age],
-                    label=AGE_GROUP_NAMES[i_age] if AGE_GROUP_NAMES is not None else f"Age {i_age}",
-                    color=hsv_colors[i_age],
-                    linewidth=linewidth,
-                    alpha=alpha,
-                )
+                if uncertainty != "draw":
+                    ax.plot(
+                        dates[(start_index + 1):end_index],
+                        obs[start_index:end_index, i_age] / divisor[i_age],
+                        label=AGE_GROUP_NAMES[i_age] if AGE_GROUP_NAMES is not None else f"Age {i_age}",
+                        color=hsv_colors[i_age],
+                        linewidth=linewidth,
+                        alpha=alpha,
+                    )
             mx = 1.1 * np.max(np.max(obs / pop_size_by_age, axis=1)[start_index:end_index])
         else:
             series = obs[start_index:end_index, selected_age_idx] / divisor[selected_age_idx]
@@ -116,40 +116,43 @@ def lockdown_incidence_plot(
                 if AGE_GROUP_NAMES is not None
                 else f"Age {selected_age_idx}"
             )
-            ax.plot(
-                dates[(start_index + 1):end_index],
-                series,
-                label=label if label != 'Observed cases' else age_label,
-                color=color if color is not None else hsv_colors[selected_age_idx],
-                linewidth=linewidth,
-                alpha=alpha,
-            )
+            if uncertainty != "draw":
+                ax.plot(
+                    dates[(start_index + 1):end_index],
+                    series,
+                    label=label if label != 'Observed cases' else age_label,
+                    color=color if color is not None else hsv_colors[selected_age_idx],
+                    linewidth=linewidth,
+                    alpha=alpha,
+                )
             mx = 1.1 * np.max(series)
     else:
         obs = factor * np.sum(expected_obs, axis=1) / np.sum(values[:-NAG, :], axis=0)[1:]
         if relative:
             pre_mx = np.max(obs[start_index:np.argmin(times <= T_LOCKDOWN)])
-            ax.plot(
-                dates[(start_index + 1):end_index],
-                obs[start_index:end_index] / pre_mx,
-                label=label,
-                color=color,
-                linewidth=linewidth,
-                alpha=alpha,
-            )
+            if uncertainty != "draw":
+                ax.plot(
+                    dates[(start_index + 1):end_index],
+                    obs[start_index:end_index] / pre_mx,
+                    label=label,
+                    color=color,
+                    linewidth=linewidth,
+                    alpha=alpha,
+                )
             mx = 1.1 * np.max(obs[start_index:end_index]) / pre_mx
         else:
-            ax.plot(
-                dates[(start_index+1):end_index],
-                obs[start_index:end_index],
-                label=label,
-                color=color,
-                linewidth=linewidth,
-                alpha=alpha,
-            )
+            if uncertainty != "draw":
+                ax.plot(
+                    dates[(start_index+1):end_index],
+                    obs[start_index:end_index],
+                    label=label,
+                    color=color,
+                    linewidth=linewidth,
+                    alpha=alpha,
+                )
             mx = 1.1 * np.max(np.array(obs[start_index:end_index]))
 
-    # Plot 95% CI from binomial distribution if test_data provided
+    # Plot 95% CI or drawn trajectory from binomial distribution if test_data provided
     if test_data is not None:
         if by_age and selected_age_idx is not None:
             pop_size_by_age = calculate_population_size(values, NAG=NAG)
@@ -165,7 +168,6 @@ def lockdown_incidence_plot(
                 agg_freq = agg_freq_map.get(aggregation[0], 'D')
                 
                 pop_size_col = pop_size_by_age[start_index+1:end_index, selected_age_idx]
-                # print all array shapes goint into df_agg
                 df_agg = pd.DataFrame({
                     'date': dates_agg,
                     'expected_obs': expected_obs_col,
@@ -188,24 +190,50 @@ def lockdown_incidence_plot(
                 dates_agg = dates[(start_index + 1):end_index]
                 pop_size_col = pop_size_by_age[start_index:end_index, selected_age_idx]
                 overall_hosp = overall_hosp[start_index:end_index]
+            
             ci_lower = np.zeros_like(expected_prop)
             ci_upper = np.zeros_like(expected_prop)
+            drawn_path = np.zeros_like(expected_prop)
             
             for t_idx in range(len(expected_prop)):
                 if n_tests[t_idx] > 0:
                     p = np.clip(expected_prop[t_idx], 0, 1)
-                    ci_lower[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.025, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_col[t_idx])
-                    ci_upper[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.975, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_col[t_idx])
+                    if uncertainty == "confidence":
+                        ci_lower[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.025, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_col[t_idx])
+                        ci_upper[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.975, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_col[t_idx])
+                    elif uncertainty == "draw":
+                        draw_k = np.random.binomial(int(n_tests[t_idx]), p)
+                        drawn_path[t_idx] = overall_hosp[t_idx] * draw_k / (n_tests[t_idx] * pop_size_col[t_idx])
             
             agg_factor_map = {'D': 1, 'W': 7, 'M': 30.44}
             agg_factor = agg_factor_map.get(aggregation[0], 1) if aggregation is not None else 1
-            ax.fill_between(
-                dates_agg,
-                factor * ci_lower / agg_factor,
-                factor * ci_upper / agg_factor,
-                alpha=0.2,
-                color=color,
-            )
+            
+            if uncertainty == "confidence":
+                ax.fill_between(
+                    dates_agg,
+                    factor * ci_lower / agg_factor,
+                    factor * ci_upper / agg_factor,
+                    alpha=0.2,
+                    color=color,
+                )
+            elif uncertainty == "draw":
+                age_label = (
+                    AGE_GROUP_NAMES[selected_age_idx]
+                    if AGE_GROUP_NAMES is not None
+                    else f"Age {selected_age_idx}"
+                )
+                plot_label = label if label != 'Observed cases' else age_label
+                plot_color = color if color is not None else hsv_colors[selected_age_idx]
+                
+                ax.plot(
+                    dates_agg,
+                    factor * drawn_path / agg_factor,
+                    label=plot_label,
+                    color=plot_color,
+                    linewidth=linewidth,
+                    alpha=alpha
+                )
+
         elif not by_age:
             pop_size_by_age = calculate_population_size(values, NAG=NAG)
             overall_hosp = np.sum((daily_hospitalization_rates * pop_size_by_age[start_index+1:end_index, :]), axis=1)
@@ -242,22 +270,38 @@ def lockdown_incidence_plot(
             
             ci_lower = np.zeros_like(expected_prop)
             ci_upper = np.zeros_like(expected_prop)
+            drawn_path = np.zeros_like(expected_prop)
             
             for t_idx in range(len(expected_prop)):
                 if n_tests[t_idx] > 0:
                     p = np.clip(expected_prop[t_idx], 0, 1)
-                    ci_lower[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.025, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_agg[t_idx])
-                    ci_upper[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.975, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_agg[t_idx])
+                    if uncertainty == "confidence":
+                        ci_lower[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.025, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_agg[t_idx])
+                        ci_upper[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.975, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_agg[t_idx])
+                    elif uncertainty == "draw":
+                        draw_k = np.random.binomial(int(n_tests[t_idx]), p)
+                        drawn_path[t_idx] = overall_hosp[t_idx] * draw_k / (n_tests[t_idx] * pop_size_agg[t_idx])
             
             agg_factor_map = {'D': 1, 'W': 7, 'M': 30.44}
-            agg_factor = agg_factor_map.get(aggregation[0], 1)
-            ax.fill_between(
-                dates_agg,
-                factor * ci_lower / agg_factor,
-                factor * ci_upper / agg_factor,
-                alpha=0.2,
-                color=color,
-            )
+            agg_factor = agg_factor_map.get(aggregation[0], 1) if aggregation is not None else 1
+            
+            if uncertainty == "confidence":
+                ax.fill_between(
+                    dates_agg,
+                    factor * ci_lower / agg_factor,
+                    factor * ci_upper / agg_factor,
+                    alpha=0.2,
+                    color=color,
+                )
+            elif uncertainty == "draw":
+                ax.plot(
+                    dates_agg,
+                    factor * drawn_path / agg_factor,
+                    label=label,
+                    color=color,
+                    linewidth=linewidth,
+                    alpha=alpha
+                )
 
     return mx
 
@@ -973,7 +1017,7 @@ def get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, census
     shaped_values = values[1:, :].reshape((1+2*N_S, NAG, -1))
     infectious = shaped_values[1:2*N_S:2, :, :]
     susceptible = shaped_values[0:2*N_S:2, :, :]
-    all_infectious = infectious.sum(axis=0)
+    all_infectious = (params[7][:, :, None] * infectious).sum(axis=0)
     population_size = calculate_population_size(values, NAG=NAG)
     foi_matrix = params[4] * params[3][:, :, None] * all_infectious[None, :, :] / jnp.sum(population_size, axis=1)[None, None, :]
     infections_matrix = params[6][:, None, None, None] * foi_matrix[None, :, :, :] * susceptible[:, :, None, :]
@@ -1028,13 +1072,13 @@ def plot_infections_versus(ax, matrices, age_group_indices, pathogens, colors, c
     ax.spines['right'].set_visible(False)
 
 import matplotlib.transforms as mtransforms
-def plot_age_figure(ax, pathogens, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=False):
+def plot_age_figure(ax, pathogens, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=False, prefix=""):
     matrices = {}
     hosp_matrices = {}
     for pi, (pathogen, option2, seed) in enumerate(zip(pathogens, option2s, seeds)):
-        age_infections_matrix = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=False, prefix="")
+        age_infections_matrix = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=False, prefix=prefix)
         normalized_age_infections_matrix = age_infections_matrix / CENSUS_AGE_POP[:, None]
-        age_hospitalizations_matrix = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=True, prefix="")
+        age_hospitalizations_matrix = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=True, prefix=prefix)
         plot_infection_matrix(ax[pi//3, pi%3], age_group_names=AGE_GROUP_NAMES, NAG=7, matrix=normalized_age_infections_matrix)
         ax[pi//3, pi%3].set_title(nice_names.get(pathogen, pathogen))
         matrices[pathogen] = age_infections_matrix
@@ -1274,35 +1318,109 @@ if __name__ == "__main__":
         from Parameters.census_population import CENSUS_AGE_POP, AGE_GROUP_NAMES
     lockdown = "ExponentialODipLinear"
 
+    PERIOD = pd.date_range(start=pd.to_datetime('2015-07-04'), end=pd.to_datetime('2025-05-01'), freq='D')
+    POINTS = np.array(date_to_t(PERIOD))
+    start_idx = int(date_to_t(PERIOD[0]) + 90 - date_to_t('2015-10-01'))
+    end_idx = int(date_to_t(PERIOD[-1]) - date_to_t('2015-10-01'))
+    ## Initial conditions
+    STATE0 = jnp.zeros((2*N_S+1,NAG))
+    STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
+    STATE0 = STATE0.at[1,:].set(1)
+    # # flatten initial state and add maternal immunity compartment
+    STATE0 = STATE0.flatten()
+    STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+    daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group'+['','_split'][NAG>7]+['','_detrended']["detrend" in option1]+["","_dedup"]["dedup" in option1]+'.csv',index_col=0,parse_dates=True)
+    daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
+    daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
+
+    pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "k"]
+    option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035","maxagep035",]
+    seeds = [260531, 260603, 260602, 260531, 260531, 260531,]
+
     # ## Generate Figure 1: timeseries and suppression duration figure
     # fig = plt.figure(layout="constrained", figsize=(6.5,8.5))
-    # pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
     # countries = ["Brazil", "Canada", "India", "Japan", "Tunisia"]
-    # colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "k"]
     # plot_suppression_durations(fig, pathogens, countries, colors)
     # plt.savefig(f"Figures/supression_durations_vertical.png", dpi=300)
 
-    ## Generate Figure 2: age-structured fits figure
+    # ## Generate Figure 2: age-structured fits figure
+    # fig, axes = plt.subplots(7, 6, figsize=(6.5,6.5), layout="constrained")
+    # aggregation = "MS"
+    # agg_factor = 30.44
+    # factor = 100000
+    # for pathogen_idx in range(len(pathogens)):
+    #     ax = axes[:,pathogen_idx]
+    #     pathogen, option2, seed = pathogens[pathogen_idx], option2s[pathogen_idx], seeds[pathogen_idx]
+    #     _, _, _, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
+    #     data = data_full[start_idx:end_idx]
+    #     n_samples = 100
+    #     _, chain, _ = load_mcmc_chain(pathogen, seed, lockdown, option1, option2)
+    #     np.random.seed(260604)
+    #     # choose n_samples random rows from chain
+    #     random_indices = np.random.choice(chain.shape[0], size=n_samples, replace=False)
+    #     random_samples = chain[random_indices, :]
+    #     from fit_MCMC import run_simulation
+    #     def get_solution(x):
+    #         params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
+    #         solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+    #         return solution
+    #     solutions = jax.jit(jax.vmap(get_solution))(random_samples)
+    #     for sample_i in range(n_samples):
+    #         solution = jax.tree_util.tree_map(lambda x: x[sample_i], solutions)
+    #         for age_group_idx, age_group_name in enumerate(AGE_GROUP_NAMES):
+    #             lockdown_incidence_plot(ax[age_group_idx], STATE0, None, POINTS, pd.to_datetime('2020-03-01'),
+    #                                     solution=solution,
+    #                                     by_age=True, select_age_group=age_group_idx, AGE_GROUP_NAMES=AGE_GROUP_NAMES, AGE_GROUPS=AGE_GROUPS,
+    #                                     p_time_to_obs=p_time_to_obs, NAG=NAG,
+    #                                     test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
+    #                                     uncertainty="draw",
+    #                                     color=colors[pathogen_idx], factor=factor*agg_factor, label="Simulation", linewidth=0.5, alpha=0.05)
+    #     for age_group_idx, age_group_name in enumerate(AGE_GROUP_NAMES):
+    #         kpsc_proportion_positive_incidence_plot(ax[age_group_idx], pathogen=pathogen,
+    #                                                 AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, select_age_group=age_group_idx,
+    #                                                 aggregation=aggregation, factor=factor, annotations=False, definition="", label="Data", hosp=True, dedup=True,
+    #                                                 title="", color="k" if pathogen_idx < 4 else "silver", linewidth=0.5)
+    #         if pathogen_idx == 0:
+    #             ax[age_group_idx].set_ylabel(age_group_name)
+    #         else:
+    #             ax[age_group_idx].set_ylabel("")
+    #         if age_group_idx == 0:
+    #             ax[age_group_idx].set_title(short_names.get(pathogen, pathogen))
+    #         ax[age_group_idx].set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
+    #         if age_group_idx == len(AGE_GROUP_NAMES)-1:
+    #             ax[age_group_idx].set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025",], fontsize=6)
+    #             for label in ax[age_group_idx].get_xticklabels():
+    #                 label.set_rotation(45)
+    #                 label.set_horizontalalignment('right')
+    #                 label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+    #         else:
+    #             ax[age_group_idx].set_xticklabels([])
+    #         ax[age_group_idx].legend().set_visible(False)
+    #         ax[age_group_idx].tick_params(axis='y', labelsize=6)
+    # # big y label for all plots
+    # fig.text(0.001, 0.5, 'Estimated incidence of hospitalization per 100k members', va='center', rotation='vertical')
+    # # plt.tight_layout(rect=[0.03, 0, 1, 1])
+    # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
-    # ## Generate Figure 4: age infection figure
-    # fig = plt.figure(figsize=(6.5, 6), layout="constrained")
-    # gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
-    # gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
-    # gs_bottom = gs_main[1].subgridspec(2, 4)
-    # import numpy as np
-    # ax = np.empty((4, 4), dtype=object)
-    # for r in range(2):
-    #     for c in range(3):
-    #         ax[r, c] = fig.add_subplot(gs_top[r, c])
-    #     ax[r, 3] = fig.add_subplot(gs_top[r, 4])
-    # for r in range(2):
-    #     for c in range(4):
-    #         ax[r+2, c] = fig.add_subplot(gs_bottom[r, c])
-    # pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-    # option2s = ["maxagep028","maxagep01","maxagep004","maxagep003","maxagep035","maxagep035",]
-    # seeds = [260531, 260602, 260602, 260531, 260531, 260531,]
-    # plot_age_figure(ax, pathogens, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES)
-    # plt.savefig(f"Figures/infection_matrices_{seed}_{option1}_{lockdown}_test.png", dpi=300)
+    ## Generate Figure 4: age infection figure
+    fig = plt.figure(figsize=(6.5, 6), layout="constrained")
+    gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
+    gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
+    gs_bottom = gs_main[1].subgridspec(2, 4)
+    import numpy as np
+    ax = np.empty((4, 4), dtype=object)
+    for r in range(2):
+        for c in range(3):
+            ax[r, c] = fig.add_subplot(gs_top[r, c])
+        ax[r, 3] = fig.add_subplot(gs_top[r, 4])
+    for r in range(2):
+        for c in range(4):
+            ax[r+2, c] = fig.add_subplot(gs_bottom[r, c])
+    seeds = [260604,]*6
+    option1 = "ireldedupsac"
+    plot_age_figure(ax, pathogens, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, prefix="scipy_DE")
+    plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_irel.png", dpi=300)
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     

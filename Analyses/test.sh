@@ -1,6 +1,17 @@
 combinations=(
-"RSV 260604 ExponentialODipLinear dedupsac oldmaxagep1 1e-9 20 1 0.7"
-"RSV 260604 ExponentialODipLinear dedupsac oldmaxagep05 1e-9 20 1 0.7"
+"RSV 260604 ExponentialODipLinear kireldedupsac maxagep028 1e-9 20 1 0.7 scipy_DE"
+"Metapneumovirus 260604 ExponentialODipLinear kireldedupsac maxagep015 1e-9 20 1 0.7 scipy_DE"
+"Parainfluenza3 260604 ExponentialODipLinear kireldedupsac maxagep004 1e-9 20 1 0.7 scipy_DE"
+"Adenovirus 260604 ExponentialODipLinear kireldedupsac maxagep003 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaA 260604 ExponentialODipLinear kireldedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaB 260604 ExponentialODipLinear kireldedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
+
+"RSV 260604 ExponentialODipLinear fullireldedupsac maxagep028 1e-9 20 1 0.7 scipy_DE"
+"Metapneumovirus 260604 ExponentialODipLinear fullireldedupsac maxagep015 1e-9 20 1 0.7 scipy_DE"
+"Parainfluenza3 260604 ExponentialODipLinear fullireldedupsac maxagep004 1e-9 20 1 0.7 scipy_DE"
+"Adenovirus 260604 ExponentialODipLinear fullireldedupsac maxagep003 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaA 260604 ExponentialODipLinear fullireldedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaB 260604 ExponentialODipLinear fullireldedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
 )
 
 # for combination in "${combinations[@]}"; do
@@ -8,7 +19,7 @@ combinations=(
 # done
 
 for combination in "${combinations[@]}"; do
-    # /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
+    /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
     if [[ $combination == *"optax" ]]; then
         /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_optax.py $combination
     else

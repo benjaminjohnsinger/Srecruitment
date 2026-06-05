@@ -12,7 +12,7 @@ import os
 import re
 import glob
 
-from utils import consistent_x_from_DE, x_to_params, date_to_t, calculate_population_size
+from utils import consistent_x_from_DE, x_to_params, date_to_t, calculate_population_size, calculate_R0_from_values
 from fit_MCMC import run_simulation
 from data_processing import calculate_proportion_positive_incidence
 # from Parameters.times_and_contacts import PERIOD
@@ -108,6 +108,7 @@ def parameter_space(good_simulations, NAG=7):
     for pathogen_info in good_simulations:
         pathogen, seed, lockdown, option1, option2 = pathogen_info
         x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
+        print(pathogen, x[0], x[2])
         parameter_sets.append(x)
     parameter_sets = jnp.array(parameter_sets)
     return(parameter_sets)
@@ -656,12 +657,12 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
         value = peak_times
     return value
 
-def get_parameter_values(samples, p_idx):
+def get_parameter_values(samples, p_idx, r0_base=15):
     """Extracts and properly scales the specific parameter from the sample arrays."""
     scaled_samples = samples / PARAM_SCALING
     
     if p_idx == 0:  # R0
-        return 13.88 * scaled_samples[:, 2] / scaled_samples[:, 0]
+        return r0_base * scaled_samples[:, 2] / scaled_samples[:, 0]
     else:
         return scaled_samples[:, p_idx-1]
 
@@ -723,14 +724,14 @@ def add_line_of_best_fit(ax, x_vals, y_vals):
     ax.fill_between(x_fit_ci_masked, ci_lower_masked, ci_upper_masked, alpha=0.3, color='gray', label='95% CI')
     ax.plot(x_fit_masked, y_fit_masked, color='black', linestyle='--', label='Line of best fit')
 
-def add_pathogen_labels(ax, good_simulations, p1=0, p2=8, NAG=7, color=None):
+def add_pathogen_labels(ax, good_simulations, p1=0, p2=8, NAG=7, color=None, r0_base=15):
     if color is None:
         color = ["white"] * len(good_simulations)
     for i, pathogen_info in enumerate(good_simulations):
         pathogen, seed, lockdown, option1, option2 = pathogen_info
         x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
         if p1 == 0:
-            val1 = 13.88 * x[2] / x[0]
+            val1 = r0_base * x[2] / x[0]
         else:
             val1 = x[p1-1] / PARAM_SCALING[p1-1]
         val2 = x[p2-1] / PARAM_SCALING[p2-1]
@@ -772,7 +773,7 @@ def run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_t
     
     return run_save_path
 
-def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p2=8, vmin=None, vmax=None, log=False, label=None, outcome="time_to_rebound", cbar=True, pathogen_vals=None, **kwargs):
+def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p2=8, vmin=None, vmax=None, log=False, label=None, outcome="time_to_rebound", cbar=True, pathogen_vals=None, r0_base=15, **kwargs):
     """Generates the heatmap/histogram background with simply the main pathogens overlaid."""
     all_results, all_samples = load_and_recombine_results(run_save_path)
     if all_results is None:
@@ -781,8 +782,8 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
         
     valid_samples, valid_targets = extract_valid_data(all_samples, all_results, outcome=outcome, **kwargs)
 
-    x_vals = get_parameter_values(valid_samples, p1)
-    y_vals = get_parameter_values(valid_samples, p2)
+    x_vals = get_parameter_values(valid_samples, p1, r0_base=r0_base)
+    y_vals = get_parameter_values(valid_samples, p2, r0_base=r0_base)
 
     if log:
         valid_targets = jnp.log(valid_targets)
@@ -832,7 +833,7 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
         pathogen_colors = [pathogen_colors[i] if not np.isnan(pathogen_vals[i]) else (1,1,1,1) for i in range(len(good_simulations))]
     else:
         pathogen_colors = ["white"] * len(good_simulations)
-    add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, color=pathogen_colors, NAG=NAG)
+    add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, color=pathogen_colors, NAG=NAG, r0_base=r0_base)
 
     ax.set_xlabel(PARAMETER_NAMES[p1])
     ax.set_ylabel(PARAMETER_NAMES[p2])
@@ -846,7 +847,7 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
 
     return np.min(valid_targets), np.max(valid_targets)
 
-def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8, NAG=7):
+def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8, NAG=7, r0_base=15):
     """Generates the scatter plot of pathogens + line of best fit."""
     
     val1, val2 = np.zeros(len(good_simulations)), np.zeros(len(good_simulations))
@@ -854,10 +855,10 @@ def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8, NAG=7):
         pathogen, seed, lockdown, option1, option2 = pathogen_info
         x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed)
         if p1 == 0:
-            val1[i] = 13.88 * x[2] / x[0]
+            val1[i] = r0_base * x[2] / x[0]
             ax.set_xscale('log')
-            ax.set_xticks([1,2,5,10,20,40])
-            ax.set_xlim([0.901,60])
+            ax.set_xticks([1,2,3,4,5,6,7,8,9])
+            ax.set_xlim([0.901,10])
             ax.get_xaxis().set_major_formatter(plt.ScalarFormatter())
             ax.set_xlabel("Basic reproduction number (log scale)")
         else:
@@ -866,9 +867,8 @@ def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8, NAG=7):
 
     # Extra Pathogens & Line of Best Fit
     add_line_of_best_fit(ax, val1, val2)
-    add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, NAG=NAG)
+    add_pathogen_labels(ax, good_simulations, p1=p1, p2=p2, NAG=NAG, r0_base=r0_base)
     add_extra_pathogens(ax)
-        
     ax.set_xlabel(PARAMETER_NAMES[p1])
     ax.set_ylabel(PARAMETER_NAMES[p2])
 
@@ -878,13 +878,13 @@ def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8, NAG=7):
     return ax
 
 # function to plot a grid of the nine closest simulations to target parameter values
-def plot_time_series_for_parameters(args, run_save_path, target_p1, target_p2, axes=None, p1=0, p2=8):
+def plot_time_series_for_parameters(args, run_save_path, target_p1, target_p2, axes=None, p1=0, p2=8, r0_base=15):
     all_results, all_samples = load_and_recombine_results(run_save_path)
 
     valid_samples, _ = extract_valid_data(all_samples, all_results)
     
-    parameter_values_p1 = get_parameter_values(valid_samples, p1)
-    parameter_values_p2 = get_parameter_values(valid_samples, p2)
+    parameter_values_p1 = get_parameter_values(valid_samples, p1, r0_base=r0_base)
+    parameter_values_p2 = get_parameter_values(valid_samples, p2, r0_base=r0_base)
     
     # Calculate distance from target parameters
     distances = np.sqrt((parameter_values_p1 - target_p1)**2 + (parameter_values_p2 - target_p2)**2)
@@ -942,6 +942,7 @@ def plot_outcome_along_linear_combination(
     num_bins=20, 
     slice_width=0.1, 
     log_target=False,
+    r0_base=15,
     **kwargs
 ):
     """
@@ -971,8 +972,8 @@ def plot_outcome_along_linear_combination(
         
     valid_samples, valid_targets = extract_valid_data(all_samples, all_results, outcome=outcome, **kwargs)
 
-    x_vals_sim = get_parameter_values(valid_samples, p1)
-    y_vals_sim = get_parameter_values(valid_samples, p2)
+    x_vals_sim = get_parameter_values(valid_samples, p1, r0_base=r0_base)
+    y_vals_sim = get_parameter_values(valid_samples, p2, r0_base=r0_base)
     outcome_vals_sim = jnp.log(valid_targets) if log_target else valid_targets
     
     x_sim_log = np.log(x_vals_sim)
@@ -1112,6 +1113,7 @@ if __name__ == "__main__":
         from Parameters.census_population import MEDIAN_AGE
     option2 = "flexagep05"
     lockdown = "ExponentialODipLinear"
+    CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_mod']["cmod" in option2]+['', '_split'][NAG>7]+['', '_sac']["sac" in option1]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
     POINTS = np.array(date_to_t(PERIOD))
@@ -1123,11 +1125,12 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     good_simulations = [
-        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", 260602, lockdown, option1, "maxagep01"],
+        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", 260603, lockdown, option1, "maxagep015"],
         ["InfluenzaA", seed, lockdown, option1, "maxagep035"], ["InfluenzaB", seed, lockdown, option1, "maxagep035"],
         ["Adenovirus", seed, lockdown, option1, "maxagep003"],["Parainfluenza3", 260602, lockdown, option1, "maxagep004"],
     ]
     
+    r0_base = calculate_R0_from_values(1, 1, CONTACT_MATRIX, CENSUS_AGE_POP, jnp.zeros(NAG))
     # Parameter scaling factors used in the model
     if "Exponential" in lockdown:
         PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
@@ -1136,14 +1139,14 @@ if __name__ == "__main__":
     if "split" in option1:
         PARAM_SCALING = np.concatenate((PARAM_SCALING, np.array([1e-2])))
 
-    fig, ax = plt.subplots(figsize=(12, 6))
-    generate_best_fit_plot(ax, good_simulations, p1=0, p2=8)
-    plt.tight_layout()
-    plt.savefig("Figures/line_of_best_fit_ExponentialODipLinearsac.png", dpi=300)
+    # fig, ax = plt.subplots(figsize=(12, 6))
+    # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8, r0_base=r0_base)
+    # plt.tight_layout()
+    # plt.savefig("Figures/line_of_best_fit_ExponentialODipLinearsac.png", dpi=300)
     # # print("NAG", NAG)
     # run_save_path = "Outputs/sim_grid_lh_n10000_chunk5000_seed260505_lockdownExponentialODipEqual_AdVPIV3hMPV_lowerIHR2"
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-                                            seed=seed, n_samples=10002, dimension=2, chunk_size=5002,
+                                            seed=seed, n_samples=40000, dimension=2, chunk_size=10000,
                                             # run_save_path=run_save_path
                                             )
     # print(run_save_path)
@@ -1160,10 +1163,10 @@ if __name__ == "__main__":
     # plt.savefig(f"Figures/along_linear_combination_age_of_first_infection_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_projection.png", dpi=300)
 
     # ## single panel outcome heatmap
-    # fig, ax = plt.subplots(figsize=(4, 4))
-    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True)
-    # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmap_suppression_length_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    fig, ax = plt.subplots(figsize=(4, 4))
+    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True)
+    plt.tight_layout()
+    plt.savefig(f"Figures/heatmap_suppression_length_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
     # ## single panel outcome heatmap
     # fig, ax = plt.subplots(figsize=(4, 4))
@@ -1176,10 +1179,11 @@ if __name__ == "__main__":
     # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True, threshold_factor=1/3)
     # plt.tight_layout()
     # plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold_third.png", dpi=300)
+    
     # two panel heatmap
     fig, ax = plt.subplots(1, 2, figsize=(6.5, 4), sharex=True, sharey=True)
-    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0", cbar=False)
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_6", cbar=False)
+    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0", cbar=False, r0_base=r0_base)
+    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_6", cbar=False, r0_base=r0_base)
     ax[1].set_ylabel("")
     ax[0].set_title("Under 3 months")
     ax[1].set_title("Over 65 years")
