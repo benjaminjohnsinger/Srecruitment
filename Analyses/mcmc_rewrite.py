@@ -226,11 +226,11 @@ if __name__ == "__main__":
     from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
 
     n_walkers = 64
-    burn_in_size = 500
+    burn_in_size = 10000
 
-    pathogens = ["Metapneumovirus",]
-    option2s = ["maxagep015",]
-    seeds = [260603,]
+    pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035","maxagep035",]
+    seeds = [260531, 260603, 260602, 260531, 260531, 260531,]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
