@@ -454,7 +454,19 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         n += 1
     else:
         P_OBS = pobsrel
-    if "irel" in option1:
+    if "kirel" in option1:
+        K_CLASS = x[n]
+        K_AGE = x[n+1]
+        CLASS_MATRIX = jnp.tile(jnp.arange(N_S).reshape(-1,1), (1,NAG))
+        AGE_MATRIX = jnp.tile(jnp.arange(NAG).reshape(1,-1), (N_S,1))
+        I_REL = jnp.exp(-K_CLASS*CLASS_MATRIX - K_AGE*AGE_MATRIX)
+        n += 2
+    elif "fullirel" in option1:
+        I_REL_CLASS = jnp.array([1,x[n],x[n]*x[n+1]])
+        I_REL_AGE = jnp.array([1] + [x[n+2+i] for i in range(NAG-1)])
+        I_REL = I_REL_CLASS[:,None]*I_REL_AGE[None,:]
+        n += 2 + NAG - 1
+    elif "irel" in option1:
         I_REL = jnp.array([1,x[n],x[n]*x[n+1]])
         n += 2
     else:
@@ -689,6 +701,9 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         else:
             RELATIVE_CONTACT = jnp.sqrt(jnp.tile(RELATIVE_CONTACT.reshape(-1,1), (1,NAG)))
     
+    if I_REL.ndim == 1:
+        I_REL = jnp.tile(I_REL.reshape(-1,1), (1,NAG))
+
     if "daycare" in option2:
         parent_labor = [60.98262489901673, 61.5063564713625, 60.84281207451028, 60.768041939091475, 60.5037381418266, 61.10016011287247, 61.148622423778086, 62.99393722242363, 63.99372275576328, 63.5827420015764, 64.12485171621293, 64.66696143084945, 66.22302672280338, 67.85271452382989, 68.58049720957207]
         parent_labor = jnp.asarray(parent_labor)/100
@@ -781,10 +796,16 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
             bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
         elif ("RSV" in pathogen) and ("nr" not in option2):
-            bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = [0.1,1]
+            bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = [0.1 * ("unimmlim" not in option1), 1]
         else:
-            bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1,1]
-    if "irel" in option1:
+            bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1 * ("unimmlim" not in option1), 1]
+    if "kirel" in option1:
+        bounds_dict["K_CLASS"] = bounds_dict["K_AGE"] = [0,1]
+    elif "fullirel" in option1:
+        bounds_dict["I_REL_CLASS1"] = bounds_dict["I_REL_CLASS2"] = [0.1,1]
+        for i in range(1,NAG):
+            bounds_dict[f"I_REL_AGE{i}"] = [0,1]
+    elif "irel" in option1:
         bounds_dict["I_REL1"] = bounds_dict["I_REL2"] = [0.1,1]
     if "dynamic" not in option1 and "pp" not in option2:
         if "months" in option1:
@@ -854,7 +875,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
     if ("daycare" in option2) and ("daycarep" not in option2):
         bounds_dict["DAYCARE"] = [0,1]
     # reorder bounds_dict to match order in x
-    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","I_REL1","I_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","FO","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","AGE_OBS_8","AGE_OBS_9","DAYCARE"]\
+    bounds_dict = {key: bounds_dict[key] for key in ["BETA","SEASONALITY","OFFSET","WANE1","WANE2","IMPORT_RATE","EXTRA_IMMUNITY","FIRST_IMMUNITY","FIRST_DIS_INF_FACTOR","S_REL1","S_REL2","D_REL1","D_REL2","K_CLASS","K_AGE","I_REL_CLASS1","I_REL_CLASS2","I_REL_AGE1","I_REL_AGE2","I_REL_AGE3","I_REL_AGE4","I_REL_AGE5","I_REL_AGE6","I_REL_AGE7","I_REL_AGE8","I_REL_AGE9","I_REL1","I_REL2","P_OBS","MATERNAL_IMMUNITY","F1","F2","F3","F4","DT1","DT2","DT3","R1","R2","FO","OVERDISPERSION","AGE_OBS_YOUNG","AGE_OBS_OLD","AGE_OBS_YOUNG_OLD","AGE_OBS_MATERNAL","AGE_OBS_1","AGE_OBS_2","AGE_OBS_3","AGE_OBS_4","AGE_OBS_5","AGE_OBS_6","AGE_OBS_7","AGE_OBS_8","AGE_OBS_9","DAYCARE"]\
         if key in bounds_dict.keys()}
     bounds = jnp.array(list(bounds_dict.values()))
     param_names = list(bounds_dict.keys())
@@ -992,7 +1013,25 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
             sys.exit()
         x = opt.x
         neg_log_likelihood = opt.fun
-    return prefix,x,neg_log_likelihood
+    return prefix, x, neg_log_likelihood
+
+def load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prefix="", prune=0, n_walkers=64):
+    filepath_chain = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+    filepath_logprob = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+    try:
+        chain = np.genfromtxt(filepath_chain, delimiter=',')[prune*n_walkers:]
+        logprobs = np.genfromtxt(filepath_logprob, delimiter=',').flatten()[prune*n_walkers:]
+    except FileNotFoundError:
+        print(f"MCMC results file not found: {filepath_chain}")
+        return None
+    return prefix, chain, logprobs
+
+def load_random_mcmc_result(pathogen, seed, lockdown, option1, option2, prefix="", prune=0, n_walkers=64):
+    _, chain, logprobs = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prefix=prefix, prune=prune, n_walkers=n_walkers)
+    random_idx = np.random.choice(chain.shape[0])
+    x = chain[random_idx]
+    neg_log_likelihood = -logprobs[random_idx]
+    return prefix, x, neg_log_likelihood
 
 # unified x from DE, i.e. x is same length regardless of model options. assume option2=flexage, lockdown=FlexStepwise
 def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", NAG=7):
@@ -1086,6 +1125,18 @@ def get_attack_rate_bounds(pathogen):
         return [0,0.5]
 
 ####### Generating interesting quantities from ODE results #######
+def calculate_R0_from_params(params, census_age_pop):
+    AGING_RATE, CONTACT_MATRIX, BETA, REC_UP = params[1], params[3], params[4], params[13]
+    V = np.diag(REC_UP[0] + AGING_RATE) - np.diag(AGING_RATE[:-1], k=-1)
+    F = BETA * CONTACT_MATRIX * census_age_pop[:, None] / census_age_pop[None, :]
+    R0 = jnp.max(jnp.linalg.eigvals(F @ jnp.linalg.inv(V)))
+    return R0.real
+
+def calculate_R0_from_values(beta, gamma, contact_matrix, census_age_pop, aging_rate):
+    V = np.diag(gamma + aging_rate) - np.diag(aging_rate[:-1], k=-1)
+    F = beta * contact_matrix * census_age_pop[:, None] / census_age_pop[None, :]
+    R0 = jnp.max(jnp.linalg.eigvals(F @ jnp.linalg.inv(V)))
+    return R0.real
 
 def observations(result, POINTS, params, OBS_AGE, incidence=False,cap=False,N_C=2,time_conversion=30.44):
 
