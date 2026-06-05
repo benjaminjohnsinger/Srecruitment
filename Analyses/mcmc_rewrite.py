@@ -275,6 +275,7 @@ if __name__ == "__main__":
 
     n_samples = 1000000
     chunk_size = 10000
+    thinning_factor = 100
     total_chunks = n_samples // chunk_size
 
     refined_state = {}
@@ -344,6 +345,9 @@ if __name__ == "__main__":
             new_log_prob = psampler.get_log_prob()
             state["current_samples"] = np.concatenate([state["current_samples"], new_samples], axis=0)
             state["current_log_prob"] = np.concatenate([state["current_log_prob"], new_log_prob], axis=0)
+            # thin samples by thinning_factor
+            state["current_samples"] = state["current_samples"][::thinning_factor]
+            state["current_log_prob"] = state["current_log_prob"][::thinning_factor]
             np.savetxt(state["refined_sample_path"], state["current_samples"].reshape(-1, state["current_samples"].shape[-1]), delimiter=',')
             np.savetxt(state["refined_log_prob_path"], state["current_log_prob"], delimiter=',')
 
