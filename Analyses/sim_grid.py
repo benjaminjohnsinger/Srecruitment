@@ -32,7 +32,7 @@ from matplotlib import cm
 N_S = 3  # Susceptibility classes
 
 PARAMETER_NAMES = [
-    "Reproduction number", "First infection duration", "Second infection duration", 
+    "Basic reproduction number", "First infection duration", "Second infection duration", 
     "Transmissibility", "Seasonality", "Phase", "Waning (per 100 days after first infection)", 
     "Waning (per 100 days after second infection)", "Immunity from first infection", 
     "Immunity from second infection", "Immunity to severe disease after first infection",
@@ -1096,48 +1096,49 @@ def plot_outcome_along_linear_combination(
     
     return ax
     
-if __name__ == "__main__":
-    plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
+# if __name__ == "__main__":
+plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260531
-    option1 = "dedupsac"
-    NAG = 7 + ("split" in option1)
-    if "split" in option1:
-        from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
-        from Parameters.census_population import MEDIAN_AGE_split as MEDIAN_AGE
-    if "sac" in option1:
-        from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
-        from Parameters.census_population import MEDIAN_AGE_sac as MEDIAN_AGE
-    else:
-        from Parameters.census_population import CENSUS_AGE_POP
-        from Parameters.census_population import MEDIAN_AGE
-    option2 = "flexagep05"
-    lockdown = "ExponentialODipLinear"
-    CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_mod']["cmod" in option2]+['', '_split'][NAG>7]+['', '_sac']["sac" in option1]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
-    p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
-    PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
-    POINTS = np.array(date_to_t(PERIOD))
-    ## Initial conditions
-    STATE0 = jnp.zeros((2*N_S+1,NAG))
-    STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
-    STATE0 = STATE0.at[1,:].set(1)
-    # # flatten initial state and add maternal immunity compartment
-    STATE0 = STATE0.flatten()
-    STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-    good_simulations = [
-        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", 260603, lockdown, option1, "maxagep015"],
-        ["InfluenzaA", seed, lockdown, option1, "maxagep035"], ["InfluenzaB", seed, lockdown, option1, "maxagep035"],
-        ["Adenovirus", seed, lockdown, option1, "maxagep003"],["Parainfluenza3", 260602, lockdown, option1, "maxagep004"],
-    ]
-    
-    r0_base = calculate_R0_from_values(1, 1, CONTACT_MATRIX, CENSUS_AGE_POP, jnp.zeros(NAG))
-    # Parameter scaling factors used in the model
-    if "Exponential" in lockdown:
-        PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
-    elif lockdown == "RSV0415":
-        PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
-    if "split" in option1:
-        PARAM_SCALING = np.concatenate((PARAM_SCALING, np.array([1e-2])))
+seed = 260531
+option1 = "dedupsac"
+NAG = 7 + ("split" in option1)
+if "split" in option1:
+    from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
+    from Parameters.census_population import MEDIAN_AGE_split as MEDIAN_AGE
+if "sac" in option1:
+    from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
+    from Parameters.census_population import MEDIAN_AGE_sac as MEDIAN_AGE
+else:
+    from Parameters.census_population import CENSUS_AGE_POP
+    from Parameters.census_population import MEDIAN_AGE
+option2 = "flexagep05"
+lockdown = "ExponentialODipLinear"
+CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_mod']["cmod" in option2]+['', '_split'][NAG>7]+['', '_sac']["sac" in option1]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
+p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
+PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
+POINTS = np.array(date_to_t(PERIOD))
+## Initial conditions
+STATE0 = jnp.zeros((2*N_S+1,NAG))
+STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
+STATE0 = STATE0.at[1,:].set(1)
+# # flatten initial state and add maternal immunity compartment
+STATE0 = STATE0.flatten()
+STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+good_simulations = [
+    ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", 260603, lockdown, option1, "maxagep015"],
+    ["InfluenzaA", seed, lockdown, option1, "maxagep035"], ["InfluenzaB", seed, lockdown, option1, "maxagep035"],
+    ["Adenovirus", seed, lockdown, option1, "maxagep003"],["Parainfluenza3", 260602, lockdown, option1, "maxagep004"],
+]
+
+r0_base = calculate_R0_from_values(1, 1, CONTACT_MATRIX, CENSUS_AGE_POP, jnp.zeros(NAG))
+# Parameter scaling factors used in the model
+if "Exponential" in lockdown:
+    PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
+elif lockdown == "RSV0415":
+    PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
+if "split" in option1:
+    PARAM_SCALING = np.concatenate((PARAM_SCALING, np.array([1e-2])))
+def plot_two_heatmaps(ax):
 
     # fig, ax = plt.subplots(figsize=(12, 6))
     # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8, r0_base=r0_base)
@@ -1146,11 +1147,28 @@ if __name__ == "__main__":
     # # print("NAG", NAG)
     # run_save_path = "Outputs/sim_grid_lh_n10000_chunk5000_seed260505_lockdownExponentialODipEqual_AdVPIV3hMPV_lowerIHR2"
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-                                            seed=seed, n_samples=40000, dimension=2, chunk_size=10000,
+                                            seed=seed, n_samples=40001, dimension=2, chunk_size=10001,
                                             # run_save_path=run_save_path
                                             )
     # print(run_save_path)
+    # two panel heatmap
 
+    # fig, ax = plt.subplots(1, 2, figsize=(6.5, 4), sharex=True, sharey=True)
+    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0", cbar=False, r0_base=r0_base)
+    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_6", cbar=False, r0_base=r0_base)
+    ax[1].set_ylabel("")
+    ax[0].set_title("Under 3 months")
+    ax[1].set_title("Over 65 years")
+    # fig.subplots_adjust(right=0.85)
+    # cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
+    norm = plt.Normalize(vmin=0, vmax=1)
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm)
+    sm.set_array([])
+    # cbar = plt.colorbar(sm, cax=cbar_ax, label="Relative proportion of hospitalizations caused")
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmaps_hospitalizors_<3mvs>65y_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+
+if __name__ == "__main__":
     # # perpendicular / parallel plots
     # fig, ax = plt.subplots(1, 2, figsize=(6.5,4))
     # ax[0] = plot_outcome_along_linear_combination(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="age_of_first_infection", direction='parallel', method='projection', num_bins=20, log_target=False)
@@ -1180,22 +1198,7 @@ if __name__ == "__main__":
     # plt.tight_layout()
     # plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold_third.png", dpi=300)
     
-    # two panel heatmap
-    fig, ax = plt.subplots(1, 2, figsize=(6.5, 4), sharex=True, sharey=True)
-    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0", cbar=False, r0_base=r0_base)
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_6", cbar=False, r0_base=r0_base)
-    ax[1].set_ylabel("")
-    ax[0].set_title("Under 3 months")
-    ax[1].set_title("Over 65 years")
-    fig.subplots_adjust(right=0.85)
-    cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
-    norm = plt.Normalize(vmin=0, vmax=1)
-    sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm)
-    sm.set_array([])
-    cbar = plt.colorbar(sm, cax=cbar_ax, label="Relative proportion of hospitalizations caused")
-    # plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_hospitalizors_<3mvs>65y_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
-    
+
     # fig, ax = plt.subplots(4, 2, figsize=(6.5,8.5), sharex=True, sharey=True)
     # from Parameters.census_population import AGE_GROUP_NAMES_split as AGE_GROUP_NAMES
     # overall_min, overall_max = float('inf'), float('-inf')
