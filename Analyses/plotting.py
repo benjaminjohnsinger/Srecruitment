@@ -1425,23 +1425,23 @@ if __name__ == "__main__":
     # # plt.tight_layout(rect=[0.03, 0, 1, 1])
     # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
-    ## Generate Figure 4: age infection figure
-    fig = plt.figure(figsize=(6.5, 6), layout="constrained")
-    gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
-    gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
-    gs_bottom = gs_main[1].subgridspec(1, 8)
-    import numpy as np
-    ax_top = np.empty((2, 4), dtype=object)
-    for r in range(2):
-        for c in range(3):
-            ax_top[r, c] = fig.add_subplot(gs_top[r, c])
-        ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
-    ax_bottom = np.empty((1,8), dtype=object)
-    for c in range(8):
-        ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
-    axes = [ax_top, ax_bottom]
-    plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, prefix="")
-    plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_vert_sameage.png", dpi=300)
+    # ## Generate Figure 4: age infection figure
+    # fig = plt.figure(figsize=(6.5, 6), layout="constrained")
+    # gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
+    # gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
+    # gs_bottom = gs_main[1].subgridspec(1, 8)
+    # import numpy as np
+    # ax_top = np.empty((2, 4), dtype=object)
+    # for r in range(2):
+    #     for c in range(3):
+    #         ax_top[r, c] = fig.add_subplot(gs_top[r, c])
+    #     ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
+    # ax_bottom = np.empty((1,8), dtype=object)
+    # for c in range(8):
+    #     ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
+    # axes = [ax_top, ax_bottom]
+    # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, prefix="")
+    # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_vert_sameage.png", dpi=300)
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     

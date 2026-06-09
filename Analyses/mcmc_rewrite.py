@@ -154,17 +154,27 @@ def run_emcee(
     # sampler.run_mcmc(initial_pos, num_steps, progress=True)
     return sampler
 
-def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2, seed):
+def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2, seed, separate_walkers=True):
     _, n_walkers, n_params = mcmc_samples.shape
     # make directory Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}
-    os.makedirs(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
-    for j in range(n_walkers):
-        fig, ax = plt.subplots(4,5, figsize=(10,6))
+    if separate_walkers:
+        os.makedirs(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
+        for j in range(n_walkers):
+            fig, ax = plt.subplots(4,4, figsize=(10,6))
+            for i in range(n_params):
+                ax[i//4, i%4].plot(mcmc_samples[:,j,i], color='k')
+                ax[i//4, i%4].set_title(param_names[i])
+            plt.tight_layout()
+            plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}/walker_{j}.png", dpi=300, bbox_inches='tight')
+            plt.close(fig)
+    else:
+        fig, ax = plt.subplots(4,4, figsize=(10,6))
         for i in range(n_params):
-            ax[i//5, i%5].plot(mcmc_samples[:,j,i], color='k')
-            ax[i//5, i%5].set_title(param_names[i])
+            for j in range(n_walkers):
+                ax[i//4, i%4].plot(mcmc_samples[:,j,i], alpha=0.3)
+            ax[i//4, i%4].set_title(param_names[i])
         plt.tight_layout()
-        plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}/walker_{j}.png", dpi=300, bbox_inches='tight')
+        plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}all_walkers.png", dpi=300, bbox_inches='tight')
         plt.close(fig)
 
 def _load_saved_chain(sample_path, log_prob_path, n_walkers):
@@ -212,37 +222,39 @@ def load_refined_chain_or_burnin(burnin_sample_path, burnin_log_prob_path, refin
 
     saved_samples, saved_log_prob = _load_saved_chain(refined_sample_path, refined_log_prob_path, n_walkers)
     if saved_samples is None:
-        return burnin_samples, burnin_log_prob, 0
+        best_sample = burnin_samples[np.unravel_index(np.argmax(burnin_log_prob), burnin_log_prob.shape)]
+        return burnin_samples, burnin_log_prob, best_sample, 0
 
+    best_sample = saved_samples[np.unravel_index(np.argmax(saved_log_prob), saved_log_prob.shape)]
     completed_chunks = saved_samples.shape[0] // chunk_size
-    return saved_samples, saved_log_prob, completed_chunks
+    return saved_samples, saved_log_prob, best_sample, completed_chunks
 
 if __name__ == "__main__":
     # seed = 260602
     lockdown = "ExponentialODipLinear"
     option1 = "dedupsac"
     NAG = 7
-    prefix = ""
+    prefix = "evosax_DE_"
     from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
 
     n_walkers = 64
     burn_in_size = 10000
 
-    pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-    option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035","maxagep035",]
-    seeds = [260531, 260603, 260602, 260531, 260531, 260531,]
+    pathogens = ["RSV","Metapneumovirus","Parainfluenza3",]
+    option2s = ["maxagep028","maxagep015","maxagep004",]
+    seeds = [260531, 260603, 260602, ]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         pool = Pool(
-            processes=64//2, 
+            processes=32, 
             initializer=_init_worker, 
             initargs=(pathogen, lockdown, option1, option2, NAG, CENSUS_AGE_POP)
         )
         pools[pathogen] = pool
 
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
-        key = jax.random.PRNGKey(260601)
+        key = jax.random.PRNGKey(260605)
         burnin_sample_path = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
         burnin_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
 
@@ -281,13 +293,13 @@ if __name__ == "__main__":
     refined_state = {}
 
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
-        key = jax.random.PRNGKey(260601)
+        key = jax.random.PRNGKey(260605)
         burnin_sample_path = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
         burnin_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
         refined_sample_path = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
         refined_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
 
-        current_samples, current_log_prob, completed_chunks = load_refined_chain_or_burnin(
+        current_samples, current_log_prob, best_sample, completed_chunks = load_refined_chain_or_burnin(
             burnin_sample_path,
             burnin_log_prob_path,
             refined_sample_path,
@@ -304,6 +316,7 @@ if __name__ == "__main__":
         refined_state[pathogen] = {
             "key": key,
             "option2": option2,
+            "seed": seed,
             "burnin_sample_path": burnin_sample_path,
             "burnin_log_prob_path": burnin_log_prob_path,
             "refined_sample_path": refined_sample_path,
@@ -311,6 +324,7 @@ if __name__ == "__main__":
             "current_samples": current_samples,
             "current_log_prob": current_log_prob,
             "completed_chunks": completed_chunks,
+            "best_sample": best_sample,
         }
 
     for chunk_n in range(total_chunks):
@@ -318,17 +332,20 @@ if __name__ == "__main__":
             state = refined_state[pathogen]
             if chunk_n < state["completed_chunks"]:
                 continue
-
-            initial_pos = state["current_samples"][-1]
+            
+            if chunk_n == 0:
+                initial_pos = None
+            else:    
+                initial_pos = state["current_samples"][-1]
             psampler = run_emcee(
                 state["key"],
                 pathogen,
                 lockdown,
                 option1,
                 state["option2"],
-                seed,
+                state["seed"],
                 NAG=NAG,
-                startx=initial_pos,
+                startx=state["best_sample"],
                 initial_pos=initial_pos,
                 spread=1e-4,
                 sigma=1e-5,
@@ -343,20 +360,20 @@ if __name__ == "__main__":
 
             new_samples = psampler.get_chain()
             new_log_prob = psampler.get_log_prob()
+            new_samples = new_samples[::thinning_factor]
+            new_log_prob = new_log_prob[::thinning_factor]
             state["current_samples"] = np.concatenate([state["current_samples"], new_samples], axis=0)
             state["current_log_prob"] = np.concatenate([state["current_log_prob"], new_log_prob], axis=0)
-            # thin samples by thinning_factor
-            state["current_samples"] = state["current_samples"][::thinning_factor]
-            state["current_log_prob"] = state["current_log_prob"][::thinning_factor]
             np.savetxt(state["refined_sample_path"], state["current_samples"].reshape(-1, state["current_samples"].shape[-1]), delimiter=',')
             np.savetxt(state["refined_log_prob_path"], state["current_log_prob"], delimiter=',')
 
             best_idx = np.unravel_index(np.argmax(state["current_log_prob"]), state["current_log_prob"].shape)
             best_params = np.asarray(state["current_samples"][best_idx], dtype=np.float64)
+            state["best_sample"] = best_params
             best_neg_log_likelihood = float(-state["current_log_prob"][best_idx])
-            results_dir = f"Data/Processed/results{str(seed)[:6]}"
+            results_dir = f"Data/Processed/results{str(state['seed'])[:6]}"
             os.makedirs(results_dir, exist_ok=True)
-            emcee_results_path = f"{results_dir}/emcee_{prefix}{pathogen}{lockdown}{option1}{state['option2']}{seed}.pickle"
+            emcee_results_path = f"{results_dir}/emcee_{prefix}{pathogen}{lockdown}{option1}{state['option2']}{state['seed']}.pickle"
             with open(emcee_results_path, "wb") as f:
                 pickle.dump(
                     {
@@ -365,6 +382,9 @@ if __name__ == "__main__":
                     },
                     f,
                 )
+            
+            param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, state["option2"], NAG=NAG)
+            plot_traces(state["current_samples"], param_names, pathogen, lockdown, option1, state["option2"], state["seed"], separate_walkers=False)
 
     print("Closing processing pools...")
     for p in pools.values():
