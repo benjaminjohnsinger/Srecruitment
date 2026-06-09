@@ -12,7 +12,7 @@ import os
 import re
 import glob
 
-from utils import consistent_x_from_DE, x_to_params, date_to_t, calculate_population_size, calculate_R0_from_values
+from utils import consistent_x_from_DE, x_to_params, date_to_t, calculate_population_size, calculate_R0_from_values, load_mcmc_chain
 from fit_MCMC import run_simulation
 from data_processing import calculate_proportion_positive_incidence
 # from Parameters.times_and_contacts import PERIOD
@@ -102,28 +102,45 @@ def suppression_duration_by_age(obs_by_age, obs_summed_age, anchor_idx, threshol
 # ==========================================
 # DEFINE SAMPLING SPACE
 # ==========================================
-def parameter_space(good_simulations, NAG=7):
+def parameter_space(good_simulations, NAG=7, n_samples=None):
     """Extracts parameter sets from good simulations for use in sampling."""
     parameter_sets = []
-    for pathogen_info in good_simulations:
-        pathogen, seed, lockdown, option1, option2 = pathogen_info
-        x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
-        print(pathogen, x[0], x[2])
-        parameter_sets.append(x)
+    if n_samples is None:
+        for pathogen_info in good_simulations:
+            pathogen, seed, lockdown, option1, option2 = pathogen_info
+            x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
+            parameter_sets.append(x)
+    else:
+        for pathogen_info in good_simulations:
+            pathogen, seed, lockdown, option1, option2 = pathogen_info
+            _, chain, _ = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=10000*(pathogen in "RSVMetapneumovirusParainfluenza3"), prefix="evosax_DE_")
+            # draw n_samples randomly from the chain
+            sampled_xs = chain[np.random.choice(chain.shape[0], size=n_samples, replace=True)]
+            consistent_xs = jax.vmap(lambda x: consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, x_DE=x))(sampled_xs)
+            parameter_sets.append(consistent_xs.T)
     parameter_sets = jnp.array(parameter_sets)
     return(parameter_sets)
-
+    
 def lh_sampling(parameter_sets, n_samples, dimension=None):
     """Generates samples from the parameter space using Latin Hypercube Sampling.
     Args:
-        parameter_sets: Array of shape (n_pathogens, n_parameters) containing parameter sets from good simulations.
+        parameter_sets: Array of shape (n_pathogens, n_parameters) OR 
+                        (n_pathogens, n_parameters, n_input_samples) containing parameter sets.
         n_samples: Number of samples to generate.
         dimension: The dimension of the simplex to sample from. If None, samples from the full simplex.
                    If 0, samples from vertices; if 1, samples from edges; if k, samples from k-dimensional faces.
     Returns:
         samples: Array of shape (n_samples, n_parameters) containing the sampled parameter sets.
     """
-    n_pathogens = parameter_sets.shape[0]
+    is_3d = (parameter_sets.ndim == 3)
+    
+    if is_3d:
+        n_pathogens, n_parameters, n_input_samples = parameter_sets.shape
+        if n_input_samples < n_samples:
+            raise ValueError(f"For 3D parameter_sets, the number of input samples ({n_input_samples}) "
+                             f"must be at least the requested n_samples ({n_samples}).")
+    else:
+        n_pathogens = parameter_sets.shape[0]
     
     if dimension is None:
         dimension = n_pathogens - 1  # Full simplex by default
@@ -133,19 +150,21 @@ def lh_sampling(parameter_sets, n_samples, dimension=None):
         raise ValueError(f"Dimension must be between 0 and {n_pathogens - 1}")
     
     # Use Latin Hypercube Sampling for better space-filling properties
-    
     if dimension == 0:
         # Sample from vertices (pure pathogens)
         vertex_indices = np.random.choice(n_pathogens, size=n_samples)
-        samples = parameter_sets[vertex_indices]
+        if is_3d:
+            # Pick the i-th sample from the randomly selected pathogen's chain
+            samples = jnp.array([parameter_sets[vertex_indices[i], :, i] for i in range(n_samples)])
+        else:
+            samples = parameter_sets[vertex_indices]
         return samples
     
     elif dimension == 1:
         # Sample from edges (between pairs of pathogens)
-        # Choose random pairs of pathogens
-        # pairs = np.random.choice(n_pathogens, size=(n_samples, 2), replace=True)
         pairs = np.array(list(it.combinations(range(n_pathogens), 2)))
         pairs = np.tile(pairs, (int(np.ceil(n_samples / pairs.shape[0])), 1))[:n_samples]
+        
         # Generate weights for each pair
         weights = jnp.arange(n_samples)/(n_samples-1)
         
@@ -153,8 +172,15 @@ def lh_sampling(parameter_sets, n_samples, dimension=None):
         for i in range(n_samples):
             idx1, idx2 = pairs[i]
             w = weights[i]
-            sample = w * parameter_sets[idx1] + (1 - w) * parameter_sets[idx2]
+            
+            if is_3d:
+                # Use the i-th parameter set from the 3D block
+                sample = w * parameter_sets[idx1, :, i] + (1 - w) * parameter_sets[idx2, :, i]
+            else:
+                sample = w * parameter_sets[idx1] + (1 - w) * parameter_sets[idx2]
+                
             samples.append(sample)
+            
         samples = jnp.array(samples)
         return samples
     
@@ -172,19 +198,20 @@ def lh_sampling(parameter_sets, n_samples, dimension=None):
         
         if dimension < n_pathogens - 1:
             # For lower-dimensional faces, systematically iterate through combinations of pathogens
-            # Generate all combinations of (dimension+1) pathogens
             pathogen_combinations = list(it.combinations(range(n_pathogens), dimension+1))
             
-            # Tile combinations to cover all samples
+            # Tile combinations to cover all samples, and slice exactly to n_samples
             repeated_combos = pathogen_combinations * (int(np.ceil(n_samples / len(pathogen_combinations))))
+            repeated_combos = repeated_combos[:n_samples]
             
             samples = []
-            for i in range(len(repeated_combos)):
+            for i in range(n_samples):
                 selected_pathogens = repeated_combos[i]
                 
                 # Create barycentric coordinates for selected pathogens
                 weights = jnp.zeros(n_pathogens)
                 selected_exp = exp_samples[i]
+                
                 # Add one more dimension to complete the simplex for selected pathogens
                 last_coord = np.random.exponential(1.0)
                 full_exp = jnp.concatenate([selected_exp, jnp.array([last_coord])])
@@ -194,7 +221,11 @@ def lh_sampling(parameter_sets, n_samples, dimension=None):
                 weights = weights.at[jnp.array(selected_pathogens)].set(normalized_weights)
                 
                 # Compute sample as convex combination
-                sample = weights @ parameter_sets
+                if is_3d:
+                    sample = weights @ parameter_sets[:, :, i]
+                else:
+                    sample = weights @ parameter_sets
+                    
                 samples.append(sample)
             
             samples = jnp.array(samples)
@@ -210,7 +241,13 @@ def lh_sampling(parameter_sets, n_samples, dimension=None):
             lh_samples = full_exp / jnp.sum(full_exp, axis=1, keepdims=True)
             
             # Transform to parameter space via convex combination
-            samples = lh_samples @ parameter_sets
+            if is_3d:
+                # lh_samples shape: (n_samples, n_pathogens) -> 'ij'
+                # parameter_sets shape: (n_pathogens, n_parameters, n_samples) -> 'jki'
+                # desired shape: (n_samples, n_parameters) -> 'ik'
+                samples = jnp.einsum('ij,jki->ik', lh_samples, parameter_sets)
+            else:
+                samples = lh_samples @ parameter_sets
             
             return samples
 
@@ -758,8 +795,13 @@ def add_extra_pathogens(ax):
 def run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=7,
                             seed=251118, n_samples=80000, dimension=2, chunk_size=40000, run_save_path=None):
     """Handles parameter sampling, environment setup, and executes simulation chunks."""
-    parameter_sets = parameter_space(good_simulations, NAG=NAG)
+    print(f"Running simulation pipeline with lockdown={lockdown}, option1={option1}, option2={option2}, NAG={NAG}, seed={seed}")
+    start_time = time.time()
+    parameter_sets = parameter_space(good_simulations, NAG=NAG, n_samples=n_samples)
+    print(f"Parameter space generated in {time.time() - start_time} seconds. Sampling {n_samples} points in {dimension}D space...")
+    start_time = time.time()
     samples = lh_sampling(parameter_sets, n_samples, dimension=dimension)
+    print(f"Samples generated in {time.time() - start_time} seconds.")
 
     if run_save_path is None:
         run_save_path = f"Outputs/sim_grid_lh_n{n_samples}_chunk{chunk_size}_seed{seed}_lockdown{lockdown}_{dimension}d"
@@ -837,10 +879,6 @@ def generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=7, p1=0, p
 
     ax.set_xlabel(PARAMETER_NAMES[p1])
     ax.set_ylabel(PARAMETER_NAMES[p2])
-    
-    # Extend x axis so RSV label fits
-    if p1 == 0:
-        ax.set_xlim(ax.get_xlim()[0], ax.get_xlim()[1] + 1)
 
     if "Immunity" in PARAMETER_NAMES[p1]: ax.set_xticklabels([f'{1.01+tick:.1f}' for tick in ax.get_xticks()])
     if "Immunity" in PARAMETER_NAMES[p2]: ax.set_yticklabels([f'{1.01+tick:.1f}' for tick in ax.get_yticks()])
@@ -1096,140 +1134,137 @@ def plot_outcome_along_linear_combination(
     
     return ax
     
-# if __name__ == "__main__":
-plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
+if __name__ == "__main__":
+    plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-seed = 260531
-option1 = "dedupsac"
-NAG = 7 + ("split" in option1)
-if "split" in option1:
-    from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
-    from Parameters.census_population import MEDIAN_AGE_split as MEDIAN_AGE
-if "sac" in option1:
-    from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
-    from Parameters.census_population import MEDIAN_AGE_sac as MEDIAN_AGE
-else:
-    from Parameters.census_population import CENSUS_AGE_POP
-    from Parameters.census_population import MEDIAN_AGE
-option2 = "flexagep05"
-lockdown = "ExponentialODipLinear"
-CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_mod']["cmod" in option2]+['', '_split'][NAG>7]+['', '_sac']["sac" in option1]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
-p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
-PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
-POINTS = np.array(date_to_t(PERIOD))
-## Initial conditions
-STATE0 = jnp.zeros((2*N_S+1,NAG))
-STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
-STATE0 = STATE0.at[1,:].set(1)
-# # flatten initial state and add maternal immunity compartment
-STATE0 = STATE0.flatten()
-STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-good_simulations = [
-    ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", 260603, lockdown, option1, "maxagep015"],
-    ["InfluenzaA", seed, lockdown, option1, "maxagep035"], ["InfluenzaB", seed, lockdown, option1, "maxagep035"],
-    ["Adenovirus", seed, lockdown, option1, "maxagep003"],["Parainfluenza3", 260602, lockdown, option1, "maxagep004"],
-]
+    seed = 260531
+    option1 = "dedupsac"
+    NAG = 7 + ("split" in option1)
+    if "split" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_split as CENSUS_AGE_POP
+        from Parameters.census_population import MEDIAN_AGE_split as MEDIAN_AGE
+    if "sac" in option1:
+        from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
+        from Parameters.census_population import MEDIAN_AGE_sac as MEDIAN_AGE
+    else:
+        from Parameters.census_population import CENSUS_AGE_POP
+        from Parameters.census_population import MEDIAN_AGE
+    option2 = "flexagep05"
+    lockdown = "ExponentialODipLinear"
+    CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_mod']["cmod" in option2]+['', '_split'][NAG>7]+['', '_sac']["sac" in option1]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
+    p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
+    PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
+    POINTS = np.array(date_to_t(PERIOD))
+    ## Initial conditions
+    STATE0 = jnp.zeros((2*N_S+1,NAG))
+    STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
+    STATE0 = STATE0.at[1,:].set(1)
+    # # flatten initial state and add maternal immunity compartment
+    STATE0 = STATE0.flatten()
+    STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+    good_simulations = [
+        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", 260603, lockdown, option1, "maxagep015"],
+        ["InfluenzaA", seed, lockdown, option1, "maxagep035"], ["InfluenzaB", seed, lockdown, option1, "maxagep035"],
+        ["Adenovirus", seed, lockdown, option1, "maxagep003"],["Parainfluenza3", 260602, lockdown, option1, "maxagep004"],
+    ]
+    
+    r0_base = calculate_R0_from_values(1, 1, CONTACT_MATRIX, CENSUS_AGE_POP, jnp.zeros(NAG))
+    # Parameter scaling factors used in the model
+    if "Exponential" in lockdown:
+        PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
+    elif lockdown == "RSV0415":
+        PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
+    if "split" in option1:
+        PARAM_SCALING = np.concatenate((PARAM_SCALING, np.array([1e-2])))
 
-r0_base = calculate_R0_from_values(1, 1, CONTACT_MATRIX, CENSUS_AGE_POP, jnp.zeros(NAG))
-# Parameter scaling factors used in the model
-if "Exponential" in lockdown:
-    PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
-elif lockdown == "RSV0415":
-    PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
-if "split" in option1:
-    PARAM_SCALING = np.concatenate((PARAM_SCALING, np.array([1e-2])))
-def plot_two_heatmaps(ax):
-
-    # fig, ax = plt.subplots(figsize=(12, 6))
-    # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8, r0_base=r0_base)
-    # plt.tight_layout()
-    # plt.savefig("Figures/line_of_best_fit_ExponentialODipLinearsac.png", dpi=300)
-    # # print("NAG", NAG)
-    # run_save_path = "Outputs/sim_grid_lh_n10000_chunk5000_seed260505_lockdownExponentialODipEqual_AdVPIV3hMPV_lowerIHR2"
+    # # fig, ax = plt.subplots(figsize=(12, 6))
+    # # generate_best_fit_plot(ax, good_simulations, p1=0, p2=8, r0_base=r0_base)
+    # # plt.tight_layout()
+    # # plt.savefig("Figures/line_of_best_fit_ExponentialODipLinearsac.png", dpi=300)
+    # # # print("NAG", NAG)
+    # # run_save_path = "Outputs/sim_grid_lh_n10000_chunk5000_seed260505_lockdownExponentialODipEqual_AdVPIV3hMPV_lowerIHR2"
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-                                            seed=seed, n_samples=40001, dimension=2, chunk_size=10001,
+                                            seed=seed, n_samples=80609, dimension=2, chunk_size=20609,
                                             # run_save_path=run_save_path
                                             )
-    # print(run_save_path)
-    # two panel heatmap
+    # # print(run_save_path)
 
-    # fig, ax = plt.subplots(1, 2, figsize=(6.5, 4), sharex=True, sharey=True)
-    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0", cbar=False, r0_base=r0_base)
+    # # # perpendicular / parallel plots
+    # # fig, ax = plt.subplots(1, 2, figsize=(6.5,4))
+    # # ax[0] = plot_outcome_along_linear_combination(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="age_of_first_infection", direction='parallel', method='projection', num_bins=20, log_target=False)
+    # # ax[1] = plot_outcome_along_linear_combination(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="age_of_first_infection", direction='perpendicular', method='projection', num_bins=20, log_target=False)
+    # # # ax[0].set_ylabel("Proportion of hospitalizations from <3m")
+    # # # ax[1].set_ylabel("Proportion of hospitalizations from >65y")
+    # # ax[0].set_xlabel("Relative sum of R0 and immunity")
+    # # ax[1].set_xlabel("Relative excess in R0 vs immunity")
+    # # plt.tight_layout()
+    # # plt.savefig(f"Figures/along_linear_combination_age_of_first_infection_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_projection.png", dpi=300)
+
+    # # ## single panel outcome heatmap
+    # fig, ax = plt.subplots(figsize=(4, 4))
+    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True)
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmap_suppression_length_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_test.png", dpi=300)
+
+    # # ## single panel outcome heatmap
+    # # fig, ax = plt.subplots(figsize=(4, 4))
+    # # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True)
+    # # plt.tight_layout()
+    # # plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+
+    # # ## single panel outcome heatmap
+    # # fig, ax = plt.subplots(figsize=(4, 4))
+    # # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True, threshold_factor=1/3)
+    # # plt.tight_layout()
+    # # plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold_third.png", dpi=300)
+    
+    # two panel heatmap
+    fig, ax = plt.subplots(1, 2, figsize=(6.5, 4), sharex=True, sharey=True)
+    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_3", cbar=False, r0_base=r0_base)
     generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_6", cbar=False, r0_base=r0_base)
     ax[1].set_ylabel("")
-    ax[0].set_title("Under 3 months")
+    ax[0].set_title("5 to 17 years")
     ax[1].set_title("Over 65 years")
-    # fig.subplots_adjust(right=0.85)
-    # cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
+    fig.subplots_adjust(right=0.85)
+    cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
     norm = plt.Normalize(vmin=0, vmax=1)
     sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm)
     sm.set_array([])
-    # cbar = plt.colorbar(sm, cax=cbar_ax, label="Relative proportion of hospitalizations caused")
+    cbar = plt.colorbar(sm, cax=cbar_ax, label="Relative proportion of hospitalizations caused")
     # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmaps_hospitalizors_<3mvs>65y_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
-
-if __name__ == "__main__":
-    # # perpendicular / parallel plots
-    # fig, ax = plt.subplots(1, 2, figsize=(6.5,4))
-    # ax[0] = plot_outcome_along_linear_combination(ax[0], run_save_path, good_simulations, p1=0, p2=8, outcome="age_of_first_infection", direction='parallel', method='projection', num_bins=20, log_target=False)
-    # ax[1] = plot_outcome_along_linear_combination(ax[1], run_save_path, good_simulations, p1=0, p2=8, outcome="age_of_first_infection", direction='perpendicular', method='projection', num_bins=20, log_target=False)
-    # # ax[0].set_ylabel("Proportion of hospitalizations from <3m")
-    # # ax[1].set_ylabel("Proportion of hospitalizations from >65y")
-    # ax[0].set_xlabel("Relative sum of R0 and immunity")
-    # ax[1].set_xlabel("Relative excess in R0 vs immunity")
-    # plt.tight_layout()
-    # plt.savefig(f"Figures/along_linear_combination_age_of_first_infection_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_projection.png", dpi=300)
-
-    # ## single panel outcome heatmap
-    fig, ax = plt.subplots(figsize=(4, 4))
-    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True)
-    plt.tight_layout()
-    plt.savefig(f"Figures/heatmap_suppression_length_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
-
-    # ## single panel outcome heatmap
-    # fig, ax = plt.subplots(figsize=(4, 4))
-    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True)
-    # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
-
-    # ## single panel outcome heatmap
-    # fig, ax = plt.subplots(figsize=(4, 4))
-    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True, threshold_factor=1/3)
-    # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_threshold_third.png", dpi=300)
+    plt.savefig(f"Figures/heatmaps_hospitalizors_SACvs>65y_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_test.png", dpi=300)
     
-
-    # fig, ax = plt.subplots(4, 2, figsize=(6.5,8.5), sharex=True, sharey=True)
-    # from Parameters.census_population import AGE_GROUP_NAMES_split as AGE_GROUP_NAMES
-    # overall_min, overall_max = float('inf'), float('-inf')
-    # for age_group in range(NAG):
-    #     current_ax = ax[age_group//2, age_group%2]
-    #     min, max = generate_2d_heatmap_plot(current_ax, run_save_path, good_simulations, label="", NAG=NAG, p1=0, p2=8,
-    #                                         cbar=True, vmin=None, vmax=None, log = False,
-    #                                         outcome=f"hospitalizors_in_group_{age_group}", foi_scaling=1)
-    #     current_ax.set_title(AGE_GROUP_NAMES[age_group])
-    #     overall_min = min if min < overall_min else overall_min
-    #     overall_max = max if max > overall_max else overall_max
-    #     current_ax.set_xlabel("")
-    #     current_ax.set_ylabel("")
-    # print("Overall min:", overall_min, "Overall max:", overall_max)
-    # fig.supxlabel(f"{PARAMETER_NAMES[0]}", fontsize=11)
-    # fig.supylabel(f"{PARAMETER_NAMES[8]}", fontsize=11)
+    fig, ax = plt.subplots(4, 2, figsize=(6.5,8.5), sharex=True, sharey=True)
+    from Parameters.census_population import AGE_GROUP_NAMES_sac as AGE_GROUP_NAMES
+    overall_min, overall_max = float('inf'), float('-inf')
+    for age_group in range(NAG):
+        current_ax = ax[age_group//2, age_group%2]
+        min, max = generate_2d_heatmap_plot(current_ax, run_save_path, good_simulations, label="", NAG=NAG, p1=0, p2=8,
+                                            cbar=False, vmin=0, vmax=0.43, log = False,
+                                            outcome=f"hospitalizors_in_group_{age_group}", foi_scaling=1)
+        current_ax.set_title(AGE_GROUP_NAMES[age_group])
+        overall_min = min if min < overall_min else overall_min
+        overall_max = max if max > overall_max else overall_max
+        current_ax.set_xlabel("")
+        current_ax.set_ylabel("")
+    print("Overall min:", overall_min, "Overall max:", overall_max)
+    fig.supxlabel(f"{PARAMETER_NAMES[0]}", fontsize=11)
+    fig.supylabel(f"{PARAMETER_NAMES[8]}", fontsize=11)
 
     # # # add label on right for colorbars
     # fig.text(0.95, 0.5, "Proportion of hospitalization-causing infectors in age group", va='center', rotation='vertical', fontsize=11)
 
-    # # # move figure to make space for colorbar
-    # # fig.subplots_adjust(right=0.8)
-    # # # add overall colorbar
-    # # cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
-    # # norm = plt.Normalize(vmin=7.3, vmax=16.5)
-    # # sm = plt.cm.ScalarMappable(cmap=cm.viridis, norm=norm)
-    # # sm.set_array([])
-    # # cbar = plt.colorbar(sm, cax=cbar_ax, label="Infectors in age group (log)")
+    # move figure to make space for colorbar
+    fig.subplots_adjust(right=0.8)
+    # add overall colorbar
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
+    norm = plt.Normalize(vmin=overall_min, vmax=overall_max)
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm)
+    sm.set_array([])
+    cbar = plt.colorbar(sm, cax=cbar_ax, label="Proportion of hospitalization-causing infectors in age group")
 
-    # # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmaps_hospitalizors_ExponentialDipEqualdedupsplit_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    # plt.tight_layout()
+    plt.savefig(f"Figures/heatmaps_hospitalizors_ExponentialDipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_same_scale.png", dpi=300)
     
     # # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
     # # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)
@@ -1237,17 +1272,17 @@ if __name__ == "__main__":
     # # plt.savefig(f"Figures/close_to_RSV_260415_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
 
-    # pathogen_vals = jnp.asarray([extract_target_value_from_data(pathogen, outcome="time_to_rebound", NAG=NAG) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]])
-    # # for p1 in range(15,len(PARAMETER_NAMES)):
-    # for p1 in range(len(PARAMETER_NAMES)):
-    #     for p2 in range(len(PARAMETER_NAMES)-5, len(PARAMETER_NAMES)):
-    #         fig, ax = plt.subplots(figsize=(10, 8))
-    #         generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, NAG=NAG, outcome="time_to_rebound", threshold_factor=1/3, pathogen_vals=pathogen_vals)
-    #         plt.tight_layout()
-    #         plt.savefig(f"Figures/sim_grids260505/heatmap_time_to_rebound_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)
-    # for p1 in range(len(PARAMETER_NAMES)):
-    #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
-    #         fig, ax = plt.subplots(figsize=(10, 8))
-    #         generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, outcome="hospitalizors_in_group_0")
-    #         plt.tight_layout()
-    #         plt.savefig(f"Figures/sim_grids260505/heatmap_hospitalizors_in_group_0_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)
+    pathogen_vals = jnp.asarray([extract_target_value_from_data(pathogen, outcome="time_to_rebound", NAG=NAG) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]])
+    # for p1 in range(15,len(PARAMETER_NAMES)):
+    for p1 in range(len(PARAMETER_NAMES)):
+        for p2 in range(len(PARAMETER_NAMES)-5, len(PARAMETER_NAMES)):
+            fig, ax = plt.subplots(figsize=(10, 8))
+            generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, NAG=NAG, outcome="time_to_rebound", threshold_factor=1/3, pathogen_vals=pathogen_vals)
+            plt.tight_layout()
+            plt.savefig(f"Figures/sim_grids260609/heatmap_time_to_rebound_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)
+    for p1 in range(len(PARAMETER_NAMES)):
+        for p2 in range(p1+1, len(PARAMETER_NAMES)):
+            fig, ax = plt.subplots(figsize=(10, 8))
+            generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, outcome="hospitalizors_in_group_0")
+            plt.tight_layout()
+            plt.savefig(f"Figures/sim_grids260609/heatmap_hospitalizors_in_group_0_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)
