@@ -67,10 +67,11 @@ def suppression_duration_single_series(obs_series, anchor_idx, threshold_divisor
     invalid_anchor = anchor_idx >= (n_time - 1)
     indices = jnp.arange(n_time)
 
+    pre_anchor_mask = indices < anchor_idx
     post_anchor_mask = indices > anchor_idx
     # Avoid dynamic slicing so this stays JAX-jittable under vmap.
-    post_anchor_vals = jnp.where(post_anchor_mask, obs_series, -jnp.inf)
-    threshold = jnp.max(post_anchor_vals) / threshold_divisor
+    pre_anchor_vals = jnp.where(pre_anchor_mask, obs_series, -jnp.inf)
+    threshold = jnp.max(pre_anchor_vals) / threshold_divisor
 
     dip_mask = post_anchor_mask & (obs_series < threshold)
     dip_found = jnp.any(dip_mask)
@@ -112,7 +113,7 @@ def parameter_space(good_simulations, NAG=7, n_samples=None):
     else:
         for pathogen_info in good_simulations:
             pathogen, seed, lockdown, option1, option2 = pathogen_info
-            _, chain, _ = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=10000*(pathogen in "RSVMetapneumovirusParainfluenza3"), prefix="evosax_DE_")
+            chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=10000*(pathogen in "RSVMetapneumovirusParainfluenza3"), prefix=["","evosax_DE_"][("Influenza" not in pathogen)], just_chain=True)
             # draw n_samples randomly from the chain
             sampled_xs = chain[np.random.choice(chain.shape[0], size=n_samples, replace=True)]
             consistent_xs = jax.vmap(lambda x: consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, x_DE=x))(sampled_xs)
@@ -624,8 +625,8 @@ def extract_target_values(all_results, outcome, **kwargs):
 
 def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
     print("pathogen:", pathogen)
-    incidence = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, hosp=True, return_counts=True, pp_only=False, NAG=NAG).values)
-    incidence_summed_age = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, hosp=True, return_counts=True, pp_only=False, NAG=NAG)["Total"].values)
+    incidence = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, hosp=True, return_counts=True, pp_only=False, dedup=True, sac=True, NAG=NAG).values)
+    incidence_summed_age = jnp.array(calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, hosp=True, return_counts=True, pp_only=False, dedup=True, sac=True, NAG=NAG)["Total"].values)
     # pad with zeros: 14 days at the start, then enough at the end to complete full years
     pad_start = 14
     pad_end = (365 - ((len(incidence) + pad_start) % 365)) % 365
@@ -651,6 +652,7 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
     obs_sum_monthly_np = obs_sum_df.resample('MS').sum().values
     obs_monthly = jnp.array(obs_monthly_np)
     obs_summed_age_monthly = jnp.array(obs_sum_monthly_np)
+    print(obs_summed_age_monthly)
     anchor_date = pd.to_datetime("2020-01-01")
     monthly_dates = obs_df.resample('MS').sum().index
     anchor_month_idx = int(np.searchsorted(monthly_dates, anchor_date, side='right')) - 1
@@ -1132,7 +1134,8 @@ def plot_outcome_along_linear_combination(
     # ax.legend()
     
     return ax
-    
+
+PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
@@ -1181,9 +1184,9 @@ if __name__ == "__main__":
     # # plt.tight_layout()
     # # plt.savefig("Figures/line_of_best_fit_ExponentialODipLinearsac.png", dpi=300)
     # # # print("NAG", NAG)
-    # run_save_path = "Outputs/sim_grid_lh_n80610_chunk20610_seed260531_lockdownExponentialODipLinear_2d"
+    # run_save_path = "Outputs/sim_grid_lh_n80611_chunk20611_seed260531_lockdownExponentialODipLinear_2d"
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-                                            seed=seed, n_samples=80610, dimension=2, chunk_size=20610,
+                                            seed=seed, n_samples=80611, dimension=2, chunk_size=20611,
                                             # run_save_path=run_save_path
                                             )
     # # print(run_save_path)

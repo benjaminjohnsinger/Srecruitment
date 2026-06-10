@@ -1,41 +1,10 @@
 combinations=(
-"RSV 260605 ExponentialODipLinear kireldedupsac maxagep028 1e-9 200 2000 0.7"
-"Metapneumovirus 260605 ExponentialODipLinear kireldedupsac maxagep015 1e-9 200 2000 0.7"
-"Adenovirus 260605 ExponentialODipLinear kireldedupsac maxagep003 1e-9 200 2000 0.7"
-"Parainfluenza3 260605 ExponentialODipLinear kireldedupsac maxagep004 1e-9 200 2000 0.7"
-"InfluenzaA 260605 ExponentialODipLinear kireldedupsac maxagep035 1e-9 200 2000 0.7"
-"InfluenzaB 260605 ExponentialODipLinear kireldedupsac maxagep035 1e-9 200 2000 0.7"
-
-"RSV 260605 ExponentialODipLinear unimmlimdedupsac maxagep028 1e-9 200 2000 0.7"
-"Metapneumovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep015 1e-9 200 2000 0.7"
-"Adenovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep003 1e-9 200 2000 0.7"
-"Parainfluenza3 260605 ExponentialODipLinear unimmlimdedupsac maxagep004 1e-9 200 2000 0.7"
-"InfluenzaA 260605 ExponentialODipLinear unimmlimdedupsac maxagep035 1e-9 200 2000 0.7"
-"InfluenzaB 260605 ExponentialODipLinear unimmlimdedupsac maxagep035 1e-9 200 2000 0.7"
-
-"Metapneumovirus 260605 ExponentialODipLinear kireldedupsac maxagep01 1e-9 200 2000 0.7"
-"Adenovirus 260605 ExponentialODipLinear kireldedupsac maxagep002 1e-9 200 2000 0.7"
-"Parainfluenza3 260605 ExponentialODipLinear kireldedupsac maxagep003 1e-9 200 2000 0.7"
-"InfluenzaA 260605 ExponentialODipLinear kireldedupsac maxagep03 1e-9 200 2000 0.7"
-"InfluenzaB 260605 ExponentialODipLinear kireldedupsac maxagep03 1e-9 200 2000 0.7"
-
-"Metapneumovirus 260605 ExponentialODipLinear kireldedupsac maxagep02 1e-9 200 2000 0.7"
-"Adenovirus 260605 ExponentialODipLinear kireldedupsac maxagep004 1e-9 200 2000 0.7"
-"Parainfluenza3 260605 ExponentialODipLinear kireldedupsac maxagep005 1e-9 200 2000 0.7"
-"InfluenzaA 260605 ExponentialODipLinear kireldedupsac maxagep04 1e-9 200 2000 0.7"
-"InfluenzaB 260605 ExponentialODipLinear kireldedupsac maxagep04 1e-9 200 2000 0.7"
-
-"Metapneumovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep01 1e-9 200 2000 0.7"
-"Adenovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep002 1e-9 200 2000 0.7"
-"Parainfluenza3 260605 ExponentialODipLinear unimmlimdedupsac maxagep003 1e-9 200 2000 0.7"
-"InfluenzaA 260605 ExponentialODipLinear unimmlimdedupsac maxagep03 1e-9 200 2000 0.7"
-"InfluenzaB 260605 ExponentialODipLinear unimmlimdedupsac maxagep03 1e-9 200 2000 0.7"
-
-"Metapneumovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep02 1e-9 200 2000 0.7"
-"Adenovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep004 1e-9 200 2000 0.7"
-"Parainfluenza3 260605 ExponentialODipLinear unimmlimdedupsac maxagep005 1e-9 200 2000 0.7"
-"InfluenzaA 260605 ExponentialODipLinear unimmlimdedupsac maxagep04 1e-9 200 2000 0.7"
-"InfluenzaB 260605 ExponentialODipLinear unimmlimdedupsac maxagep04 1e-9 200 2000 0.7"
+"RSV 260531 ExponentialODipLinear dedupsac maxagep028 1e-9 200 2000 0.7 emcee"
+"Metapneumovirus 260603 ExponentialODipLinear dedupsac maxagep015 1e-9 200 2000 0.7 emcee"
+"Adenovirus 260531 ExponentialODipLinear dedupsac maxagep003 1e-9 200 2000 0.7 emcee"
+"Parainfluenza3 260602 ExponentialODipLinear dedupsac maxagep004 1e-9 200 2000 0.7 emcee"
+"InfluenzaA 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 2000 0.7 emcee"
+"InfluenzaB 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 2000 0.7 emcee"
 )
 
 # for combination in "${combinations[@]}"; do

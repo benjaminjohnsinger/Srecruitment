@@ -140,6 +140,7 @@ if __name__ == "__main__":
             REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=True, smoothed=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1), sac=("sac" in option1),)
     else:
         REC_UP, REC_SAME, IMPORT_STRENGTH, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=import_multiplier, incidence_data=False, hosp=hosp, NAG=NAG, dedup=("dedup" in option1), sac=("sac" in option1),)
+    print(IMPORT_STRENGTH)
     print(data_full.shape)
     N_S = 3
     if "months" in option1:
@@ -186,7 +187,11 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
-    params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True, NAG=NAG, wrong_aging=int(str(seed)[:6])<260414, birth_rate_multiplier=birth_rate_multiplier)
+    params, cntct = x_to_params(x, pathogen, lockdown, option1, option2, print_params=True, return_contact=True, NAG=NAG, wrong_aging=int(str(seed)[:6])<260414, birth_rate_multiplier=birth_rate_multiplier, import_multiplier=import_multiplier)
+    avg_import = IMPORT_STRENGTH.mean() * jnp.ones(IMPORT_STRENGTH.shape)
+    params = (params[0], params[1], params[2], params[3], params[4], params[5], 
+              params[6], params[7], params[8], params[9], params[10], params[11], 
+              params[12], params[13], params[14], avg_import)
     # print(cntct.shape)
 
     # names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2)
@@ -649,7 +654,7 @@ if __name__ == "__main__":
     # ax[0].set_ylim(bottom=0)
 
     # plt.tight_layout()
-    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+".png",dpi=300)
+    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_avg_import.png",dpi=300)
     plt.close()
 
     # fig, ax = plt.subplots(figsize=(4,4))

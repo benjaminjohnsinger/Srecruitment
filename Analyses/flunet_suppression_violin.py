@@ -154,7 +154,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--random-seed",
         type=int,
-        default=42,
+        default=260604,
         help="Random seed used to sample example countries",
     )
     parser.add_argument(

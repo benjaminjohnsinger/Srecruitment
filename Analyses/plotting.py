@@ -3,6 +3,8 @@
 
 from datetime import date
 
+import os
+import re
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -1265,36 +1267,104 @@ def supression_violin(axes, pathogens, colors):
     axes[0].set_ylabel("Suppression duration (months)", fontsize=9)
     axes[0].set_yticks(np.arange(0, xmax+1, 12))
 
-def plot_FluNet(ax, pathogen, country, color='k', linewidth=1):
+short_reasons = {"low_activity_all_months_below_threshold": "low_activity",
+                 "insufficient_post_nonzero_months": "low_activity_post",
+                 "zero_testing_explains_excess_gap": "testing_gap",
+                 "insufficient_pre2020_baseline": "insufficient_baseline",
+                 "no_excess_gap_vs_pre2020_country_level": "no_excess_gap",
+                 "no_dip_after_anchor": "no_suppression",
+                 }
+short_country_names = {"occupied_Palestinian_territory_including_east_Jerusalem": "Palestine",
+                        "Venezuela_Bolivarian_Republic_of": "Venezuela",
+                        "Serbia_and_Montenegro_2003-2006": "Serbia_and_Montenegro",
+                        "Kosovo_in_accordance_with_UN_Security_Council_resolution_1244_1999": "Kosovo",
+                        "Bolivia_Plurinational_State_of": "Bolivia",
+                        "Democratic_People_s_Republic_of_Korea": "North_Korea",
+                        "Iran_Islamic_Republic_of": "Iran",
+                        "Lao_People_s_Democratic_Republic": "Laos",
+                        "Netherlands_Kingdom_of_the": "Netherlands",
+                        "Democratic_Republic_of_the_Congo": "DRC",
+                        "United_Republic_of_Tanzania": "Tanzania",
+                        "United_States_of_America": "USA",
+                        "United_Kingdom_England": "England",
+                        "United_Kingdom_Scotland": "Scotland",
+                        "United_Kingdom_Wales": "Wales",
+                        "United_Kingdom_Northern_Ireland": "Northern_Ireland",
+                        }
+def plot_FluNet(ax, pathogen, country, color='k', linewidth=1, flag_exclusions=False):
     data = pd.read_csv(f"Data/Processed/FluNetTimeseries/{country}__{pathogen}.csv", parse_dates=['month_start'])
     supression_data = pd.read_csv("Data/Processed/FluNet_suppression_duration_by_country_pathogen.csv")
+    def sanitize_filename_token(value: str) -> str:
+        token = re.sub(r"[^A-Za-z0-9._-]+", "_", value.strip())
+        token = token.strip("._-")
+        return token or "unknown"
+    # apply to country names
+    supression_data.loc[:, "country"] = supression_data["country"].apply(sanitize_filename_token)
     # restrict to month_start >= 2015-10-01
     data = data[(data["month_start"] >= pd.to_datetime("2015-10-01")) & (data["month_start"] < pd.to_datetime("2026-05-01"))]
-    if data["count"].max() > 0:
+    if (len(data) > 0) and (data["count"].sum() > 0):
         ax.plot(data["month_start"], data["count"], label=country, color=color, linewidth=linewidth)
-        
-        # Add suppression period indicator
-        pre_2020_data = data[data["month_start"] < pd.to_datetime("2020-03-01")]
-        if len(pre_2020_data) > 0:
-            pre_2020_max = pre_2020_data["count"].max()
-            threshold = pre_2020_max / 20
-            post_2020_data = data[data["month_start"] >= pd.to_datetime("2020-03-01")]
-            suppressed = post_2020_data[post_2020_data["count"] < threshold]
-            if ((supression_data["pathogen"] == pathogen) & (supression_data["country"] == country) & (supression_data["status"] == "excluded")).any():
-                # ax.plot([0.1], [0.9], marker='x', markersize=10, color='grey', transform=ax.transAxes)
-                ax.annotate("X", xy = (pd.to_datetime("2020-03-01"), post_2020_data["count"].min()), xytext=(0,2), textcoords='offset points', ha='right', va="top", color='grey')
-            elif len(suppressed) > 0:
-                supp_start = suppressed.iloc[0]["month_start"]
-                not_suppressed = post_2020_data[(post_2020_data["month_start"] > supp_start) & (post_2020_data["count"] >= threshold)]
-                supp_end = not_suppressed.iloc[0]["month_start"] if len(not_suppressed) > 0 else suppressed.iloc[-1]["month_start"]
-                y_pos = threshold
-                ax.plot([supp_start, supp_end], [y_pos, y_pos], color='red', linewidth=linewidth)
-                time_diff = supp_end - supp_start
-                time_amount = f"{time_diff.days // 30}"
-                last_pre_time = data[data["month_start"] < pd.to_datetime("2020-03-01")]["month_start"].iloc[-1]
-                ax.annotate(time_amount, xy=(last_pre_time + time_diff/2, threshold), xytext=(0,2), textcoords='offset points', ha='center', va="bottom", color='red')
     else:
-        ax.axis('off')
+        years = pd.date_range(start=pd.to_datetime("2015-10-01"), end=pd.to_datetime("2026-05-01"), freq='MS')
+        ax.plot(years, [0]*len(years), label=country, color=color, linewidth=linewidth)
+        if flag_exclusions:
+            ax.annotate("all_zero", xy=(0.01, 0.99), xycoords='axes fraction', fontsize=6, color='magenta', ha='left', va='top')
+    if flag_exclusions and ((supression_data["pathogen"] == pathogen) & (supression_data["country"] == country) & (supression_data["status"] == "excluded")).any():
+        reason = supression_data[(supression_data["pathogen"] == pathogen) & (supression_data["country"] == country) & (supression_data["status"] == "excluded")]["reason"].iloc[0]
+        short_reason = short_reasons.get(reason, reason)
+        ax.annotate(short_reason, xy=(0.01, 0.99), xycoords='axes fraction', fontsize=6, color='magenta', ha='left', va='top')
+
+    # Add suppression period indicator
+    pre_2020_data = data[data["month_start"] < pd.to_datetime("2020-03-01")]
+    if len(pre_2020_data) > 0 and not ((supression_data["pathogen"] == pathogen) & (supression_data["country"] == country) & (supression_data["status"] == "excluded")).any():
+        pre_2020_max = pre_2020_data["count"].max()
+        threshold = pre_2020_max / 20
+        post_2020_data = data[data["month_start"] >= pd.to_datetime("2020-03-01")]
+        suppressed = post_2020_data[post_2020_data["count"] < threshold]
+        if len(suppressed) > 0:
+            supp_start = suppressed.iloc[0]["month_start"]
+            not_suppressed = post_2020_data[(post_2020_data["month_start"] > supp_start) & (post_2020_data["count"] >= threshold)]
+            supp_end = not_suppressed.iloc[0]["month_start"] if len(not_suppressed) > 0 else suppressed.iloc[-1]["month_start"]
+            y_pos = threshold
+            ax.plot([supp_start, supp_end], [y_pos, y_pos], color='red', linewidth=linewidth)
+            time_diff = supp_end - supp_start
+            time_amount = f"{time_diff.days // 30}"
+            last_pre_time = data[data["month_start"] < pd.to_datetime("2020-03-01")]["month_start"].iloc[-1]
+            ax.annotate(time_amount, xy=(last_pre_time + time_diff/2, threshold), xytext=(0,2), textcoords='offset points', ha='center', va="bottom", color='red')
+
+def plot_FluNet_chunk(axes, countries_chunk):
+        for ci, country in enumerate(countries_chunk):
+            for pi, pathogen in enumerate(flunet_pathogens):
+                plot_FluNet(axes[ci, pi], pathogen, country, flag_exclusions=True)
+                axes[ci, pi].set_yticklabels([])
+                axes[ci, pi].set_xticklabels([])
+                # Remove all spines except bottom
+                axes[ci, pi].spines['top'].set_visible(False)
+                axes[ci, pi].spines['right'].set_visible(False)
+                axes[ci, pi].spines['left'].set_visible(False)
+                axes[ci, pi].set_yticks([])
+                # Add x tick labels only for middle column
+                axes[ci, pi].set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01", "2026-01-01",]))
+                if ci == len(countries_chunk)-1:
+                    axes[ci, pi].set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025", "",], fontsize=6)
+                    for label in axes[ci, pi].get_xticklabels():
+                        label.set_rotation(45)
+                        label.set_horizontalalignment('right')
+                        label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+                else:
+                    axes[ci, pi].set_xticklabels([])
+                if ci == 0:
+                    axes[ci, pi].set_title(short_names.get(pathogen, pathogen))
+                if pi == 0:
+                    axes[ci, pi].set_ylabel(short_country_names.get(country, country), rotation=0, ha='right')
+                    ax2 = axes[ci, pi].twinx()
+                    # ax2.set_ylabel("Detected cases", rotation=90, va='center', fontsize=6)
+                    ax2.set_yticks([])
+                    ax2.spines['right'].set_visible(False)
+                    ax2.spines['left'].set_visible(True)
+                    ax2.spines['top'].set_visible(False)
+                    ax2.yaxis.set_label_position('left')
+                    ax2.yaxis.tick_left()
 
 def plot_suppression_durations(fig, pathogens, countries, colors):
     gs = fig.add_gridspec(8, 6, height_ratios=[1, 0.1, 0.9, 0.9, 0.9, 0.9, 0.9, 3], hspace=0.1)
@@ -1390,7 +1460,62 @@ def plot_suppression_durations(fig, pathogens, countries, colors):
     country_axes[0,0].text(-0.5, 1.1, "B", transform=country_axes[0,0].transAxes, fontsize=16, fontweight="bold")
     violin_axis[0].text(-0.5, 1.1, "C", transform=violin_axis[0].transAxes, fontsize=16, fontweight="bold")
 
-
+def plot_fits(axes, n_samples=100, save_data=False, load_data=False):
+    aggregation = "MS"
+    agg_factor = 30.44
+    factor = 100000
+    for pathogen_idx in range(len(pathogens)):
+        ax = axes[:,pathogen_idx]
+        pathogen, option2, seed = pathogens[pathogen_idx], option2s[pathogen_idx], seeds[pathogen_idx]
+        _, _, _, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
+        chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=10000*(pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3"]), prefix="evosax_DE_")
+        np.random.seed(260604)
+        # choose n_samples random rows from chain
+        random_indices = np.random.choice(chain.shape[0], size=n_samples, replace=False)
+        random_samples = chain[random_indices, :]
+        if not load_data:
+            from fit_MCMC import run_simulation
+            def get_solution(x):
+                params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
+                solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+                return solution
+            solutions = jax.jit(jax.vmap(get_solution))(random_samples)
+        else:
+            solutions = np.load("Data/Processed/fit_samples_"+pathogen+option2+str(seed)+".npy", allow_pickle=True)
+        if save_data:
+            np.save("Data/Processed/fit_samples_"+pathogen+option2+str(seed)+".npy", solutions)
+        for sample_i in range(n_samples):
+            solution = jax.tree_util.tree_map(lambda x: x[sample_i], solutions)
+            for age_group_idx, age_group_name in enumerate(AGE_GROUP_NAMES):
+                lockdown_incidence_plot(ax[age_group_idx], STATE0, None, POINTS, pd.to_datetime('2020-03-01'),
+                                        solution=solution,
+                                        by_age=True, select_age_group=age_group_idx, AGE_GROUP_NAMES=AGE_GROUP_NAMES, AGE_GROUPS=AGE_GROUPS,
+                                        p_time_to_obs=p_time_to_obs, NAG=NAG,
+                                        test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
+                                        uncertainty="draw",
+                                        color=colors[pathogen_idx], factor=factor*agg_factor, label="Simulation", linewidth=0.5, alpha=0.05)
+        for age_group_idx, age_group_name in enumerate(AGE_GROUP_NAMES):
+            kpsc_proportion_positive_incidence_plot(ax[age_group_idx], pathogen=pathogen,
+                                                    AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, select_age_group=age_group_idx,
+                                                    aggregation=aggregation, factor=factor, annotations=False, definition="", label="Data", hosp=True, dedup=True,
+                                                    title="", color="k", linewidth=0.5)
+            if pathogen_idx == 0:
+                ax[age_group_idx].set_ylabel(age_group_name)
+            else:
+                ax[age_group_idx].set_ylabel("")
+            if age_group_idx == 0:
+                ax[age_group_idx].set_title(short_names.get(pathogen, pathogen))
+            ax[age_group_idx].set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
+            if age_group_idx == len(AGE_GROUP_NAMES)-1:
+                ax[age_group_idx].set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025",], fontsize=6)
+                for label in ax[age_group_idx].get_xticklabels():
+                    label.set_rotation(45)
+                    label.set_horizontalalignment('right')
+                    label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+            else:
+                ax[age_group_idx].set_xticklabels([])
+            ax[age_group_idx].legend().set_visible(False)
+            ax[age_group_idx].tick_params(axis='y', labelsize=6)
 
 if __name__ == "__main__":
     plt.rcParams.update({'font.size':8})
@@ -1447,82 +1572,58 @@ if __name__ == "__main__":
     # plot_suppression_durations(fig, flunet_pathogens, countries, colors)
     # plt.savefig(f"Figures/supression_durations_cherry.png", dpi=300)
 
+    # ## Generate supplemental figures of all FluNet timeseries
+    # directory_path = "Data/Processed/FluNetTimeseries/"
+    # countries = []
+    # for filename in os.listdir(directory_path):
+    #     if filename.endswith(".csv"):
+    #         country = filename.split("__")[0]
+    #         if country not in countries:
+    #             countries.append(country)
+    # countries.sort()
+    # # iterate over chunks of ten countries and plot their FluNet data
+    # for i in range(0, len(countries), 15):
+    #     fig, axes = plt.subplots(min(15, len(countries) - i), 6, figsize=(6.5,9))
+    #     countries_chunk = countries[i:i+15]
+    #     plot_FluNet_chunk(axes, countries_chunk)
+    #     plt.tight_layout()
+    #     plt.savefig(f"Figures//FluNetTimeseries_{countries[i]}_to_{countries[min(i+14, len(countries)-1)]}.png", dpi=300)
+
+
     # ## Generate Figure 2: age-structured fits figure
     # fig, axes = plt.subplots(7, 6, figsize=(6.5,6.5), layout="constrained")
-    # aggregation = "MS"
-    # agg_factor = 30.44
-    # factor = 100000
-    # for pathogen_idx in range(len(pathogens)):
-    #     ax = axes[:,pathogen_idx]
-    #     pathogen, option2, seed = pathogens[pathogen_idx], option2s[pathogen_idx], seeds[pathogen_idx]
-    #     _, _, _, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
-    #     data = data_full[start_idx:end_idx]
-    #     n_samples = 100
-    #     _, chain, _ = load_mcmc_chain(pathogen, seed, lockdown, option1, option2)
-    #     np.random.seed(260604)
-    #     # choose n_samples random rows from chain
-    #     random_indices = np.random.choice(chain.shape[0], size=n_samples, replace=False)
-    #     random_samples = chain[random_indices, :]
-    #     from fit_MCMC import run_simulation
-    #     def get_solution(x):
-    #         params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
-    #         solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
-    #         return solution
-    #     solutions = jax.jit(jax.vmap(get_solution))(random_samples)
-    #     for sample_i in range(n_samples):
-    #         solution = jax.tree_util.tree_map(lambda x: x[sample_i], solutions)
-    #         for age_group_idx, age_group_name in enumerate(AGE_GROUP_NAMES):
-    #             lockdown_incidence_plot(ax[age_group_idx], STATE0, None, POINTS, pd.to_datetime('2020-03-01'),
-    #                                     solution=solution,
-    #                                     by_age=True, select_age_group=age_group_idx, AGE_GROUP_NAMES=AGE_GROUP_NAMES, AGE_GROUPS=AGE_GROUPS,
-    #                                     p_time_to_obs=p_time_to_obs, NAG=NAG,
-    #                                     test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
-    #                                     uncertainty="draw",
-    #                                     color=colors[pathogen_idx], factor=factor*agg_factor, label="Simulation", linewidth=0.5, alpha=0.05)
-    #     for age_group_idx, age_group_name in enumerate(AGE_GROUP_NAMES):
-    #         kpsc_proportion_positive_incidence_plot(ax[age_group_idx], pathogen=pathogen,
-    #                                                 AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, select_age_group=age_group_idx,
-    #                                                 aggregation=aggregation, factor=factor, annotations=False, definition="", label="Data", hosp=True, dedup=True,
-    #                                                 title="", color="k", linewidth=0.5)
-    #         if pathogen_idx == 0:
-    #             ax[age_group_idx].set_ylabel(age_group_name)
-    #         else:
-    #             ax[age_group_idx].set_ylabel("")
-    #         if age_group_idx == 0:
-    #             ax[age_group_idx].set_title(short_names.get(pathogen, pathogen))
-    #         ax[age_group_idx].set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
-    #         if age_group_idx == len(AGE_GROUP_NAMES)-1:
-    #             ax[age_group_idx].set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025",], fontsize=6)
-    #             for label in ax[age_group_idx].get_xticklabels():
-    #                 label.set_rotation(45)
-    #                 label.set_horizontalalignment('right')
-    #                 label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
-    #         else:
-    #             ax[age_group_idx].set_xticklabels([])
-    #         ax[age_group_idx].legend().set_visible(False)
-    #         ax[age_group_idx].tick_params(axis='y', labelsize=6)
-    # # big y label for all plots
+    # plot_fits(axes, n_samples=100)
     # fig.text(0.001, 0.5, 'Estimated incidence of hospitalization per 100k members', va='center', rotation='vertical')
-    # # plt.tight_layout(rect=[0.03, 0, 1, 1])
     # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
-    ## Generate Figure 4: age infection figure
-    fig = plt.figure(figsize=(6.5, 6), layout="constrained")
-    gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
-    gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
-    gs_bottom = gs_main[1].subgridspec(1, 8)
-    import numpy as np
-    ax_top = np.empty((2, 4), dtype=object)
-    for r in range(2):
-        for c in range(3):
-            ax_top[r, c] = fig.add_subplot(gs_top[r, c])
-        ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
-    ax_bottom = np.empty((1,8), dtype=object)
-    for c in range(8):
-        ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
-    axes = [ax_top, ax_bottom]
-    plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, samples=1000, load_data=True, prefix="evosax_DE_")
-    plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty.png", dpi=300)
+    ## Generate Figure 3: suppression time heatmap
+    from sim_grid import generate_2d_heatmap_plot
+    good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
+    run_save_path = "Outputs/sim_grid_lh_n80611_chunk20611_seed260531_lockdownExponentialODipLinear_2d"
+    PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2])
+    fig, ax = plt.subplots(figsize=(3,3))
+    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True)
+    plt.tight_layout()
+    plt.savefig(f"Figures/heatmap_suppression_length.png", dpi=300)
+
+
+    # ## Generate Figure 4: age infection figure
+    # fig = plt.figure(figsize=(6.5, 6), layout="constrained")
+    # gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
+    # gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
+    # gs_bottom = gs_main[1].subgridspec(1, 8)
+    # import numpy as np
+    # ax_top = np.empty((2, 4), dtype=object)
+    # for r in range(2):
+    #     for c in range(3):
+    #         ax_top[r, c] = fig.add_subplot(gs_top[r, c])
+    #     ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
+    # ax_bottom = np.empty((1,8), dtype=object)
+    # for c in range(8):
+    #     ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
+    # axes = [ax_top, ax_bottom]
+    # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, samples=1000, load_data=True, prefix="evosax_DE_")
+    # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty.png", dpi=300)
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     

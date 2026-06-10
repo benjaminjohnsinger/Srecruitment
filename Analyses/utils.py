@@ -1015,14 +1015,20 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
         neg_log_likelihood = opt.fun
     return prefix, x, neg_log_likelihood
 
-def load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prefix="", prune=0, n_walkers=64):
+def load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prefix="", prune=0, n_walkers=64, just_chain=False):
     filepath_chain = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
     filepath_logprob = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
     try:
         chain = np.genfromtxt(filepath_chain, delimiter=',')[prune*n_walkers:]
-        logprobs = np.genfromtxt(filepath_logprob, delimiter=',').flatten()[prune*n_walkers:]
     except FileNotFoundError:
         print(f"MCMC results file not found: {filepath_chain}")
+        return None
+    if just_chain:
+        return chain
+    try:
+        logprobs = np.genfromtxt(filepath_logprob, delimiter=',').flatten()[prune*n_walkers:]
+    except FileNotFoundError:
+        print(f"MCMC log probability file not found: {filepath_logprob}")
         return None
     return prefix, chain, logprobs
 
