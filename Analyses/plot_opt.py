@@ -75,9 +75,9 @@ if __name__ == "__main__":
 
     if re.match(r'\d{4}-\d{2}-\d{2}',option1):
         start_date = option1
-    if re.match(r'\d{4}-\d{2}-\d{2}',option2):
-        end_date = option2[0:10]
-        option2 = option2[10:]
+    # if re.match(r'\d{4}-\d{2}-\d{2}',option2):
+    #     end_date = option2[0:10]
+    #     option2 = option2[10:]
 
     if end_date < '2024-10-01':
         mask = [0,0]
@@ -89,6 +89,11 @@ if __name__ == "__main__":
     # set seed
     np.random.seed(seed)
     prefix, x, log_likelihood = load_optimization_results(prefix, pathogen, seed, lockdown, option1_label, option2_label)
+
+    # x[8 - ("RSV" in pathogen) - (("RSV" in pathogen) or ("Influenza" in pathogen))] = 0.2728
+    # x[9 - ("RSV" in pathogen) - (("RSV" in pathogen) or ("Influenza" in pathogen))] = 0.0024
+    # x[8 - ("RSV" in pathogen) - (("RSV" in pathogen) or ("Influenza" in pathogen))] = 0.5724
+    # x[9 - ("RSV" in pathogen) - (("RSV" in pathogen) or ("Influenza" in pathogen))] = 0.0100
 
     # x[1] = 0.03
    # prefix = "sampling_parameters_"
@@ -300,8 +305,10 @@ if __name__ == "__main__":
     # print("Peak times by season:\n", peak_times_by_season)
     # peak_times_by_season is now a Series of arrays; convert to list of time indices per season
     peak_times = [pd.to_timedelta(np.asarray(pt, dtype='float64'), unit='D') if isinstance(pt, np.ndarray) else pd.to_timedelta(int(pt), unit='D') for pt in peak_times_by_season]
-    array_of_year_starts = np.array([date_to_t(date) for date in ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-10-01']])
-    peak_times_in_year = [pt - pd.to_timedelta(array_of_year_starts[i], unit='D') for i, pt in enumerate(peak_times)]
+    all_year_starts = ['2015-10-01','2016-10-01','2017-10-01','2018-10-01','2019-10-01','2020-10-01','2021-10-01','2022-10-01','2023-10-01','2024-10-01','2025-10-01']
+    year_starts_filtered = [date for date in all_year_starts if start_date <= date < end_date]
+    array_of_year_starts = np.array([date_to_t(date) for date in year_starts_filtered])
+    peak_times_in_year = [pt - pd.to_timedelta(array_of_year_starts[i], unit='D') for i, pt in enumerate(peak_times) if start_date <= all_year_starts[i] < end_date]
     # convert from TimedeltaIndex to numeric days
     peak_times_in_year = np.array([pt.days.to_numpy() if not isinstance(pt, np.ndarray) else np.asarray([p.days for p in pt]) for pt in peak_times_in_year])
     # convert negative values to NA
@@ -346,10 +353,10 @@ if __name__ == "__main__":
         expected_obs = expected_obs.at[:,:2].set(jnp.sum(expected_obs[:,:2],axis=1,keepdims=True))
         population_size = population_size.at[:2].set(jnp.sum(population_size[:2]))
     cut_times = times[:-1]
-    expected_obs_per_season = calculate_observations_per_season_jax(expected_obs, age_groups=True, NAG=NAG_eff)
+    expected_obs_per_season = calculate_observations_per_season_jax(expected_obs, age_groups=True, NAG=NAG_eff, n_full_seasons=len(year_starts_filtered)-1)
     # Assign each time point to a season (numeric season id/start)
     season_ids = jax.vmap(get_season_start_jax)(cut_times)
-    unique_seasons = 16684 + 365 * jnp.arange(10)  # Assuming seasons start on day 259 of each year
+    unique_seasons = 16684 + 365 * jnp.arange(len(year_starts_filtered))  # Assuming seasons start on day 259 of each year
     
     population_size_by_season = np.array([population_size[np.argmax(times >= season)] for season in unique_seasons])
     expected_obs_per_season = expected_obs_per_season / population_size_by_season

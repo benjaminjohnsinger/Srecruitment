@@ -998,20 +998,7 @@ def season_plot(ax,pathogen,incidence=True,relative=False):
     else:
         season_cumulative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
 
-def get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, census_age_pop, hospitalizations=False, prefix=""):
-    from fit_MCMC import run_simulation
-    _, x, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
-    params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
-    PERIOD = pd.date_range(start=pd.to_datetime('2015-10-01'), end=pd.to_datetime('2025-10-01'), freq='D')
-    POINTS = np.array(date_to_t(PERIOD))
-    ## Initial conditions
-    STATE0 = jnp.zeros((2*N_S+1,NAG))
-    STATE0 = STATE0.at[0,:].set(census_age_pop-1)
-    STATE0 = STATE0.at[1,:].set(1)
-    # # flatten initial state and add maternal immunity compartment
-    STATE0 = STATE0.flatten()
-    STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-    solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+def calculate_infection_matrices_from_solution(solution, params, NAG=7, hospitalizations=False):
     # find total observed infections each season in each age group
     values = solution.ys.T
     shaped_values = values[1:, :].reshape((1+2*N_S, NAG, -1))
@@ -1021,14 +1008,48 @@ def get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, census
     population_size = calculate_population_size(values, NAG=NAG)
     foi_matrix = params[4] * params[3][:, :, None] * all_infectious[None, :, :] / jnp.sum(population_size, axis=1)[None, None, :]
     infections_matrix = params[6][:, None, None, None] * foi_matrix[None, :, :, :] * susceptible[:, :, None, :]
-    if hospitalizations:
-        infections_matrix = infections_matrix * params[8][:, None, None, None] * params[9][None, :, None, None]
+    hospital_infections_matrix = infections_matrix * params[8][:, None, None, None] * params[9][None, :, None, None]
+    age_hospital_matrix = hospital_infections_matrix.sum(axis=0)[:1553].mean(axis=-1)
     age_infections_matrix = infections_matrix.sum(axis=0)[:1553].mean(axis=-1)
-    return age_infections_matrix
+    return jnp.stack([age_infections_matrix, age_hospital_matrix], axis=-1)
+
+def get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, census_age_pop, samples=None, hospitalizations=False, prefix=""):
+    from fit_MCMC import run_simulation
+    PERIOD = pd.date_range(start=pd.to_datetime('2015-10-01'), end=pd.to_datetime('2025-10-01'), freq='D')
+    POINTS = np.array(date_to_t(PERIOD))
+    ## Initial conditions
+    STATE0 = jnp.zeros((2*N_S+1,NAG))
+    STATE0 = STATE0.at[0,:].set(census_age_pop-1)
+    STATE0 = STATE0.at[1,:].set(1)
+    # # flatten initial state and add maternal immunity compartment
+    STATE0 = STATE0.flatten()
+    STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+
+    if samples is None:
+        _, x, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
+        params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
+        solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+        age_matrices = calculate_infection_matrices_from_solution(solution, params, NAG=NAG, hospitalizations=hospitalizations)
+        return age_matrices[...,0], age_matrices[...,1]
+    else:
+        if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3"]:
+            pruner = 10000
+        else:
+            pruner = 0
+        _, chain, _ = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=pruner, prefix=prefix)
+        random_indices = np.random.choice(chain.shape[0], size=samples, replace=True)
+        random_samples = chain[random_indices, :]
+        def get_matrix(x):
+            params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
+            solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+            return calculate_infection_matrices_from_solution(solution, params, NAG=NAG, hospitalizations=hospitalizations)
+        age_matrices = jax.vmap(get_matrix)(random_samples)
+        return age_matrices[...,0], age_matrices[...,1]
 
 def plot_infection_matrix(ax, pathogen=None, seed=None, lockdown=None, option1=None, option2=None, NAG=None, age_group_names=None, census_age_pop=None, hospitalizations=False, prefix="", matrix=None):
     if matrix is None:
-        normalized_age_infections_matrix = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, census_age_pop, hospitalizations, prefix)
+        age_infections_matrix, _ = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, census_age_pop, hospitalizations=hospitalizations, prefix=prefix)
+        normalized_age_infections_matrix = age_infections_matrix / census_age_pop[:, None]
     else:
         normalized_age_infections_matrix = matrix
     # imshow of age_infections_matrix with age group names as x and y ticks
@@ -1041,21 +1062,43 @@ def plot_infection_matrix(ax, pathogen=None, seed=None, lockdown=None, option1=N
     return im
 
 def plot_same_age_infection(ax, matrices, age_group_idx, pathogens, colors, census_age_pop=None):
-    values = jnp.zeros(len(matrices))
+    values = []
+    credible_intervals = []
+    
     for i, matrix in enumerate(matrices):
-        value = matrix[age_group_idx,age_group_idx]/matrix[age_group_idx,:].sum()
+        # Handle both single matrix and multiple matrices per pathogen
+        if matrix.ndim == 2:
+            matrix_list = [matrix]
+        else:
+            matrix_list = matrix
+        
+        pathogen_values = jnp.array([m[age_group_idx,age_group_idx]/m[age_group_idx,:].sum() for m in matrix_list])
         if census_age_pop is not None:
-            value *= census_age_pop.sum()/census_age_pop[age_group_idx]
-        values = values.at[i].set(value)
-    # if two values are close together, add -0.1 to one of them and +0.1 to the other to separate them visually
-    separation =jnp.zeros(len(matrices))
+            pathogen_values *= census_age_pop.sum()/census_age_pop[age_group_idx]
+        
+        median_val = jnp.median(pathogen_values)
+        ci_lower = jnp.percentile(pathogen_values, 2.5)
+        ci_upper = jnp.percentile(pathogen_values, 97.5)
+        
+        values.append(median_val)
+        credible_intervals.append((ci_lower, ci_upper))
+    
+    # if credible intervals overlap, add -0.1 to one of them and +0.1 to the other to separate them visually
+    separation = jnp.zeros(len(matrices))
     for i in range(len(matrices)):
         for j in range(i+1, len(matrices)):
-            if abs(values[i] - values[j]) < 0.05 * (jnp.max(values)-jnp.min(values)):
-                separation = separation.at[i].set(separation[i] - 0.135)
-                separation = separation.at[j].set(separation[j] + 0.135)
+            ci_i_lower, ci_i_upper = credible_intervals[i]
+            ci_j_lower, ci_j_upper = credible_intervals[j]
+            # Check if credible intervals overlap
+            if not (ci_i_upper < ci_j_lower or ci_j_upper < ci_i_lower):
+                separation = separation.at[i].set(separation[i] - 0.15)
+                separation = separation.at[j].set(separation[j] + 0.15)
+    separation = jnp.clip(separation, -0.35, 0.35)
     for i in range(len(matrices)):
+        ci_lower, ci_upper = credible_intervals[i]
         ax.scatter(separation[i], values[i], label=pathogens[i], color=colors[i], marker="o")
+        ax.plot([separation[i], separation[i]], [ci_lower, ci_upper], color=colors[i], linewidth=2)
+    
     ax.set_xlim(-0.5,0.5)
     ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0), useMathText=True)
     ax.set_xticks([])
@@ -1065,9 +1108,30 @@ def plot_same_age_infection(ax, matrices, age_group_idx, pathogens, colors, cens
 
 def plot_infections_versus(ax, matrices, age_group_indices, pathogens, colors, census_age_pop):
     for i, matrix in enumerate(matrices):
-        x_value = matrix[:,age_group_indices[0]].sum()/census_age_pop[age_group_indices[0]].sum()
-        y_value = matrix[:,age_group_indices[1]].sum()/census_age_pop[age_group_indices[1]].sum()
-        ax.scatter(x_value, y_value, label=pathogens[i], color=colors[i], marker="o")
+        # Handle both single matrix and multiple matrices per pathogen
+        if matrix.ndim == 2:
+            matrix_list = [matrix]
+        else:
+            matrix_list = matrix
+        
+        x_values = []
+        y_values = []
+        for m in matrix_list:
+            x_value = m[:,age_group_indices[0]].sum()/census_age_pop[age_group_indices[0]].sum()
+            y_value = m[:,age_group_indices[1]].sum()/census_age_pop[age_group_indices[1]].sum()
+            x_values.append(x_value)
+            y_values.append(y_value)
+        
+        x_median = jnp.median(jnp.array(x_values))
+        y_median = jnp.median(jnp.array(y_values))
+        x_ci_lower = jnp.percentile(jnp.array(x_values), 2.5)
+        x_ci_upper = jnp.percentile(jnp.array(x_values), 97.5)
+        y_ci_lower = jnp.percentile(jnp.array(y_values), 2.5)
+        y_ci_upper = jnp.percentile(jnp.array(y_values), 97.5)
+        
+        # ax.scatter(x_median, y_median, label=pathogens[i], color=colors[i], marker="o")
+        ax.plot([x_ci_lower, x_ci_upper], [y_median, y_median], color=colors[i], linewidth=2)
+        ax.plot([x_median, x_median], [y_ci_lower, y_ci_upper], color=colors[i], linewidth=2)
     # find minimum of x and y limits and set equal, find maximum of x and y limits and set equal
     x_min, x_max = ax.get_xlim()
     y_min, y_max = ax.get_ylim()
@@ -1081,29 +1145,45 @@ def plot_infections_versus(ax, matrices, age_group_indices, pathogens, colors, c
     ax.spines['right'].set_visible(False)
 
 import matplotlib.transforms as mtransforms
-def plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=False, prefix=""):
+def plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=False, samples=100, prefix="", save_data=False, load_data=False):
     ax_top, ax_bottom = axes
-    matrices = {}
-    hosp_matrices = {}
-    for pi, (pathogen, option2, seed) in enumerate(zip(pathogens, option2s, seeds)):
-        age_infections_matrix = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=False, prefix=prefix)
-        normalized_age_infections_matrix = age_infections_matrix / CENSUS_AGE_POP[:, None]
-        age_hospitalizations_matrix = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=True, prefix=prefix)
-        plot_infection_matrix(ax_top[pi//3, pi%3], age_group_names=AGE_GROUP_NAMES, NAG=7, matrix=normalized_age_infections_matrix)
+    if not load_data:
+        matrices = {}
+        hosp_matrices = {}
+        sampled_matrices = {}
+        sampled_hosp_matrices = {}
+        for pi, (pathogen, option2, seed) in enumerate(zip(pathogens, option2s, seeds)):
+            matrices[pathogen], hosp_matrices[pathogen] = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=False, prefix="emcee_")
+            sampled_matrices[pathogen], sampled_hosp_matrices[pathogen] = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=False, samples=samples, prefix=prefix)
+        if save_data:
+            np.savez_compressed("age_figure_data.npz", matrices=matrices, hosp_matrices=hosp_matrices, sampled_matrices=sampled_matrices, sampled_hosp_matrices=sampled_hosp_matrices)
+    else:
+        matrices = {}
+        hosp_matrices = {}
+        sampled_matrices = {}
+        sampled_hosp_matrices = {}
+        for pi, (pathogen, option2, seed) in enumerate(zip(pathogens, option2s, seeds)):
+            data = np.load("age_figure_data.npz", allow_pickle=True)
+            matrices = data["matrices"].item()
+            hosp_matrices = data["hosp_matrices"].item()
+            sampled_matrices = data["sampled_matrices"].item()
+            sampled_hosp_matrices = data["sampled_hosp_matrices"].item()
+            break
+    for pi, pathogen in enumerate(pathogens):
+        normalized_age_infections_matrix = matrices[pathogen] / CENSUS_AGE_POP[:, None]
+        plot_infection_matrix(ax_top[pi//3, pi%3], age_group_names=AGE_GROUP_NAMES, NAG=NAG, matrix=normalized_age_infections_matrix)
         ax_top[pi//3, pi%3].set_title(nice_names.get(pathogen, pathogen))
-        matrices[pathogen] = age_infections_matrix
-        hosp_matrices[pathogen] = age_hospitalizations_matrix
     for age_group_idx in range(NAG):
         if age_adjusted:
             pop_arg = CENSUS_AGE_POP
         else:            
             pop_arg = None
-        plot_same_age_infection(ax_bottom[0, age_group_idx], [matrices[pathogen] for pathogen in pathogens], age_group_idx, pathogens, colors, pop_arg)
+        plot_same_age_infection(ax_bottom[0, age_group_idx], [sampled_matrices[pathogen] for pathogen in pathogens], age_group_idx, pathogens, colors, pop_arg)
         ax_bottom[0, age_group_idx].set_xlabel(AGE_GROUP_NAMES[age_group_idx])
-    plot_infections_versus(ax_top[0,3], [matrices[pathogen] for pathogen in pathogens], [slice(0, 3), -1], pathogens, colors, CENSUS_AGE_POP)
+    plot_infections_versus(ax_top[0,3], [sampled_matrices[pathogen] for pathogen in pathogens], [slice(0, 3), -1], pathogens, colors, CENSUS_AGE_POP)
     ax_top[0,3].set_xlabel("<1y")
     ax_top[0,3].set_ylabel(">65y")
-    plot_infections_versus(ax_top[1,3], [hosp_matrices[pathogen] for pathogen in pathogens], [slice(0, 3), -1], pathogens, colors, CENSUS_AGE_POP)
+    plot_infections_versus(ax_top[1,3], [sampled_hosp_matrices[pathogen] for pathogen in pathogens], [slice(0, 3), -1], pathogens, colors, CENSUS_AGE_POP)
     ax_top[1,3].set_xlabel("<1y")
     ax_top[1,3].set_ylabel(">65y")
     legend_handles = [
@@ -1116,6 +1196,7 @@ def plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown,
     ]
     ax_bottom[0,NAG].axis("off")
     ax_bottom[0,NAG].legend(handles=legend_handles, loc="center", frameon=False, title="Pathogen")
+    ax_bottom[0,0].set_ylabel("Within-group transmission", fontsize=9)
 
     trans_A = mtransforms.blended_transform_factory(ax_top[0,0].transAxes, ax_top[0,3].transAxes)
     # trans_D = mtransforms.blended_transform_factory(ax[0,0].transAxes, ax[2,0].transAxes)
@@ -1123,7 +1204,7 @@ def plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown,
     ax_top[0,3].text(-0.5, 1.1, "B", transform=ax_top[0,3].transAxes, fontsize=16, fontweight="bold")
     ax_top[1,3].text(-0.5, 1.1, "C", transform=ax_top[1,3].transAxes, fontsize=16, fontweight="bold")
     # ax[2,0].text(-0.5, 1.1, "D", transform=trans_D, fontsize=16, fontweight="bold")
-    ax_bottom[0,0].text(-0.5, 1, "D", transform=ax_bottom[0,0].transAxes, fontsize=16, fontweight="bold")
+    ax_bottom[0,0].text(-1.1, 1, "D", transform=ax_bottom[0,0].transAxes, fontsize=16, fontweight="bold")
 
 def plot_single_pathogen_violin(ax, pathogen_data, color, pathogen_name):
     """Plot violin for a single pathogen."""
@@ -1344,7 +1425,7 @@ if __name__ == "__main__":
     daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
 
     pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-    colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40"]
+    colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
     option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035","maxagep035",]
     seeds = [260531, 260603, 260602, 260531, 260531, 260531,]
 
@@ -1425,23 +1506,23 @@ if __name__ == "__main__":
     # # plt.tight_layout(rect=[0.03, 0, 1, 1])
     # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
-    # ## Generate Figure 4: age infection figure
-    # fig = plt.figure(figsize=(6.5, 6), layout="constrained")
-    # gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
-    # gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
-    # gs_bottom = gs_main[1].subgridspec(1, 8)
-    # import numpy as np
-    # ax_top = np.empty((2, 4), dtype=object)
-    # for r in range(2):
-    #     for c in range(3):
-    #         ax_top[r, c] = fig.add_subplot(gs_top[r, c])
-    #     ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
-    # ax_bottom = np.empty((1,8), dtype=object)
-    # for c in range(8):
-    #     ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
-    # axes = [ax_top, ax_bottom]
-    # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, prefix="")
-    # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_vert_sameage.png", dpi=300)
+    ## Generate Figure 4: age infection figure
+    fig = plt.figure(figsize=(6.5, 6), layout="constrained")
+    gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
+    gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
+    gs_bottom = gs_main[1].subgridspec(1, 8)
+    import numpy as np
+    ax_top = np.empty((2, 4), dtype=object)
+    for r in range(2):
+        for c in range(3):
+            ax_top[r, c] = fig.add_subplot(gs_top[r, c])
+        ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
+    ax_bottom = np.empty((1,8), dtype=object)
+    for c in range(8):
+        ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
+    axes = [ax_top, ax_bottom]
+    plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, samples=1000, load_data=True, prefix="evosax_DE_")
+    plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty.png", dpi=300)
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     

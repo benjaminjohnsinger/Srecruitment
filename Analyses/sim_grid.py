@@ -39,7 +39,7 @@ PARAMETER_NAMES = [
     "Immunity to severe disease after second infection", "Maternal immunity",
     "Contact reduction", "Contact recovery",
     "Disease susceptibility <3m", "Disease susceptibility 3–11m", "Disease susceptibility 1–4y",
-    "Disease susceptibility 5–7y", "Disease susceptibility 8–17y", "Disease susceptibility 18–49y", "Disease susceptibility 50-64y", 
+    "Disease susceptibility 5–17y", "Disease susceptibility 18–49y", "Disease susceptibility 50-64y", 
     "Disease susceptibility 65+y"
 ]
 
@@ -47,8 +47,7 @@ SHORT_PNAMES = [
     "R0", "rec_up", "rec_same", "transmissibility", "seasonality", "phase", "wane1", "waning", 
     "immunity1", "immunity2", "disease_immunity1", "disease_immunity2", "maternal_immunity", 
     "contact_reduction", "contact_recovery",
-    "susceptibility_0_3m", "susceptibility_3_11m", "susceptibility_1_4y", "susceptibility_5_7y", 
-    "susceptibility_8_17y", "susceptibility_18_49y", "susceptibility_50_64y", "susceptibility_65y"
+    "susceptibility_0_3m", "susceptibility_3_11m", "susceptibility_1_4y", "susceptibility_5_17y", "susceptibility_18_49y", "susceptibility_50_64y", "susceptibility_65y"
 ]
 
 PATHOGEN_SHORT_NAMES = {
@@ -57,7 +56,7 @@ PATHOGEN_SHORT_NAMES = {
 }
 
 
-def suppression_duration_single_series(obs_series, anchor_idx, threshold_divisor=25.0):
+def suppression_duration_single_series(obs_series, anchor_idx, threshold_divisor=20.0):
     """Measure suppression length using dip/rebound logic from plotting + FluNet scripts.
 
     Uses: threshold = max(post-anchor incidence) / threshold_divisor.
@@ -89,7 +88,7 @@ def suppression_duration_single_series(obs_series, anchor_idx, threshold_divisor
     return jnp.where(jnp.logical_not(invalid_anchor) & dip_found, duration.astype(float), jnp.nan)
 
 
-def suppression_duration_by_age(obs_by_age, obs_summed_age, anchor_idx, threshold_divisor=25.0):
+def suppression_duration_by_age(obs_by_age, obs_summed_age, anchor_idx, threshold_divisor=20.0):
     """Return suppression duration for each age group plus summed incidence."""
     suppression_by_age = jax.vmap(
         lambda x: suppression_duration_single_series(x, anchor_idx, threshold_divisor),
@@ -310,7 +309,7 @@ def worker(args):
         obs_monthly,
         obs_summed_age_monthly,
         anchor_idx=anchor_month_idx,
-        threshold_divisor=25.0,
+        threshold_divisor=20.0,
     )  # duration is now in months (each index = 1 month)
     suppression_duration_by_season = jnp.tile(suppression_duration[None, :], (n_seasons, 1))
 
@@ -659,7 +658,7 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
         obs_monthly,
         obs_summed_age_monthly,
         anchor_idx=anchor_month_idx,
-        threshold_divisor=25.0,
+        threshold_divisor=20.0,
     )  # duration in months
 
     # calculate obs per season by summing over each 365-day period, then concatenate the summed age version
@@ -766,7 +765,7 @@ def add_pathogen_labels(ax, good_simulations, p1=0, p2=8, NAG=7, color=None, r0_
         color = ["white"] * len(good_simulations)
     for i, pathogen_info in enumerate(good_simulations):
         pathogen, seed, lockdown, option1, option2 = pathogen_info
-        x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
+        x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix="emcee_median_evosax_DE_")
         if p1 == 0:
             val1 = r0_base * x[2] / x[0]
         else:
@@ -1182,9 +1181,9 @@ if __name__ == "__main__":
     # # plt.tight_layout()
     # # plt.savefig("Figures/line_of_best_fit_ExponentialODipLinearsac.png", dpi=300)
     # # # print("NAG", NAG)
-    # # run_save_path = "Outputs/sim_grid_lh_n10000_chunk5000_seed260505_lockdownExponentialODipEqual_AdVPIV3hMPV_lowerIHR2"
+    # run_save_path = "Outputs/sim_grid_lh_n80610_chunk20610_seed260531_lockdownExponentialODipLinear_2d"
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-                                            seed=seed, n_samples=80609, dimension=2, chunk_size=20609,
+                                            seed=seed, n_samples=80610, dimension=2, chunk_size=20610,
                                             # run_save_path=run_save_path
                                             )
     # # print(run_save_path)
@@ -1200,11 +1199,11 @@ if __name__ == "__main__":
     # # plt.tight_layout()
     # # plt.savefig(f"Figures/along_linear_combination_age_of_first_infection_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_projection.png", dpi=300)
 
-    # # ## single panel outcome heatmap
-    # fig, ax = plt.subplots(figsize=(4, 4))
-    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True)
-    # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmap_suppression_length_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_test.png", dpi=300)
+    # ## single panel outcome heatmap
+    fig, ax = plt.subplots(figsize=(4, 4))
+    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True)
+    plt.tight_layout()
+    plt.savefig(f"Figures/heatmap_suppression_length_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_medians.png", dpi=300)
 
     # # ## single panel outcome heatmap
     # # fig, ax = plt.subplots(figsize=(4, 4))
@@ -1220,69 +1219,89 @@ if __name__ == "__main__":
     
     # two panel heatmap
     fig, ax = plt.subplots(1, 2, figsize=(6.5, 4), sharex=True, sharey=True)
-    generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_3", cbar=False, r0_base=r0_base)
-    generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_6", cbar=False, r0_base=r0_base)
+    min, max = generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_3", cbar=True, r0_base=r0_base)
+    print("Min and max for 5 to 17 years:", min, max)
+    min, max = generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_6", cbar=True, r0_base=r0_base)
+    print("Min and max for >65y:", min, max)
     ax[1].set_ylabel("")
     ax[0].set_title("5 to 17 years")
     ax[1].set_title("Over 65 years")
-    fig.subplots_adjust(right=0.85)
-    cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
-    norm = plt.Normalize(vmin=0, vmax=1)
-    sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm)
-    sm.set_array([])
-    cbar = plt.colorbar(sm, cax=cbar_ax, label="Relative proportion of hospitalizations caused")
-    # plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_hospitalizors_SACvs>65y_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_test.png", dpi=300)
+    cbar0 = [c for c in ax[0].get_figure().axes if c != ax[0] and c != ax[1]][0] if len([c for c in ax[0].get_figure().axes if c != ax[0] and c != ax[1]]) > 0 else None
+    if cbar0 is not None:
+        cbar0.set_ylabel("")
+    cbar1 = [c for c in ax[1].get_figure().axes if c != ax[0] and c != ax[1]][-1] if len([c for c in ax[1].get_figure().axes if c != ax[0] and c != ax[1]]) > 0 else None
+    if cbar1 is not None:
+        cbar1.set_ylabel("Proportion of hospitalizations caused by\n infections from age group")
+    plt.savefig(f"Figures/heatmaps_hospitalizors_SACvs>65y_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_medians.png", dpi=300)
     
-    fig, ax = plt.subplots(4, 2, figsize=(6.5,8.5), sharex=True, sharey=True)
-    from Parameters.census_population import AGE_GROUP_NAMES_sac as AGE_GROUP_NAMES
-    overall_min, overall_max = float('inf'), float('-inf')
-    for age_group in range(NAG):
-        current_ax = ax[age_group//2, age_group%2]
-        min, max = generate_2d_heatmap_plot(current_ax, run_save_path, good_simulations, label="", NAG=NAG, p1=0, p2=8,
-                                            cbar=False, vmin=0, vmax=0.43, log = False,
-                                            outcome=f"hospitalizors_in_group_{age_group}", foi_scaling=1)
-        current_ax.set_title(AGE_GROUP_NAMES[age_group])
-        overall_min = min if min < overall_min else overall_min
-        overall_max = max if max > overall_max else overall_max
-        current_ax.set_xlabel("")
-        current_ax.set_ylabel("")
-    print("Overall min:", overall_min, "Overall max:", overall_max)
-    fig.supxlabel(f"{PARAMETER_NAMES[0]}", fontsize=11)
-    fig.supylabel(f"{PARAMETER_NAMES[8]}", fontsize=11)
-
-    # # # add label on right for colorbars
-    # fig.text(0.95, 0.5, "Proportion of hospitalization-causing infectors in age group", va='center', rotation='vertical', fontsize=11)
-
-    # move figure to make space for colorbar
-    fig.subplots_adjust(right=0.8)
-    # add overall colorbar
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
-    norm = plt.Normalize(vmin=overall_min, vmax=overall_max)
-    sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm)
-    sm.set_array([])
-    cbar = plt.colorbar(sm, cax=cbar_ax, label="Proportion of hospitalization-causing infectors in age group")
-
-    # plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_hospitalizors_ExponentialDipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_same_scale.png", dpi=300)
-    
-    # # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
-    # # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)
+    # # two panel heatmap
+    # fig, ax = plt.subplots(1, 2, figsize=(6.5, 4), sharex=True, sharey=True)
+    # min, max = generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_4", cbar=False, r0_base=r0_base, vmin=0.32, vmax=0.43)
+    # print("Min and max for 18 to 39 years:", min, max)
+    # min, max = generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_5", cbar=False, r0_base=r0_base, vmin=0.32, vmax=0.43)
+    # print("Min and max for 40 to 64 years:", min, max)
+    # ax[1].set_ylabel("")
+    # ax[0].set_title("18 to 39 years")
+    # ax[1].set_title("40 to 64 years")
+    # fig.subplots_adjust(right=0.85)
+    # cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
+    # norm = plt.Normalize(vmin=0.32, vmax=0.43)
+    # sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm)
+    # sm.set_array([])
+    # cbar = plt.colorbar(sm, cax=cbar_ax, label="Relative proportion of hospitalizations caused")
     # # plt.tight_layout()
-    # # plt.savefig(f"Figures/close_to_RSV_260415_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    # plt.savefig(f"Figures/heatmaps_hospitalizors_18to39_vs_40to64_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_test.png", dpi=300)
+    
+
+    # fig, ax = plt.subplots(4, 2, figsize=(6.5,8.5), sharex=True, sharey=True)
+    # from Parameters.census_population import AGE_GROUP_NAMES_sac as AGE_GROUP_NAMES
+    # overall_min, overall_max = float('inf'), float('-inf')
+    # for age_group in range(NAG):
+    #     current_ax = ax[age_group//2, age_group%2]
+    #     min, max = generate_2d_heatmap_plot(current_ax, run_save_path, good_simulations, label="", NAG=NAG, p1=0, p2=8,
+    #                                         cbar=False, vmin=0, vmax=0.43, log = False,
+    #                                         outcome=f"hospitalizors_in_group_{age_group}", foi_scaling=1)
+    #     current_ax.set_title(AGE_GROUP_NAMES[age_group])
+    #     overall_min = min if min < overall_min else overall_min
+    #     overall_max = max if max > overall_max else overall_max
+    #     current_ax.set_xlabel("")
+    #     current_ax.set_ylabel("")
+    # print("Overall min:", overall_min, "Overall max:", overall_max)
+    # fig.supxlabel(f"{PARAMETER_NAMES[0]}", fontsize=11)
+    # fig.supylabel(f"{PARAMETER_NAMES[8]}", fontsize=11)
+
+    # # # # add label on right for colorbars
+    # # fig.text(0.95, 0.5, "Proportion of hospitalization-causing infectors in age group", va='center', rotation='vertical', fontsize=11)
+
+    # # move figure to make space for colorbar
+    # fig.subplots_adjust(right=0.8)
+    # # add overall colorbar
+    # cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
+    # norm = plt.Normalize(vmin=overall_min, vmax=overall_max)
+    # sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm)
+    # sm.set_array([])
+    # cbar = plt.colorbar(sm, cax=cbar_ax, label="Proportion of hospitalization-causing infectors in age group")
+
+    # # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmaps_hospitalizors_ExponentialDipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_same_scale.png", dpi=300)
+    
+    # # # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
+    # # # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)
+    # # # plt.tight_layout()
+    # # # plt.savefig(f"Figures/close_to_RSV_260415_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
 
-    pathogen_vals = jnp.asarray([extract_target_value_from_data(pathogen, outcome="time_to_rebound", NAG=NAG) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]])
-    # for p1 in range(15,len(PARAMETER_NAMES)):
-    for p1 in range(len(PARAMETER_NAMES)):
-        for p2 in range(len(PARAMETER_NAMES)-5, len(PARAMETER_NAMES)):
-            fig, ax = plt.subplots(figsize=(10, 8))
-            generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, NAG=NAG, outcome="time_to_rebound", threshold_factor=1/3, pathogen_vals=pathogen_vals)
-            plt.tight_layout()
-            plt.savefig(f"Figures/sim_grids260609/heatmap_time_to_rebound_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)
-    for p1 in range(len(PARAMETER_NAMES)):
-        for p2 in range(p1+1, len(PARAMETER_NAMES)):
-            fig, ax = plt.subplots(figsize=(10, 8))
-            generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, outcome="hospitalizors_in_group_0")
-            plt.tight_layout()
-            plt.savefig(f"Figures/sim_grids260609/heatmap_hospitalizors_in_group_0_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)
+    # pathogen_vals = jnp.asarray([extract_target_value_from_data(pathogen, outcome="suppression_length", NAG=NAG) for pathogen in [good_simulations[i][0] for i in range(len(good_simulations))]])
+    # # for p1 in range(15,len(PARAMETER_NAMES)):
+    # for p1 in range(len(PARAMETER_NAMES)):
+    #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
+    #         fig, ax = plt.subplots(figsize=(10, 8))
+    #         generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, NAG=NAG, outcome="suppression_length", threshold_factor=1/3, pathogen_vals=pathogen_vals)
+    #         plt.tight_layout()
+    #         plt.savefig(f"Figures/sim_grids260609/heatmap_suppression_length_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)
+    # for p1 in range(len(PARAMETER_NAMES)):
+    #     for p2 in range(p1+1, len(PARAMETER_NAMES)):
+    #         fig, ax = plt.subplots(figsize=(10, 8))
+    #         generate_2d_heatmap_plot(ax, run_save_path, good_simulations, p1=p1, p2=p2, outcome="hospitalizors_in_group_0")
+    #         plt.tight_layout()
+    #         plt.savefig(f"Figures/sim_grids260609/heatmap_hospitalizors_in_group_0_{SHORT_PNAMES[p1]}_{SHORT_PNAMES[p2]}_thresholdthird.png", dpi=300)

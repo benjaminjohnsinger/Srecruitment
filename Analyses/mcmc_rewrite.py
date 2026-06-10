@@ -240,9 +240,9 @@ if __name__ == "__main__":
     n_walkers = 64
     burn_in_size = 10000
 
-    pathogens = ["RSV","Metapneumovirus","Parainfluenza3",]
-    option2s = ["maxagep028","maxagep015","maxagep004",]
-    seeds = [260531, 260603, 260602, ]
+    pathogens = ["Adenovirus","InfluenzaA","InfluenzaB",]
+    option2s = ["maxagep003","maxagep035","maxagep035",]
+    seeds = [260531, 260531, 260531, ]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):

@@ -962,7 +962,7 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
     # Try both DE_opt and evosax_DE prefixes
     opt = None
     if prefix == "":
-        for test_prefix in ["emcee", "DE_opt", "evosax_DE", "scipy_DE", "evosax_DiffusionEvolution", "jaxopt_polish",]:
+        for test_prefix in ["emcee_median", "emcee", "DE_opt", "evosax_DE", "scipy_DE", "evosax_DiffusionEvolution", "jaxopt_polish",]:
             filepath = base_path + test_prefix + filename_pattern
             try:
                 with open(filepath, "rb") as f:
@@ -1034,8 +1034,9 @@ def load_random_mcmc_result(pathogen, seed, lockdown, option1, option2, prefix="
     return prefix, x, neg_log_likelihood
 
 # unified x from DE, i.e. x is same length regardless of model options. assume option2=flexage, lockdown=FlexStepwise
-def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", NAG=7):
-    _, x_DE, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
+def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", NAG=7, x_DE=None):
+    if x_DE is None:
+        _, x_DE, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
     REC_UP, _, _, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, skip_incidence=True, dedup=("dedup" in option1), NAG=NAG)
     x_consistent = jnp.zeros(12 + 2*(lockdown=="Exponential" or "ExponentialODip" in lockdown or "ExponentialInOutODip" in lockdown) + 3*(lockdown=="Sigmoid" or lockdown=="ExponentialByAge") + 4*(lockdown=="RSV0415" or lockdown=="FlexStepwise") + NAG)
     x_consistent = x_consistent.at[0:2].set([REC_UP[0], REC_UP[1]]) # REC

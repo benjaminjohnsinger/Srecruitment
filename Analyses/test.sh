@@ -1,17 +1,41 @@
 combinations=(
-"RSV 260604 ExponentialODipLinear kireldedupsac maxagep028 1e-9 20 1 0.7 scipy_DE"
-"Metapneumovirus 260604 ExponentialODipLinear kireldedupsac maxagep015 1e-9 20 1 0.7 scipy_DE"
-"Parainfluenza3 260604 ExponentialODipLinear kireldedupsac maxagep004 1e-9 20 1 0.7 scipy_DE"
-"Adenovirus 260604 ExponentialODipLinear kireldedupsac maxagep003 1e-9 20 1 0.7 scipy_DE"
-"InfluenzaA 260604 ExponentialODipLinear kireldedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
-"InfluenzaB 260604 ExponentialODipLinear kireldedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
+"RSV 260605 ExponentialODipLinear kireldedupsac maxagep028 1e-9 200 2000 0.7"
+"Metapneumovirus 260605 ExponentialODipLinear kireldedupsac maxagep015 1e-9 200 2000 0.7"
+"Adenovirus 260605 ExponentialODipLinear kireldedupsac maxagep003 1e-9 200 2000 0.7"
+"Parainfluenza3 260605 ExponentialODipLinear kireldedupsac maxagep004 1e-9 200 2000 0.7"
+"InfluenzaA 260605 ExponentialODipLinear kireldedupsac maxagep035 1e-9 200 2000 0.7"
+"InfluenzaB 260605 ExponentialODipLinear kireldedupsac maxagep035 1e-9 200 2000 0.7"
 
-"RSV 260604 ExponentialODipLinear fullireldedupsac maxagep028 1e-9 20 1 0.7 scipy_DE"
-"Metapneumovirus 260604 ExponentialODipLinear fullireldedupsac maxagep015 1e-9 20 1 0.7 scipy_DE"
-"Parainfluenza3 260604 ExponentialODipLinear fullireldedupsac maxagep004 1e-9 20 1 0.7 scipy_DE"
-"Adenovirus 260604 ExponentialODipLinear fullireldedupsac maxagep003 1e-9 20 1 0.7 scipy_DE"
-"InfluenzaA 260604 ExponentialODipLinear fullireldedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
-"InfluenzaB 260604 ExponentialODipLinear fullireldedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
+"RSV 260605 ExponentialODipLinear unimmlimdedupsac maxagep028 1e-9 200 2000 0.7"
+"Metapneumovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep015 1e-9 200 2000 0.7"
+"Adenovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep003 1e-9 200 2000 0.7"
+"Parainfluenza3 260605 ExponentialODipLinear unimmlimdedupsac maxagep004 1e-9 200 2000 0.7"
+"InfluenzaA 260605 ExponentialODipLinear unimmlimdedupsac maxagep035 1e-9 200 2000 0.7"
+"InfluenzaB 260605 ExponentialODipLinear unimmlimdedupsac maxagep035 1e-9 200 2000 0.7"
+
+"Metapneumovirus 260605 ExponentialODipLinear kireldedupsac maxagep01 1e-9 200 2000 0.7"
+"Adenovirus 260605 ExponentialODipLinear kireldedupsac maxagep002 1e-9 200 2000 0.7"
+"Parainfluenza3 260605 ExponentialODipLinear kireldedupsac maxagep003 1e-9 200 2000 0.7"
+"InfluenzaA 260605 ExponentialODipLinear kireldedupsac maxagep03 1e-9 200 2000 0.7"
+"InfluenzaB 260605 ExponentialODipLinear kireldedupsac maxagep03 1e-9 200 2000 0.7"
+
+"Metapneumovirus 260605 ExponentialODipLinear kireldedupsac maxagep02 1e-9 200 2000 0.7"
+"Adenovirus 260605 ExponentialODipLinear kireldedupsac maxagep004 1e-9 200 2000 0.7"
+"Parainfluenza3 260605 ExponentialODipLinear kireldedupsac maxagep005 1e-9 200 2000 0.7"
+"InfluenzaA 260605 ExponentialODipLinear kireldedupsac maxagep04 1e-9 200 2000 0.7"
+"InfluenzaB 260605 ExponentialODipLinear kireldedupsac maxagep04 1e-9 200 2000 0.7"
+
+"Metapneumovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep01 1e-9 200 2000 0.7"
+"Adenovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep002 1e-9 200 2000 0.7"
+"Parainfluenza3 260605 ExponentialODipLinear unimmlimdedupsac maxagep003 1e-9 200 2000 0.7"
+"InfluenzaA 260605 ExponentialODipLinear unimmlimdedupsac maxagep03 1e-9 200 2000 0.7"
+"InfluenzaB 260605 ExponentialODipLinear unimmlimdedupsac maxagep03 1e-9 200 2000 0.7"
+
+"Metapneumovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep02 1e-9 200 2000 0.7"
+"Adenovirus 260605 ExponentialODipLinear unimmlimdedupsac maxagep004 1e-9 200 2000 0.7"
+"Parainfluenza3 260605 ExponentialODipLinear unimmlimdedupsac maxagep005 1e-9 200 2000 0.7"
+"InfluenzaA 260605 ExponentialODipLinear unimmlimdedupsac maxagep04 1e-9 200 2000 0.7"
+"InfluenzaB 260605 ExponentialODipLinear unimmlimdedupsac maxagep04 1e-9 200 2000 0.7"
 )
 
 # for combination in "${combinations[@]}"; do
@@ -19,7 +43,7 @@ combinations=(
 # done
 
 for combination in "${combinations[@]}"; do
-    /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
+    # /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
     if [[ $combination == *"optax" ]]; then
         /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_optax.py $combination
     else
