@@ -1144,7 +1144,7 @@ def plot_infections_versus(ax, matrices, age_group_indices, pathogens, colors, c
     ax.spines['right'].set_visible(False)
 
 import matplotlib.transforms as mtransforms
-def plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=False, samples=100, prefix="", save_data=False, load_data=False):
+def plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, logD=False, age_adjusted=False, samples=100, prefix="", save_data=False, load_data=False):
     ax_top, ax_bottom = axes
     if not load_data:
         matrices = {}
@@ -1178,6 +1178,12 @@ def plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown,
         else:            
             pop_arg = None
         plot_same_age_infection(ax_bottom[0, age_group_idx], [sampled_matrices[pathogen] for pathogen in pathogens], age_group_idx, pathogens, colors, pop_arg)
+        if logD:
+            ax_bottom[0, age_group_idx].set_yscale("log")
+            ax_bottom[0, age_group_idx].set_ylim([2e-2,4])
+            if age_group_idx > 0:
+                ax_bottom[0, age_group_idx].spines['left'].set_visible(False)
+                ax_bottom[0, age_group_idx].set_yticks([])
         ax_bottom[0, age_group_idx].set_xlabel(AGE_GROUP_NAMES[age_group_idx])
     plot_infections_versus(ax_top[0,3], [sampled_matrices[pathogen] for pathogen in pathogens], [slice(0, 3), -1], pathogens, colors, CENSUS_AGE_POP)
     ax_top[0,3].set_xlabel("<1y")
@@ -1705,9 +1711,9 @@ if __name__ == "__main__":
 
     # ## plot MCMC corners and traces for all pathogens
     # for pathogen, option2, seed in zip(pathogens, option2s, seeds):
-    #     plot_mcmc_corner(pathogen, option2, seed)
+    #     # plot_mcmc_corner(pathogen, option2, seed)
     #     print(f"plotting MCMC traces for {pathogen}...")
-    #     fig, axes = plt.subplots(6, 3, figsize=(6.5,8), sharex=True)
+    #     fig, axes = plt.subplots(4, 4, figsize=(13.3,7.5), sharex=True)
     #     # Calculate this once to avoid repeating the function call
     #     n_params = len(parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)[0])
     #     plot_mcmc_traces(axes.flatten(), pathogen, option2, seed)
@@ -1722,7 +1728,7 @@ if __name__ == "__main__":
     #                 axes[row, col].set_xlabel("Iteration number")
     #                 break
     #     plt.tight_layout()
-    #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_test.png", dpi=300)
+    #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
     #     plt.close()
 
     # # ## Generate Figure 1: timeseries and suppression duration figure
@@ -1748,40 +1754,39 @@ if __name__ == "__main__":
     #     plot_FluNet_chunk(axes, countries_chunk)
     #     plt.tight_layout()
     #     plt.savefig(f"Figures//FluNetTimeseries_{countries[i]}_to_{countries[min(i+14, len(countries)-1)]}.png", dpi=300)
-
-
+    
     # ## Generate Figure 2: age-structured fits figure
     # fig, axes = plt.subplots(7, 6, figsize=(6.5,6.5), layout="constrained")
     # plot_fits(axes, n_samples=400, load_data=True)
     # fig.text(0.001, 0.5, 'Estimated incidence of hospitalization per 100k members', va='center', rotation='vertical')
     # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
-    # ## Generate Figure 3: suppression time heatmap
-    from sim_grid import generate_2d_heatmap_plot
-    good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
-    run_save_path = "Outputs/sim_grid_lh_n10612_chunk5612_seed260531_lockdownExponentialODipLinear_2d"
-    fig, ax = plt.subplots(figsize=(3,3))
-    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True, r0_base=r0_base)
-    plt.tight_layout()
-    plt.savefig(f"Figures/heatmap_suppression_length.png", dpi=300)
+    # # ## Generate Figure 3: suppression time heatmap
+    # from sim_grid import generate_2d_heatmap_plot
+    # good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
+    # run_save_path = "Outputs/sim_grid_lh_n80612_chunk10612_seed260531_lockdownExponentialODipLinear_2d"
+    # fig, ax = plt.subplots(figsize=(6.5,3.25))
+    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True, r0_base=r0_base)
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmap_suppression_length_slide.png", dpi=300)
 
-    # ## Generate Figure 4: age infection figure
-    # fig = plt.figure(figsize=(6.5, 6), layout="constrained")
-    # gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
-    # gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
-    # gs_bottom = gs_main[1].subgridspec(1, 8)
-    # import numpy as np
-    # ax_top = np.empty((2, 4), dtype=object)
-    # for r in range(2):
-    #     for c in range(3):
-    #         ax_top[r, c] = fig.add_subplot(gs_top[r, c])
-    #     ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
-    # ax_bottom = np.empty((1,8), dtype=object)
-    # for c in range(8):
-    #     ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
-    # axes = [ax_top, ax_bottom]
-    # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, samples=400, load_data=True, prefix="")
-    # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty.png", dpi=300)
+    ## Generate Figure 4: age infection figure
+    fig = plt.figure(figsize=(6.5, 6), layout="constrained")
+    gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
+    gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
+    gs_bottom = gs_main[1].subgridspec(1, 8)
+    import numpy as np
+    ax_top = np.empty((2, 4), dtype=object)
+    for r in range(2):
+        for c in range(3):
+            ax_top[r, c] = fig.add_subplot(gs_top[r, c])
+        ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
+    ax_bottom = np.empty((1,8), dtype=object)
+    for c in range(8):
+        ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
+    axes = [ax_top, ax_bottom]
+    plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=True, logD=True, samples=400, load_data=True, prefix="")
+    plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty_log_adjusted.png", dpi=300)
 
     # ## Generate Figure 5: age group heatmaps and line of best fit
     # fig = plt.figure(figsize=(6.5, 6.5))
