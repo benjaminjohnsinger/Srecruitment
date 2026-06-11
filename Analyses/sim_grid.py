@@ -774,7 +774,7 @@ def add_pathogen_labels(ax, good_simulations, p1=0, p2=8, NAG=7, color=None, r0_
             val1 = x[p1-1] / PARAM_SCALING[p1-1]
         val2 = x[p2-1] / PARAM_SCALING[p2-1]
         ax.scatter(val1, val2, s=50, color=color[i], edgecolor='black', zorder=5)
-        ax.annotate(PATHOGEN_SHORT_NAMES.get(pathogen, pathogen), (val1, val2), xytext=(9, -9),
+        ax.annotate(PATHOGEN_SHORT_NAMES.get(pathogen, pathogen), (val1, val2), xytext=(5, -5),
                 textcoords='offset points',  ha="left", color='black', zorder=4,
                 path_effects=[pe.Stroke(linewidth=2, foreground='white'), pe.Normal()])
 
