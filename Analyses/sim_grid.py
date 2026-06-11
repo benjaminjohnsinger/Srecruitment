@@ -113,7 +113,7 @@ def parameter_space(good_simulations, NAG=7, n_samples=None):
     else:
         for pathogen_info in good_simulations:
             pathogen, seed, lockdown, option1, option2 = pathogen_info
-            chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=10000*(pathogen in "RSVMetapneumovirusParainfluenza3"), prefix=["","evosax_DE_"][("Influenza" not in pathogen)], just_chain=True)
+            chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=0, prefix="", just_chain=True)
             # draw n_samples randomly from the chain
             sampled_xs = chain[np.random.choice(chain.shape[0], size=n_samples, replace=True)]
             consistent_xs = jax.vmap(lambda x: consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, x_DE=x))(sampled_xs)
@@ -652,7 +652,6 @@ def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
     obs_sum_monthly_np = obs_sum_df.resample('MS').sum().values
     obs_monthly = jnp.array(obs_monthly_np)
     obs_summed_age_monthly = jnp.array(obs_sum_monthly_np)
-    print(obs_summed_age_monthly)
     anchor_date = pd.to_datetime("2020-01-01")
     monthly_dates = obs_df.resample('MS').sum().index
     anchor_month_idx = int(np.searchsorted(monthly_dates, anchor_date, side='right')) - 1
@@ -767,7 +766,7 @@ def add_pathogen_labels(ax, good_simulations, p1=0, p2=8, NAG=7, color=None, r0_
         color = ["white"] * len(good_simulations)
     for i, pathogen_info in enumerate(good_simulations):
         pathogen, seed, lockdown, option1, option2 = pathogen_info
-        x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix="emcee_median_evosax_DE_")
+        x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix="emcee_median_")
         if p1 == 0:
             val1 = r0_base * x[2] / x[0]
         else:
@@ -1184,9 +1183,9 @@ if __name__ == "__main__":
     # # plt.tight_layout()
     # # plt.savefig("Figures/line_of_best_fit_ExponentialODipLinearsac.png", dpi=300)
     # # # print("NAG", NAG)
-    # run_save_path = "Outputs/sim_grid_lh_n80611_chunk20611_seed260531_lockdownExponentialODipLinear_2d"
+    # run_save_path = "Outputs/sim_grid_lh_n80612_chunk20612_seed260531_lockdownExponentialODipLinear_2d"
     run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-                                            seed=seed, n_samples=80611, dimension=2, chunk_size=20611,
+                                            seed=seed, n_samples=80612, dimension=2, chunk_size=10612,
                                             # run_save_path=run_save_path
                                             )
     # # print(run_save_path)

@@ -1034,12 +1034,9 @@ def get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, census
         age_matrices = calculate_infection_matrices_from_solution(solution, params, NAG=NAG, hospitalizations=hospitalizations)
         return age_matrices[...,0], age_matrices[...,1]
     else:
-        if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
-            pruner = 10000
-        else:
-            pruner = 0
+        pruner = 0
         _, chain, _ = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=pruner, prefix=prefix)
-        random_indices = np.random.choice(chain.shape[0], size=samples, replace=True)
+        random_indices = np.random.choice(chain.shape[0], size=samples, replace=False)
         random_samples = chain[random_indices, :]
         def get_matrix(x):
             params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
@@ -1468,7 +1465,7 @@ def plot_fits(axes, n_samples=100, save_data=False, load_data=False):
         ax = axes[:,pathogen_idx]
         pathogen, option2, seed = pathogens[pathogen_idx], option2s[pathogen_idx], seeds[pathogen_idx]
         _, _, _, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
-        chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=10000*(pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]), prefix="evosax_DE_")
+        chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
         np.random.seed(260604)
         # choose n_samples random rows from chain
         random_indices = np.random.choice(chain.shape[0], size=n_samples, replace=False)
@@ -1481,11 +1478,14 @@ def plot_fits(axes, n_samples=100, save_data=False, load_data=False):
                 return solution
             solutions = jax.jit(jax.vmap(get_solution))(random_samples)
         else:
-            solutions = np.load("Data/Processed/fit_samples_"+pathogen+option2+str(seed)+".npy", allow_pickle=True)
+            solutions = np.load("Data/Processed/fit_samples_" + pathogen + option2 + str(seed) + ".npy", allow_pickle=True)
         if save_data:
-            np.save("Data/Processed/fit_samples_"+pathogen+option2+str(seed)+".npy", solutions)
+            np.save("Data/Processed/fit_samples_"+pathogen+option2+str(seed)+".npy", jax.tree_util.tree_map(np.array, solutions))
         for sample_i in range(n_samples):
-            solution = jax.tree_util.tree_map(lambda x: x[sample_i], solutions)
+            if load_data:
+                solution = solutions[sample_i]
+            else:
+                solution = jax.tree_util.tree_map(lambda x: x[sample_i], solutions)
             for age_group_idx, age_group_name in enumerate(AGE_GROUP_NAMES):
                 lockdown_incidence_plot(ax[age_group_idx], STATE0, None, POINTS, pd.to_datetime('2020-03-01'),
                                         solution=solution,
@@ -1518,7 +1518,7 @@ def plot_fits(axes, n_samples=100, save_data=False, load_data=False):
             ax[age_group_idx].tick_params(axis='y', labelsize=6)
 
 def plot_mcmc_traces(axes, pathogen, option2, seed, n_walkers=64):
-    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=10000*(pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]), prefix="evosax_DE_")
+    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
     param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
     n_params = len(param_names)
     for param_idx in range(n_params):
@@ -1528,7 +1528,7 @@ def plot_mcmc_traces(axes, pathogen, option2, seed, n_walkers=64):
         ax.set_title(f"{param_names[param_idx]}")
 
 def plot_mcmc_corner(pathogen, option2, seed):
-    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=10000*(pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]), prefix="evosax_DE_")
+    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
     param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
     fig = corner.corner(chain, labels=param_names,  show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
     plt.savefig(f"Figures/mcmc_corner_{pathogen}_{option2}_{seed}.pdf")
@@ -1539,7 +1539,7 @@ def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_di
     return srel[1]
 
 def plot_r0_vs_first_immunity(axes, pathogen, option2, seed, color, r0_base=15.24):
-    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=10000*(pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]), prefix=["","evosax_DE_"]["Influenza" not in pathogen])
+    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
     param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
     beta_idx = param_names.index("BETA")
     beta_values = chain[:, beta_idx]
@@ -1725,17 +1725,6 @@ if __name__ == "__main__":
     #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_test.png", dpi=300)
     #     plt.close()
 
-    # ### Figure 5 - very janky version
-    # from sim_grid import plot_two_heatmaps
-    # from test import plot_line_figure
-    # fig = plt.figure(figsize=(6.5,6.5))
-    # gs = fig.add_gridspec(2, 2)
-    # ax1 = [fig.add_subplot(gs[0, i]) for i in range(2)]
-    # ax2 = fig.add_subplot(gs[1, :])
-    # plot_two_heatmaps(ax1)
-    # plot_line_figure(ax2)
-    # plt.savefig("Figures/figure_five_draft.png", dpi=300)
-
     # # ## Generate Figure 1: timeseries and suppression duration figure
     # fig = plt.figure(layout="constrained", figsize=(6.5,8.5))
     # countries = ["Brazil", "Canada", "India", "Malaysia", "Qatar"]
@@ -1763,14 +1752,14 @@ if __name__ == "__main__":
 
     # ## Generate Figure 2: age-structured fits figure
     # fig, axes = plt.subplots(7, 6, figsize=(6.5,6.5), layout="constrained")
-    # plot_fits(axes, n_samples=100)
+    # plot_fits(axes, n_samples=400, load_data=True)
     # fig.text(0.001, 0.5, 'Estimated incidence of hospitalization per 100k members', va='center', rotation='vertical')
     # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
     # ## Generate Figure 3: suppression time heatmap
     from sim_grid import generate_2d_heatmap_plot
     good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
-    run_save_path = "Outputs/sim_grid_lh_n80611_chunk20611_seed260531_lockdownExponentialODipLinear_2d"
+    run_save_path = "Outputs/sim_grid_lh_n10612_chunk5612_seed260531_lockdownExponentialODipLinear_2d"
     fig, ax = plt.subplots(figsize=(3,3))
     generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True, r0_base=r0_base)
     plt.tight_layout()
@@ -1791,14 +1780,14 @@ if __name__ == "__main__":
     # for c in range(8):
     #     ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
     # axes = [ax_top, ax_bottom]
-    # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, samples=1000, load_data=True, prefix="evosax_DE_")
+    # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, samples=400, load_data=True, prefix="")
     # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty.png", dpi=300)
 
-    ## Generate Figure 5: age group heatmaps and line of best fit
-    fig = plt.figure(figsize=(6.5, 6.5))
-    plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base)
-    plt.savefig(f"Figures/figure_five.pdf", dpi=300)
-    plt.close()
+    # ## Generate Figure 5: age group heatmaps and line of best fit
+    # fig = plt.figure(figsize=(6.5, 6.5))
+    # plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base)
+    # plt.savefig(f"Figures/figure_five.pdf", dpi=300)
+    # plt.close()
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     
