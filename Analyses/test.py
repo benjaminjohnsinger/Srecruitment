@@ -141,49 +141,43 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
     # print(f"Best R0 found by MCMC: {15.24*gamma*best_params[0]:.4f}, best immunity found by MCMC: {1-best_srel1:.4f}, with negative log-probability: {best_neg_log_likelihood:.4f}")
     
 
-    # mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
-    # median_params = np.median(mcmc_samples_2d, axis=0)
-    # log_prob_of_median = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, AGE_GROUPS=AGE_GROUPS)[0](median_params)
-    # # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
-    # WRITE_EMCEE_ADHOC_EXPORT = True
-    # if WRITE_EMCEE_ADHOC_EXPORT:
-    #     results_dir = f"Data/Processed/results{str(seed)[:6]}"
-    #     os.makedirs(results_dir, exist_ok=True)
-    #     emcee_results_file = f"{results_dir}/emcee_median_{prefix}{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
-    #     with open(emcee_results_file, "wb") as f:
-    #         pickle.dump(
-    #             {
-    #                 "final_population": np.asarray([median_params]),
-    #                 "final_fitness": np.asarray([log_prob_of_median]),
-    #             },
-    #             f,
-    #         )
-    #     print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
-    # # --- END AD-HOC EMCEE EXPORT BLOCK ---
+    mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
+    median_params = np.median(mcmc_samples_2d, axis=0)
+    log_prob_of_median = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, AGE_GROUPS=AGE_GROUPS)[0](median_params)
+    # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
+    WRITE_EMCEE_ADHOC_EXPORT = True
+    if WRITE_EMCEE_ADHOC_EXPORT:
+        results_dir = f"Data/Processed/results{str(seed)[:6]}"
+        os.makedirs(results_dir, exist_ok=True)
+        emcee_results_file = f"{results_dir}/emcee_median_{prefix}{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
+        with open(emcee_results_file, "wb") as f:
+            pickle.dump(
+                {
+                    "final_population": np.asarray([median_params]),
+                    "final_fitness": np.asarray([log_prob_of_median]),
+                },
+                f,
+            )
+        print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
+    # --- END AD-HOC EMCEE EXPORT BLOCK ---
 
     
-#     fig, trax = plt.subplots(4,4, figsize=(10,6))
-#     for param_idx in range(n_params):
-#         for walker_idx in range(n_walkers):
-#             # if best_idx[1] == walker_idx:
-#             #     trax[param_idx//4, param_idx%4].plot(mcmc_samples[:,walker_idx,param_idx], alpha=1, zorder=10, color='k', label="Best fit walker")
-#             # else:
-#             trax[param_idx//4, param_idx%4].plot(mcmc_samples[:,walker_idx,param_idx], alpha=0.4)
-#         trax[param_idx//4, param_idx%4].set_title(param_names[param_idx])
-#         # trax[param_idx//4, param_idx%4].axvline(x=best_idx[0], color='k', linestyle='-', label="Best fit")
-#     plt.tight_layout()
-#     plt.savefig(f"Figures/mcmc_traces_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers_test.png", dpi=300, bbox_inches='tight')
-#     plt.close(fig)
+    # fig, trax = plt.subplots(4,4, figsize=(10,6))
+    # for param_idx in range(n_params):
+    #     for walker_idx in range(n_walkers):
+    #         # if best_idx[1] == walker_idx:
+    #         #     trax[param_idx//4, param_idx%4].plot(mcmc_samples[:,walker_idx,param_idx], alpha=1, zorder=10, color='k', label="Best fit walker")
+    #         # else:
+    #         trax[param_idx//4, param_idx%4].plot(mcmc_samples[:,walker_idx,param_idx], alpha=0.4)
+    #     trax[param_idx//4, param_idx%4].set_title(param_names[param_idx])
+    #     # trax[param_idx//4, param_idx%4].axvline(x=best_idx[0], color='k', linestyle='-', label="Best fit")
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/mcmc_traces_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers_test.png", dpi=300, bbox_inches='tight')
+    # plt.close(fig)
 
 
     # # Reshape it back to 3D to separate the walkers properly
     chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
-
-    # Now apply the Case A math
-    moved = np.any(chain_3d[1:] != chain_3d[:-1], axis=-1)
-    mean_acceptance = np.mean(moved)
-
-    print(f"Mean Acceptance Fraction: {mean_acceptance:.4f}")
 
     # calculate ensemble-aware autocorrelation time and ESS
     try:

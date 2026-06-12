@@ -1,10 +1,10 @@
 combinations=(
-"RSV 260531 ExponentialODipLinear dedupsac maxagep028 1e-9 200 2000 0.7 emcee"
-"Metapneumovirus 260603 ExponentialODipLinear dedupsac maxagep015 1e-9 200 2000 0.7 emcee"
-"Adenovirus 260531 ExponentialODipLinear dedupsac maxagep003 1e-9 200 2000 0.7 emcee"
-"Parainfluenza3 260602 ExponentialODipLinear dedupsac maxagep004 1e-9 200 2000 0.7 emcee"
-"InfluenzaA 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 2000 0.7 emcee"
-"InfluenzaB 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 2000 0.7 emcee"
+"RSV 260531 ExponentialODipLinear dedupsac maxagep028 1e-9 200 2000 0.7 emcee_median"
+"Metapneumovirus 260603 ExponentialODipLinear dedupsac maxagep015 1e-9 200 2000 0.7 emcee_median"
+"Adenovirus 260531 ExponentialODipLinear dedupsac maxagep003 1e-9 200 2000 0.7 emcee_median"
+"Parainfluenza3 260602 ExponentialODipLinear dedupsac maxagep004 1e-9 200 2000 0.7 emcee_median"
+"InfluenzaA 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 2000 0.7 emcee_median"
+"InfluenzaB 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 2000 0.7 emcee_median"
 )
 
 # for combination in "${combinations[@]}"; do

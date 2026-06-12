@@ -1270,6 +1270,55 @@ def supression_violin(axes, pathogens, colors):
     axes[0].set_ylabel("Suppression duration (months)", fontsize=9)
     axes[0].set_yticks(np.arange(0, xmax+1, 12))
 
+def plot_supression_rank_heatmap(ax, pathogens):
+    supression_data = pd.read_csv("Data/Processed/FluNet_suppression_duration_by_country_pathogen.csv")
+    # filter to dq_pass == True
+    supression_data = supression_data[supression_data["dq_pass"] == True]
+    # for each country, find the rank of each pathogen by suppression_duration_months
+    supression_data["rank"] = supression_data.groupby("country")["suppression_duration_months"].rank(method="min", ascending=False)
+    pd.set_option('display.max_rows', None)
+    print(supression_data[["country", "pathogen", "suppression_duration_months", "rank"]])
+    # create a pivot table with index country, columns pathogen, values rank
+    pivot = supression_data.pivot(index="country", columns="pathogen", values="rank")
+    print(pivot)
+    # plot heatmap of how often one pathogen is ranked higher than the other
+    image = np.zeros((len(pathogens), len(pathogens)))
+    for i in range(len(pathogens)):
+        for j in range(i+1, len(pathogens)):
+            pathogen_i = pathogens[i]
+            pathogen_j = pathogens[j]
+            count_i_higher = (pivot[pathogen_i] < pivot[pathogen_j]).sum()
+            count_j_higher = (pivot[pathogen_j] < pivot[pathogen_i]).sum()
+            total_count = count_i_higher + count_j_higher
+            if total_count > 0:
+                image[i, j] = count_i_higher / total_count
+                image[j, i] = count_j_higher / total_count
+    # reorder the pathogens by average rank
+    order = ["Adenovirus", "Parainfluenza", "RSV",  "Metapneumovirus", "InfluenzaA", "InfluenzaB"]
+    image = image[[pathogens.index(p) for p in order], :][:, [pathogens.index(p) for p in order]]
+    # only plot lower triangle
+    for i in range(len(order)):
+        for j in range(i+1, len(order)):
+            image[i, j] = np.nan
+    np.fill_diagonal(image, np.nan)
+    image = image[1:, :-1]
+    print(image)
+    #annotate with percentages
+    for i in range(len(order)-1):
+        for j in range(i, len(order)-1):
+            if not np.isnan(image[j, i]):
+                ax.text(i, j, f"{image[j, i]*100:.0f}%", ha="center", va="center", color="white")
+    # diagonal is NaN
+    im = ax.imshow(image, vmin=0.5, vmax=1)
+    # set ticks and labels
+    ax.set_xticks(np.arange(len(pathogens)-1))
+    ax.set_yticks(np.arange(len(pathogens)-1))
+    ax.set_xticklabels([short_names.get(p, p) for p in order[:-1]], rotation=45, ha="right")
+    ax.set_yticklabels([short_names.get(p, p) for p in order[1:]])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    return im
+
 short_reasons = {"low_activity_all_months_below_threshold": "low_activity",
                  "insufficient_post_nonzero_months": "low_activity_post",
                  "zero_testing_explains_excess_gap": "testing_gap",
@@ -1562,10 +1611,10 @@ def plot_r0_vs_first_immunity(axes, pathogen, option2, seed, color, r0_base=15.2
     axes.scatter(r0_values, immunity_values, alpha=1, color=color, s=0.03, linewidths=0)
     return r0_values, immunity_values
 
-def plot_odr_best_fit(ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=2000):
+def plot_odr_best_fit(ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=10000):
     from scipy import odr
     def immunity_func(B, x):
-        return B[0] * (B[2] - (1 / x)**B[1])
+        return 1 / (1 + np.exp(-B[0])) * (B[2] - (1 / x)**B[1])
     
     linear_model = odr.Model(immunity_func)
 
@@ -1574,11 +1623,12 @@ def plot_odr_best_fit(ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_
     shape_samples = np.zeros(n_iterations)
 
     # Create a dense x-grid for plotting
-    x_grid = np.linspace(1.05, np.max([np.max(r0_values) for r0_values in r0_values_by_pathogen.values()]), 10000)
+    x_grid = np.linspace(1.0, np.max([np.max(r0_values) for r0_values in r0_values_by_pathogen.values()]), 10000)
     x_grid_transformed = x_grid
 
     # We will store the evaluated y-values for each sampled line here
     y_lines = np.zeros((n_iterations, len(x_grid)))
+    y_predictions = np.zeros((n_iterations, len(x_grid)))
 
     for i in range(n_iterations):
         r0_draws = []
@@ -1609,27 +1659,27 @@ def plot_odr_best_fit(ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_
         shape_samples[i] = output.beta[2]
         
         # Evaluate the line on our plotting grid
-        y_lines[i, :] = mult_samples[i] * (shape_samples[i] - (1 / x_grid_transformed)**exponent_samples[i])
-    print(f"ODR scale: {np.median(mult_samples):.4f} (95% CI: {np.percentile(mult_samples, 2.5):.4f} - {np.percentile(mult_samples, 97.5):.4f})"
+        y_lines[i, :] = 1 / (1 + np.exp(-mult_samples[i])) * (shape_samples[i] - (1 / x_grid_transformed)**exponent_samples[i])
+
+        res_sd = output.res_var**0.5
+        y_predictions[i, :] = y_lines[i, :] + np.random.normal(0, res_sd, size=len(x_grid))
+    print(f"ODR scale: {np.median(1 / (1 + np.exp(-mult_samples))):.4f} (95% CI: {1 / (1 + np.exp(-np.percentile(mult_samples, 97.5))):.4f} - {1 / (1 + np.exp(-np.percentile(mult_samples, 2.5))):.4f})"
           f", exponent: {np.median(exponent_samples):.4f} (95% CI: {np.percentile(exponent_samples, 2.5):.4f} - {np.percentile(exponent_samples, 97.5):.4f})"
           f", shape: {np.median(shape_samples):.4f} (95% CI: {np.percentile(shape_samples, 2.5):.4f} - {np.percentile(shape_samples, 97.5):.4f})"
           )
     # # plot line of best fit with confidence interval from bootstrap
     y_median = np.median(y_lines, axis=0)
-    y_lower = np.percentile(y_lines, 2.5, axis=0)
-    y_upper = np.percentile(y_lines, 97.5, axis=0)
+    y_lower = np.percentile(y_predictions, 2.5, axis=0)
+    y_upper = np.percentile(y_predictions, 97.5, axis=0)
     # Filter out x values where the predictions go completely out of bounds (below 0 or above 1)
     valid_mask = (y_median >= 0) & (y_median <= 1)
     x_plot = x_grid[valid_mask]
     y_median_plot = y_median[valid_mask]
     # Also ensure bounds are valid for the fill_between
-    valid_upper_fill = (y_upper >= 0) & (y_upper <= 1)
-    x_upper_fill = x_grid[valid_upper_fill]
-    y_lower_fill = y_lower[valid_upper_fill]
-    y_lower_fill = np.clip(y_lower_fill, 0, 1)
-    y_upper_fill = y_upper[valid_upper_fill]
-    ax.plot(x_plot, y_median_plot, color='k', linestyle='-', label="ODR Best fit", zorder=0)
-    ax.fill_between(x_upper_fill, y_lower_fill, y_upper_fill, color='k', linewidths=0, alpha=0.2, label="95% CI", zorder=0)
+    y_lower_fill = np.clip(y_lower, 0, 1)
+    y_upper_fill = np.clip(y_upper, 0, 1)
+    ax.plot(x_plot, y_median_plot, color='grey', linestyle='-', label="ODR Best fit", zorder=0)
+    ax.fill_between(x_grid, y_lower_fill, y_upper_fill, color='k', linewidths=0, alpha=0.1, label="95% CI", zorder=0)
 
 def plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base):
     gs = fig.add_gridspec(2, 2, height_ratios=[1, 1], hspace=0.4)
@@ -1654,7 +1704,7 @@ def plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_
         r0_values, immunity_values = plot_r0_vs_first_immunity(fit_ax, pathogen, option2, seed, color)
         r0_values_by_pathogen[pathogen] = r0_values
         immunity_values_by_pathogen[pathogen] = immunity_values
-    plot_odr_best_fit(fit_ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=2000)
+    plot_odr_best_fit(fit_ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=10000)
     # build custom legend with colored squares
     handles = [plt.Line2D([0], [0], marker='s', color='w', markerfacecolor=color, markersize=8) for color in colors]
     labels = pathogens.copy()
@@ -1705,36 +1755,45 @@ if __name__ == "__main__":
     daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
 
     pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
     colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
     option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035","maxagep035",]
     seeds = [260531, 260603, 260602, 260531, 260531, 260531,]
 
-    # ## plot MCMC corners and traces for all pathogens
-    # for pathogen, option2, seed in zip(pathogens, option2s, seeds):
-    #     # plot_mcmc_corner(pathogen, option2, seed)
-    #     print(f"plotting MCMC traces for {pathogen}...")
-    #     fig, axes = plt.subplots(4, 4, figsize=(13.3,7.5), sharex=True)
-    #     # Calculate this once to avoid repeating the function call
-    #     n_params = len(parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)[0])
-    #     plot_mcmc_traces(axes.flatten(), pathogen, option2, seed)
-    #     for i, ax in enumerate(axes.flatten()):
-    #         if i >= n_params:
-    #             ax.axis('off')
-    #     for col in range(axes.shape[1]):
-    #         for row in reversed(range(axes.shape[0])):
-    #             flat_idx = row * axes.shape[1] + col
-    #             if flat_idx < n_params:
-    #                 axes[row, col].tick_params(labelbottom=True)
-    #                 axes[row, col].set_xlabel("Iteration number")
-    #                 break
-    #     plt.tight_layout()
-    #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
-    #     plt.close()
+    # fig, ax = plt.subplots(figsize=(3,3))
+    # im = plot_supression_rank_heatmap(ax, flunet_pathogens)
+    # # ax.set_title("How often does y re-emerge before x?")
+    # ax.set_ylabel("How often does...")
+    # ax.set_xlabel("re-emerge after ...?")
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/supression_rank_heatmap.png", dpi=300)
+
+    ## plot MCMC corners and traces for all pathogens
+    for pathogen, option2, seed in zip(pathogens, option2s, seeds):
+        plot_mcmc_corner(pathogen, option2, seed)
+        print(f"plotting MCMC traces for {pathogen}...")
+        fig, axes = plt.subplots(4, 4, figsize=(13.3,7.5), sharex=True)
+        # Calculate this once to avoid repeating the function call
+        n_params = len(parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)[0])
+        plot_mcmc_traces(axes.flatten(), pathogen, option2, seed)
+        fig.suptitle(f"MCMC traces for {nice_names.get(pathogen, pathogen)}", fontsize=16)
+        for i, ax in enumerate(axes.flatten()):
+            if i >= n_params:
+                ax.axis('off')
+        for col in range(axes.shape[1]):
+            for row in reversed(range(axes.shape[0])):
+                flat_idx = row * axes.shape[1] + col
+                if flat_idx < n_params:
+                    axes[row, col].tick_params(labelbottom=True)
+                    axes[row, col].set_xlabel("Iteration number")
+                    break
+        plt.tight_layout()
+        plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
+        plt.close()
 
     # # ## Generate Figure 1: timeseries and suppression duration figure
     # fig = plt.figure(layout="constrained", figsize=(6.5,8.5))
     # countries = ["Brazil", "Canada", "India", "Malaysia", "Qatar"]
-    # flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
     # plot_suppression_durations(fig, flunet_pathogens, countries, colors)
     # plt.savefig(f"Figures/supression_durations_cherry.png", dpi=300)
 
@@ -1770,28 +1829,28 @@ if __name__ == "__main__":
     # plt.tight_layout()
     # plt.savefig(f"Figures/heatmap_suppression_length_slide.png", dpi=300)
 
-    ## Generate Figure 4: age infection figure
-    fig = plt.figure(figsize=(6.5, 6), layout="constrained")
-    gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
-    gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
-    gs_bottom = gs_main[1].subgridspec(1, 8)
-    import numpy as np
-    ax_top = np.empty((2, 4), dtype=object)
-    for r in range(2):
-        for c in range(3):
-            ax_top[r, c] = fig.add_subplot(gs_top[r, c])
-        ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
-    ax_bottom = np.empty((1,8), dtype=object)
-    for c in range(8):
-        ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
-    axes = [ax_top, ax_bottom]
-    plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=True, logD=True, samples=400, load_data=True, prefix="")
-    plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty_log_adjusted.png", dpi=300)
+    # ## Generate Figure 4: age infection figure
+    # fig = plt.figure(figsize=(6.5, 6), layout="constrained")
+    # gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
+    # gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
+    # gs_bottom = gs_main[1].subgridspec(1, 8)
+    # import numpy as np
+    # ax_top = np.empty((2, 4), dtype=object)
+    # for r in range(2):
+    #     for c in range(3):
+    #         ax_top[r, c] = fig.add_subplot(gs_top[r, c])
+    #     ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
+    # ax_bottom = np.empty((1,8), dtype=object)
+    # for c in range(8):
+    #     ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
+    # axes = [ax_top, ax_bottom]
+    # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=True, logD=True, samples=400, load_data=True, prefix="")
+    # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty_log_adjusted.png", dpi=300)
 
     # ## Generate Figure 5: age group heatmaps and line of best fit
     # fig = plt.figure(figsize=(6.5, 6.5))
     # plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base)
-    # plt.savefig(f"Figures/figure_five.pdf", dpi=300)
+    # plt.savefig(f"Figures/figure_five_prediction_interval_capscale.pdf", dpi=300)
     # plt.close()
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
