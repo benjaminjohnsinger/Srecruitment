@@ -855,7 +855,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             bounds_dict["F1"] = bounds_dict["F2"] = [0,2]
         elif lockdown == "Mobility2":
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = [0,2]
-        elif ("Exponential" in lockdown) and (("ByAge" not in lockdown) and ("2" not in lockdown)):
+        elif ("Exponential" in lockdown) and ("ByAge" not in lockdown):
             if "Max" in lockdown:
                 if "Maxp" in lockdown:
                     match = re.search(r'Maxp(\d+)', lockdown)

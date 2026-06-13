@@ -19,6 +19,14 @@ combinations=(
 "Metapneumovirus 260612 ExponentialODipp75 dedupsac maxagep015 1e-9 20 1 0.7 scipy_DE"
 "Parainfluenza3 260612 ExponentialODipp75 dedupsac maxagep004 1e-9 20 1 0.7 scipy_DE"
 "InfluenzaB 260612 ExponentialODipp75 dedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
+
+"Adenovirus 260612 ExponentialODipp25 dedupsac maxagep004 1e-9 20 1 0.7 scipy_DE"
+"Metapneumovirus 260612 ExponentialODipp25 dedupsac maxagep02 1e-9 20 1 0.7 scipy_DE"
+"Parainfluenza3 260612 ExponentialODipp25 dedupsac maxagep005 1e-9 20 1 0.7 scipy_DE"
+
+"Adenovirus 260612 ExponentialODipp25 dedupsac maxagep002 1e-9 20 1 0.7 scipy_DE"
+"Metapneumovirus 260612 ExponentialODipp25 dedupsac maxagep01 1e-9 20 1 0.7 scipy_DE"
+"Parainfluenza3 260612 ExponentialODipp25 dedupsac maxagep003 1e-9 20 1 0.7 scipy_DE"
 )
 
 # for combination in "${combinations[@]}"; do

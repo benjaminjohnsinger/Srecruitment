@@ -1687,6 +1687,10 @@ def plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_
     axes_top = [fig.add_subplot(gs[0, i]) for i in range(2)]
     generate_2d_heatmap_plot(axes_top[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0123", cbar=True, r0_base=r0_base)
     generate_2d_heatmap_plot(axes_top[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_6", cbar=True, r0_base=r0_base)
+    for ax in axes_top:
+        ax.set_xscale('log')
+        ax.set_xticks([1,2,3,4,5,6,7,8,9,10])
+        ax.set_xticklabels([1,2,3,4,5,6,7,8,9,10])
     axes_top[1].set_ylabel("")
     axes_top[1].set_yticklabels([])
     axes_top[0].set_title("Under 18 years")
