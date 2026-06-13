@@ -1685,11 +1685,11 @@ def plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_
     gs = fig.add_gridspec(2, 2, height_ratios=[1, 1], hspace=0.4)
     fit_ax = fig.add_subplot(gs[1, :])
     axes_top = [fig.add_subplot(gs[0, i]) for i in range(2)]
-    generate_2d_heatmap_plot(axes_top[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_3", cbar=True, r0_base=r0_base)
+    generate_2d_heatmap_plot(axes_top[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0123", cbar=True, r0_base=r0_base)
     generate_2d_heatmap_plot(axes_top[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_6", cbar=True, r0_base=r0_base)
     axes_top[1].set_ylabel("")
     axes_top[1].set_yticklabels([])
-    axes_top[0].set_title("5 to 17 years")
+    axes_top[0].set_title("Under 18 years")
     axes_top[1].set_title("Over 65 years")
 
     colorbar_axes = [c for c in fig.axes if c not in [axes_top[0], axes_top[1], fit_ax]]
@@ -1768,28 +1768,28 @@ if __name__ == "__main__":
     # plt.tight_layout()
     # plt.savefig(f"Figures/supression_rank_heatmap.png", dpi=300)
 
-    ## plot MCMC corners and traces for all pathogens
-    for pathogen, option2, seed in zip(pathogens, option2s, seeds):
-        plot_mcmc_corner(pathogen, option2, seed)
-        print(f"plotting MCMC traces for {pathogen}...")
-        fig, axes = plt.subplots(4, 4, figsize=(13.3,7.5), sharex=True)
-        # Calculate this once to avoid repeating the function call
-        n_params = len(parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)[0])
-        plot_mcmc_traces(axes.flatten(), pathogen, option2, seed)
-        fig.suptitle(f"MCMC traces for {nice_names.get(pathogen, pathogen)}", fontsize=16)
-        for i, ax in enumerate(axes.flatten()):
-            if i >= n_params:
-                ax.axis('off')
-        for col in range(axes.shape[1]):
-            for row in reversed(range(axes.shape[0])):
-                flat_idx = row * axes.shape[1] + col
-                if flat_idx < n_params:
-                    axes[row, col].tick_params(labelbottom=True)
-                    axes[row, col].set_xlabel("Iteration number")
-                    break
-        plt.tight_layout()
-        plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
-        plt.close()
+    # ## plot MCMC corners and traces for all pathogens
+    # for pathogen, option2, seed in zip(pathogens, option2s, seeds):
+    #     plot_mcmc_corner(pathogen, option2, seed)
+    #     print(f"plotting MCMC traces for {pathogen}...")
+    #     fig, axes = plt.subplots(4, 4, figsize=(13.3,7.5), sharex=True)
+    #     # Calculate this once to avoid repeating the function call
+    #     n_params = len(parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)[0])
+    #     plot_mcmc_traces(axes.flatten(), pathogen, option2, seed)
+    #     fig.suptitle(f"MCMC traces for {nice_names.get(pathogen, pathogen)}", fontsize=16)
+    #     for i, ax in enumerate(axes.flatten()):
+    #         if i >= n_params:
+    #             ax.axis('off')
+    #     for col in range(axes.shape[1]):
+    #         for row in reversed(range(axes.shape[0])):
+    #             flat_idx = row * axes.shape[1] + col
+    #             if flat_idx < n_params:
+    #                 axes[row, col].tick_params(labelbottom=True)
+    #                 axes[row, col].set_xlabel("Iteration number")
+    #                 break
+    #     plt.tight_layout()
+    #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
+    #     plt.close()
 
     # # ## Generate Figure 1: timeseries and suppression duration figure
     # fig = plt.figure(layout="constrained", figsize=(6.5,8.5))
@@ -1820,14 +1820,30 @@ if __name__ == "__main__":
     # fig.text(0.001, 0.5, 'Estimated incidence of hospitalization per 100k members', va='center', rotation='vertical')
     # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
-    # # ## Generate Figure 3: suppression time heatmap
+    # ## Generate Figure 3: suppression time heatmap
+    from sim_grid import generate_2d_heatmap_plot
+    good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
+    run_save_path = "Outputs/sim_grid_lh_n80612_chunk10612_seed260531_lockdownExponentialODipLinear_2d"
+    fig, ax = plt.subplots(figsize=(6.5,3.25))
+    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True, r0_base=r0_base)
+    ax.set_xscale('log')
+    ax.set_xticks([1,2,3,4,5,6,7,8,9,10])
+    ax.set_xticklabels([1,2,3,4,5,6,7,8,9,10])
+    plt.tight_layout()
+    plt.savefig(f"Figures/heatmap_suppression_length_test.png", dpi=300)
+
+    # ## test heatmap variants
     # from sim_grid import generate_2d_heatmap_plot
     # good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
     # run_save_path = "Outputs/sim_grid_lh_n80612_chunk10612_seed260531_lockdownExponentialODipLinear_2d"
-    # fig, ax = plt.subplots(figsize=(6.5,3.25))
-    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True, r0_base=r0_base)
+    # fig, ax = plt.subplots(1, 2, figsize=(6.5,3.25), sharex=True)
+    # generate_2d_heatmap_plot(ax[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_0123", cbar=True, r0_base=r0_base)
+    # generate_2d_heatmap_plot(ax[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="hospitalizors_in_group_6", cbar=True, r0_base=r0_base)
+    # ax[0].set_xscale('log')
+    # ax[0].set_xticks([1,2,3,4,5,6,7,8,9,10])
+    # ax[0].set_xticklabels([1,2,3,4,5,6,7,8,9,10])
     # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmap_suppression_length_slide.png", dpi=300)
+    # plt.savefig(f"Figures/heatmap_test.png", dpi=300)
 
     # ## Generate Figure 4: age infection figure
     # fig = plt.figure(figsize=(6.5, 6), layout="constrained")
