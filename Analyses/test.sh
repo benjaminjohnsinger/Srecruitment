@@ -1,10 +1,24 @@
 combinations=(
-"RSV 260531 ExponentialODipLinear dedupsac maxagep028 1e-9 200 2000 0.7 emcee_median"
-"Metapneumovirus 260603 ExponentialODipLinear dedupsac maxagep015 1e-9 200 2000 0.7 emcee_median"
-"Adenovirus 260531 ExponentialODipLinear dedupsac maxagep003 1e-9 200 2000 0.7 emcee_median"
-"Parainfluenza3 260602 ExponentialODipLinear dedupsac maxagep004 1e-9 200 2000 0.7 emcee_median"
-"InfluenzaA 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 2000 0.7 emcee_median"
-"InfluenzaB 260531 ExponentialODipLinear dedupsac maxagep035 1e-9 200 2000 0.7 emcee_median"
+"Adenovirus 260612 ExponentialODipp25 dedupsac maxagep003 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaA 260612 ExponentialODipp25 dedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
+"RSV 260612 ExponentialODipp25 dedupsac maxagep028 1e-9 20 1 0.7 scipy_DE"
+"Metapneumovirus 260612 ExponentialODipp25 dedupsac maxagep015 1e-9 20 1 0.7 scipy_DE"
+"Parainfluenza3 260612 ExponentialODipp25 dedupsac maxagep004 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaB 260612 ExponentialODipp25 dedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
+
+"Adenovirus 260612 ExponentialODipp5 dedupsac maxagep003 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaA 260612 ExponentialODipp5 dedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
+"RSV 260612 ExponentialODipp5 dedupsac maxagep028 1e-9 20 1 0.7 scipy_DE"
+"Metapneumovirus 260612 ExponentialODipp5 dedupsac maxagep015 1e-9 20 1 0.7 scipy_DE"
+"Parainfluenza3 260612 ExponentialODipp5 dedupsac maxagep004 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaB 260612 ExponentialODipp5 dedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
+
+"Adenovirus 260612 ExponentialODipp75 dedupsac maxagep003 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaA 260612 ExponentialODipp75 dedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
+"RSV 260612 ExponentialODipp75 dedupsac maxagep028 1e-9 20 1 0.7 scipy_DE"
+"Metapneumovirus 260612 ExponentialODipp75 dedupsac maxagep015 1e-9 20 1 0.7 scipy_DE"
+"Parainfluenza3 260612 ExponentialODipp75 dedupsac maxagep004 1e-9 20 1 0.7 scipy_DE"
+"InfluenzaB 260612 ExponentialODipp75 dedupsac maxagep035 1e-9 20 1 0.7 scipy_DE"
 )
 
 # for combination in "${combinations[@]}"; do
@@ -12,7 +26,7 @@ combinations=(
 # done
 
 for combination in "${combinations[@]}"; do
-    # /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
+    /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/fit_opt.py $combination
     if [[ $combination == *"optax" ]]; then
         /Users/bjsinger/Documents/Srecruitment/.venv/bin/python /Users/bjsinger/Documents/Srecruitment/Analyses/plot_optax.py $combination
     else
