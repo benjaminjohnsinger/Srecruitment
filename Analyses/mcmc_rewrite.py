@@ -231,18 +231,18 @@ def load_refined_chain_or_burnin(burnin_sample_path, burnin_log_prob_path, refin
 
 if __name__ == "__main__":
     # seed = 260602
-    lockdown = "ExponentialODipLinear"
+    lockdown = "ExponentialODipp25"
     option1 = "dedupsac"
     NAG = 7
-    prefix = "evosax_DE_"
+    prefix = ""
     from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
 
     n_walkers = 64
     burn_in_size = 10000
 
-    pathogens = ["Adenovirus","InfluenzaA","InfluenzaB",]
-    option2s = ["maxagep003","maxagep035","maxagep035",]
-    seeds = [260531, 260531, 260531, ]
+    pathogens = ["Parainfluenza3","Adenovirus", "InfluenzaA"]
+    option2s = ["maxagep004","maxagep003", "maxagep035"]
+    seeds = [260612, 260612, 260612, 260612]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
@@ -362,8 +362,12 @@ if __name__ == "__main__":
             new_log_prob = psampler.get_log_prob()
             new_samples = new_samples[::thinning_factor]
             new_log_prob = new_log_prob[::thinning_factor]
-            state["current_samples"] = np.concatenate([state["current_samples"], new_samples], axis=0)
-            state["current_log_prob"] = np.concatenate([state["current_log_prob"], new_log_prob], axis=0)
+            if chunk_n == 0:
+                state["current_samples"] = new_samples
+                state["current_log_prob"] = new_log_prob
+            else:
+                state["current_samples"] = np.concatenate([state["current_samples"], new_samples], axis=0)
+                state["current_log_prob"] = np.concatenate([state["current_log_prob"], new_log_prob], axis=0)
             np.savetxt(state["refined_sample_path"], state["current_samples"].reshape(-1, state["current_samples"].shape[-1]), delimiter=',')
             np.savetxt(state["refined_log_prob_path"], state["current_log_prob"], delimiter=',')
 

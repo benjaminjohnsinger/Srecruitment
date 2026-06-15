@@ -1138,7 +1138,7 @@ PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2,
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260531
+    seed = 260612
     option1 = "dedupsac"
     NAG = 7 + ("split" in option1)
     if "split" in option1:
@@ -1151,7 +1151,7 @@ if __name__ == "__main__":
         from Parameters.census_population import CENSUS_AGE_POP
         from Parameters.census_population import MEDIAN_AGE
     option2 = "flexagep05"
-    lockdown = "ExponentialODipLinear"
+    lockdown = "ExponentialODipp25"
     CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_mod']["cmod" in option2]+['', '_split'][NAG>7]+['', '_sac']["sac" in option1]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
@@ -1164,9 +1164,9 @@ if __name__ == "__main__":
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     good_simulations = [
-        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", 260603, lockdown, option1, "maxagep015"],
-        ["InfluenzaA", seed, lockdown, option1, "maxagep035"], ["InfluenzaB", seed, lockdown, option1, "maxagep035"],
-        ["Adenovirus", seed, lockdown, option1, "maxagep003"],["Parainfluenza3", 260602, lockdown, option1, "maxagep004"],
+        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", seed, lockdown, option1, "maxagep015"],
+        ["InfluenzaA", seed, lockdown, option1, "maxagep035"], 
+        ["Adenovirus", seed, lockdown, option1, "maxagep003"],["Parainfluenza3", seed, lockdown, option1, "maxagep004"],
     ]
     
     r0_base = calculate_R0_from_values(1, 1, CONTACT_MATRIX, CENSUS_AGE_POP, jnp.zeros(NAG))
@@ -1183,11 +1183,11 @@ if __name__ == "__main__":
     # # plt.tight_layout()
     # # plt.savefig("Figures/line_of_best_fit_ExponentialODipLinearsac.png", dpi=300)
     # # # print("NAG", NAG)
-    run_save_path = "Outputs/sim_grid_lh_n80612_chunk10612_seed260531_lockdownExponentialODipLinear_2d"
-    # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-    #                                         seed=seed, n_samples=80612, dimension=2, chunk_size=10612,
-    #                                         # run_save_path=run_save_path
-                                            # )
+    # run_save_path = "Outputs/sim_grid_lh_n80612_chunk10612_seed260612_lockdownExponentialODipp25_2d"
+    run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
+                                            seed=seed, n_samples=10000, dimension=2, chunk_size=5000,
+                                            # run_save_path=run_save_path
+    )           
     # # print(run_save_path)
 
     # # # perpendicular / parallel plots
@@ -1201,11 +1201,11 @@ if __name__ == "__main__":
     # # plt.tight_layout()
     # # plt.savefig(f"Figures/along_linear_combination_age_of_first_infection_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_projection.png", dpi=300)
 
-    # # ## single panel outcome heatmap
-    # fig, ax = plt.subplots(figsize=(4, 4))
-    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True)
-    # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmap_suppression_length_ExponentialODipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_medians.png", dpi=300)
+    # ## single panel outcome heatmap
+    fig, ax = plt.subplots(figsize=(4, 4))
+    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True)
+    plt.tight_layout()
+    plt.savefig(f"Figures/heatmap_suppression_length_ExponentialODipp25_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
     # # ## single panel outcome heatmap
     # # fig, ax = plt.subplots(figsize=(4, 4))

@@ -1572,8 +1572,8 @@ def plot_fits(axes, n_samples=100, save_data=False, load_data=False):
             ax[age_group_idx].legend().set_visible(False)
             ax[age_group_idx].tick_params(axis='y', labelsize=6)
 
-def plot_mcmc_traces(axes, pathogen, option2, seed, n_walkers=64):
-    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
+def plot_mcmc_traces(axes, pathogen, option2, seed, n_walkers=64, prune=0):
+    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
     param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
     n_params = len(param_names)
     for param_idx in range(n_params):
@@ -1582,8 +1582,9 @@ def plot_mcmc_traces(axes, pathogen, option2, seed, n_walkers=64):
             ax.plot(chain[walker_idx::n_walkers, param_idx], alpha=0.4)
         ax.set_title(f"{param_names[param_idx]}")
 
-def plot_mcmc_corner(pathogen, option2, seed):
-    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
+def plot_mcmc_corner(pathogen, option2, seed, prune=0):
+    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
+    print(chain.shape)
     param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
     fig = corner.corner(chain, labels=param_names,  show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
     plt.savefig(f"Figures/mcmc_corner_{pathogen}_{option2}_{seed}.pdf")
@@ -1758,11 +1759,18 @@ if __name__ == "__main__":
     daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
     daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
 
-    pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-    flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
-    colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
-    option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035","maxagep035",]
-    seeds = [260531, 260603, 260602, 260531, 260531, 260531,]
+    # pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    # flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
+    # colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
+    # option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035","maxagep035",]
+    # seeds = [260531, 260603, 260602, 260531, 260531, 260531,]
+
+    lockdown = "ExponentialODipp25"
+    pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA",]
+    flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA",]
+    colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", ]
+    option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035",]
+    seeds = [260612, 260612, 260612, 260612, 260612,]
 
     # fig, ax = plt.subplots(figsize=(3,3))
     # im = plot_supression_rank_heatmap(ax, flunet_pathogens)
@@ -1772,28 +1780,29 @@ if __name__ == "__main__":
     # plt.tight_layout()
     # plt.savefig(f"Figures/supression_rank_heatmap.png", dpi=300)
 
-    # ## plot MCMC corners and traces for all pathogens
-    # for pathogen, option2, seed in zip(pathogens, option2s, seeds):
-    #     plot_mcmc_corner(pathogen, option2, seed)
-    #     print(f"plotting MCMC traces for {pathogen}...")
-    #     fig, axes = plt.subplots(4, 4, figsize=(13.3,7.5), sharex=True)
-    #     # Calculate this once to avoid repeating the function call
-    #     n_params = len(parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)[0])
-    #     plot_mcmc_traces(axes.flatten(), pathogen, option2, seed)
-    #     fig.suptitle(f"MCMC traces for {nice_names.get(pathogen, pathogen)}", fontsize=16)
-    #     for i, ax in enumerate(axes.flatten()):
-    #         if i >= n_params:
-    #             ax.axis('off')
-    #     for col in range(axes.shape[1]):
-    #         for row in reversed(range(axes.shape[0])):
-    #             flat_idx = row * axes.shape[1] + col
-    #             if flat_idx < n_params:
-    #                 axes[row, col].tick_params(labelbottom=True)
-    #                 axes[row, col].set_xlabel("Iteration number")
-    #                 break
-    #     plt.tight_layout()
-    #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
-    #     plt.close()
+    ## plot MCMC corners and traces for all pathogens
+    for pathogen, option2, seed in zip(pathogens, option2s, seeds):
+        print(pathogen, option2, seed)
+        plot_mcmc_corner(pathogen, option2, seed, prune=10000)
+        print(f"plotting MCMC traces for {pathogen}...")
+        fig, axes = plt.subplots(4, 4, figsize=(13.3,7.5), sharex=True)
+        # Calculate this once to avoid repeating the function call
+        n_params = len(parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)[0])
+        plot_mcmc_traces(axes.flatten(), pathogen, option2, seed, prune=10000)
+        fig.suptitle(f"MCMC traces for {nice_names.get(pathogen, pathogen)}", fontsize=16)
+        for i, ax in enumerate(axes.flatten()):
+            if i >= n_params:
+                ax.axis('off')
+        for col in range(axes.shape[1]):
+            for row in reversed(range(axes.shape[0])):
+                flat_idx = row * axes.shape[1] + col
+                if flat_idx < n_params:
+                    axes[row, col].tick_params(labelbottom=True)
+                    axes[row, col].set_xlabel("Iteration number")
+                    break
+        plt.tight_layout()
+        plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
+        plt.close()
 
     # # ## Generate Figure 1: timeseries and suppression duration figure
     # fig = plt.figure(layout="constrained", figsize=(6.5,8.5))
@@ -1824,17 +1833,17 @@ if __name__ == "__main__":
     # fig.text(0.001, 0.5, 'Estimated incidence of hospitalization per 100k members', va='center', rotation='vertical')
     # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
-    # ## Generate Figure 3: suppression time heatmap
-    from sim_grid import generate_2d_heatmap_plot
-    good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
-    run_save_path = "Outputs/sim_grid_lh_n80612_chunk10612_seed260531_lockdownExponentialODipLinear_2d"
-    fig, ax = plt.subplots(figsize=(6.5,3.25))
-    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True, r0_base=r0_base)
-    ax.set_xscale('log')
-    ax.set_xticks([1,2,3,4,5,6,7,8,9,10])
-    ax.set_xticklabels([1,2,3,4,5,6,7,8,9,10])
-    plt.tight_layout()
-    plt.savefig(f"Figures/heatmap_suppression_length_test.png", dpi=300)
+    # # ## Generate Figure 3: suppression time heatmap
+    # from sim_grid import generate_2d_heatmap_plot
+    # good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
+    # run_save_path = "Outputs/sim_grid_lh_n80612_chunk10612_seed260531_lockdownExponentialODipLinear_2d"
+    # fig, ax = plt.subplots(figsize=(6.5,3.25))
+    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True, r0_base=r0_base)
+    # ax.set_xscale('log')
+    # ax.set_xticks([1,2,3,4,5,6,7,8,9,10])
+    # ax.set_xticklabels([1,2,3,4,5,6,7,8,9,10])
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/heatmap_suppression_length_test.png", dpi=300)
 
     # ## test heatmap variants
     # from sim_grid import generate_2d_heatmap_plot
