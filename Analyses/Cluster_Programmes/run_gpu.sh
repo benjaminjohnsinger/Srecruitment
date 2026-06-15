@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ODipp
+#SBATCH --job-name=precovid
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -21,14 +21,12 @@ module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
 combinations=(
-"Metapneumovirus 260612 ExponentialODipp25 dedupsac maxagep01 1e-9 200 2000 0.7"
-
-"Adenovirus 260612 ExponentialODipp5 dedupsac maxagep003 1e-9 200 2000 0.7"
-"InfluenzaA 260612 ExponentialODipp5 dedupsac maxagep035 1e-9 200 2000 0.7"
-"RSV 260612 ExponentialODipp5 dedupsac maxagep028 1e-9 200 2000 0.7"
-"Metapneumovirus 260612 ExponentialODipp5 dedupsac maxagep015 1e-9 200 2000 0.7"
-"Parainfluenza3 260612 ExponentialODipp5 dedupsac maxagep004 1e-9 200 2000 0.7"
-"InfluenzaB 260612 ExponentialODipp5 dedupsac maxagep035 1e-9 200 2000 0.7"
+"Adenovirus 260615 Default dedupsac 2020-01-01maxagep003 1e-9 200 2000 0.7"
+"InfluenzaA 260615 Default dedupsac 2020-01-01maxagep035 1e-9 200 2000 0.7"
+"RSV 260615 Default dedupsac 2020-01-01maxagep028 1e-9 200 2000 0.7"
+"Metapneumovirus 260615 Default dedupsac 2020-01-01maxagep015 1e-9 200 2000 0.7"
+"Parainfluenza3 260615 Default dedupsac 2020-01-01maxagep004 1e-9 200 2000 0.7"
+"InfluenzaB 260615 Default dedupsac 2020-01-01maxagep035 1e-9 200 2000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"

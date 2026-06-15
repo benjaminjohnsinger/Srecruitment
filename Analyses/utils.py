@@ -485,9 +485,10 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         MATERNAL_IMMUNITY = jnp.minimum(1, MATERNAL_IMMUNITY + rsv_maternal_immunity(FULL_POINTS).reshape(-1,1))
     if 'pathogen' not in option1:
         if lockdown == 'Default':
-            PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, defaultTT, defaultFF, steepness=0.2))(FULL_POINTS)
+            FF = defaultFF
+            TT = defaultTT
+            PIECEWISE_CONTACT = jax.vmap(lambda t: cm.piecewise(t, TT, FF, steepness=0.2))(FULL_POINTS)
             RELATIVE_CONTACT = PIECEWISE_CONTACT*(1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET)))
-            n+=7
         elif lockdown == 'FlexStepwise':
             TT = jnp.array([date_to_t(EPOCH),date_to_t('2020-03-19'),date_to_t('2020-03-19')+x[n]*365,date_to_t('2020-03-19')+(x[n]+x[n+1])*365,date_to_t('2020-03-19')+(x[n]+x[n+1]+x[n+2])*365])
             # Fs - element 2 must be bigger than element 1, element 3 must be smaller than element 2, element 4 must be bigger than element 2
@@ -879,7 +880,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             bounds_dict["R1"] = [0.002,0.01]
         elif lockdown == "RSV0415":
             bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
-        elif lockdown != "Taube":
+        elif (lockdown != "Taube") and (lockdown != "Default"):
             bounds_dict["DT1"] = bounds_dict["DT2"] = bounds_dict["DT3"] = bounds_dict["F1"] = bounds_dict["F2"] = bounds_dict["F3"] = bounds_dict["F4"] = [0,1]
         if "ODipTune" in lockdown:
             bounds_dict["FO"] = [0,1]
