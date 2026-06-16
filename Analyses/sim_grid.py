@@ -1203,9 +1203,9 @@ if __name__ == "__main__":
 
     # ## single panel outcome heatmap
     fig, ax = plt.subplots(figsize=(4, 4))
-    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True)
+    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="age_ratio", cbar=True)
     plt.tight_layout()
-    plt.savefig(f"Figures/heatmap_suppression_length_ExponentialODipp25_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    plt.savefig(f"Figures/heatmap_age_ratio_ExponentialODipp25_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
     # # ## single panel outcome heatmap
     # # fig, ax = plt.subplots(figsize=(4, 4))
@@ -1285,7 +1285,7 @@ if __name__ == "__main__":
     # cbar = plt.colorbar(sm, cax=cbar_ax, label="Proportion of infectors in age group")
 
     # plt.tight_layout()
-    plt.savefig(f"Figures/heatmaps_infectors_ExponentialDipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    # plt.savefig(f"Figures/heatmaps_infectors_ExponentialDipLinearsac_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
     
     # # # args = (lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG)
     # # # plot_time_series_for_parameters(args, run_save_path, target_p1=0.250, target_p2=-0.299, p1=2, p2=8)

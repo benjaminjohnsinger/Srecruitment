@@ -28,12 +28,15 @@ combinations=(
 # "Metapneumovirus 260612 ExponentialODipp25 dedupsac maxagep01 1e-9 20 1 0.7 scipy_DE"
 # "Parainfluenza3 260612 ExponentialODipp25 dedupsac maxagep003 1e-9 20 1 0.7 scipy_DE"
 
-"Adenovirus 260612 ExponentialODipp5 dedupsac maxagep003 1e-9 200 2000 0.7"
-"InfluenzaA 260612 ExponentialODipp5 dedupsac maxagep035 1e-9 200 2000 0.7"
-"RSV 260612 ExponentialODipp5 dedupsac maxagep028 1e-9 200 2000 0.7"
-"Metapneumovirus 260612 ExponentialODipp5 dedupsac maxagep015 1e-9 200 2000 0.7"
-"Parainfluenza3 260612 ExponentialODipp5 dedupsac maxagep004 1e-9 200 2000 0.7"
-"InfluenzaB 260612 ExponentialODipp5 dedupsac maxagep035 1e-9 200 2000 0.7"
+# "Adenovirus 260612 ExponentialODipp5 dedupsac maxagep003 1e-9 200 2000 0.7"
+# "InfluenzaA 260612 ExponentialODipp5 dedupsac maxagep035 1e-9 200 2000 0.7"
+# "RSV 260612 ExponentialODipp5 dedupsac maxagep028 1e-9 200 2000 0.7"
+"Metapneumovirus 260612 ExponentialODipp5 dedupsac maxagep015 1e-9 200 2000 0.7 emcee"
+# "Metapneumovirus 260612 ExponentialODipp25 dedupsac maxagep01 1e-9 200 2000 0.7"
+# "Metapneumovirus 260612 ExponentialODipp75 dedupsac maxagep015 1e-9 200 2000 0.7"
+# "Metapneumovirus 260612 ExponentialODipp25 dedupsac maxagep015 1e-9 200 2000 0.7"
+# "Parainfluenza3 260612 ExponentialODipp5 dedupsac maxagep004 1e-9 200 2000 0.7"
+# "InfluenzaB 260612 ExponentialODipp5 dedupsac maxagep035 1e-9 200 2000 0.7"
 )
 
 # for combination in "${combinations[@]}"; do

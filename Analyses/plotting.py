@@ -1595,7 +1595,7 @@ def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_di
     return srel[1]
 
 def plot_r0_vs_first_immunity(axes, pathogen, option2, seed, color, r0_base=15.24):
-    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
+    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=10000, prefix="")
     param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
     beta_idx = param_names.index("BETA")
     beta_values = chain[:, beta_idx]
@@ -1682,7 +1682,7 @@ def plot_odr_best_fit(ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_
     ax.plot(x_plot, y_median_plot, color='grey', linestyle='-', label="ODR Best fit", zorder=0)
     ax.fill_between(x_grid, y_lower_fill, y_upper_fill, color='k', linewidths=0, alpha=0.1, label="95% CI", zorder=0)
 
-def plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base):
+def plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=True):
     gs = fig.add_gridspec(2, 2, height_ratios=[1, 1], hspace=0.4)
     fit_ax = fig.add_subplot(gs[1, :])
     axes_top = [fig.add_subplot(gs[0, i]) for i in range(2)]
@@ -1709,7 +1709,12 @@ def plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_
         r0_values, immunity_values = plot_r0_vs_first_immunity(fit_ax, pathogen, option2, seed, color)
         r0_values_by_pathogen[pathogen] = r0_values
         immunity_values_by_pathogen[pathogen] = immunity_values
-    plot_odr_best_fit(fit_ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=10000)
+    if fit_line:
+        plot_odr_best_fit(fit_ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=10000)
+    else:
+        x = np.linspace(1, 10, 100)
+        y = 1 - 1 / x
+        fit_ax.plot(x, y, color='k', linewidth=0.5, zorder=0)
     # build custom legend with colored squares
     handles = [plt.Line2D([0], [0], marker='s', color='w', markerfacecolor=color, markersize=8) for color in colors]
     labels = pathogens.copy()
@@ -1780,29 +1785,29 @@ if __name__ == "__main__":
     # plt.tight_layout()
     # plt.savefig(f"Figures/supression_rank_heatmap.png", dpi=300)
 
-    ## plot MCMC corners and traces for all pathogens
-    for pathogen, option2, seed in zip(pathogens, option2s, seeds):
-        print(pathogen, option2, seed)
-        plot_mcmc_corner(pathogen, option2, seed, prune=10000)
-        print(f"plotting MCMC traces for {pathogen}...")
-        fig, axes = plt.subplots(4, 4, figsize=(13.3,7.5), sharex=True)
-        # Calculate this once to avoid repeating the function call
-        n_params = len(parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)[0])
-        plot_mcmc_traces(axes.flatten(), pathogen, option2, seed, prune=10000)
-        fig.suptitle(f"MCMC traces for {nice_names.get(pathogen, pathogen)}", fontsize=16)
-        for i, ax in enumerate(axes.flatten()):
-            if i >= n_params:
-                ax.axis('off')
-        for col in range(axes.shape[1]):
-            for row in reversed(range(axes.shape[0])):
-                flat_idx = row * axes.shape[1] + col
-                if flat_idx < n_params:
-                    axes[row, col].tick_params(labelbottom=True)
-                    axes[row, col].set_xlabel("Iteration number")
-                    break
-        plt.tight_layout()
-        plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
-        plt.close()
+    # ## plot MCMC corners and traces for all pathogens
+    # for pathogen, option2, seed in zip(pathogens, option2s, seeds):
+    #     print(pathogen, option2, seed)
+    #     plot_mcmc_corner(pathogen, option2, seed, prune=10000)
+    #     print(f"plotting MCMC traces for {pathogen}...")
+    #     fig, axes = plt.subplots(4, 4, figsize=(13.3,7.5), sharex=True)
+    #     # Calculate this once to avoid repeating the function call
+    #     n_params = len(parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)[0])
+    #     plot_mcmc_traces(axes.flatten(), pathogen, option2, seed, prune=10000)
+    #     fig.suptitle(f"MCMC traces for {nice_names.get(pathogen, pathogen)}", fontsize=16)
+    #     for i, ax in enumerate(axes.flatten()):
+    #         if i >= n_params:
+    #             ax.axis('off')
+    #     for col in range(axes.shape[1]):
+    #         for row in reversed(range(axes.shape[0])):
+    #             flat_idx = row * axes.shape[1] + col
+    #             if flat_idx < n_params:
+    #                 axes[row, col].tick_params(labelbottom=True)
+    #                 axes[row, col].set_xlabel("Iteration number")
+    #                 break
+    #     plt.tight_layout()
+    #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
+    #     plt.close()
 
     # # ## Generate Figure 1: timeseries and suppression duration figure
     # fig = plt.figure(layout="constrained", figsize=(6.5,8.5))
@@ -1834,9 +1839,9 @@ if __name__ == "__main__":
     # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
     # # ## Generate Figure 3: suppression time heatmap
-    # from sim_grid import generate_2d_heatmap_plot
-    # good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
-    # run_save_path = "Outputs/sim_grid_lh_n80612_chunk10612_seed260531_lockdownExponentialODipLinear_2d"
+    from sim_grid import generate_2d_heatmap_plot
+    good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
+    run_save_path = "Outputs/sim_grid_lh_n80612_chunk10612_seed260531_lockdownExponentialODipLinear_2d"
     # fig, ax = plt.subplots(figsize=(6.5,3.25))
     # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True, r0_base=r0_base)
     # ax.set_xscale('log')
@@ -1876,11 +1881,11 @@ if __name__ == "__main__":
     # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=True, logD=True, samples=400, load_data=True, prefix="")
     # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty_log_adjusted.png", dpi=300)
 
-    # ## Generate Figure 5: age group heatmaps and line of best fit
-    # fig = plt.figure(figsize=(6.5, 6.5))
-    # plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base)
-    # plt.savefig(f"Figures/figure_five_prediction_interval_capscale.pdf", dpi=300)
-    # plt.close()
+    ## Generate Figure 5: age group heatmaps and line of best fit
+    fig = plt.figure(figsize=(6.5, 6.5))
+    plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False)
+    plt.savefig(f"Figures/figure_five_prediction_fixed.png", dpi=300)
+    plt.close()
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     
