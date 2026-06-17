@@ -658,6 +658,9 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     if ('maxagep' in option2) & ('dynamic' not in option1):
         if ("RSV" in pathogen) and not ("old" in option2):
             fixed_age_index = 0
+        elif ("fixage" in option2):
+            match = re.search(r'fixage(\d+)', option2)
+            fixed_age_index = int(match.group(1))
         else:
             fixed_age_index = -1
         # search for numbers after maxagep in option2, that number divided by 100 is the value of OBS_AGE for the fixed age group
