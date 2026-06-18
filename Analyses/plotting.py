@@ -1582,7 +1582,7 @@ def plot_mcmc_traces(axes, pathogen, option2, seed, n_walkers=64, prune=0):
             ax.plot(chain[walker_idx::n_walkers, param_idx], alpha=0.4)
         ax.set_title(f"{param_names[param_idx]}")
 
-def plot_mcmc_corner(pathogen, option2, seed, prune=0):
+def plot_mcmc_corner(pathogen, lockdown, option1, option2, seed, prune=0):
     chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
     print(chain.shape)
     param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
@@ -1609,7 +1609,7 @@ def plot_r0_vs_first_immunity(axes, pathogen, option2, seed, color, r0_base=15.2
         srel1_samples = chain[:, srel1_idx]
     r0_values = r0_base * beta_values * (3.0 + 1.9 * (pathogen in ["RSV", "Metapneumovirus"]))
     immunity_values = 1 - srel1_samples
-    axes.scatter(r0_values, immunity_values, alpha=1, color=color, s=0.03, linewidths=0)
+    axes.scatter(r0_values, immunity_values, alpha=1, color=color, s=0.03, linewidths=0, rasterized=True)
     return r0_values, immunity_values
 
 def plot_odr_best_fit(ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=10000):
@@ -1729,6 +1729,77 @@ def plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_
     axes_top[0].text(-0.25, 1.1, "A", transform=axes_top[0].transAxes, fontsize=16, fontweight="bold")
     fit_ax.text(-0.1, 1, "B", transform=fit_ax.transAxes, fontsize=16, fontweight="bold")
 
+## MCMC comparison functions
+def calculate_precision_ratio(chain1, chain2, param_names1, param_names2, select_param_names):
+    idxs1 = [param_names1.index(name) for name in select_param_names]
+    idxs2 = [param_names2.index(name) for name in select_param_names]
+    var1 = np.var(chain1[:, idxs1], axis=0)
+    var2 = np.var(chain2[:, idxs2], axis=0)
+    print(var1)
+    print(var2)
+    return var1 / var2
+
+def calculate_log_det_ratio(chain1, chain2, param_names1, param_names2, select_param_names):
+    idxs1 = [param_names1.index(name) for name in select_param_names]
+    idxs2 = [param_names2.index(name) for name in select_param_names]
+    cov1 = np.cov(chain1[:, idxs1].T)
+    cov2 = np.cov(chain2[:, idxs2].T)
+    log_det1 = np.linalg.slogdet(cov1)[1]
+    log_det2 = np.linalg.slogdet(cov2)[1]
+    return log_det1 - log_det2
+
+# find kl divergence using k nearest neighbors method
+def calculate_kl_divergence(chain1, chain2, param_names1, param_names2, select_param_names, k=5):
+    from sklearn.neighbors import NearestNeighbors
+    idxs1 = [param_names1.index(name) for name in select_param_names]
+    idxs2 = [param_names2.index(name) for name in select_param_names]
+    data1 = chain1[:, idxs1]
+    data2 = chain2[:, idxs2]
+    n1, d = data1.shape
+    n2, _ = data2.shape
+    # Fit nearest neighbors on both datasets
+    nn1 = NearestNeighbors(n_neighbors=k+1).fit(data1)
+    nn2 = NearestNeighbors(n_neighbors=k).fit(data2)
+    # Find distances to k nearest neighbors in both datasets
+    dist1, _ = nn1.kneighbors(data1)
+    dist2, _ = nn2.kneighbors(data1)
+    # Exclude the point itself in the distance calculation for data1
+    dist1 = dist1[:, 1:]
+    # Calculate KL divergence using the formula from Perez-Cruz (2008)
+    kl_div = (d / n1) * np.sum(np.log(dist2[:, -1] / dist1[:, -1])) + np.log(n2 / (n1 - 1))
+    return kl_div
+
+def compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names):
+    precision_ratio = calculate_precision_ratio(chain1, chain2, param_names1, param_names2, select_param_names)
+    log_det_ratio = calculate_log_det_ratio(chain1, chain2, param_names1, param_names2, select_param_names)
+    kl_divergence = calculate_kl_divergence(chain1, chain2, param_names1, param_names2, select_param_names)
+    print(precision_ratio)
+    print(log_det_ratio)
+    print(kl_divergence)
+    # print(f"Precision ratio: {precision_ratio:.4f}")
+    # print(f"Log determinant ratio: {log_det_ratio:.4f}")
+    # print(f"KL divergence: {kl_divergence:.4f}")
+
+import seaborn as sns
+def plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names):
+    idxs1 = [param_names1.index(name) for name in select_param_names]
+    idxs2 = [param_names2.index(name) for name in select_param_names]
+    data1 = chain1[:, idxs1]
+    data2 = chain2[:, idxs2]
+    corr1 = np.corrcoef(data1, rowvar=False)
+    corr2 = np.corrcoef(data2, rowvar=False)
+    corr_diff = np.sqrt(corr2**2) - np.sqrt(corr1**2)
+    sns.heatmap(corr_diff, xticklabels=select_param_names, yticklabels=select_param_names, center=0, cmap="bwr", ax=ax)
+    # print the change in the frobenius norm of the correlation matrix
+    # set diagonal to 0 for this calculation
+    np.fill_diagonal(corr1, 0)
+    np.fill_diagonal(corr2, 0)
+    frob_norm1 = np.linalg.norm(corr1, 'fro')
+    frob_norm2 = np.linalg.norm(corr2, 'fro')
+    print(f"Frobenius norm of correlation matrix 1: {frob_norm1:.4f}")
+    print(f"Frobenius norm of correlation matrix 2: {frob_norm2:.4f}")
+    print(f"Proportional change in Frobenius norm: {(frob_norm2 - frob_norm1) / frob_norm1:.4f}")
+
 if __name__ == "__main__":
     plt.rcParams.update({'font.size':8})
     # text type is palatino
@@ -1776,6 +1847,20 @@ if __name__ == "__main__":
     colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", ]
     option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035",]
     seeds = [260612, 260612, 260612, 260612, 260612,]
+
+    chain1 = load_mcmc_chain("InfluenzaA", 260615, "Default", "dedupsac", "2020-01-01maxagep035", just_chain=True, prune=0, prefix="")
+    chain2 = load_mcmc_chain("InfluenzaA", 260612, "ExponentialODipp25", "dedupsac", "maxagep035", just_chain=True, prune=10000, prefix="")
+    param_names1, _ = parameters_names_bounds("InfluenzaA", "Default", "dedupsac", "2020-01-01maxagep035", NAG=NAG)
+    param_names2, _ = parameters_names_bounds("InfluenzaA", "ExponentialODipp25", "dedupsac", "maxagep035", NAG=NAG)
+    select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
+    compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
+    fig, ax = plt.subplots(figsize=(6.5,6.5))
+    plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
+    ax.set_title("Difference in parameter correlations:\nExponentialODipp25 - Default")
+    plt.tight_layout()
+    plt.savefig(f"Figures/correlation_matrix_difference_InfluenzaA_ExponentialODipp25_minus_Default.png", dpi=300)
+
+    plot_mcmc_corner("InfluenzaA", "Default", "dedupsac", "2020-01-01maxagep035", "260615", prune=0)
 
     # fig, ax = plt.subplots(figsize=(3,3))
     # im = plot_supression_rank_heatmap(ax, flunet_pathogens)
@@ -1863,23 +1948,23 @@ if __name__ == "__main__":
     # plt.tight_layout()
     # plt.savefig(f"Figures/heatmap_test.png", dpi=300)
 
-    ## Generate Figure 4: age infection figure
-    fig = plt.figure(figsize=(6.5, 6), layout="constrained")
-    gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
-    gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
-    gs_bottom = gs_main[1].subgridspec(1, 8)
-    import numpy as np
-    ax_top = np.empty((2, 4), dtype=object)
-    for r in range(2):
-        for c in range(3):
-            ax_top[r, c] = fig.add_subplot(gs_top[r, c])
-        ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
-    ax_bottom = np.empty((1,8), dtype=object)
-    for c in range(8):
-        ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
-    axes = [ax_top, ax_bottom]
-    plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=False, logD=False, samples=400, load_data=True, prefix="")
-    plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty.png", dpi=300)
+    # ## Generate Figure 4: age infection figure
+    # fig = plt.figure(figsize=(6.5, 6), layout="constrained")
+    # gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
+    # gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
+    # gs_bottom = gs_main[1].subgridspec(1, 8)
+    # import numpy as np
+    # ax_top = np.empty((2, 4), dtype=object)
+    # for r in range(2):
+    #     for c in range(3):
+    #         ax_top[r, c] = fig.add_subplot(gs_top[r, c])
+    #     ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
+    # ax_bottom = np.empty((1,8), dtype=object)
+    # for c in range(8):
+    #     ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
+    # axes = [ax_top, ax_bottom]
+    # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=False, logD=False, samples=400, load_data=True, prefix="")
+    # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty.png", dpi=300)
 
     # ## Generate Figure 5: age group heatmaps and line of best fit
     # fig = plt.figure(figsize=(6.5, 6.5))
