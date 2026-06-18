@@ -12,7 +12,7 @@
 #SBATCH --time=24:00:00
 
 # Array job specifications:
-#SBATCH --array=0-7
+#SBATCH --array=0-3
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 
@@ -25,10 +25,6 @@ combinations=(
 "Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage1maxagep01 1e-9 200 2000 0.7"
 "Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage1maxagep015 1e-9 200 2000 0.7"
 "Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage1maxagep028 1e-9 200 2000 0.7"
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage0maxagep005 1e-9 200 2000 0.7"
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage0maxagep01 1e-9 200 2000 0.7"
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage0maxagep015 1e-9 200 2000 0.7"
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage0maxagep028 1e-9 200 2000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
