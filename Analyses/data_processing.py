@@ -379,7 +379,7 @@ def get_daily_test_counts(test_data, assigned_date="Hospitalization date"):
 
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and False:
     from Parameters.census_population import AGE_GROUP_NAMES_sac as AGE_GROUP_NAMES
     NAG = len(AGE_GROUP_NAMES)
     hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
@@ -409,7 +409,7 @@ if __name__ == "__main__":
 
 
 #### 
-if __name__ == "__main__" and False:
+if __name__ == "__main__":
     from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac as AGE_GROUP_NAMES
     AGE_GROUPS = [
         np.arange(3),
@@ -419,21 +419,28 @@ if __name__ == "__main__" and False:
         np.arange(18*12,40*12),
         np.arange(40*12,65*12),
         np.arange(65*12,100*12)]
-    # time_start = time.time()
-    # test_data = load_and_filter_test_data(remove_salvage=False)
-    # time_test = time.time()
-    # print(f"Time to load test data: {time_test - time_start:.2f}s")
+    time_start = time.time()
+    test_data = load_and_filter_test_data(remove_salvage=False)
+    time_test = time.time()
+    print(f"Time to load test data: {time_test - time_start:.2f}s")
 
-    # test_data = filter_to_panel_tests(test_data)
-    # time_panel = time.time()
-    # print(f"Time to filter to panel tests: {time_panel - time_test:.2f}s")
+    test_data = filter_to_panel_tests(test_data)
+    time_panel = time.time()
+    print(f"Time to filter to panel tests: {time_panel - time_test:.2f}s")
 
-    # hospitalization_data = load_and_filter_clinical_data(exclude_covid=True, settings=["Hospital admission"])
+    hospitalization_data = load_and_filter_clinical_data(exclude_covid=True, settings=["Hospital admission"])
     # time_hosp = time.time()
     # # print(f"Time to load and filter all_clinical data: {time_hosp - time_test:.2f}s")
-    # hospitalization_data = bin_age_groups(hospitalization_data, AGE_GROUPS, AGE_GROUP_NAMES)
     # # remove multiple hospitalizations within 14 days
-    # hospitalization_data_filtered = filter_multiple_hospitalizations(hospitalization_data)
+    hospitalization_data_filtered = filter_multiple_hospitalizations(hospitalization_data)
+    print(hospitalization_data_filtered["race_eth_c"].value_counts())
+    # bin NDI into <-1, 1-0, 0-1, >1
+    hospitalization_data_filtered.loc[:,"NDI_bin"] = pd.cut(hospitalization_data_filtered["NDI"], bins=[-np.inf, -1, 0, 1, np.inf], labels=["<-1", "-1-0", "0-1", ">1"])
+    print(hospitalization_data_filtered["NDI_bin"].value_counts())
+    hospitalization_data_filtered = bin_age_groups(hospitalization_data_filtered, AGE_GROUPS, AGE_GROUP_NAMES)
+    print(hospitalization_data_filtered["age_group"].value_counts())
+    print(hospitalization_data_filtered["YEAR"].value_counts())
+    print(hospitalization_data_filtered["StudyID"].nunique())
     # # Set all_clinical date as index for resampling
     # daily_hospitalization_counts = hospitalization_data_filtered.pivot_table(index='Hospitalization date', columns='age_group', values='StudyID', aggfunc='count').fillna(0).reset_index()
     # # # reorder columns
@@ -442,8 +449,18 @@ if __name__ == "__main__" and False:
     # daily_hospitalization_counts = daily_hospitalization_counts.set_index('Hospitalization date')
     # print(f"Time to process hospitalization data: {time.time() - time_hosp:.2f}s")
 
-    # test_data = merge_tests(test_data, hospitalization_data_filtered)
-    # test_data = filter_multiple_testing(test_data)
+    test_data = merge_tests(test_data, hospitalization_data_filtered)
+    test_data = filter_multiple_testing(test_data)
+    print(test_data.columns)
+    rsv_data = test_data[test_data["pathogen"] == "RSV"]
+    print(rsv_data["race_eth_c"].value_counts())
+    # bin NDI into <-1, 1-0, 0-1, >1
+    rsv_data.loc[:,"NDI_bin"] = pd.cut(rsv_data["NDI"], bins=[-np.inf, -1, 0, 1, np.inf], labels=["<-1", "-1-0", "0-1", ">1"])
+    print(rsv_data["NDI_bin"].value_counts())
+    rsv_data = bin_age_groups(rsv_data, AGE_GROUPS, AGE_GROUP_NAMES)
+    print(rsv_data["age_group"].value_counts())
+    print(rsv_data["YEAR"].value_counts())
+    print(rsv_data["StudyID"].nunique())
     # daily_test_counts = get_daily_test_counts(test_data)
     # print(f"Time to process test data: {time.time() - time_panel:.2f}s")
 
@@ -469,30 +486,30 @@ if __name__ == "__main__" and False:
     # daily_test_counts = daily_test_counts.set_index('Hospitalization date')
     # daily_test_counts.to_csv(f'Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group_sac_dedup.csv')
 
-    NAG = len(AGE_GROUP_NAMES)
-    hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
-    hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
+    # NAG = len(AGE_GROUP_NAMES)
+    # hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
+    # hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
 
-    # load daily test counts
-    daily_test_counts = pd.read_csv(f'Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group_sac_dedup.csv', index_col=0, parse_dates=True)
-    # for each pathogen, plot proportion positive and total tests over time on the same plot for each age group
-    pathogens = daily_test_counts['pathogen'].unique()
-    for pathogen in pathogens:
-        fig, ax = plt.subplots(4, 2, figsize=(13.3, 7.5), sharex=True)
-        for i, age_group in enumerate(AGE_GROUP_NAMES):
-            age_group_data = daily_test_counts[(daily_test_counts['pathogen'] == pathogen) & (daily_test_counts['age_group'] == age_group)]
-            age_group_data = age_group_data.sort_index()
-            total_tests = age_group_data[age_group_data['result_type'] == 'Total']['count'].resample('MS').sum()
-            positive_tests = age_group_data[age_group_data['result_type'] == 'Positive']['count'].resample('MS').sum()
-            prop_positive = positive_tests / total_tests.replace(0, np.nan)
-            prop_positive = prop_positive.fillna(0)
-            ax[i//2, i%2].plot(prop_positive.index, prop_positive.values, color=hsv_colors[i], label='Proportion Positive', linewidth=1.5)
-            ax[i//2, i%2].plot(total_tests.index, total_tests.values / total_tests.max(), color='gray', label='Total Tests (scaled)')
-            ax[i//2, i%2].set_title(f"{pathogen} - {age_group}")
+    # # load daily test counts
+    # daily_test_counts = pd.read_csv(f'Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group_sac_dedup.csv', index_col=0, parse_dates=True)
+    # # for each pathogen, plot proportion positive and total tests over time on the same plot for each age group
+    # pathogens = daily_test_counts['pathogen'].unique()
+    # for pathogen in pathogens:
+    #     fig, ax = plt.subplots(4, 2, figsize=(13.3, 7.5), sharex=True)
+    #     for i, age_group in enumerate(AGE_GROUP_NAMES):
+    #         age_group_data = daily_test_counts[(daily_test_counts['pathogen'] == pathogen) & (daily_test_counts['age_group'] == age_group)]
+    #         age_group_data = age_group_data.sort_index()
+    #         total_tests = age_group_data[age_group_data['result_type'] == 'Total']['count'].resample('MS').sum()
+    #         positive_tests = age_group_data[age_group_data['result_type'] == 'Positive']['count'].resample('MS').sum()
+    #         prop_positive = positive_tests / total_tests.replace(0, np.nan)
+    #         prop_positive = prop_positive.fillna(0)
+    #         ax[i//2, i%2].plot(prop_positive.index, prop_positive.values, color=hsv_colors[i], label='Proportion Positive', linewidth=1.5)
+    #         ax[i//2, i%2].plot(total_tests.index, total_tests.values / total_tests.max(), color='gray', label='Total Tests (scaled)')
+    #         ax[i//2, i%2].set_title(f"{pathogen} - {age_group}")
         
-        ax[1, 0].set_ylabel('Proportion Positive / Total Tests (scaled)')
-        plt.tight_layout()
-        plt.savefig(f"Figures/KPSC_panel_{pathogen}_proportion_positive_and_total_tests_by_age_group_monthly_sac_dedup.png", dpi=300)
+    #     ax[1, 0].set_ylabel('Proportion Positive / Total Tests (scaled)')
+    #     plt.tight_layout()
+    #     plt.savefig(f"Figures/KPSC_panel_{pathogen}_proportion_positive_and_total_tests_by_age_group_monthly_sac_dedup.png", dpi=300)
 
     # # daily_hospitalization_rates = daily_hospitalization_counts.div(pop_by_age_group_month.resample('D').ffill(), axis=1)
     # # daily_hospitalization_rates.to_csv(f'Data/Processed/KPSC_ARI_nonCOVID_clinical_rates_by_day_age_group_split.csv')
