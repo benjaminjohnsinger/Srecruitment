@@ -39,9 +39,37 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-x = np.array([8716,9702,10263,10414,5744,3099,5074,10334,10178,11313,])
-print(np.sum(x))
-print(100 * x / np.sum(x))
+# Adenovirus
+S_REL = [1, 0.41513026, 0.40689045]
+P_OBS = [1, 0.29316723, 0.16823587]
+OBS_AGE = [0.00081195, 0.00244854, 0.00187553, 0.00020819, 0.00031958, 0.00069796, 0.003]
+# find proportional difference between each age group and prior one for OBS_AGE
+AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
+print(AGE_REL)
+# Influenza A
+S_REL = [1.0, 0.81661355, 0.5758953]
+P_OBS = [1.0, 0.98442453, 0.7888398]
+OBS_AGE = [0.00729031, 0.00509014, 0.00213986, 0.0005347, 0.00109613, 0.00390308, 0.035]
+AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
+print(AGE_REL)
+# RSV
+S_REL = [1.0, 0.43337923, 0.04520457]
+P_OBS = [1.0, 0.46, 0.31]
+OBS_AGE = [0.028, 0.00756089, 0.00427777, 0.00039543, 0.0002941, 0.00129138, 0.01125933]
+AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
+print(AGE_REL)
+# Metapneumovirus
+S_REL = [1.0, 0.8700617, 0.7241823]
+P_OBS = [1.0, 0.17723344, 0.0211956]
+OBS_AGE = [0.00115598, 0.0030468, 0.00358958, 0.00050364, 0.00060943, 0.00208401, 0.015]
+AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
+print(AGE_REL)
+# Parainfluenza 3
+S_REL = [1.0, 0.55912185, 0.29086292]
+P_OBS = [1.0, 0.9597223, 0.72615325]
+OBS_AGE = [0.0030517078, 0.0021154704, 0.00080672855, 0.000054024615, 0.000097420758, 0.00041733991, 0.0040000002]
+AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
+print(AGE_REL)
 
 # ### plot percent positivity
 # fig, ax = plt.subplots(2, 3, figsize = (6.5,4), sharex=True, sharey=True)
@@ -197,19 +225,19 @@ print(100 * x / np.sum(x))
 
 # #     maximum_autocorr_time = int(np.ceil(np.max(autocorr_times)))
 
-# #     # # chain_3d_pruned = chain_3d[500:][::maximum_autocorr_time]
-# #     median_value_by_parameter = np.median(chain_3d, axis=(0,1))
-# #     lower_value = np.percentile(chain_3d, 2.5, axis=(0,1))
-# #     upper_value = np.percentile(chain_3d, 97.5, axis=(0,1))
-# #     # # print(median_value_by_parameter)
-# #     # # print(lower_value)
-# #     # # print(upper_value)
+#     # # chain_3d_pruned = chain_3d[500:][::maximum_autocorr_time]
+#     median_value_by_parameter = np.median(chain_3d, axis=(0,1))
+#     lower_value = np.percentile(chain_3d, 2.5, axis=(0,1))
+#     upper_value = np.percentile(chain_3d, 97.5, axis=(0,1))
+#     # # print(median_value_by_parameter)
+#     # # print(lower_value)
+#     # # print(upper_value)
 
-# #     # # print best parameter set with credible intervals
-# #     # print("Best parameter set found by MCMC, with negative log-likelihood:", best_neg_log_likelihood)
-# #     for i in range(n_params):
-# #         print(f"median {param_names[i]}: {median_value_by_parameter[i]:.4f} ({lower_value[i]:.4f}–{upper_value[i]:.4f})")
-# #         # print(f"optimal {param_names[i]}: {best_params[i]:.4f}")
+#     # # print best parameter set with credible intervals
+#     # print("Best parameter set found by MCMC, with negative log-likelihood:", best_neg_log_likelihood)
+#     for i in range(n_params):
+#         print(f"median {param_names[i]}: {median_value_by_parameter[i]:.4f} ({lower_value[i]:.4f}–{upper_value[i]:.4f})")
+#         # print(f"optimal {param_names[i]}: {best_params[i]:.4f}")
 
 # #     import corner
 # #     fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})

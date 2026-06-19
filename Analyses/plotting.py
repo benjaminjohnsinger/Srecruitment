@@ -1735,8 +1735,6 @@ def calculate_precision_ratio(chain1, chain2, param_names1, param_names2, select
     idxs2 = [param_names2.index(name) for name in select_param_names]
     var1 = np.var(chain1[:, idxs1], axis=0)
     var2 = np.var(chain2[:, idxs2], axis=0)
-    print(var1)
-    print(var2)
     return var1 / var2
 
 def calculate_log_det_ratio(chain1, chain2, param_names1, param_names2, select_param_names):
@@ -1773,12 +1771,9 @@ def compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param
     precision_ratio = calculate_precision_ratio(chain1, chain2, param_names1, param_names2, select_param_names)
     log_det_ratio = calculate_log_det_ratio(chain1, chain2, param_names1, param_names2, select_param_names)
     kl_divergence = calculate_kl_divergence(chain1, chain2, param_names1, param_names2, select_param_names)
-    print(precision_ratio)
-    print(log_det_ratio)
-    print(kl_divergence)
-    # print(f"Precision ratio: {precision_ratio:.4f}")
-    # print(f"Log determinant ratio: {log_det_ratio:.4f}")
-    # print(f"KL divergence: {kl_divergence:.4f}")
+    print(f"Precision ratios: {np.array2string(precision_ratio, formatter={'float_kind': lambda x: f'{x:.2g}'})}")
+    print(f"Log determinant ratio: {log_det_ratio:.4f}")
+    print(f"KL divergence: {kl_divergence:.4f}")
 
 import seaborn as sns
 def plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names):
@@ -1796,8 +1791,7 @@ def plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_n
     np.fill_diagonal(corr2, 0)
     frob_norm1 = np.linalg.norm(corr1, 'fro')
     frob_norm2 = np.linalg.norm(corr2, 'fro')
-    print(f"Frobenius norm of correlation matrix 1: {frob_norm1:.4f}")
-    print(f"Frobenius norm of correlation matrix 2: {frob_norm2:.4f}")
+    print(f"Frobenius norms: {frob_norm1:.4f}, {frob_norm2:.4f}")
     print(f"Proportional change in Frobenius norm: {(frob_norm2 - frob_norm1) / frob_norm1:.4f}")
 
 if __name__ == "__main__":
@@ -1842,25 +1836,31 @@ if __name__ == "__main__":
     # seeds = [260531, 260603, 260602, 260531, 260531, 260531,]
 
     lockdown = "ExponentialODipp25"
-    pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA",]
-    flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA",]
-    colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", ]
-    option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035",]
-    seeds = [260612, 260612, 260612, 260612, 260612,]
+    pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
+    colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
+    option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035","maxagep035",]
+    seeds = [260612, 260612, 260612, 260612, 260612, 260612,]
 
-    chain1 = load_mcmc_chain("InfluenzaA", 260615, "Default", "dedupsac", "2020-01-01maxagep035", just_chain=True, prune=0, prefix="")
-    chain2 = load_mcmc_chain("InfluenzaA", 260612, "ExponentialODipp25", "dedupsac", "maxagep035", just_chain=True, prune=10000, prefix="")
-    param_names1, _ = parameters_names_bounds("InfluenzaA", "Default", "dedupsac", "2020-01-01maxagep035", NAG=NAG)
-    param_names2, _ = parameters_names_bounds("InfluenzaA", "ExponentialODipp25", "dedupsac", "maxagep035", NAG=NAG)
-    select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
-    compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
-    fig, ax = plt.subplots(figsize=(6.5,6.5))
-    plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
-    ax.set_title("Difference in parameter correlations:\nExponentialODipp25 - Default")
-    plt.tight_layout()
-    plt.savefig(f"Figures/correlation_matrix_difference_InfluenzaA_ExponentialODipp25_minus_Default.png", dpi=300)
+    for pathogen, option2, seed in zip(pathogens, option2s, seeds):
+        chain1 = load_mcmc_chain(pathogen, 260615, "Default", "dedupsac", "2020-01-01"+option2, just_chain=True, prune=0, prefix="")
+        chain2 = load_mcmc_chain(pathogen, seed, lockdown, "dedupsac", option2, just_chain=True, prune=0 + 10000*("InfluenzaB" not in pathogen), prefix="")
+        param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
+        param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
+        select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
+        print(pathogen)
+        try:
+            compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
+        except:
+            print(f"Could not load chain for {pathogen}, skipping comparison")
+            continue
+        fig, ax = plt.subplots(figsize=(6.5,6.5))
+        plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
+        ax.set_title("Difference in parameter correlations:\nExponentialODipp25 - Default")
+        plt.tight_layout()
+        plt.savefig(f"Figures/correlation_matrix_difference_{pathogen}_ExponentialODipp25_minus_Default.png", dpi=300)
 
-    plot_mcmc_corner("InfluenzaA", "Default", "dedupsac", "2020-01-01maxagep035", "260615", prune=0)
+    plot_mcmc_corner("InfluenzaB", "Default", "dedupsac", "2020-01-01maxagep035", "260615", prune=0)
 
     # fig, ax = plt.subplots(figsize=(3,3))
     # im = plot_supression_rank_heatmap(ax, flunet_pathogens)

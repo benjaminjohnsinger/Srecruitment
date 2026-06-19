@@ -230,7 +230,7 @@ def load_refined_chain_or_burnin(burnin_sample_path, burnin_log_prob_path, refin
     return saved_samples, saved_log_prob, best_sample, completed_chunks
 
 if __name__ == "__main__":
-    lockdown = "Default"
+    lockdown = "ExponentialODipp25"
     option1 = "dedupsac"
     NAG = 7
     prefix = ""
@@ -239,9 +239,9 @@ if __name__ == "__main__":
     n_walkers = 64
     burn_in_size = 10000
 
-    pathogens = ["RSV","InfluenzaA"]
-    option2s = ["2020-01-01maxagep028","2020-01-01maxagep035",]
-    seeds = [260615,260615,]
+    pathogens = ["Metapneumovirus",]
+    option2s = ["fixagep1maxagep01",]
+    seeds = [260617,]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
