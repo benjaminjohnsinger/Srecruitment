@@ -113,7 +113,7 @@ def parameter_space(good_simulations, NAG=7, n_samples=None):
     else:
         for pathogen_info in good_simulations:
             pathogen, seed, lockdown, option1, option2 = pathogen_info
-            chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=10000, prefix="", just_chain=True)
+            chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=100, prefix="", just_chain=True)
             # draw n_samples randomly from the chain
             sampled_xs = chain[np.random.choice(chain.shape[0], size=n_samples, replace=True)]
             consistent_xs = jax.vmap(lambda x: consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, x_DE=x))(sampled_xs)
@@ -1165,7 +1165,7 @@ if __name__ == "__main__":
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
     good_simulations = [
         ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", seed, lockdown, option1, "maxagep015"],
-        ["InfluenzaA", seed, lockdown, option1, "maxagep035"], 
+        ["InfluenzaA", seed, lockdown, option1, "maxagep035"], ["InfluenzaB", seed, lockdown, option1, "maxagep035"], 
         ["Adenovirus", seed, lockdown, option1, "maxagep003"],["Parainfluenza3", seed, lockdown, option1, "maxagep004"],
     ]
     
@@ -1183,11 +1183,11 @@ if __name__ == "__main__":
     # # plt.tight_layout()
     # # plt.savefig("Figures/line_of_best_fit_ExponentialODipLinearsac.png", dpi=300)
     # # # print("NAG", NAG)
-    run_save_path = "Outputs/sim_grid_lh_n40000_chunk10000_seed260612_lockdownExponentialODipp25_2d"
-    # run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
-    #                                         seed=seed, n_samples=40000, dimension=2, chunk_size=10000,
-    #                                         # run_save_path=run_save_path
-    #                                         )           
+    # run_save_path = "Outputs/sim_grid_lh_n40000_chunk10000_seed260612_lockdownExponentialODipp25_2d"
+    run_save_path = run_simulation_pipeline(good_simulations, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2, NAG=NAG,
+                                            seed=seed, n_samples=80000, dimension=2, chunk_size=10000,
+                                            # run_save_path=run_save_path
+                                            )           
     # # print(run_save_path)
 
     # # # perpendicular / parallel plots

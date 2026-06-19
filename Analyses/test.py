@@ -39,37 +39,37 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-# Adenovirus
-S_REL = [1, 0.41513026, 0.40689045]
-P_OBS = [1, 0.29316723, 0.16823587]
-OBS_AGE = [0.00081195, 0.00244854, 0.00187553, 0.00020819, 0.00031958, 0.00069796, 0.003]
-# find proportional difference between each age group and prior one for OBS_AGE
-AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
-print(AGE_REL)
-# Influenza A
-S_REL = [1.0, 0.81661355, 0.5758953]
-P_OBS = [1.0, 0.98442453, 0.7888398]
-OBS_AGE = [0.00729031, 0.00509014, 0.00213986, 0.0005347, 0.00109613, 0.00390308, 0.035]
-AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
-print(AGE_REL)
-# RSV
-S_REL = [1.0, 0.43337923, 0.04520457]
-P_OBS = [1.0, 0.46, 0.31]
-OBS_AGE = [0.028, 0.00756089, 0.00427777, 0.00039543, 0.0002941, 0.00129138, 0.01125933]
-AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
-print(AGE_REL)
-# Metapneumovirus
-S_REL = [1.0, 0.8700617, 0.7241823]
-P_OBS = [1.0, 0.17723344, 0.0211956]
-OBS_AGE = [0.00115598, 0.0030468, 0.00358958, 0.00050364, 0.00060943, 0.00208401, 0.015]
-AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
-print(AGE_REL)
-# Parainfluenza 3
-S_REL = [1.0, 0.55912185, 0.29086292]
-P_OBS = [1.0, 0.9597223, 0.72615325]
-OBS_AGE = [0.0030517078, 0.0021154704, 0.00080672855, 0.000054024615, 0.000097420758, 0.00041733991, 0.0040000002]
-AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
-print(AGE_REL)
+# # Adenovirus
+# S_REL = [1, 0.41513026, 0.40689045]
+# P_OBS = [1, 0.29316723, 0.16823587]
+# OBS_AGE = [0.00081195, 0.00244854, 0.00187553, 0.00020819, 0.00031958, 0.00069796, 0.003]
+# # find proportional difference between each age group and prior one for OBS_AGE
+# AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
+# print(AGE_REL)
+# # Influenza A
+# S_REL = [1.0, 0.81661355, 0.5758953]
+# P_OBS = [1.0, 0.98442453, 0.7888398]
+# OBS_AGE = [0.00729031, 0.00509014, 0.00213986, 0.0005347, 0.00109613, 0.00390308, 0.035]
+# AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
+# print(AGE_REL)
+# # RSV
+# S_REL = [1.0, 0.43337923, 0.04520457]
+# P_OBS = [1.0, 0.46, 0.31]
+# OBS_AGE = [0.028, 0.00756089, 0.00427777, 0.00039543, 0.0002941, 0.00129138, 0.01125933]
+# AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
+# print(AGE_REL)
+# # Metapneumovirus
+# S_REL = [1.0, 0.8700617, 0.7241823]
+# P_OBS = [1.0, 0.17723344, 0.0211956]
+# OBS_AGE = [0.00115598, 0.0030468, 0.00358958, 0.00050364, 0.00060943, 0.00208401, 0.015]
+# AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
+# print(AGE_REL)
+# # Parainfluenza 3
+# S_REL = [1.0, 0.55912185, 0.29086292]
+# P_OBS = [1.0, 0.9597223, 0.72615325]
+# OBS_AGE = [0.0030517078, 0.0021154704, 0.00080672855, 0.000054024615, 0.000097420758, 0.00041733991, 0.0040000002]
+# AGE_REL = [1] + [OBS_AGE[i]/OBS_AGE[i-1] for i in range(1, len(OBS_AGE))]
+# print(AGE_REL)
 
 # ### plot percent positivity
 # fig, ax = plt.subplots(2, 3, figsize = (6.5,4), sharex=True, sharey=True)
@@ -84,114 +84,116 @@ print(AGE_REL)
 #     ax[pi//3, pi%3].set_title(pathogen)
 # plt.show()
 
-# ### plot mcmc output
-# pathogens = ["RSV","Metapneumovirus", "Parainfluenza3","Adenovirus", "InfluenzaA",]
-# colors = ["#DC267F","#FFB000",  "#FF832B","#648FFF", "#785EF0",]
-# option2s = ["maxagep028","maxagep015", "maxagep004","maxagep003","maxagep035",]
-# seeds = [260612, 260612, 260612, 260612, 260612, ]
-# def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor):
-#     srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
-#     return srel[1]
-# # fig, ax = plxt.subplots()
-# r0_samples_by_pathogen = {}
-# immunity_samples_by_pathogen = {}
-# for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
-#     start_time = time.time()
-#     # pathogen = "Metapneumovirus"
-#     # seed = 260603
-#     lockdown = "ExponentialODipp25"
-#     option1 = "dedupsac"
-#     # option2 = "maxagep015"
-#     prefix = ""
-#     NAG = 7
-#     N_S = 3
-#     from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
-#     param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+### plot mcmc output
+lockdown = "ExponentialODipp25"
+pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
+colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
+option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035","maxagep035",]
+seeds = [260612, 260612, 260612, 260612, 260612, 260612,]
+def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor):
+    srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
+    return srel[1]
+# fig, ax = plxt.subplots()
+r0_samples_by_pathogen = {}
+immunity_samples_by_pathogen = {}
+for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
+    start_time = time.time()
+    # pathogen = "Metapneumovirus"
+    # seed = 260603
+    lockdown = "ExponentialODipp25"
+    option1 = "dedupsac"
+    # option2 = "maxagep015"
+    prefix = ""
+    NAG = 7
+    N_S = 3
+    from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
+    param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 
-#     mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-#     # mcmc_filepath = "Outputs/mcmc_samples_DEmove_RSV_ExponentialODipLinear_dedupsac_maxagep028_260531_refined_studio.csv"
-#     mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
-#     loading_time = time.time()
-#     print(f"Loading samples time for {pathogen}: {time.time() - start_time:.2f} seconds")
-#     n_params = bounds.shape[0]
-#     n_walkers = 64
-#     n_iterations = len(mcmc_samples) // n_walkers
-#     n_params = len(param_names)
+    mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+    # mcmc_filepath = "Outputs/mcmc_samples_DEmove_RSV_ExponentialODipLinear_dedupsac_maxagep028_260531_refined_studio.csv"
+    mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
+    loading_time = time.time()
+    print(f"Loading samples time for {pathogen}: {time.time() - start_time:.2f} seconds")
+    n_params = bounds.shape[0]
+    n_walkers = 64
+    n_iterations = len(mcmc_samples) // n_walkers
+    n_params = len(param_names)
 
-#     # # # cut off burn-in
-#     # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
-#     n_iterations -= 10000
-#     mcmc_samples = mcmc_samples[10000*n_walkers:, :]
+    # # # cut off burn-in
+    # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
+    # n_iterations -= 10000
+    # mcmc_samples = mcmc_samples[10000*n_walkers:, :]
 
-#     # # find index of S_REL1 in pram_names
-#     # thinning = 100 if "Influenza" not in pathogen else 1000
-#     # thinned_samples = mcmc_samples[::thinning, :]
-#     # gamma = 4.9 if ("RSV" in pathogen) or "Metapneumovirus" in pathogen else 3.0
-#     # r0_samples = thinned_samples[:,0]*15.24*gamma
-#     # if "S_REL1" in param_names:
-#     #     j = param_names.index("S_REL1")
-#     #     srel1_samples = thinned_samples[:,j]
-#     # else:
-#     #     eidx = param_names.index("EXTRA_IMMUNITY")
-#     #     fidx = param_names.index("FIRST_IMMUNITY")
-#     #     fdifdx = param_names.index("FIRST_DIS_INF_FACTOR")
-#     #     srel1_samples = jax.jit(jax.vmap(get_srel1_from_constrained_immunity))(thinned_samples[:,eidx], thinned_samples[:,fidx], thinned_samples[:,fdifdx])
-#     # thinning_time = time.time()
-#     # print(f"Thinning samples time for {pathogen}: {time.time() - loading_time:.2f} seconds")
-#     # median_r0 = np.median(r0_samples)
-#     # median_immunity = 1-np.median(srel1_samples)
-#     # print(f"Median R0 for {pathogen}: {median_r0:.2f}, Median first immunity for {pathogen}: {median_immunity:.2f}")
-#     # r0_samples_by_pathogen[pathogen] = r0_samples
-#     # immunity_samples_by_pathogen[pathogen] = 1-srel1_samples
-#     # # if pathogen == "RSV":
-#     # #     mcmc_samples = mcmc_samples[-17000*64:, :]
-#     # mcmc_samples = mcmc_samples.reshape((-1, n_walkers, n_params))
+    # # find index of S_REL1 in pram_names
+    # thinning = 100 if "Influenza" not in pathogen else 1000
+    # thinned_samples = mcmc_samples[::thinning, :]
+    # gamma = 4.9 if ("RSV" in pathogen) or "Metapneumovirus" in pathogen else 3.0
+    # r0_samples = thinned_samples[:,0]*15.24*gamma
+    # if "S_REL1" in param_names:
+    #     j = param_names.index("S_REL1")
+    #     srel1_samples = thinned_samples[:,j]
+    # else:
+    #     eidx = param_names.index("EXTRA_IMMUNITY")
+    #     fidx = param_names.index("FIRST_IMMUNITY")
+    #     fdifdx = param_names.index("FIRST_DIS_INF_FACTOR")
+    #     srel1_samples = jax.jit(jax.vmap(get_srel1_from_constrained_immunity))(thinned_samples[:,eidx], thinned_samples[:,fidx], thinned_samples[:,fdifdx])
+    # thinning_time = time.time()
+    # print(f"Thinning samples time for {pathogen}: {time.time() - loading_time:.2f} seconds")
+    # median_r0 = np.median(r0_samples)
+    # median_immunity = 1-np.median(srel1_samples)
+    # print(f"Median R0 for {pathogen}: {median_r0:.2f}, Median first immunity for {pathogen}: {median_immunity:.2f}")
+    # r0_samples_by_pathogen[pathogen] = r0_samples
+    # immunity_samples_by_pathogen[pathogen] = 1-srel1_samples
+    # # if pathogen == "RSV":
+    # #     mcmc_samples = mcmc_samples[-17000*64:, :]
+    # mcmc_samples = mcmc_samples.reshape((-1, n_walkers, n_params))
 
 
-#     # # load logprob
-#     # logprob_filepath = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-#     # log_prob_samples = np.genfromtxt(logprob_filepath, delimiter=',', skip_header=0)
+    # # load logprob
+    # logprob_filepath = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+    # log_prob_samples = np.genfromtxt(logprob_filepath, delimiter=',', skip_header=0)
 
-#     # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
-#     #     log_prob_samples = log_prob_samples[10000:]
+    # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
+    #     log_prob_samples = log_prob_samples[10000:]
 
-#     # # if pathogen == "RSV":
-#     # #     log_prob_samples = log_prob_samples[-17000:]
-#     # print(log_prob_samples.shape)
-#     # # print parameters at minimum nll
-#     # log_prob_2d = np.atleast_2d(log_prob_samples)
-#     # best_idx = np.unravel_index(np.argmax(log_prob_2d), log_prob_2d.shape)
-#     # mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
-#     # flat_best_idx = best_idx[0] * log_prob_2d.shape[1] + best_idx[1]
-#     # best_params = mcmc_samples_2d[flat_best_idx]
-#     # best_log_prob = float(log_prob_2d[best_idx])
-#     # best_neg_log_likelihood = -best_log_prob
-#     # if "Influenza" in pathogen:
-#     #     best_srel1 = get_srel1_from_constrained_immunity(best_params[eidx], best_params[fidx], best_params[fdifdx])
-#     # else:
-#     #     best_srel1 = best_params[j]
-#     # print(f"Best R0 found by MCMC: {15.24*gamma*best_params[0]:.4f}, best immunity found by MCMC: {1-best_srel1:.4f}, with negative log-probability: {best_neg_log_likelihood:.4f}")
+    # # if pathogen == "RSV":
+    # #     log_prob_samples = log_prob_samples[-17000:]
+    # print(log_prob_samples.shape)
+    # # print parameters at minimum nll
+    # log_prob_2d = np.atleast_2d(log_prob_samples)
+    # best_idx = np.unravel_index(np.argmax(log_prob_2d), log_prob_2d.shape)
+    # mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
+    # flat_best_idx = best_idx[0] * log_prob_2d.shape[1] + best_idx[1]
+    # best_params = mcmc_samples_2d[flat_best_idx]
+    # best_log_prob = float(log_prob_2d[best_idx])
+    # best_neg_log_likelihood = -best_log_prob
+    # if "Influenza" in pathogen:
+    #     best_srel1 = get_srel1_from_constrained_immunity(best_params[eidx], best_params[fidx], best_params[fdifdx])
+    # else:
+    #     best_srel1 = best_params[j]
+    # print(f"Best R0 found by MCMC: {15.24*gamma*best_params[0]:.4f}, best immunity found by MCMC: {1-best_srel1:.4f}, with negative log-probability: {best_neg_log_likelihood:.4f}")
     
 
-#     mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
-#     median_params = np.median(mcmc_samples_2d, axis=0)
-#     log_prob_of_median = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, AGE_GROUPS=AGE_GROUPS)[0](median_params)
-#     # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
-#     WRITE_EMCEE_ADHOC_EXPORT = True
-#     if WRITE_EMCEE_ADHOC_EXPORT:
-#         results_dir = f"Data/Processed/results{str(seed)[:6]}"
-#         os.makedirs(results_dir, exist_ok=True)
-#         emcee_results_file = f"{results_dir}/emcee_median_{prefix}{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
-#         with open(emcee_results_file, "wb") as f:
-#             pickle.dump(
-#                 {
-#                     "final_population": np.asarray([median_params]),
-#                     "final_fitness": np.asarray([log_prob_of_median]),
-#                 },
-#                 f,
-#             )
-#         print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
-#     # --- END AD-HOC EMCEE EXPORT BLOCK ---
+    mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
+    median_params = np.median(mcmc_samples_2d, axis=0)
+    log_prob_of_median = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, AGE_GROUPS=AGE_GROUPS)[0](median_params)
+    # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
+    WRITE_EMCEE_ADHOC_EXPORT = True
+    if WRITE_EMCEE_ADHOC_EXPORT:
+        results_dir = f"Data/Processed/results{str(seed)[:6]}"
+        os.makedirs(results_dir, exist_ok=True)
+        emcee_results_file = f"{results_dir}/emcee_median_{prefix}{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
+        with open(emcee_results_file, "wb") as f:
+            pickle.dump(
+                {
+                    "final_population": np.asarray([median_params]),
+                    "final_fitness": np.asarray([log_prob_of_median]),
+                },
+                f,
+            )
+        print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
+    # --- END AD-HOC EMCEE EXPORT BLOCK ---
 
     
 #     # fig, trax = plt.subplots(4,4, figsize=(10,6))
@@ -208,15 +210,15 @@ print(AGE_REL)
 #     # plt.close(fig)
 
 
-#     # # Reshape it back to 3D to separate the walkers properly
-#     chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
+    # # Reshape it back to 3D to separate the walkers properly
+    chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
 
-#     # calculate ensemble-aware autocorrelation time and ESS
-#     try:
-#         autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
-#     except emcee.autocorr.AutocorrError as error:
-#         autocorr_times = np.asarray(error.tau)
-#         print("Warning: chain may be too short for reliable autocorrelation estimates.")
+    # calculate ensemble-aware autocorrelation time and ESS
+    try:
+        autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
+    except emcee.autocorr.AutocorrError as error:
+        autocorr_times = np.asarray(error.tau)
+        print("Warning: chain may be too short for reliable autocorrelation estimates.")
 
 # #     autocorr_times = np.asarray(autocorr_times, dtype=float)
 # #     effective_sample_sizes = (n_iterations * n_walkers) / autocorr_times
