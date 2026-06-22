@@ -21,15 +21,10 @@ module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
 combinations=(
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage1maxagep007 1e-9 200 2000 0.7"
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage1maxagep009 1e-9 200 2000 0.7"
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage2maxagep01 1e-9 200 2000 0.7"
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage2maxagep008 1e-9 200 2000 0.7"
-
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage1maxagep006 1e-9 200 2000 0.7"
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage1maxagep008 1e-9 200 2000 0.7"
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage2maxagep007 1e-9 200 2000 0.7"
-"Metapneumovirus 260617 ExponentialODipp25 dedupsac fixage2maxagep015 1e-9 200 2000 0.7"
+"Metapneumovirus 260622 ExponentialODipp25 dedupsac fixage0maxagep006 1e-9 200 2000 0.7"
+"Metapneumovirus 260622 ExponentialODipp25 dedupsac fixage0maxagep007 1e-9 200 2000 0.7"
+"Metapneumovirus 260622 ExponentialODipp25 dedupsac fixage0maxagep008 1e-9 200 2000 0.7"
+"Metapneumovirus 260622 ExponentialODipp25 dedupsac fixage0maxagep009 1e-9 200 2000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
