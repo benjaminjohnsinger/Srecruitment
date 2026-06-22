@@ -441,7 +441,7 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         srel, pobsrel = constrained_immunity(x[n],x[n+1],x[n+2])
         S_REL = srel
         n += 3
-    elif (pathogen == 'RSV') and ('nr' not in option2):
+    elif ((pathogen == 'RSV') or ((pathogen == 'Metapneumovirus') and ("rsvdrel" in option2))) and ('nr' not in option2):
         S_REL = jnp.array([1,x[n],x[n]*x[n+1]])
         pobsrel = jnp.array([1,0.46,0.31]) # Henderson 1979
         n += 2
@@ -811,7 +811,7 @@ def parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=7):
             bounds_dict["EXTRA_IMMUNITY"] = [0,1]
             bounds_dict["FIRST_IMMUNITY"] = [0.1,1]
             bounds_dict["FIRST_DIS_INF_FACTOR"] = [0,1]
-        elif ("RSV" in pathogen) and ("nr" not in option2):
+        elif (("RSV" in pathogen) or (("Metapneumovirus" in pathogen) and ("rsvdrel" in option2))) and ("nr" not in option2):
             bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = [0.1 * ("unimmlim" not in option1), 1]
         else:
             bounds_dict["S_REL1"] = bounds_dict["S_REL2"] = bounds_dict["D_REL1"] = bounds_dict["D_REL2"] = [0.1 * ("unimmlim" not in option1), 1]
@@ -1219,17 +1219,15 @@ def age_of_first_infection(result,MEDIAN_AGE,NAG=7,sd=False):
         return(ages,ages_sd)
     return(ages)
 
-def susceptibility(solution,params,N_C=2,NAG=7,N_S=3):
+def susceptibility(solution,params=None,S_REL=None,N_C=2,NAG=7,N_S=3):
     """
     Generate susceptibility by age group from ODE solutions
     """
-    FULL_POINTS, AGING_RATE, BIRTH_RATE, CONTACT_MATRIX,\
-    BETA, WANE, S_REL, I_REL, P_OBS, OBS_AGE, RELATIVE_CONTACT, VAX_RATE, MATERNAL_IMMUNITY,\
-    REC_UP, REC_SAME, IMPORT_STRENGTH = params
-    sus = np.zeros((len(solution.ts),NAG))
-    for i_t,t in enumerate(solution.ts):
-        for i in range(N_S):
-            sus[i_t,:] += S_REL[i]*solution.ys.T[1+N_C*i*NAG:1+(N_C*i+1)*NAG,i_t]
+    if S_REL is None:
+        S_REL= params[6]
+    shaped_solution = solution.ys.T[1:, :].reshape((2*N_S+1, NAG, -1))
+    susceptible = shaped_solution[0:2*N_S:2, :, :]
+    sus = np.sum(S_REL[:, None, None] * susceptible[:, :, :], axis=0).T
     return(sus)
 
 def sum_age_to(expected_obs, max_month, AGE_GROUPS):

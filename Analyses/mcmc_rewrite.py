@@ -238,15 +238,15 @@ if __name__ == "__main__":
     n_walkers = 64
     burn_in_size = 10000
 
-    lockdown = "Default"
-    pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-    option2s = ["2020-01-01maxagep028","2020-01-01maxagep015","2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035","2020-01-01maxagep035",]
-    seeds = [260615, 260615, 260615, 260615, 260615, 260615,]
+    lockdown = "ExponentialODipp25"
+    pathogens = ["Metapneumovirus",]
+    option2s = ["fixage1maxagep007",]
+    seeds = [260617,]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         pool = Pool(
-            processes=32, 
+            processes=64, 
             initializer=_init_worker, 
             initargs=(pathogen, lockdown, option1, option2, NAG, CENSUS_AGE_POP)
         )
