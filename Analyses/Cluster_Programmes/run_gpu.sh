@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=IHRhMPV
+#SBATCH --job-name=rsvdrel
 #SBATCH --account=ac_idmodels
 #SBATCH --partition=savio4_gpu
 #SBATCH --nodes=1
@@ -12,7 +12,7 @@
 #SBATCH --time=24:00:00
 
 # Array job specifications:
-#SBATCH --array=0-7
+#SBATCH --array=0-1
 #SBATCH --output=%x_%A_%a.out
 #SBATCH --error=%x_%A_%a.err
 
@@ -21,10 +21,8 @@ module load anaconda3
 source activate /global/scratch/users/bjsinger/jax_env
 
 combinations=(
-"Metapneumovirus 260622 ExponentialODipp25 dedupsac fixage0maxagep006 1e-9 200 2000 0.7"
-"Metapneumovirus 260622 ExponentialODipp25 dedupsac fixage0maxagep007 1e-9 200 2000 0.7"
-"Metapneumovirus 260622 ExponentialODipp25 dedupsac fixage0maxagep008 1e-9 200 2000 0.7"
-"Metapneumovirus 260622 ExponentialODipp25 dedupsac fixage0maxagep009 1e-9 200 2000 0.7"
+"Metapneumovirus 260623 ExponentialODipp25 dedupsac rsvdrelmaxagep01 1e-9 200 2000 0.7"
+"Metapneumovirus 260623 ExponentialODipp25 dedupsac rsvdrelfixage0maxagep01 1e-9 200 2000 0.7"
 )
 
 combination="${combinations[$SLURM_ARRAY_TASK_ID]}"
