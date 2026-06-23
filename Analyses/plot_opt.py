@@ -649,7 +649,7 @@ if __name__ == "__main__":
     # ax[0].set_ylim(bottom=0)
 
     # plt.tight_layout()
-    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_test.png",dpi=300)
+    plt.savefig("Figures/"+prefix+pathogen+lockdown+option1+option2_label+str(seed)+"_fixvax.png",dpi=300)
     plt.close()
 
     # fig, ax = plt.subplots(figsize=(4,4))

@@ -82,8 +82,8 @@ def rsv_eff_vax_rate(t_arr, max_eff0, max_eff1):
     nirsev_indices = jnp.searchsorted(NIRSEVIMAB_RATE_IDX, t_arr, side='right')
     rate_nirsev = NIRSEVIMAB_RATE_NP[nirsev_indices]
     # adjusted efficacy
-    adj_eff_vax = jnp.maximum(RSV_VAX_EFF / max_eff1, 1.0)
-    adj_eff_nirsev = jnp.maximum(NIRSEVIMAB_EFF / max_eff0, 1.0)
+    adj_eff_vax = jnp.minimum(RSV_VAX_EFF / max_eff1, 1.0)
+    adj_eff_nirsev = jnp.minimum(NIRSEVIMAB_EFF / max_eff0, 1.0)
     # Effective rates
     eff_rate_vax = rate_vax * adj_eff_vax
     eff_rate_nirsev = rate_nirsev * adj_eff_nirsev

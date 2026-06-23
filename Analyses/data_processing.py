@@ -487,35 +487,6 @@ if __name__ == "__main__":
     hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
     hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
 
-    # load hospitalization counts
-    daily_hospitalization_counts = pd.read_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_sac_dedup.csv', index_col=0, parse_dates=True)
-    # load test counts
-    daily_test_counts = pd.read_csv(f'Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group_sac_dedup.csv', index_col=0, parse_dates=True)
-    # plot for each age group over time
-    plt.rcParams.update({'font.size':8})
-    # text type is palatino
-    plt.rcParams['font.family'] = 'sans-serif'
-    plt.rcParams['font.sans-serif'] = ['Helvetica']
-
-    for i, age_group in enumerate(AGE_GROUP_NAMES):
-        fig, ax = plt.subplots(2, 1, figsize=(6.5, 4), sharex=True)
-        age_group_data = daily_test_counts[daily_test_counts['age_group'] == age_group]
-        age_group_data = age_group_data.sort_index()
-        total_tests = age_group_data[age_group_data['result_type'] == 'Total'].groupby('Hospitalization date')['count'].sum()
-        positive_tests = age_group_data[age_group_data['result_type'] == 'Positive'].groupby('Hospitalization date')['count'].sum()
-        prop_positive = positive_tests / total_tests.replace(0, np.nan)
-        prop_positive = prop_positive.fillna(0)
-        ax[0].plot(prop_positive.index, prop_positive.values, color=hsv_colors[i], label='Proportion Positive', linewidth=1.5)
-        ax[0].set_title(f"Proportion Positive - {age_group}")
-        ax[0].set_ylabel('Proportion Positive')
-        
-        hosp_counts = daily_hospitalization_counts[age_group]
-        ax[1].plot(hosp_counts.index, hosp_counts.values, color=hsv_colors[i], label='Hospitalizations', linewidth=1.5)
-        ax[1].set_title(f"Hospitalizations - {age_group}")
-        ax[1].set_ylabel('Hospitalizations')
-        
-        plt.tight_layout()
-        plt.savefig(f"Figures/KPSC_panel_{age_group}_proportion_positive_and_hospitalizations_by_age_group_sac_dedup.png", dpi=300)
 
     # # load daily test counts
     # daily_test_counts = pd.read_csv(f'Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group_sac_dedup.csv', index_col=0, parse_dates=True)
