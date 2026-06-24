@@ -240,8 +240,8 @@ if __name__ == "__main__":
 
     lockdown = "ExponentialODipp25"
     pathogens = ["Metapneumovirus",]
-    option2s = ["fixage1maxagep007",]
-    seeds = [260617,]
+    option2s = ["fixage0maxagep006",]
+    seeds = [260622,]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):

@@ -1671,7 +1671,7 @@ def plot_r0_vs_first_immunity(axes, pathogen, option2, seed, color, r0_base=15.2
         srel1_samples = chain[:, srel1_idx]
     r0_values = r0_base * beta_values * (3.0 + 1.9 * (pathogen in ["RSV", "Metapneumovirus"]))
     immunity_values = 1 - srel1_samples
-    axes.scatter(r0_values, immunity_values, alpha=1, color=color, s=0.03, linewidths=0, rasterized=True)
+    axes.scatter(r0_values, immunity_values, alpha=1, color=color, s=0.003, linewidths=0, rasterized=True)
     return r0_values, immunity_values
 
 def plot_odr_best_fit(ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=10000):
@@ -1744,25 +1744,30 @@ def plot_odr_best_fit(ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_
     ax.plot(x_plot, y_median_plot, color='grey', linestyle='-', label="ODR Best fit", zorder=0)
     ax.fill_between(x_grid, y_lower_fill, y_upper_fill, color='k', linewidths=0, alpha=0.1, label="95% CI", zorder=0)
 
-def plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=True, prune=0):
-    gs = fig.add_gridspec(2, 2, height_ratios=[1, 1], hspace=0.4)
-    fit_ax = fig.add_subplot(gs[1, :])
-    axes_top = [fig.add_subplot(gs[0, i]) for i in range(2)]
-    generate_2d_heatmap_plot(axes_top[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="infectors_in_group_0123", cbar=True, r0_base=r0_base)
-    generate_2d_heatmap_plot(axes_top[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="infectors_in_group_6", cbar=True, r0_base=r0_base)
-    for ax in axes_top:
+def plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=True, prune=0):
+    gs = fig.add_gridspec(2, 2, height_ratios=[1, 1], hspace=0.6)
+    fit_ax = fig.add_subplot(gs[0, :])
+    axes_hm = [fig.add_subplot(gs[1, i]) for i in range(2)]
+    generate_2d_heatmap_plot(axes_hm[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True, r0_base=r0_base)
+    generate_2d_heatmap_plot(axes_hm[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="infectors_in_group_0123", cbar=True, r0_base=r0_base)
+    # generate_2d_heatmap_plot(axes_hm[2], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="infectors_in_group_6", cbar=True, r0_base=r0_base)
+    for ax in axes_hm:
         ax.set_xscale('log')
-        ax.set_xticks([1,2,3,4,5,6,7])
-        ax.set_xticklabels([1,2,3,4,5,6,7])
-    axes_top[1].set_ylabel("")
-    axes_top[1].set_yticklabels([])
-    axes_top[0].set_title("Under 18 years")
-    axes_top[1].set_title("Over 65 years")
+        ax.set_xticks([1,2,3,4,5,6,7,8])
+        ax.set_xticklabels([1,2,3,4,5,6,7,8])
+    axes_hm[1].set_ylabel("")
+    axes_hm[1].set_yticklabels([])
+    # axes_hm[2].set_ylabel("")
+    # axes_hm[2].set_yticklabels([])
+    axes_hm[0].set_title("Suppression duration\n(months)", fontsize=8)
+    axes_hm[1].set_title("Proportion of infections\nfrom under 18s", fontsize=8)
+    # axes_hm[2].set_title("Proportion of infections\nfrom over 65s", fontsize=8)
 
-    colorbar_axes = [c for c in fig.axes if c not in [axes_top[0], axes_top[1], fit_ax]]
+    colorbar_axes = [c for c in fig.axes if c not in [axes_hm[0], axes_hm[1], fit_ax]]
     if len(colorbar_axes) >= 2:
-        colorbar_axes[1].set_ylabel("Proportion of infections from age group")
         colorbar_axes[0].set_ylabel("")
+        colorbar_axes[1].set_ylabel("")
+        # colorbar_axes[2].set_ylabel("")
 
     r0_values_by_pathogen = {}
     immunity_values_by_pathogen = {}
@@ -1774,22 +1779,24 @@ def plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_
     if fit_line:
         plot_odr_best_fit(fit_ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=10000)
     else:
-        x = np.linspace(1, 7, 100)
+        x = np.linspace(1, 8, 100)
         y = 1 - 1 / x
         fit_ax.plot(x, y, color='k', linewidth=0.5, zorder=0)
+        # label with "1 - 1/R0" in the middle of the line
+        fit_ax.text(3.5, 1-1/3.5, r"$1 - \frac{1}{R_0}$", rotation=0, fontsize=11, color='k', ha='right', va='bottom', zorder=1)
     # build custom legend with colored squares
     handles = [plt.Line2D([0], [0], marker='s', color='w', markerfacecolor=color, markersize=8) for color in colors]
-    labels = pathogens.copy()
-    fit_ax.legend(handles, labels, frameon=False, fontsize=8, loc='lower right')
+    labels = [nice_names.get(pathogen, pathogen) for pathogen in pathogens]
+    fit_ax.legend(handles, labels, frameon=False, fontsize=6, loc='lower right')
     fit_ax.set_xscale('log')
-    fit_ax.set_xticks([1,2,3,4,5,6,7])
-    fit_ax.set_xticklabels([1,2,3,4,5,6,7])
+    fit_ax.set_xticks([1,2,3,4,5,6,7,8])
+    fit_ax.set_xticklabels([1,2,3,4,5,6,7,8])
     fit_ax.set_xlabel("Basic reproduction number (log scale)")
     fit_ax.set_ylabel("Immunity from first infection")
 
     # add big letter "A" to first row, "B" to second row
-    axes_top[0].text(-0.25, 1.1, "A", transform=axes_top[0].transAxes, fontsize=16, fontweight="bold")
-    fit_ax.text(-0.1, 1, "B", transform=fit_ax.transAxes, fontsize=16, fontweight="bold")
+    axes_hm[0].text(-0.32, 1.1, "B", transform=axes_hm[0].transAxes, fontsize=16, fontweight="bold")
+    fit_ax.text(-0.12, 1.05, "A", transform=fit_ax.transAxes, fontsize=16, fontweight="bold")
 
 ## MCMC comparison functions
 def calculate_precision_ratio(chain1, chain2, param_names1, param_names2, select_param_names):
@@ -1846,7 +1853,18 @@ def plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_n
     corr1 = np.corrcoef(data1, rowvar=False)
     corr2 = np.corrcoef(data2, rowvar=False)
     corr_diff = np.sqrt(corr2**2) - np.sqrt(corr1**2)
-    sns.heatmap(corr_diff, xticklabels=select_param_names, yticklabels=select_param_names, center=0, cmap="bwr", ax=ax)
+    std1 = np.std(data1, axis=0)
+    std2 = np.std(data2, axis=0)
+    std_diff = (std2 - std1)/std1
+    # set corr_diff diagonal to std_diff
+    np.fill_diagonal(corr_diff, std_diff)
+    # set upper triangle to NA
+    corr_diff[np.triu_indices_from(corr_diff, k=1)] = np.nan
+    sns.heatmap(corr_diff, xticklabels=select_param_names, yticklabels=select_param_names, center=0, cmap="bwr", ax=ax, vmin=-1.05, vmax=1.05)
+    # for diagonal elements that are greater than 1, add text to their right with the value of the std_diff
+    for i in range(len(select_param_names)):
+        if std_diff[i] > 1.05 or std_diff[i] < -1.05:
+            ax.text(i+1, i+1, f"{std_diff[i]:.2f}", color="black", ha="left", va="bottom", fontsize=6)
     # print the change in the frobenius norm of the correlation matrix
     # set diagonal to 0 for this calculation
     np.fill_diagonal(corr1, 0)
@@ -1989,6 +2007,38 @@ def plot_data_totals(axes, aggregation="MS"):
                       plt.Line2D([0], [0], color='k', label='Panel tests', linewidth=1.5),]
     axes[-1, -1].legend(handles=legend_handles, fontsize=6, loc='center', frameon=False)
 
+from utils import consistent_x_from_DE
+def print_parameter_table(pathogens, option2s, seeds, prune=0):
+    param_table = pd.DataFrame(columns=["Pathogen", "Value"])
+    if lockdown != "Default":
+        parameter_names = ["b", "A", "t", "f", "r", "w", "s2", "s3/s2", "ph2", "ph3/ph2", "ps1", "ps2", "ps3", "ps4", "ps5", "ps6", "ps7",]
+        parameter_indices = [2, 3, 4, 12, 13, 6, 7, 8, 9, 10, 14, 15, 16, 17, 18, 19, 20]
+    else:
+        parameter_names = ["b", "A", "t", "w", "s2", "s3/s2", "ph2", "ph3/ph2", "ps1", "ps2", "ps3", "ps4", "ps5", "ps6", "ps7",]
+        parameter_indices = [2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18]
+    print(len(parameter_names), len(parameter_indices))
+    for pathogen, option2, seed in zip(pathogens, option2s, seeds):
+        chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
+        consistent_xs = jax.vmap(lambda x: consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, x_DE=x))(chain)
+        print(consistent_xs.shape)
+        consistent_xs = np.array(consistent_xs)[:, parameter_indices]
+        param_medians = np.median(consistent_xs, axis=0)
+        lower_bounds = np.percentile(consistent_xs, 2.5, axis=0)
+        upper_bounds = np.percentile(consistent_xs, 97.5, axis=0)
+        values = [f"{m:.4f}" if p2_5 == p97_5 else f"{m:.4f} ({p2_5:.4f}—{p97_5:.4f})" for m, p2_5, p97_5 in zip(param_medians, lower_bounds, upper_bounds)]
+        new_param_table = pd.DataFrame({
+            "Pathogen": pathogen,
+            "Value": values,
+            "Parameter": parameter_names,
+        })
+        param_table = pd.concat([param_table, new_param_table], ignore_index=True)
+    # pivot with pathogens as columns
+    param_table = param_table.pivot(index="Parameter", columns="Pathogen", values="Value")
+    param_table = param_table.reindex(parameter_names)
+    param_table = param_table[pathogens]
+    # print table in tab-separated format
+    print(param_table.to_csv(sep=",", index=False))
+
 if __name__ == "__main__":
     plt.rcParams.update({'font.size':8})
     # text type is palatino
@@ -2024,23 +2074,23 @@ if __name__ == "__main__":
     daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
     daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
 
-    # pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-    # flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
-    # colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
-    # option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035","maxagep035",]
-    # seeds = [260531, 260603, 260602, 260531, 260531, 260531,]
-
     lockdown = "ExponentialODipp25"
     pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
     flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
     colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
-    option2s = ["maxagep028","maxagep015","maxagep004","maxagep003","maxagep035","maxagep035",]
-    seeds = [260612, 260612, 260612, 260612, 260612, 260612,]
+    option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
+    seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
 
-    fig, axes = plt.subplots(4, 2, figsize=(6.5, 4))
-    plot_data_totals(axes, aggregation="MS")
-    plt.tight_layout()
-    plt.savefig(f"Figures/KPSC_data_totals_monthly.png", dpi=300)
+    # fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
+    # for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes.flatten()):
+    #     chain2 = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
+    #     chain1 = load_mcmc_chain(pathogen, 260615, "default", option1, "2020-01-01"+option2, just_chain=True, prune=0, prefix="")
+    #     param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
+    #     param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
+    #     select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
+    #     plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
+    #     ax.set_title(short_names.get(pathogen, pathogen))
+    # plt.savefig(f"Figures/correlation_matrix_difference_{lockdown}.png", dpi=300)
 
     # fig, axes = plt.subplots(6,7, figsize=(4, 6), layout="constrained", sharex=False, sharey=False)
     # plot_immunity_cascade(axes, n_samples=400, save_data=True, kpsc_incidence=False)
@@ -2176,9 +2226,9 @@ if __name__ == "__main__":
     # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
     # # # ## Generate Figure 3: suppression time heatmap
-    # from sim_grid import generate_2d_heatmap_plot
-    # good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
-    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260612_lockdownExponentialODipp25_2d"
+    from sim_grid import generate_2d_heatmap_plot
+    good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
+    run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260612_lockdownExponentialODipp25_2d"
     # fig, ax = plt.subplots(figsize=(6.5,3.25))
     # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True, r0_base=r0_base)
     # ax.set_xscale('log')
@@ -2218,11 +2268,11 @@ if __name__ == "__main__":
     # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=True, logD=True, samples=400, load_data=True, prefix="")
     # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty_logD_adjusted.png", dpi=300)
 
-    ## Generate Figure 5: age group heatmaps and line of best fit
-    # fig = plt.figure(figsize=(6.5, 6.5))
-    # plot_age_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False, prune=500)
-    # plt.savefig(f"Figures/figure_five_fixed.png", dpi=300)
-    # plt.close()
+    # Generate Figure 5: age group heatmaps and line of best fit
+    fig = plt.figure(figsize=(4.5, 4.5))
+    plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False, prune=0)
+    plt.savefig(f"Figures/figure_five_update.png", dpi=300)
+    plt.close()
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     
