@@ -213,7 +213,7 @@ def run_burn_in_for_pathogen(key, pathogen, lockdown, option1, option2, seed, NA
     )
     return sampler
 
-def load_refined_chain_or_burnin(burnin_sample_path, burnin_log_prob_path, refined_sample_path, refined_log_prob_path, n_walkers, chunk_size):
+def load_refined_chain_or_burnin(burnin_sample_path, burnin_log_prob_path, refined_sample_path, refined_log_prob_path, n_walkers, chunk_size, thinning_factor):
     burnin_samples = np.genfromtxt(burnin_sample_path, delimiter=',')
     burnin_samples = np.atleast_2d(burnin_samples)
     burnin_samples = burnin_samples.reshape(-1, n_walkers, burnin_samples.shape[-1])
@@ -226,7 +226,8 @@ def load_refined_chain_or_burnin(burnin_sample_path, burnin_log_prob_path, refin
         return burnin_samples, burnin_log_prob, best_sample, 0
 
     best_sample = saved_samples[np.unravel_index(np.argmax(saved_log_prob), saved_log_prob.shape)]
-    completed_chunks = saved_samples.shape[0] // chunk_size
+    thinned_size = chunk_size // thinning_factor
+    completed_chunks = saved_samples.shape[0] // thinned_size
     return saved_samples, saved_log_prob, best_sample, completed_chunks
 
 if __name__ == "__main__":
@@ -305,6 +306,7 @@ if __name__ == "__main__":
             refined_log_prob_path,
             n_walkers,
             chunk_size,
+            thinning_factor
         )
 
         if completed_chunks == 0:
