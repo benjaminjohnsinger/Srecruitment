@@ -1132,6 +1132,12 @@ def consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="", 
         if ("RSV" in pathogen) and not ("old" in option2):
             OBS_AGE = OBS_AGE.at[0].set(obs_age_max)
             OBS_AGE = OBS_AGE.at[1:].set(obs_age_max * x_DE[n:n+NAG-1])
+        elif "fixage" in option2:
+            match = re.search(r'fixage(\d+)', option2)
+            fixed_age_index = int(match.group(1))
+            OBS_AGE = OBS_AGE.at[:fixed_age_index].set(obs_age_max * x_DE[n:n+fixed_age_index])
+            OBS_AGE = OBS_AGE.at[fixed_age_index].set(obs_age_max)
+            OBS_AGE = OBS_AGE.at[fixed_age_index+1:].set(obs_age_max * x_DE[n+fixed_age_index:n+NAG-1])
         else:
             OBS_AGE = OBS_AGE.at[:-1].set(obs_age_max * x_DE[n:n+NAG-1])
             OBS_AGE = OBS_AGE.at[-1].set(obs_age_max)

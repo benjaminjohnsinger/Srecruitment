@@ -39,9 +39,9 @@ def calculate_proportion_positive_incidence(pathogen, window_size=28, weighting_
             daily_hospitalization_counts = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_split'+['','_dedup'][dedup]+['','_detrended'][detrend]+'.csv', index_col=0, parse_dates=True)
     if daily_test_counts_complete is None:
         if NAG == 7:
-            daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen'+['','_unsalvage'][not salvage]+'_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group'+['','_sac'][sac]+['','_dedup'][dedup]+'.csv',index_col=0,parse_dates=True)
+            daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen'+['','_unsalvage'][not salvage]+'_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group'+['','_sac'][sac]+['','_dedup'][dedup]+['','_EV'][pathogen=="Enterovirus"]+'.csv',index_col=0,parse_dates=True)
         elif NAG > 7:
-            daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen'+['','_unsalvage'][not salvage]+'_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group_split'+['','_dedup'][dedup]+'.csv',index_col=0,parse_dates=True)
+            daily_test_counts_complete = pd.read_csv('Data/Processed/KPSC_ARI_hospitalized_pathogen'+['','_unsalvage'][not salvage]+'_panel_test_counts_by'+['','_hosp'][hosp]+'_day_pathogen_age_group_split'+['','_dedup'][dedup]+['','_EV'][pathogen=="Enterovirus"]+'.csv',index_col=0,parse_dates=True)
 
     # Filter for specified pathogens
     pathogen_data = daily_test_counts_complete[daily_test_counts_complete['pathogen']==pathogen]
@@ -268,7 +268,7 @@ def filter_to_panel_tests(test_data, date_name="Test date"):
     test_data.loc[:,"pathogen"] = test_data["pathogen"].map(reverse_names)
     test_data = test_data[test_data["pathogen"].notna()]
 
-    pathogen_list = ["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3"]
+    pathogen_list = ["InfluenzaA","InfluenzaB","RSV","Metapneumovirus","Adenovirus","Parainfluenza3","Enterovirus"]
     # Keep only panel tests, i.e. there is a test for each pathogen in the list (that is, containing the string for each pathogen in the list in the pathogen column) for a given StudyID and test date
     panel_test_groups = test_data.groupby(["StudyID", date_name])["pathogen"].apply(lambda x: all(any(p == pathogen for pathogen in x) for p in pathogen_list))
     test_data = test_data.set_index(["StudyID", date_name]).loc[panel_test_groups[panel_test_groups].index].reset_index()
@@ -384,32 +384,27 @@ if __name__ == "__main__":
     NAG = len(AGE_GROUP_NAMES)
     hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
     hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
-    fig, ax = plt.subplots(3, 2, figsize=(13.3, 7.5), sharex=True)
+    fig, ax = plt.subplots(4, 2, figsize=(13.3, 7.5), sharex=True)
     
-    for pi, pathogen in enumerate(["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus", "InfluenzaA", "InfluenzaB", ]):
-        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="MS", window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, pp_only=False, hosp=True, NAG=NAG, dedup=True, sac=True)        
-        # for i, age_group in enumerate(AGE_GROUP_NAMES):
-        #     ax[pi % 4, pi // 4].plot(incidence.index, incidence[age_group] * 100000, color=hsv_colors[i], label=AGE_GROUP_NAMES[i], linewidth=1.5)
-        ax[pi // 2, pi % 2].plot(incidence.index, incidence['Total'] * 100000, color='black', label='Total', linewidth=2)
+    for pi, pathogen in enumerate(["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus", "InfluenzaA", "InfluenzaB", "Enterovirus"]):
+        incidence = calculate_proportion_positive_incidence(pathogen, aggregation="MS", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=True, NAG=NAG, dedup=True, sac=True)        
+        for i, age_group in enumerate(AGE_GROUP_NAMES):
+            ax[pi // 2, pi % 2].plot(incidence.index, incidence[age_group] * 100000, color=hsv_colors[i], label=AGE_GROUP_NAMES[i], linewidth=1.5)
+        # ax[pi // 2, pi % 2].plot(incidence.index, incidence['Total'] * 100000, color='black', label='Total', linewidth=2)
         ax[pi // 2, pi % 2].set_title(f"{pathogen}")
         ax[pi // 2, pi % 2].set_ylabel('Incidence per 100k')
-        if pathogen == "InfluenzaA":
-            # print full array
-            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-                print(incidence['Total'] * 100000)
-        # add dashed hline at 0.5, 1.5
-        print(pathogen, incidence['Total'].max() * 100000 / 25)
-        ax[pi // 2, pi % 2].axhline(incidence['Total'].max() * 100000 / 25, color='gray', linestyle='--', linewidth=1)
+        # print(pathogen, incidence['Total'].max() * 100000 / 25)
+        # ax[pi // 2, pi % 2].axhline(incidence['Total'].max() * 100000 / 25, color='gray', linestyle='--', linewidth=1)
     
     # ax[3, 1].axis('off')
     # ax[3, 1].legend(handles=[Rectangle((0, 0), 1, 1, color=hsv_colors[i]) for i in range(NAG)], labels=AGE_GROUP_NAMES, loc='center')
     
     plt.tight_layout()
-    # plt.savefig("Figures/KPSC_panel_all_pathogens_incidence_monthly_sac_dedup.png", dpi=300)
+    plt.savefig("Figures/KPSC_panel_all_pathogens_incidence_monthly_sac_dedup_EV_age.png", dpi=300)
 
 
 #### 
-if __name__ == "__main__":
+if __name__ == "__main__" and False:
     from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac as AGE_GROUP_NAMES
     AGE_GROUPS = [
         np.arange(3),
@@ -419,73 +414,73 @@ if __name__ == "__main__":
         np.arange(18*12,40*12),
         np.arange(40*12,65*12),
         np.arange(65*12,100*12)]
-    # time_start = time.time()
-    # test_data = load_and_filter_test_data(remove_salvage=False)
-    # time_test = time.time()
-    # print(f"Time to load test data: {time_test - time_start:.2f}s")
+    time_start = time.time()
+    test_data = load_and_filter_test_data(remove_salvage=False)
+    time_test = time.time()
+    print(f"Time to load test data: {time_test - time_start:.2f}s")
 
-    # test_data = filter_to_panel_tests(test_data)
-    # time_panel = time.time()
-    # print(f"Time to filter to panel tests: {time_panel - time_test:.2f}s")
+    test_data = filter_to_panel_tests(test_data)
+    time_panel = time.time()
+    print(f"Time to filter to panel tests: {time_panel - time_test:.2f}s")
 
-    # hospitalization_data = load_and_filter_clinical_data(exclude_covid=True, settings=["Hospital admission"])
-    # time_hosp = time.time()
-    # # # print(f"Time to load and filter all_clinical data: {time_hosp - time_test:.2f}s")
-    # # # remove multiple hospitalizations within 14 days
-    # hospitalization_data_filtered = filter_multiple_hospitalizations(hospitalization_data)
-    # print(hospitalization_data_filtered["race_eth_c"].value_counts())
-    # # bin NDI into <-1, 1-0, 0-1, >1
-    # hospitalization_data_filtered.loc[:,"NDI_bin"] = pd.cut(hospitalization_data_filtered["NDI"], bins=[-np.inf, -1, 0, 1, np.inf], labels=["<-1", "-1-0", "0-1", ">1"])
-    # print(hospitalization_data_filtered["NDI_bin"].value_counts())
-    # hospitalization_data_filtered = bin_age_groups(hospitalization_data_filtered, AGE_GROUPS, AGE_GROUP_NAMES)
-    # print(hospitalization_data_filtered["age_group"].value_counts())
-    # print(hospitalization_data_filtered["YEAR"].value_counts())
-    # print(hospitalization_data_filtered["StudyID"].nunique())
-    # # Set all_clinical date as index for resampling
-    # daily_hospitalization_counts = hospitalization_data_filtered.pivot_table(index='Hospitalization date', columns='age_group', values='StudyID', aggfunc='count').fillna(0).reset_index()
-    # # # reorder columns
-    # daily_hospitalization_counts = daily_hospitalization_counts[['Hospitalization date'] + AGE_GROUP_NAMES]
-    # # set index to all_clinical date
-    # daily_hospitalization_counts = daily_hospitalization_counts.set_index('Hospitalization date')
-    # print(f"Time to process hospitalization data: {time.time() - time_hosp:.2f}s")
+    hospitalization_data = load_and_filter_clinical_data(exclude_covid=True, settings=["Hospital admission"])
+    time_hosp = time.time()
+    # # print(f"Time to load and filter all_clinical data: {time_hosp - time_test:.2f}s")
+    # # remove multiple hospitalizations within 14 days
+    hospitalization_data_filtered = filter_multiple_hospitalizations(hospitalization_data)
+    print(hospitalization_data_filtered["race_eth_c"].value_counts())
+    # bin NDI into <-1, 1-0, 0-1, >1
+    hospitalization_data_filtered.loc[:,"NDI_bin"] = pd.cut(hospitalization_data_filtered["NDI"], bins=[-np.inf, -1, 0, 1, np.inf], labels=["<-1", "-1-0", "0-1", ">1"])
+    print(hospitalization_data_filtered["NDI_bin"].value_counts())
+    hospitalization_data_filtered = bin_age_groups(hospitalization_data_filtered, AGE_GROUPS, AGE_GROUP_NAMES)
+    print(hospitalization_data_filtered["age_group"].value_counts())
+    print(hospitalization_data_filtered["YEAR"].value_counts())
+    print(hospitalization_data_filtered["StudyID"].nunique())
+    # Set all_clinical date as index for resampling
+    daily_hospitalization_counts = hospitalization_data_filtered.pivot_table(index='Hospitalization date', columns='age_group', values='StudyID', aggfunc='count').fillna(0).reset_index()
+    # # reorder columns
+    daily_hospitalization_counts = daily_hospitalization_counts[['Hospitalization date'] + AGE_GROUP_NAMES]
+    # set index to all_clinical date
+    daily_hospitalization_counts = daily_hospitalization_counts.set_index('Hospitalization date')
+    print(f"Time to process hospitalization data: {time.time() - time_hosp:.2f}s")
 
-    # test_data = merge_tests(test_data, hospitalization_data_filtered)
-    # test_data = filter_multiple_testing(test_data)
-    # print(test_data.columns)
-    # rsv_data = test_data[test_data["pathogen"] == "RSV"]
-    # print(rsv_data["race_eth_c"].value_counts())
-    # # bin NDI into <-1, 1-0, 0-1, >1
-    # rsv_data.loc[:,"NDI_bin"] = pd.cut(rsv_data["NDI"], bins=[-np.inf, -1, 0, 1, np.inf], labels=["<-1", "-1-0", "0-1", ">1"])
-    # print(rsv_data["NDI_bin"].value_counts())
-    # rsv_data = bin_age_groups(rsv_data, AGE_GROUPS, AGE_GROUP_NAMES)
-    # daily_test_counts = get_daily_test_counts(test_data)
-    # print(f"Time to process test data: {time.time() - time_panel:.2f}s")
+    test_data = merge_tests(test_data, hospitalization_data_filtered)
+    test_data = filter_multiple_testing(test_data)
+    print(test_data.columns)
+    rsv_data = test_data[test_data["pathogen"] == "RSV"]
+    print(rsv_data["race_eth_c"].value_counts())
+    # bin NDI into <-1, 1-0, 0-1, >1
+    rsv_data.loc[:,"NDI_bin"] = pd.cut(rsv_data["NDI"], bins=[-np.inf, -1, 0, 1, np.inf], labels=["<-1", "-1-0", "0-1", ">1"])
+    print(rsv_data["NDI_bin"].value_counts())
+    rsv_data = bin_age_groups(rsv_data, AGE_GROUPS, AGE_GROUP_NAMES)
+    daily_test_counts = get_daily_test_counts(test_data)
+    print(f"Time to process test data: {time.time() - time_panel:.2f}s")
 
-    # # load and split the 8-39 age group pop_by_age_group_monthly into 8-17 and 18-39 age groups assuming a (17-8)/(39-8) proportion
-    # pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
-    # pop_by_age_group_month['5-17y'] = pop_by_age_group_month['5-7y'] + pop_by_age_group_month['8-39y'] * (18-8) / (40-8)
-    # pop_by_age_group_month['18-39y'] = pop_by_age_group_month['8-39y'] * (40-18) / (40-8)
-    # pop_by_age_group_month = pop_by_age_group_month.drop(columns=['5-7y'])
-    # pop_by_age_group_month = pop_by_age_group_month.drop(columns=['8-39y'])
-    # pop_by_age_group_month = pop_by_age_group_month.reindex(columns=AGE_GROUP_NAMES)
+    # load and split the 8-39 age group pop_by_age_group_monthly into 8-17 and 18-39 age groups assuming a (17-8)/(39-8) proportion
+    pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
+    pop_by_age_group_month['5-17y'] = pop_by_age_group_month['5-7y'] + pop_by_age_group_month['8-39y'] * (18-8) / (40-8)
+    pop_by_age_group_month['18-39y'] = pop_by_age_group_month['8-39y'] * (40-18) / (40-8)
+    pop_by_age_group_month = pop_by_age_group_month.drop(columns=['5-7y'])
+    pop_by_age_group_month = pop_by_age_group_month.drop(columns=['8-39y'])
+    pop_by_age_group_month = pop_by_age_group_month.reindex(columns=AGE_GROUP_NAMES)
 
-    # # # save daily hospitalization counts and pop by age group month for use in incidence calculation
-    # daily_hospitalization_counts.to_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_sac_dedup.csv')
-    # pop_by_age_group_month.to_csv(f'Data/Processed/KPSC_population_by_age_group_monthly_sac.csv')
+    # # save daily hospitalization counts and pop by age group month for use in incidence calculation
+    daily_hospitalization_counts.to_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group_sac_dedup_EV.csv')
+    pop_by_age_group_month.to_csv(f'Data/Processed/KPSC_population_by_age_group_monthly_sac_EV.csv')
 
-    # # # load counts and pop by age group month from csv files
-    # # daily_hospitalization_counts = pd.read_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index_col=0, parse_dates=True)
-    # # pop_by_age_group_month = pd.read_csv(f'Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
-    # # # # save daily hospitalization rates by age group for use in incidence calculation
-    # daily_hospitalization_rates = daily_hospitalization_counts.div(pop_by_age_group_month.resample('D').ffill(), axis=1)
-    # daily_hospitalization_rates.to_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group_sac_dedup.csv')
-    # # # # save daily test counts for use in incidence calculation
-    # daily_test_counts = daily_test_counts.set_index('Hospitalization date')
-    # daily_test_counts.to_csv(f'Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group_sac_dedup.csv')
+    # # load counts and pop by age group month from csv files
+    # daily_hospitalization_counts = pd.read_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalizations_by_day_age_group.csv', index_col=0, parse_dates=True)
+    # pop_by_age_group_month = pd.read_csv(f'Data/Processed/KPSC_population_by_age_group_monthly.csv', index_col=0, parse_dates=['month_start'])
+    # # # save daily hospitalization rates by age group for use in incidence calculation
+    daily_hospitalization_rates = daily_hospitalization_counts.div(pop_by_age_group_month.resample('D').ffill(), axis=1)
+    daily_hospitalization_rates.to_csv(f'Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group_sac_dedup_EV.csv')
+    # # # save daily test counts for use in incidence calculation
+    daily_test_counts = daily_test_counts.set_index('Hospitalization date')
+    daily_test_counts.to_csv(f'Data/Processed/KPSC_ARI_hospitalized_pathogen_panel_test_counts_by_hosp_day_pathogen_age_group_sac_dedup_EV.csv')
 
-    NAG = len(AGE_GROUP_NAMES)
-    hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
-    hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
+    # NAG = len(AGE_GROUP_NAMES)
+    # hsv_colors = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
+    # hsv_colors[3] = colormaps.hsv((3/NAG)+0.28/NAG)
 
 
     # # load daily test counts

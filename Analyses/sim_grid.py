@@ -113,7 +113,7 @@ def parameter_space(good_simulations, NAG=7, n_samples=None):
     else:
         for pathogen_info in good_simulations:
             pathogen, seed, lockdown, option1, option2 = pathogen_info
-            chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=100, prefix="", just_chain=True)
+            chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=0, prefix="", just_chain=True)
             # draw n_samples randomly from the chain
             sampled_xs = chain[np.random.choice(chain.shape[0], size=n_samples, replace=True)]
             consistent_xs = jax.vmap(lambda x: consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, x_DE=x))(sampled_xs)
@@ -725,10 +725,21 @@ def add_2d_heatmap_figure(ax, x_vals, y_vals, valid_targets, vmin=None, vmax=Non
     if use_scatter:
         hist = ax.scatter(x_vals, y_vals, c=valid_targets, s=1, alpha=1, cmap=cm.viridis, vmin=vmin, vmax=vmax)
     else:
-        ret = binned_statistic_2d(x_vals, y_vals, valid_targets, statistic='mean', bins=100, 
-                                 range=[[x_vals.min(), x_vals.max()], [y_vals.min(), y_vals.max()]])
-        hist = ax.imshow(ret.statistic.T, origin='lower', extent=[x_vals.min(), x_vals.max(), y_vals.min(), y_vals.max()], 
-                         cmap=cm.viridis, aspect='auto', interpolation='nearest', vmin=vmin, vmax=vmax)
+    # 1. Calculate the mean statistic (your original code)
+        ret = binned_statistic_2d(x_vals, y_vals, valid_targets, statistic='mean', bins=90, 
+                                 range=[[x_vals.min(), x_vals.max()], [y_vals.min(), y_vals.max()]])    
+        # 2. Calculate the count of samples in each bin
+        counts_ret = binned_statistic_2d(x_vals, y_vals, valid_targets, statistic='count', bins=90, 
+                                         range=[[x_vals.min(), x_vals.max()], [y_vals.min(), y_vals.max()]])
+        # 3. Create a copy of the mean statistics array to modify
+        masked_statistic = ret.statistic.copy()
+        # 4. Mask bins with fewer than 10 samples by setting them to NaN
+        masked_statistic[counts_ret.statistic < 8] = np.nan
+        # 5. Plot the masked data
+        hist = ax.imshow(masked_statistic.T, origin='lower', 
+                         extent=[x_vals.min(), x_vals.max(), y_vals.min(), y_vals.max()], 
+                         cmap=cm.viridis, aspect='auto', interpolation='nearest', 
+                         vmin=vmin, vmax=vmax)
     ax.grid(True, alpha=0.3)
     return hist
 
@@ -772,10 +783,10 @@ def add_pathogen_labels(ax, good_simulations, p1=0, p2=8, NAG=7, color=None, r0_
         else:
             val1 = x[p1-1] / PARAM_SCALING[p1-1]
         val2 = x[p2-1] / PARAM_SCALING[p2-1]
-        ax.scatter(val1, val2, s=50, color=color[i], edgecolor='black', zorder=5)
+        ax.scatter(val1, val2, s=30, color=color[i], edgecolor='black', zorder=5)
         ax.annotate(PATHOGEN_SHORT_NAMES.get(pathogen, pathogen), (val1, val2), xytext=(5, -5),
-                textcoords='offset points',  ha="left", color='black', zorder=4,
-                path_effects=[pe.Stroke(linewidth=2, foreground='white'), pe.Normal()])
+                textcoords='offset points',  ha="left", color='black', zorder=4, fontsize=6,
+                path_effects=[pe.Stroke(linewidth=1, foreground='white'), pe.Normal()])
 
 def add_extra_pathogens(ax):
     extra_names = ["Rotavirus", "Norovirus", "Measles", "Herpes"]
@@ -1138,7 +1149,7 @@ PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2,
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260612
+    seed = 260624
     option1 = "dedupsac"
     NAG = 7 + ("split" in option1)
     if "split" in option1:
@@ -1151,7 +1162,6 @@ if __name__ == "__main__":
         from Parameters.census_population import CENSUS_AGE_POP
         from Parameters.census_population import MEDIAN_AGE
     option2 = "flexagep05"
-    lockdown = "ExponentialODipp25"
     CONTACT_MATRIX = jnp.asarray(pd.read_csv('Data/Processed/contact_matrices/KP'+['', '_mod']["cmod" in option2]+['', '_split'][NAG>7]+['', '_sac']["sac" in option1]+'_contact_all_US_Census.csv', delimiter=',', header=None).values)
     p_time_to_obs = jnp.asarray(pd.read_csv("Data/Processed/Influenza_A_incubation_admittance_distribution.csv", delimiter=',', header=None).values)
     PERIOD = pd.date_range(start=pd.to_datetime('2015-09-17'), end=pd.to_datetime('2025-09-17'), freq='D')
@@ -1163,11 +1173,12 @@ if __name__ == "__main__":
     # # flatten initial state and add maternal immunity compartment
     STATE0 = STATE0.flatten()
     STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-    good_simulations = [
-        ["RSV", seed, lockdown, option1, "maxagep028"],["Metapneumovirus", seed, lockdown, option1, "maxagep015"],
-        ["InfluenzaA", seed, lockdown, option1, "maxagep035"], ["InfluenzaB", seed, lockdown, option1, "maxagep035"], 
-        ["Adenovirus", seed, lockdown, option1, "maxagep003"],["Parainfluenza3", seed, lockdown, option1, "maxagep004"],
-    ]
+
+    lockdown = "ExponentialODipp25"
+    pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
+    seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
+    good_simulations = [[pathogens[i], seeds[i], lockdown, option1, option2s[i]] for i in range(len(pathogens))]
     
     r0_base = calculate_R0_from_values(1, 1, CONTACT_MATRIX, CENSUS_AGE_POP, jnp.zeros(NAG))
     # Parameter scaling factors used in the model
