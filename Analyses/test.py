@@ -85,17 +85,17 @@ plt.rcParams['font.serif'] = ['Palatino']
 # plt.show()
 
 ### plot mcmc output
-lockdown = "ExponentialODipp25"
+# lockdown = "ExponentialODipp25"
 # pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
 # flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
-# colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
+colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
 option1 = "dedupsac"
 # option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
 # seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
-pathogens = ["Metapneumovirus",]
-colors = ["#FFB000",]
-option2s = ["fixage0maxagep006",]
-seeds = [260622,]
+lockdown = "Default"
+pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+option2s = ["2020-01-01maxagep028","2020-01-01fixage0maxagep006","2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035","2020-01-01maxagep035",]
+seeds = [260615, 260624, 260615, 260615, 260615, 260615,]
 def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor):
     srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
     return srel[1]
@@ -241,10 +241,10 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 #         print(f"median {param_names[i]}: {median_value_by_parameter[i]:.4f} ({lower_value[i]:.4f}–{upper_value[i]:.4f})")
 #         # print(f"optimal {param_names[i]}: {best_params[i]:.4f}")
 
-    import corner
-    fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-    plt.savefig(f"Figures/mcmc_corner_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_test.pdf", bbox_inches='tight')
-    plt.close(fig)
+    # import corner
+    # fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
+    # plt.savefig(f"Figures/mcmc_corner_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_test.pdf", bbox_inches='tight')
+    # plt.close(fig)
     
 # #     # sns.kdeplot(ax=ax, x=r0_samples, y=1-srel1_samples, color=color, label=pathogen, fill=True)
 # #     # # ax.scatter(15.24*gamma*best_params[0], 1-best_srel1, marker='x', color='k', label="MAP estimate")

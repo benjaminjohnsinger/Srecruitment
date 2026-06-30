@@ -141,17 +141,28 @@ def run_emcee(
     #     initial_pos = initial_pos.at[invalid_mask].set(candidates)
     #     log_posteriors = log_posterior(initial_pos)
 
+    default_gamma = 2.38 / np.sqrt(2 * n_dim)
+    conservative_gamma = default_gamma * 0.1 
+
+    my_moves = [
+        # 85% of the time: Take a conservative DE step
+        (emcee.moves.DEMove(gamma0=conservative_gamma, sigma=1e-5), 0.85),
+        
+        # 10% of the time: Take a simple, small un-correlated walk step
+        (emcee.moves.WalkMove(), 0.10),
+        
+        # 5% of the time: Attempt the chaotic Snooker leap
+        (emcee.moves.DESnookerMove(), 0.05)
+    ]
     sampler = emcee.EnsembleSampler(
         num_walkers, 
         n_dim,
-        _worker_log_prob_wrapper,  # Pass the picklable top-level wrapper
-        pool=pool
+        _worker_log_prob_wrapper,
+        pool=pool,
+        moves=my_moves
     )
-    sampler.run_mcmc(initial_pos, num_steps, progress=True)
 
-    # sampler = emcee.EnsembleSampler(num_walkers, len(startx), log_posterior, vectorize=True,
-    #                                 moves=emcee.moves.DEMove(sigma=sigma))
-    # sampler.run_mcmc(initial_pos, num_steps, progress=True)
+    sampler.run_mcmc(initial_pos, num_steps, progress=True)
     return sampler
 
 def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2, seed, separate_walkers=True):
@@ -239,15 +250,19 @@ if __name__ == "__main__":
     n_walkers = 64
     burn_in_size = 10000
 
+    # lockdown = "Default"
+    # pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    # option2s = ["2020-01-01maxagep028","2020-01-01fixage0maxagep006","2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035","2020-01-01maxagep035",]
+    # seeds = [260615, 260624, 260615, 260615, 260615, 260615,]
     lockdown = "ExponentialODipp25"
-    pathogens = ["Metapneumovirus",]
-    option2s = ["fixage0maxagep006",]
-    seeds = [260622,]
+    pathogens = ["Parainfluenza3", "Adenovirus", "InfluenzaA",]
+    option2s = ["maxagep004", "maxagep003", "maxagep035",]
+    seeds = [260612,]*3
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         pool = Pool(
-            processes=64, 
+            processes=32, 
             initializer=_init_worker, 
             initargs=(pathogen, lockdown, option1, option2, NAG, CENSUS_AGE_POP)
         )
@@ -286,7 +301,7 @@ if __name__ == "__main__":
         plot_traces(samples, param_names, pathogen, lockdown, option1, option2, seed)
 
     n_samples = 1000000
-    chunk_size = 10000
+    chunk_size = 1000
     thinning_factor = 100
     total_chunks = n_samples // chunk_size
 

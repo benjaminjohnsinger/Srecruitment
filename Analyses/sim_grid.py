@@ -1149,7 +1149,7 @@ PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2,
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260624
+    seed = 260629
     option1 = "dedupsac"
     NAG = 7 + ("split" in option1)
     if "split" in option1:
