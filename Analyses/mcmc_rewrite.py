@@ -142,17 +142,17 @@ def run_emcee(
     #     log_posteriors = log_posterior(initial_pos)
 
     default_gamma = 2.38 / np.sqrt(2 * n_dim)
-    conservative_gamma = default_gamma * 0.1 
+    conservative_gamma = default_gamma * 0.05
 
     my_moves = [
         # 85% of the time: Take a conservative DE step
         (emcee.moves.DEMove(gamma0=conservative_gamma, sigma=1e-5), 0.85),
         
-        # 10% of the time: Take a simple, small un-correlated walk step
-        (emcee.moves.WalkMove(), 0.10),
+        # 13% of the time: Take a simple, small un-correlated walk step
+        (emcee.moves.WalkMove(), 0.13),
         
-        # 5% of the time: Attempt the chaotic Snooker leap
-        (emcee.moves.DESnookerMove(), 0.05)
+        # 2% of the time: Attempt the chaotic Snooker leap
+        (emcee.moves.DESnookerMove(), 0.02)
     ]
     sampler = emcee.EnsembleSampler(
         num_walkers, 
