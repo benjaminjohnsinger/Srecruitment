@@ -12,6 +12,7 @@ import itertools as it
 import matplotlib.pyplot as plt
 from matplotlib import cm as colormaps
 import matplotlib.patheffects as pe
+from matplotlib.collections import LineCollection
 from math import comb
 import corner
 import pickle
@@ -2078,6 +2079,45 @@ def print_parameter_table(pathogens, option2s, seeds, prune=0):
     # print table in comma-separated format
     print(param_table.to_csv(sep=",", index=False))
 
+# plot trajectory of infecteds and effective susceptibles over time from one mcmc sample for one pathogen
+def plot_phase_diagram(ax, x, pathogen, option2, seed, prune=0):
+    from fit_MCMC import run_simulation
+    params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
+    solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+    values = solution.ys.T
+    values = values[1:].reshape((2*N_S+1, NAG, -1))
+    infecteds = jnp.sum(values[1:2*N_S:2,:,:], axis=(0,1))
+    susceptible = jnp.sum(values[0:2*N_S:2,:,:], axis=1)
+    effective_susceptible = jnp.sum(susceptible * params[6][:,None], axis=0)
+    ax.plot(effective_susceptible[:1719]/1e6, infecteds[:1719]/1e3, color='k')
+    # Plot with color gradient from light magenta to dark magenta using LineCollection
+    x_data = effective_susceptible[1719:]/1e6
+    y_data = infecteds[1719:]/1e3
+    points = np.array([x_data, y_data]).T.reshape(-1, 1, 2)
+    segments = np.concatenate([points[:-1], points[1:]], axis=1)
+    lc = LineCollection(segments, cmap='plasma_r', linewidth=1)
+    lc.set_array(np.arange(len(x_data)))
+    ax.add_collection(lc)
+    ax.autoscale_view()
+    ax.set_xlabel("Effective susceptibles (millions)")
+    ax.set_ylabel("Infecteds (thousands)")
+    ax.set_title(short_names.get(pathogen, pathogen))
+
+# plot phase diagrams using samples from chain for each pathogen in passed list
+def plot_phase_diagrams_from_chains(axes, pathogens, option2s, seeds, lockdown, option1, n_samples=1, prune=0):
+    for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes):
+        chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
+        # sample n_samples evenly spaced indices from the chain
+        indices = np.linspace(0, len(chain)-1, n_samples, dtype=int)
+        for idx in indices:
+            print(f"Plotting phase diagram for {pathogen} sample {idx}/{n_samples}...", end="\r")
+            if n_samples > 1:
+                x = chain[idx, :]
+            else:
+                x = np.median(chain, axis=0)
+            plot_phase_diagram(ax, x, pathogen, option2, seed, prune=prune)
+        print(f"Finished plotting phase diagrams for {pathogen}.")
+
 if __name__ == "__main__":
     plt.rcParams.update({'font.size':8})
     # text type is palatino
@@ -2122,18 +2162,26 @@ if __name__ == "__main__":
 
     # print_parameter_table(pathogens, option2s, seeds, prune=0)
 
+    # print index of the last point in POINTS that is before 2020-03-19
+    last_point_idx = np.searchsorted(POINTS, date_to_t('2020-03-19')) - 1
+    print(f"Index of the last point before 2020-03-19: {last_point_idx}")
+
     fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
-    for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes.flatten()):
-        print(f"Difference measures for {pathogen}...")
-        chain2 = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
-        chain1 = load_mcmc_chain(pathogen, [260615, 260624][pathogen=="Metapneumovirus"], ["Default", "ExponentialODipp25"][pathogen=="Metapneumovirus"], option1, "2020-01-01"+option2, just_chain=True, prune=0, prefix="")
-        param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
-        param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
-        select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
-        compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
-        plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
-        ax.set_title(short_names.get(pathogen, pathogen))
-    plt.savefig(f"Figures/correlation_matrix_difference_{lockdown}_updated.png", dpi=300)
+    plot_phase_diagrams_from_chains(axes.flatten(), pathogens, option2s, seeds, lockdown, option1, n_samples=1, prune=0)
+    plt.savefig(f"Figures/phase_diagrams_{lockdown}.png", dpi=300)
+
+    # fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
+    # for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes.flatten()):
+    #     print(f"Difference measures for {pathogen}...")
+    #     chain2 = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
+    #     chain1 = load_mcmc_chain(pathogen, [260615, 260624][pathogen=="Metapneumovirus"], ["Default", "ExponentialODipp25"][pathogen=="Metapneumovirus"], option1, "2020-01-01"+option2, just_chain=True, prune=0, prefix="")
+    #     param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
+    #     param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
+    #     select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
+    #     compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
+    #     plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
+    #     ax.set_title(short_names.get(pathogen, pathogen))
+    # plt.savefig(f"Figures/correlation_matrix_difference_{lockdown}_updated.png", dpi=300)
 
     # fig, axes = plt.subplots(6,7, figsize=(4, 5), layout="constrained", sharex=False, sharey=False)
     # plot_immunity_cascade(axes, n_samples=400, save_data=True, kpsc_incidence=True)
@@ -2299,14 +2347,14 @@ if __name__ == "__main__":
     # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=True, logD=True, samples=400, load_data=True, prefix="")
     # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty_logD_adjusted.png", dpi=300)
 
-    # Generate Figure 5: age group heatmaps and line of best fit
-    from sim_grid import generate_2d_heatmap_plot
-    good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
-    run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260624_lockdownExponentialODipp25_2d"
-    fig = plt.figure(figsize=(4.5, 4.5))
-    plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False, prune=0)
-    plt.savefig(f"Figures/figure_five_update3.png", dpi=300)
-    plt.close()
+    # # Generate Figure 5: age group heatmaps and line of best fit
+    # from sim_grid import generate_2d_heatmap_plot
+    # good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
+    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260624_lockdownExponentialODipp25_2d"
+    # fig = plt.figure(figsize=(4.5, 4.5))
+    # plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False, prune=0)
+    # plt.savefig(f"Figures/figure_five_update3.png", dpi=300)
+    # plt.close()
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
     
