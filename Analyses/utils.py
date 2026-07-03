@@ -399,6 +399,15 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
     END = pd.to_datetime(end_date)
     FULL_PERIOD = pd.date_range(start=EPOCH, end=END, freq='D')
     FULL_POINTS = jnp.array(date_to_t(FULL_PERIOD))
+    if len(BIRTH_RATE) < len(FULL_POINTS):
+        # repeat last year of birth rate to fill in the rest of FULL_POINTS
+        last_year = BIRTH_RATE[-365:]
+        num_repeats = (len(FULL_POINTS) - len(BIRTH_RATE)) // 365 + 1
+        BIRTH_RATE = jnp.concatenate([BIRTH_RATE] +[jnp.tile(last_year, num_repeats)[:len(FULL_POINTS) - len(BIRTH_RATE)]])
+        # same with IMPORT_STRENGTH
+        last_year_import = IMPORT_STRENGTH[-365:]
+        num_repeats_import = (len(FULL_POINTS) - len(IMPORT_STRENGTH)) // 365 + 1
+        IMPORT_STRENGTH = jnp.concatenate([IMPORT_STRENGTH] +[jnp.tile(last_year_import, num_repeats_import)[:len(FULL_POINTS) - len(IMPORT_STRENGTH)]])
 
     n = 0
     if pathogen == "sim":

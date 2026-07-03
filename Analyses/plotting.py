@@ -10,7 +10,7 @@ import scipy as sp
 import pandas as pd
 import itertools as it
 import matplotlib.pyplot as plt
-from matplotlib import cm as colormaps
+from matplotlib import cm as colormaps, ticker
 import matplotlib.patheffects as pe
 from matplotlib.collections import LineCollection
 from math import comb
@@ -2080,31 +2080,44 @@ def print_parameter_table(pathogens, option2s, seeds, prune=0):
     print(param_table.to_csv(sep=",", index=False))
 
 # plot trajectory of infecteds and effective susceptibles over time from one mcmc sample for one pathogen
-def plot_phase_diagram(ax, x, pathogen, option2, seed, prune=0):
+def plot_phase_diagram(ax, x, pathogen, option2, age_group_idx=None, end_date='2025-05-01', prune=0):
     from fit_MCMC import run_simulation
-    params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
+    params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG, end_date=end_date)
     solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
-    values = solution.ys.T
-    values = values[1:].reshape((2*N_S+1, NAG, -1))
-    infecteds = jnp.sum(values[1:2*N_S:2,:,:], axis=(0,1))
-    susceptible = jnp.sum(values[0:2*N_S:2,:,:], axis=1)
-    effective_susceptible = jnp.sum(susceptible * params[6][:,None], axis=0)
-    ax.plot(effective_susceptible[:1719]/1e6, infecteds[:1719]/1e3, color='k')
+    maternal = solution.ys[:,0]
+    values = solution.ys.T[1:].reshape((2*N_S+1, NAG, -1))
+    if age_group_idx is not None:
+        age_pop = jnp.sum(values[:,age_group_idx,:], axis=0) + maternal * (age_group_idx == 0)
+        infecteds = jnp.sum(values[1:2*N_S:2,age_group_idx,:], axis=0)/age_pop
+        susceptible = values[0:2*N_S:2,age_group_idx,:]
+        effective_susceptible = jnp.sum(susceptible * params[6][:,None], axis=0)/age_pop
+        mult_s, mult_i = 1e2, 1e2
+    else:
+        infecteds = jnp.sum(values[1:2*N_S:2,:,:], axis=(0,1))
+        susceptible = jnp.sum(values[0:2*N_S:2,:,:], axis=1)
+        effective_susceptible = jnp.sum(susceptible * params[6][:,None], axis=0)
+        mult_s, mult_i = 1e-6, 1e-3
+    ax.plot(effective_susceptible[:1719]*mult_s, infecteds[:1719]*mult_i, color='k')
     # Plot with color gradient from light magenta to dark magenta using LineCollection
-    x_data = effective_susceptible[1719:]/1e6
-    y_data = infecteds[1719:]/1e3
+    x_data = effective_susceptible[1719:]*mult_s
+    y_data = infecteds[1719:]*mult_i
     points = np.array([x_data, y_data]).T.reshape(-1, 1, 2)
     segments = np.concatenate([points[:-1], points[1:]], axis=1)
     lc = LineCollection(segments, cmap='plasma_r', linewidth=1)
     lc.set_array(np.arange(len(x_data)))
     ax.add_collection(lc)
     ax.autoscale_view()
-    ax.set_xlabel("Effective susceptibles (millions)")
-    ax.set_ylabel("Infecteds (thousands)")
-    ax.set_title(short_names.get(pathogen, pathogen))
+    if age_group_idx is not None:
+        ax.set_xlabel("Proportion effective susceptibles")
+        ax.set_ylabel("Proportion infecteds")
+        ax.set_title(f"{short_names.get(pathogen, pathogen)} - {AGE_GROUP_NAMES[age_group_idx]}")
+    else:
+        ax.set_xlabel("Effective susceptibles (millions)")
+        ax.set_ylabel("Infecteds (thousands)")
+        ax.set_title(short_names.get(pathogen, pathogen))
 
 # plot phase diagrams using samples from chain for each pathogen in passed list
-def plot_phase_diagrams_from_chains(axes, pathogens, option2s, seeds, lockdown, option1, n_samples=1, prune=0):
+def plot_phase_diagrams_from_chains(axes, pathogens, option2s, seeds, lockdown, option1, end_date='2025-05-01', n_samples=1, prune=0):
     for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes):
         chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
         # sample n_samples evenly spaced indices from the chain
@@ -2115,8 +2128,23 @@ def plot_phase_diagrams_from_chains(axes, pathogens, option2s, seeds, lockdown, 
                 x = chain[idx, :]
             else:
                 x = np.median(chain, axis=0)
-            plot_phase_diagram(ax, x, pathogen, option2, seed, prune=prune)
+            plot_phase_diagram(ax, x, pathogen, option2, end_date=end_date, prune=prune)
         print(f"Finished plotting phase diagrams for {pathogen}.")
+
+def plot_phase_diagrams_by_age(axes, pathogen, option2, seed, lockdown, option1, end_date='2025-05-01', n_samples=1, prune=0):
+    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
+    # sample n_samples evenly spaced indices from the chain
+    indices = np.linspace(0, len(chain)-1, n_samples, dtype=int)
+    for age_group_idx in range(len(AGE_GROUP_NAMES)):
+        ax = axes[age_group_idx]
+        for idx in indices:
+            print(f"Plotting phase diagram for {pathogen} age group {AGE_GROUP_NAMES[age_group_idx]} sample {idx}/{n_samples}...", end="\r")
+            if n_samples > 1:
+                x = chain[idx, :]
+            else:
+                x = np.median(chain, axis=0)
+            plot_phase_diagram(ax, x, pathogen, option2, age_group_idx=age_group_idx, end_date=end_date, prune=prune)
+        print(f"Finished plotting phase diagrams for {pathogen} age group {AGE_GROUP_NAMES[age_group_idx]}.")
 
 if __name__ == "__main__":
     plt.rcParams.update({'font.size':8})
@@ -2166,9 +2194,37 @@ if __name__ == "__main__":
     last_point_idx = np.searchsorted(POINTS, date_to_t('2020-03-19')) - 1
     print(f"Index of the last point before 2020-03-19: {last_point_idx}")
 
-    fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
-    plot_phase_diagrams_from_chains(axes.flatten(), pathogens, option2s, seeds, lockdown, option1, n_samples=1, prune=0)
-    plt.savefig(f"Figures/phase_diagrams_{lockdown}.png", dpi=300)
+    # fig, axes = plt.subplots(3, 2, figsize=(6.5, 6.5), layout="constrained", sharex=False, sharey=False)
+    # plot_phase_diagrams_from_chains(axes.flatten(), pathogens, option2s, seeds, lockdown, option1, n_samples=1, prune=0)
+    # plt.savefig(f"Figures/phase_diagrams_{lockdown}.png", dpi=300)
+
+    fig, axes = plt.subplots(7, 6, figsize=(6.5, 6.5), sharex=False, sharey=False)
+    for idx, (pathogen, option2, seed) in enumerate(zip(pathogens, option2s, seeds)):
+        plot_phase_diagrams_by_age(axes[:,idx], pathogen, option2, seed, lockdown, option1, n_samples=1, prune=0)
+    
+    import matplotlib.ticker as ticker
+    # Suppress interior axis labels
+    for ax in axes.flatten():
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+        ax.set_title("")
+        # set tick label size to 6
+        ax.tick_params(axis='both', which='major', labelsize=6)
+    
+    # leftmost column has extra y-axis labels for age group
+    for i in range(7):
+        axes[i,0].set_ylabel(AGE_GROUP_NAMES[i], fontsize=8)
+    # top row has titles for each pathogen
+    for j in range(6):
+        axes[0,j].set_title(short_names.get(pathogens[j], pathogens[j]), fontsize=8)
+
+    # overall x title at bottom
+    fig.text(0.5, 0.0, "Effective susceptibles (%)", ha='center', va='bottom', fontsize=9)
+    # overall y title at left
+    fig.text(0.0, 0.5, "Infecteds (%)", va='center', ha='left', rotation='vertical', fontsize=9)
+
+    plt.tight_layout()
+    plt.savefig(f"Figures/phase_diagrams_{lockdown}_age.pdf", dpi=300)
 
     # fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
     # for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes.flatten()):
