@@ -88,14 +88,15 @@ plt.rcParams['font.serif'] = ['Palatino']
 # lockdown = "ExponentialODipp25"
 # pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
 # flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
-colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
+# colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
 option1 = "dedupsac"
 # option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
 # seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
-lockdown = "Default"
-pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-option2s = ["2020-01-01maxagep028","2020-01-01fixage0maxagep006","2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035","2020-01-01maxagep035",]
-seeds = [260615, 260624, 260615, 260615, 260615, 260615,]
+lockdown = "ExponentialODipp25"
+pathogens = ["Parainfluenza3", "Adenovirus", "InfluenzaA",]
+option2s = ["maxagep004", "maxagep003", "maxagep035",]
+seeds = [260612,]*3
+colors = ["#FF832B", "#785EF0", "#004D40",]
 def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor):
     srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
     return srel[1]
@@ -110,13 +111,13 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
     from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
     param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 
-    mcmc_filepath = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-    # mcmc_filepath = "Outputs/mcmc_samples_DEmove_RSV_ExponentialODipLinear_dedupsac_maxagep028_260531_refined_studio.csv"
+    mcmc_filepath = f"Outputs/mcmc_samples_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+    # mcmc_filepath = "Outputs/mcmc_samples_big_RSV_ExponentialODipLinear_dedupsac_maxagep028_260531_refined_studio.csv"
     mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
     loading_time = time.time()
     print(f"Loading samples time for {pathogen}: {time.time() - start_time:.2f} seconds")
     n_params = bounds.shape[0]
-    n_walkers = 64
+    n_walkers = 500
     n_iterations = len(mcmc_samples) // n_walkers
     n_params = len(param_names)
 
@@ -151,7 +152,7 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 
 
     # # load logprob
-    # logprob_filepath = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+    # logprob_filepath = f"Outputs/mcmc_log_prob_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
     # log_prob_samples = np.genfromtxt(logprob_filepath, delimiter=',', skip_header=0)
 
     # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
@@ -206,7 +207,7 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 #     #     trax[param_idx//4, param_idx%4].set_title(param_names[param_idx])
 #     #     # trax[param_idx//4, param_idx%4].axvline(x=best_idx[0], color='k', linestyle='-', label="Best fit")
 #     # plt.tight_layout()
-#     # plt.savefig(f"Figures/mcmc_traces_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers_test.png", dpi=300, bbox_inches='tight')
+#     # plt.savefig(f"Figures/mcmc_traces_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers_test.png", dpi=300, bbox_inches='tight')
 #     # plt.close(fig)
 
 
@@ -241,10 +242,10 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 #         print(f"median {param_names[i]}: {median_value_by_parameter[i]:.4f} ({lower_value[i]:.4f}–{upper_value[i]:.4f})")
 #         # print(f"optimal {param_names[i]}: {best_params[i]:.4f}")
 
-    # import corner
-    # fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-    # plt.savefig(f"Figures/mcmc_corner_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_test.pdf", bbox_inches='tight')
-    # plt.close(fig)
+    import corner
+    fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
+    plt.savefig(f"Figures/mcmc_corner_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_test.pdf", bbox_inches='tight')
+    plt.close(fig)
     
 # #     # sns.kdeplot(ax=ax, x=r0_samples, y=1-srel1_samples, color=color, label=pathogen, fill=True)
 # #     # # ax.scatter(15.24*gamma*best_params[0], 1-best_srel1, marker='x', color='k', label="MAP estimate")
@@ -399,7 +400,7 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 #     for age_group in range(NAG):
 #         mx = lockdown_incidence_plot(ax[age_group//4, age_group%4],STATE0,params,POINTS,date_to_t('2020-03-19'), alpha=0.3, color=color, label="Simulation",by_age=True,select_age_group=age_group,AGE_GROUPS=AGE_GROUPS,AGE_GROUP_NAMES=AGE_GROUP_NAMES,factor=[1,7,30.44][[None,"W","MS"].index(None)]*10000,p_time_to_obs=p_time_to_obs,NAG=NAG,)
 # plt.tight_layout()
-# plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_incidence_colored_by_age_obs_2.png", dpi=300, bbox_inches='tight')
+# plt.savefig(f"Figures/mcmc_traces_big_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_incidence_colored_by_age_obs_2.png", dpi=300, bbox_inches='tight')
 # plt.close(fig)
 # # fig, ax = plt.subplots(7,7, sharex="col", sharey="row")
 # # fig,ax = plt.subplots(3,3, sharex=True,sharey=True)

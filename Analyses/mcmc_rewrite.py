@@ -169,14 +169,14 @@ def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2,
     _, n_walkers, n_params = mcmc_samples.shape
     # make directory Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}
     if separate_walkers:
-        os.makedirs(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
+        os.makedirs(f"Figures/mcmc_traces_big_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
         for j in range(n_walkers):
             fig, ax = plt.subplots(4,4, figsize=(10,6))
             for i in range(n_params):
                 ax[i//4, i%4].plot(mcmc_samples[:,j,i], color='k')
                 ax[i//4, i%4].set_title(param_names[i])
             plt.tight_layout()
-            plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}/walker_{j}.png", dpi=300, bbox_inches='tight')
+            plt.savefig(f"Figures/mcmc_traces_big_{pathogen}_{lockdown}_{option1}_{option2}_{seed}/walker_{j}.png", dpi=300, bbox_inches='tight')
             plt.close(fig)
     else:
         fig, ax = plt.subplots(4,4, figsize=(10,6))
@@ -185,7 +185,7 @@ def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2,
                 ax[i//4, i%4].plot(mcmc_samples[:,j,i], alpha=0.3)
             ax[i//4, i%4].set_title(param_names[i])
         plt.tight_layout()
-        plt.savefig(f"Figures/mcmc_traces_DEmove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}all_walkers.png", dpi=300, bbox_inches='tight')
+        plt.savefig(f"Figures/mcmc_traces_big_{pathogen}_{lockdown}_{option1}_{option2}_{seed}all_walkers.png", dpi=300, bbox_inches='tight')
         plt.close(fig)
 
 def _load_saved_chain(sample_path, log_prob_path, n_walkers):
@@ -247,8 +247,8 @@ if __name__ == "__main__":
     prefix = ""
     from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
 
-    n_walkers = 64
-    burn_in_size = 10000
+    n_walkers = 500
+    burn_in_size = 1500
 
     # lockdown = "Default"
     # pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
@@ -270,8 +270,8 @@ if __name__ == "__main__":
 
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         key = jax.random.PRNGKey(260605)
-        burnin_sample_path = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_sample_path = f"Outputs/mcmc_samples_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_log_prob_path = f"Outputs/mcmc_log_prob_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
 
         if os.path.exists(burnin_sample_path) and os.path.exists(burnin_log_prob_path):
             print(f"Found existing burn-in files for {pathogen}. Skipping burn-in and moving to refinement.")
@@ -300,19 +300,19 @@ if __name__ == "__main__":
         param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
         plot_traces(samples, param_names, pathogen, lockdown, option1, option2, seed)
 
-    n_samples = 1000000
-    chunk_size = 1000
-    thinning_factor = 100
+    n_samples = 150000
+    chunk_size = 150
+    thinning_factor = 15
     total_chunks = n_samples // chunk_size
 
     refined_state = {}
 
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         key = jax.random.PRNGKey(260605)
-        burnin_sample_path = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        refined_sample_path = f"Outputs/mcmc_samples_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-        refined_log_prob_path = f"Outputs/mcmc_log_prob_DEmove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+        burnin_sample_path = f"Outputs/mcmc_samples_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_log_prob_path = f"Outputs/mcmc_log_prob_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        refined_sample_path = f"Outputs/mcmc_samples_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+        refined_log_prob_path = f"Outputs/mcmc_log_prob_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
 
         current_samples, current_log_prob, best_sample, completed_chunks = load_refined_chain_or_burnin(
             burnin_sample_path,
