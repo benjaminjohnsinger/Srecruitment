@@ -142,17 +142,14 @@ def run_emcee(
     #     log_posteriors = log_posterior(initial_pos)
 
     default_gamma = 2.38 / np.sqrt(2 * n_dim)
-    conservative_gamma = default_gamma * 0.05
+    conservative_gamma = default_gamma / 50
 
     my_moves = [
-        # 85% of the time: Take a conservative DE step
-        (emcee.moves.DEMove(gamma0=conservative_gamma, sigma=1e-5), 0.85),
-        
-        # 13% of the time: Take a simple, small un-correlated walk step
-        (emcee.moves.WalkMove(), 0.13),
-        
-        # 2% of the time: Attempt the chaotic Snooker leap
-        (emcee.moves.DESnookerMove(), 0.02)
+        # 80% of the time: Take a conservative DE step
+        (emcee.moves.DEMove(gamma0=conservative_gamma, sigma=1e-5), 0.80),
+
+        # 20% of the time: Attempt the chaotic Snooker leap
+        (emcee.moves.DESnookerMove(), 0.20)
     ]
     sampler = emcee.EnsembleSampler(
         num_walkers, 
@@ -255,14 +252,14 @@ if __name__ == "__main__":
     # option2s = ["2020-01-01maxagep028","2020-01-01fixage0maxagep006","2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035","2020-01-01maxagep035",]
     # seeds = [260615, 260624, 260615, 260615, 260615, 260615,]
     lockdown = "ExponentialODipp25"
-    pathogens = ["Parainfluenza3", "Adenovirus", "InfluenzaA",]
-    option2s = ["maxagep004", "maxagep003", "maxagep035",]
-    seeds = [260612,]*3
+    pathogens = ["Adenovirus",]
+    option2s = ["maxagep003",]
+    seeds = [260612,]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         pool = Pool(
-            processes=32, 
+            processes=50, 
             initializer=_init_worker, 
             initargs=(pathogen, lockdown, option1, option2, NAG, CENSUS_AGE_POP)
         )
