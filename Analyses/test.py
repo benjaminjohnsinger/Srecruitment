@@ -93,10 +93,10 @@ option1 = "dedupsac"
 # option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
 # seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
 lockdown = "ExponentialODipp25"
-pathogens = ["Parainfluenza3", "Adenovirus", "InfluenzaA",]
-option2s = ["maxagep004", "maxagep003", "maxagep035",]
-seeds = [260612,]*3
-colors = ["#FF832B", "#785EF0", "#004D40",]
+pathogens = [ "Adenovirus",]
+option2s = [ "maxagep003", ]
+seeds = [260612,]
+colors = ["#FF832B",]
 def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor):
     srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
     return srel[1]
@@ -123,8 +123,8 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 
     # # # cut off burn-in
     # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
-    # n_iterations -= 10000
-    # mcmc_samples = mcmc_samples[10000*n_walkers:, :]
+    n_iterations -= 2000
+    mcmc_samples = mcmc_samples[2000*n_walkers:, :]
 
     # # find index of S_REL1 in pram_names
     # thinning = 100 if "Influenza" not in pathogen else 1000
@@ -176,25 +176,25 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
     # print(f"Best R0 found by MCMC: {15.24*gamma*best_params[0]:.4f}, best immunity found by MCMC: {1-best_srel1:.4f}, with negative log-probability: {best_neg_log_likelihood:.4f}")
     
 
-    mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
-    median_params = np.median(mcmc_samples_2d, axis=0)
-    log_prob_of_median = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, AGE_GROUPS=AGE_GROUPS)[0](median_params)
-    # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
-    WRITE_EMCEE_ADHOC_EXPORT = True
-    if WRITE_EMCEE_ADHOC_EXPORT:
-        results_dir = f"Data/Processed/results{str(seed)[:6]}"
-        os.makedirs(results_dir, exist_ok=True)
-        emcee_results_file = f"{results_dir}/emcee_median_{prefix}{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
-        with open(emcee_results_file, "wb") as f:
-            pickle.dump(
-                {
-                    "final_population": np.asarray([median_params]),
-                    "final_fitness": np.asarray([log_prob_of_median]),
-                },
-                f,
-            )
-        print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
-    # --- END AD-HOC EMCEE EXPORT BLOCK ---
+    # mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
+    # median_params = np.median(mcmc_samples_2d, axis=0)
+    # log_prob_of_median = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, AGE_GROUPS=AGE_GROUPS)[0](median_params)
+    # # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
+    # WRITE_EMCEE_ADHOC_EXPORT = True
+    # if WRITE_EMCEE_ADHOC_EXPORT:
+    #     results_dir = f"Data/Processed/results{str(seed)[:6]}"
+    #     os.makedirs(results_dir, exist_ok=True)
+    #     emcee_results_file = f"{results_dir}/emcee_median_{prefix}{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
+    #     with open(emcee_results_file, "wb") as f:
+    #         pickle.dump(
+    #             {
+    #                 "final_population": np.asarray([median_params]),
+    #                 "final_fitness": np.asarray([log_prob_of_median]),
+    #             },
+    #             f,
+    #         )
+    #     print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
+    # # --- END AD-HOC EMCEE EXPORT BLOCK ---
 
     
 #     # fig, trax = plt.subplots(4,4, figsize=(10,6))
@@ -244,7 +244,7 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 
     import corner
     fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-    plt.savefig(f"Figures/mcmc_corner_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_test.pdf", bbox_inches='tight')
+    plt.savefig(f"Figures/mcmc_corner_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_cutoff2000.pdf", bbox_inches='tight')
     plt.close(fig)
     
 # #     # sns.kdeplot(ax=ax, x=r0_samples, y=1-srel1_samples, color=color, label=pathogen, fill=True)

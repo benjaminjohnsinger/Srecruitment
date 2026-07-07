@@ -661,6 +661,8 @@ def x_to_params(x, pathogen, lockdown, option1, option2, fixed_params = None, im
         dipvalues = jnp.array([1, FO, 1])
         ODIP_CONTACT = jax.vmap(lambda t: cm.piecewise(t, dipdates, dipvalues, steepness=0.2))(FULL_POINTS)
         RELATIVE_CONTACT = ODIP_CONTACT[:, None] * RELATIVE_CONTACT if RELATIVE_CONTACT.ndim == 2 else ODIP_CONTACT * RELATIVE_CONTACT
+    if "no_lockdown" in lockdown:
+            RELATIVE_CONTACT = 1+SEASONALITY*jnp.cos(2*jnp.pi*((FULL_POINTS-274)/365-OFFSET))
     if "months" in option1:
         true_OBS_AGE = jnp.zeros(true_NAG)
         NAG = 7 + ("split" in option1)
