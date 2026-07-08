@@ -29,7 +29,7 @@ from JAX_ODEs import deltas
 
 ##### General plotting parameters #####
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
-hsv_colors[3] = colormaps.hsv((3/7)+0.04)
+hsv_colors[3] = colormaps.hsv((3/7)+0.095)
 # '#ff0000', '#ffb700', '#6cff00', '#00ffc0', '#00bbff', '#1900ff', '#f300ff'
 
 def lockdown_incidence_plot(
@@ -980,25 +980,36 @@ def season_sizes(cases):
         season_cumulative[seas,:] = cases[(cases.index>seasons[seas]) & (cases.index<seasons[seas+1])].sum(axis=0)
     return(pd.DataFrame(season_cumulative))
 
-def season_plot(ax,pathogen,incidence=True,relative=False):
-    cases = pd.read_csv('Data/Processed/KPSC_ARI_'+pathogen+'_cases_age_daily.csv',index_col=0)
-    cases.index = pd.to_datetime(cases.index)
-    season_cumulative = season_sizes(cases)
-    print(pathogen,np.sum(season_cumulative,axis=1))
+def season_plot(ax,pathogen,incidence=True,relative=False,filter=True):
+    proportional_incidence = calculate_proportion_positive_incidence(pathogen, aggregation="YS-OCT", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=True, NAG=NAG, detrend=False, dedup=True, sac=True)
+    pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly_sac.csv', index_col=0, parse_dates=['month_start'])
+    pop_size = pop_by_age_group_month.resample("YS-OCT").ffill()[:proportional_incidence.shape[0]]
+    pop_size.index = pd.to_datetime(pop_size.index)
+    cases = proportional_incidence.multiply(pop_size.values, axis=0)
     if relative and not incidence:
-        season_relative = season_cumulative.div(season_cumulative.sum(axis=1),axis=0)
+        season_relative = cases.div(cases.sum(axis=1),axis=0)
     if relative and incidence:
         incidence_data = pd.read_csv('Data/Processed/KPSC_ARI_'+pathogen+'_incidence_age_daily.csv',index_col=0)
         incidence_data.index = pd.to_datetime(incidence_data.index)
         season_incidence = season_sizes(incidence_data)
         season_relative = season_incidence.div(season_incidence.sum(axis=1),axis=0)
     if incidence or relative:
-        for i in range(season_cumulative.shape[0]):
-            if np.sum(season_cumulative.iloc[i,:])<=50:
+        filtered_mask = np.ones(cases.shape[0], dtype=bool)
+        for i in range(cases.shape[0]):
+            if filter and np.sum(cases.iloc[i,:])<=np.max(np.sum(cases.iloc[:5,:].values, axis=1)*0.1):
                 season_relative.iloc[i,:] = 0
-        season_relative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
+                filtered_mask[i] = False
+        season_relative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False,width=1.0)
+        # plot grey hash bar for filtered seasons
+        for i in range(cases.shape[0]):
+            if not filtered_mask[i]:
+                ax.bar(i,1,color="grey",alpha=0.5,width=1.0)
     else:
-        season_cumulative.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False)
+        cases.plot(ax=ax,kind="bar",stacked=True,color=hsv_colors,legend=False,width=1.0)
+    ax.set_xlabel("")
+    ax.set_yticks([])
+    ax.set_xlim(-0.5,cases.shape[0]-0.5)
+    ax.set_ylim(0,1)
 
 def calculate_infection_matrices_from_solution(solution, params, NAG=7, hospitalizations=False):
     # find total observed infections each season in each age group
@@ -1221,6 +1232,9 @@ def plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown,
     # ax[2,0].text(-0.5, 1.1, "D", transform=trans_D, fontsize=16, fontweight="bold")
     ax_bottom[0,0].text(-1.1, 1, "B", transform=ax_bottom[0,0].transAxes, fontsize=16, fontweight="bold")
 
+def plot_age_profiles(ax, pathogens):
+    return None
+
 def plot_single_pathogen_violin(ax, pathogen_data, color, pathogen_name):
     """Plot violin for a single pathogen."""
     data_clean = pathogen_data.dropna()
@@ -1429,7 +1443,7 @@ def plot_FluNet_chunk(axes, countries_chunk):
                     ax2.yaxis.tick_left()
 
 def plot_suppression_durations(fig, pathogens, countries, colors):
-    gs = fig.add_gridspec(8, 6, height_ratios=[1, 0.1, 0.9, 0.9, 0.9, 0.9, 0.9, 3], hspace=0.1)
+    gs = fig.add_gridspec(9, 6, height_ratios=[1, 1, 0.5, 0.9, 0.9, 0.9, 0.9, 0.9, 3])
     
     # KPSC plots in top row (row 0)
     kpsc_pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
@@ -1444,6 +1458,7 @@ def plot_suppression_durations(fig, pathogens, countries, colors):
             annotations="simple", definition="", label="Data", hosp=True, dedup=True)
         ax.set_yticklabels([])
         ax.set_xticklabels([])
+        ax.set_xlim(pd.to_datetime("2015-10-01"), pd.to_datetime("2025-10-01"))
         # Remove all spines except bottom
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -1468,12 +1483,50 @@ def plot_suppression_durations(fig, pathogens, countries, colors):
             label.set_rotation(45)
             label.set_horizontalalignment('right')
             label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
-    
-    # FluNet plots in middle rows (rows 1-5)
+        
+    # season age plots in row 1
+    season_age_axes = np.empty(len(kpsc_pathogens), dtype=object)
+    for i, pathogen in enumerate(kpsc_pathogens):
+        ax = fig.add_subplot(gs[1, i])
+        season_age_axes[i] = ax
+        season_plot(ax, pathogen, False, True, True)
+        ax.set_xticks([])
+        # ax.set_xticklabels(["", "2016/17", "", "2018/19", "", "2020/21", "", "2022/23", "", "2024/25",], fontsize=6)
+        # ax.set_xticklabels(["", "", "", "", "", "", "", "", "", "",], fontsize=6)
+        for label in ax.get_xticklabels():
+            label.set_rotation(45)
+            label.set_horizontalalignment('right')
+            label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+    season_age_axes[0].set_ylabel("KPSC", rotation=0, ha='right', labelpad=25)
+    sax2 = season_age_axes[0].twinx()
+    sax2.set_ylabel("Proportion of\nhospitalizations", rotation=90, va='center', fontsize=6)
+    sax2.set_yticks([])
+    sax2.spines['right'].set_visible(False)
+    sax2.spines['left'].set_visible(True)
+    sax2.spines['top'].set_visible(False)
+    sax2.yaxis.set_label_position('left')
+    sax2.yaxis.tick_left()
+
+    # create a legend for the hsv_colors and AGE_GROUP_NAMES, and put it in row 2, spanning all columns
+    legend_ax = fig.add_subplot(gs[2, :])
+    legend_ax.axis("off")
+    legend_handles = [
+        plt.Line2D(
+            [0], [0], marker="s", linestyle="None", markersize=5,
+            markerfacecolor=hsv_colors[i], markeredgecolor=hsv_colors[i],
+            label=AGE_GROUP_NAMES[i]
+        )
+        for i in range(len(AGE_GROUP_NAMES))
+    ]
+    leg = legend_ax.legend(handles=legend_handles, bbox_to_anchor=(0.5, 1.5), loc="center", frameon=False, title="", ncol=len(AGE_GROUP_NAMES), fontsize=6)
+    leg.set_in_layout(False)
+    legend_ax.set_in_layout(False)
+
+    # FluNet plots in middle rows (rows 3-7)
     country_axes = np.empty((len(countries), len(pathogens)), dtype=object)
     for j, country in enumerate(countries):
         for i, pathogen in enumerate(pathogens):
-            ax = fig.add_subplot(gs[j+2, i])
+            ax = fig.add_subplot(gs[j+3, i])
             country_axes[j, i] = ax
             plot_FluNet(ax, pathogen, country, linewidth=0.5)
             ax.set_yticklabels([])
@@ -1508,19 +1561,25 @@ def plot_suppression_durations(fig, pathogens, countries, colors):
                     label.set_rotation(45)
                     label.set_horizontalalignment('right')
                     label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+            # for PIV in India, grey out plot after 2021-01-02 and annotate "No data"
+            if country=="India" and pathogen=="Parainfluenza":
+                ax.axvspan(pd.to_datetime("2021-03-01"), pd.to_datetime("2026-05-01"), color='grey', alpha=0.2, linewidth=0)
+                ax.annotate("No data", xy=(pd.to_datetime("2021-06-01"), 50), xycoords='data', fontsize=6, color='black', ha='left', va='center')
+
             # if j == 0:
             #     ax.set_ylabel(short_names.get(pathogen, pathogen), rotation=0, ha='right')
     
-    # Violin plots in bottom row (row 7)
+    # Violin plots in bottom row (row 8)
     violin_axis = np.empty(len(pathogens), dtype=object)
     for i in range(len(pathogens)):
-        violin_axis[i] = fig.add_subplot(gs[7, i])
+        violin_axis[i] = fig.add_subplot(gs[8, i])
     supression_violin(violin_axis, pathogens, colors)
     
     # big label "C" on top left of kpsc plots, "B" on top left of country plots, "A" on top left of violin plots
     kpsc_axis[0].text(-0.5, 1.1, "A", transform=kpsc_axis[0].transAxes, fontsize=16, fontweight="bold")
-    country_axes[0,0].text(-0.5, 1.1, "B", transform=country_axes[0,0].transAxes, fontsize=16, fontweight="bold")
-    violin_axis[0].text(-0.5, 1.1, "C", transform=violin_axis[0].transAxes, fontsize=16, fontweight="bold")
+    season_age_axes[0].text(-0.5, 1.1, "B", transform=season_age_axes[0].transAxes, fontsize=16, fontweight="bold")
+    country_axes[0,0].text(-0.5, 1.1, "C", transform=country_axes[0,0].transAxes, fontsize=16, fontweight="bold")
+    violin_axis[0].text(-0.5, 1.1, "D", transform=violin_axis[0].transAxes, fontsize=16, fontweight="bold")
 
 def plot_fits(axes, n_samples=100, save_data=False, load_data=False):
     aggregation = "MS"
@@ -1602,7 +1661,7 @@ def plot_contact(ax, pathogen, option2, seed, n_samples=100):
     results = jax.jit(jax.vmap(get_forcing_and_cntct))(random_samples)
     for sample_i in range(n_samples):
         forcing, cntct = jax.tree_util.tree_map(lambda x: x[sample_i], results)
-        ax.plot(POINTS, forcing, color="k", alpha=0.1, linewidth=0.5)
+        ax.plot(POINTS, forcing, color="k", alpha=0.01, linewidth=0.5)
         ax.plot(POINTS, cntct[-len(POINTS):], color="hotpink", alpha=0.01, linewidth=0.5)
 
 def plot_susceptibility(ax, pathogen, option2, seed, n_samples=100, load_data=False):
@@ -1655,7 +1714,7 @@ def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_di
     srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
     return srel[1]
 
-def plot_r0_vs_first_immunity(axes, pathogen, option2, seed, color, r0_base=15.24, prune=0, n_samples=32000):
+def plot_r0_vs_first_immunity(axes, pathogen, option2, seed, color, r0_base=15.24, prune=0, n_samples=50000):
     chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
     # randomly sample n_samples rows from chain
     np.random.seed(260604)
@@ -1674,7 +1733,7 @@ def plot_r0_vs_first_immunity(axes, pathogen, option2, seed, color, r0_base=15.2
         srel1_samples = chain[:, srel1_idx]
     r0_values = r0_base * beta_values * (3.0 + 1.9 * (pathogen in ["RSV", "Metapneumovirus"]))
     immunity_values = 1 - srel1_samples
-    axes.scatter(r0_values, immunity_values, alpha=1, color=color, s=0.003, linewidths=0, rasterized=True)
+    axes.scatter(r0_values, immunity_values, alpha=1, color=color, s=0.001, linewidths=0, rasterized=True)
     return r0_values, immunity_values
 
 def plot_odr_best_fit(ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=10000):
@@ -1782,7 +1841,7 @@ def plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save
     if fit_line:
         plot_odr_best_fit(fit_ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=10000)
     else:
-        x = np.linspace(1, 8, 100)
+        x = np.linspace(1, 10, 100)
         y = 1 - 1 / x
         fit_ax.plot(x, y, color='k', linewidth=0.5, zorder=0)
         # label with "1 - 1/R0" in the middle of the line
@@ -1792,8 +1851,10 @@ def plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save
     labels = [nice_names.get(pathogen, pathogen) for pathogen in pathogens]
     fit_ax.legend(handles, labels, frameon=False, fontsize=6, loc='lower right')
     fit_ax.set_xscale('log')
-    fit_ax.set_xticks([1,2,3,4,5,6,7,8])
-    fit_ax.set_xticklabels([1,2,3,4,5,6,7,8])
+    fit_ax.set_xticks([1,2,3,4,5,6,7,8,9,10])
+    fit_ax.set_xticklabels([1,2,3,4,5,6,7,8,9,10])
+    fit_ax.set_xlim(1, 10)
+    fit_ax.set_ylim(0, 0.95)
     fit_ax.set_xlabel("Basic reproduction number (log scale)")
     fit_ax.set_ylabel("Immunity from first infection")
 
@@ -2080,9 +2141,10 @@ def print_parameter_table(pathogens, option2s, seeds, prune=0):
     print(param_table.to_csv(sep=",", index=False))
 
 # plot trajectory of infecteds and effective susceptibles over time from one mcmc sample for one pathogen
-def plot_phase_diagram(ax, x, pathogen, option2, age_group_idx=None, end_date='2025-05-01', prune=0):
+def plot_phase_diagram(ax, x, pathogen, option2, age_group_idx=None, end_date='2025-05-01', prune=0, no_lockdown=False, proportion=False):
     from fit_MCMC import run_simulation
-    params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG, end_date=end_date)
+    lockd = lockdown + ("_no_lockdown" if no_lockdown else "")
+    params = x_to_params(x, pathogen, lockd, option1, option2, NAG=NAG, end_date=end_date)
     solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
     maternal = solution.ys[:,0]
     values = solution.ys.T[1:].reshape((2*N_S+1, NAG, -1))
@@ -2092,32 +2154,46 @@ def plot_phase_diagram(ax, x, pathogen, option2, age_group_idx=None, end_date='2
         susceptible = values[0:2*N_S:2,age_group_idx,:]
         effective_susceptible = jnp.sum(susceptible * params[6][:,None], axis=0)/age_pop
         mult_s, mult_i = 1e2, 1e2
+    elif proportion:
+        infecteds = jnp.sum(values[1:2*N_S:2,:,:], axis=(0,1))
+        susceptible = jnp.sum(values[0:2*N_S:2,:,:], axis=1)
+        effective_susceptible = jnp.sum(susceptible * params[6][:,None], axis=0)
+        total_population = jnp.sum(susceptible, axis=0) + infecteds
+        infecteds /= total_population
+        infecteds = jnp.log(infecteds)
+        effective_susceptible /= total_population
+        mult_s, mult_i = 1, 1
     else:
         infecteds = jnp.sum(values[1:2*N_S:2,:,:], axis=(0,1))
         susceptible = jnp.sum(values[0:2*N_S:2,:,:], axis=1)
         effective_susceptible = jnp.sum(susceptible * params[6][:,None], axis=0)
         mult_s, mult_i = 1e-6, 1e-3
-    ax.plot(effective_susceptible[:1719]*mult_s, infecteds[:1719]*mult_i, color='k')
-    # Plot with color gradient from light magenta to dark magenta using LineCollection
-    x_data = effective_susceptible[1719:]*mult_s
-    y_data = infecteds[1719:]*mult_i
-    points = np.array([x_data, y_data]).T.reshape(-1, 1, 2)
-    segments = np.concatenate([points[:-1], points[1:]], axis=1)
-    lc = LineCollection(segments, cmap='plasma_r', linewidth=1)
-    lc.set_array(np.arange(len(x_data)))
-    ax.add_collection(lc)
-    ax.autoscale_view()
-    if age_group_idx is not None:
-        ax.set_xlabel("Proportion effective susceptibles")
-        ax.set_ylabel("Proportion infecteds")
-        ax.set_title(f"{short_names.get(pathogen, pathogen)} - {AGE_GROUP_NAMES[age_group_idx]}")
-    else:
-        ax.set_xlabel("Effective susceptibles (millions)")
-        ax.set_ylabel("Infecteds (thousands)")
-        ax.set_title(short_names.get(pathogen, pathogen))
+    if ax is not None:
+        ax.plot(effective_susceptible[:1719]*mult_s, infecteds[:1719]*mult_i, color='k')
+        if no_lockdown:
+            ax.plot(effective_susceptible[1719:]*mult_s, infecteds[1719:]*mult_i, color='silver', linewidth=1, linestyle='--')
+        else:
+            # Plot with color gradient from light magenta to dark magenta using LineCollection
+            x_data = effective_susceptible[1719:]*mult_s
+            y_data = infecteds[1719:]*mult_i
+            points = np.array([x_data, y_data]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            lc = LineCollection(segments, cmap='plasma_r', linewidth=1)
+            lc.set_array(np.arange(len(x_data)))
+            ax.add_collection(lc)
+            ax.autoscale_view()
+        if age_group_idx is not None:
+            ax.set_xlabel("Proportion effective susceptibles")
+            ax.set_ylabel("Proportion infecteds")
+            ax.set_title(f"{short_names.get(pathogen, pathogen)} - {AGE_GROUP_NAMES[age_group_idx]}")
+        else:
+            ax.set_xlabel("Effective susceptibles (millions)")
+            ax.set_ylabel("Infecteds (thousands)")
+            ax.set_title(short_names.get(pathogen, pathogen))
+    return effective_susceptible, infecteds
 
 # plot phase diagrams using samples from chain for each pathogen in passed list
-def plot_phase_diagrams_from_chains(axes, pathogens, option2s, seeds, lockdown, option1, end_date='2025-05-01', n_samples=1, prune=0):
+def plot_phase_diagrams_from_chains(axes, pathogens, option2s, seeds, lockdown, option1, end_date='2025-05-01', n_samples=1, prune=0, no_lockdown=False):
     for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes):
         chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
         # sample n_samples evenly spaced indices from the chain
@@ -2128,10 +2204,10 @@ def plot_phase_diagrams_from_chains(axes, pathogens, option2s, seeds, lockdown, 
                 x = chain[idx, :]
             else:
                 x = np.median(chain, axis=0)
-            plot_phase_diagram(ax, x, pathogen, option2, end_date=end_date, prune=prune)
+            plot_phase_diagram(ax, x, pathogen, option2, end_date=end_date, prune=prune, no_lockdown=no_lockdown)
         print(f"Finished plotting phase diagrams for {pathogen}.")
 
-def plot_phase_diagrams_by_age(axes, pathogen, option2, seed, lockdown, option1, end_date='2025-05-01', n_samples=1, prune=0):
+def plot_phase_diagrams_by_age(axes, pathogen, option2, seed, lockdown, option1, end_date='2025-05-01', n_samples=1, prune=0, no_lockdown=False):
     chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
     # sample n_samples evenly spaced indices from the chain
     indices = np.linspace(0, len(chain)-1, n_samples, dtype=int)
@@ -2143,8 +2219,107 @@ def plot_phase_diagrams_by_age(axes, pathogen, option2, seed, lockdown, option1,
                 x = chain[idx, :]
             else:
                 x = np.median(chain, axis=0)
-            plot_phase_diagram(ax, x, pathogen, option2, age_group_idx=age_group_idx, end_date=end_date, prune=prune)
+            plot_phase_diagram(ax, x, pathogen, option2, age_group_idx=age_group_idx, end_date=end_date, prune=prune, no_lockdown=no_lockdown)
         print(f"Finished plotting phase diagrams for {pathogen} age group {AGE_GROUP_NAMES[age_group_idx]}.")
+
+def arrange_phase_plots(fig, axes, pathogens, option2s, seeds, lockdown, option1):
+    for idx, (pathogen, option2, seed) in enumerate(zip(pathogens, option2s, seeds)):
+        plot_phase_diagrams_by_age(axes[:,idx], pathogen, option2, seed, lockdown, option1, n_samples=1, prune=0)
+    
+    # Suppress interior axis labels
+    for ax in axes.flatten():
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+        ax.set_title("")
+        # set tick label size to 6
+        ax.tick_params(axis='both', which='major', labelsize=6)
+    
+    # leftmost column has extra y-axis labels for age group
+    for i in range(7):
+        axes[i,0].set_ylabel(AGE_GROUP_NAMES[i], fontsize=8)
+    # top row has titles for each pathogen
+    for j in range(6):
+        axes[0,j].set_title(short_names.get(pathogens[j], pathogens[j]), fontsize=8)
+
+    # overall x title at bottom
+    fig.text(0.5, 0.0, "Effective susceptibles (%)", ha='center', va='bottom', fontsize=9)
+    # overall y title at left
+    fig.text(0.0, 0.5, "Infecteds (%)", va='center', ha='left', rotation='vertical', fontsize=9)
+
+# run plot_phase_diagram with no_lockdown=True and no_lockdown=False and plot the euclidean distance between the two trajectories over time for each pathogen in the passed list
+def plot_phase_diagram_distance(axes, pathogens, option2s, seeds, lockdown, option1, end_date='2025-05-01', n_samples=1, prune=0):
+    for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes):
+        chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
+        # randomly sample n_samples indices from the chain
+        indices = np.random.choice(len(chain), n_samples, replace=False)
+        if n_samples > 1:
+            xs = chain[indices, :]
+        else:
+            xs = np.tile(np.median(chain, axis=0), (1, 1))
+        
+        def compute_distance(x):
+            eff_sus_no_lockdown, infecteds_no_lockdown = plot_phase_diagram(None, x, pathogen, option2, end_date=end_date, prune=prune, proportion=True, no_lockdown=True)
+            eff_sus_lockdown, infecteds_lockdown = plot_phase_diagram(None, x, pathogen, option2, end_date=end_date, prune=prune, proportion=True, no_lockdown=False)
+            distance = jnp.sqrt(((eff_sus_no_lockdown - eff_sus_lockdown)/jnp.std(eff_sus_no_lockdown))**2 + ((infecteds_no_lockdown - infecteds_lockdown)/jnp.std(infecteds_no_lockdown))**2)
+            return distance
+
+        # vmap the calculation of eff_sus and infecteds for all samples
+        compute_distances = jax.jit(jax.vmap(compute_distance))
+        distances = compute_distances(xs)
+        dates = [t_to_date(t) for t in POINTS]
+
+        # fit an exponential decay to the distances from 2021-01-01, plot it, and print the half-life of the decay
+        from scipy.optimize import curve_fit
+        def exp_decay(x, a, b):
+            return a * np.exp(-b * x)
+        start_idx = np.where(np.array(dates) >= pd.Timestamp('2021-01-01'))[0][0]
+        
+        # vmap curve_fit over each sampled distance array to estimate uncertainty
+        def fit_decay(dist_array):
+            popt, _ = curve_fit(exp_decay, np.arange(len(dates[start_idx:])), dist_array[start_idx:], p0=(1, 0.01))
+            return popt
+        
+        popts = np.array([fit_decay(distances[i, :]) for i in range(len(distances))])
+        popt = np.median(popts, axis=0)
+        half_life = np.log(2) / popt[1]
+        half_life_std = np.std(np.log(2) / popts[:, 1])
+        half_life_ci_lower = np.percentile(np.log(2) / popts[:, 1], 2.5)
+        half_life_ci_upper = np.percentile(np.log(2) / popts[:, 1], 97.5)
+        print(f"Half-life of phase diagram distance decay for {pathogen}: {half_life:.2f} ({half_life_ci_lower:.2f} to {half_life_ci_upper:.2f}) days")
+        print(f"Resilience for {pathogen}: {365/half_life:.4f} ({365/half_life_ci_upper:.4f} to {365/half_life_ci_lower:.4f}) per year")
+        
+        # Convert dates to numeric values for LineCollection
+        dates_numeric = np.array([d.toordinal() for d in dates])
+        
+        # plot using LineCollection
+        segments = [list(zip(dates_numeric[1719:], distances[i, 1719:])) for i in range(len(distances))]
+        lc = LineCollection(segments, colors='k', linewidths=0.5, alpha=0.01)
+        ax.add_collection(lc)
+        ax.autoscale()
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Euclidean distance")
+
+        # plot fitted exponential decay curve with uncertainty interval
+        x_fit = np.arange(len(dates[start_idx:]))
+        y_fit = exp_decay(x_fit, *popt)
+        
+        # compute uncertainty bounds from sampled popts
+        y_samples = np.array([exp_decay(x_fit, *p) for p in popts])
+        y_lower = np.percentile(y_samples, 2.5, axis=0)
+        y_upper = np.percentile(y_samples, 97.5, axis=0)
+        
+        # plot uncertainty interval behind line collection
+        ax.fill_between(dates_numeric[start_idx:], y_lower, y_upper, color='r', alpha=0.2, zorder=0)
+        ax.plot(dates_numeric[start_idx:], y_fit, color='r', label=f"Fitted exp decay (half-life: {half_life:.0f} ({half_life_ci_lower:.0f} to {half_life_ci_upper:.0f}) days)", zorder=0)
+        ax.legend(fontsize=6)
+        
+        # Format x-axis with year ticks
+        year_ticks = np.array([pd.Timestamp(year=y, month=1, day=1).toordinal() for y in range(2020, 2026)])
+        ax.set_xticks(year_ticks)
+        ax.set_xticklabels([str(y) for y in range(2020, 2026)], rotation=45)
+        
+        ax.set_title(short_names.get(pathogen, pathogen))
+        print(f"Finished plotting phase diagram distances for {pathogen}.")
 
 if __name__ == "__main__":
     plt.rcParams.update({'font.size':8})
@@ -2190,41 +2365,19 @@ if __name__ == "__main__":
 
     # print_parameter_table(pathogens, option2s, seeds, prune=0)
 
-    # print index of the last point in POINTS that is before 2020-03-19
-    last_point_idx = np.searchsorted(POINTS, date_to_t('2020-03-19')) - 1
-    print(f"Index of the last point before 2020-03-19: {last_point_idx}")
+    # fig, axes = plt.subplots(3, 2, figsize=(6.5, 6.5), layout="constrained", sharex=False, sharey=False)
+    # plot_phase_diagrams_from_chains(axes.flatten(), pathogens, option2s, seeds, lockdown, option1, n_samples=1, prune=0, no_lockdown=True)
+    # plot_phase_diagrams_from_chains(axes.flatten(), pathogens, option2s, seeds, lockdown, option1, n_samples=1, prune=0, no_lockdown=False)
+    # plt.savefig(f"Figures/phase_diagrams_w_no_lockdown.png", dpi=300)
 
     # fig, axes = plt.subplots(3, 2, figsize=(6.5, 6.5), layout="constrained", sharex=False, sharey=False)
-    # plot_phase_diagrams_from_chains(axes.flatten(), pathogens, option2s, seeds, lockdown, option1, n_samples=1, prune=0)
-    # plt.savefig(f"Figures/phase_diagrams_{lockdown}.png", dpi=300)
+    # plot_phase_diagram_distance(axes.flatten(), pathogens, option2s, seeds, lockdown, option1, n_samples=400, prune=100)
+    # plt.savefig(f"Figures/phase_diagram_proportion_distance_w_exp_fit_logi_normed.png", dpi=300)
 
-    fig, axes = plt.subplots(7, 6, figsize=(6.5, 6.5), sharex=False, sharey=False)
-    for idx, (pathogen, option2, seed) in enumerate(zip(pathogens, option2s, seeds)):
-        plot_phase_diagrams_by_age(axes[:,idx], pathogen, option2, seed, lockdown, option1, n_samples=1, prune=0)
-    
-    import matplotlib.ticker as ticker
-    # Suppress interior axis labels
-    for ax in axes.flatten():
-        ax.set_xlabel("")
-        ax.set_ylabel("")
-        ax.set_title("")
-        # set tick label size to 6
-        ax.tick_params(axis='both', which='major', labelsize=6)
-    
-    # leftmost column has extra y-axis labels for age group
-    for i in range(7):
-        axes[i,0].set_ylabel(AGE_GROUP_NAMES[i], fontsize=8)
-    # top row has titles for each pathogen
-    for j in range(6):
-        axes[0,j].set_title(short_names.get(pathogens[j], pathogens[j]), fontsize=8)
-
-    # overall x title at bottom
-    fig.text(0.5, 0.0, "Effective susceptibles (%)", ha='center', va='bottom', fontsize=9)
-    # overall y title at left
-    fig.text(0.0, 0.5, "Infecteds (%)", va='center', ha='left', rotation='vertical', fontsize=9)
-
-    plt.tight_layout()
-    plt.savefig(f"Figures/phase_diagrams_{lockdown}_age.pdf", dpi=300)
+    # fig, axes = plt.subplots(7, 6, figsize=(6.5, 6.5), sharex=False, sharey=False)
+    # arrange_phase_plots(fig, axes, pathogens, option2s, seeds, lockdown, option1)
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/phase_diagrams_{lockdown}_age.pdf", dpi=300)
 
     # fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
     # for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes.flatten()):
@@ -2356,11 +2509,11 @@ if __name__ == "__main__":
     #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
     #     plt.close()
 
-    # # ## Generate Figure 1: timeseries and suppression duration figure
-    # fig = plt.figure(layout="constrained", figsize=(6.5,6.5))
-    # countries = ["Brazil", "Canada", "India", "Malaysia", "Qatar"]
-    # plot_suppression_durations(fig, flunet_pathogens, countries, colors)
-    # plt.savefig(f"Figures/supression_durations_newcolor.png", dpi=300)
+    # ## Generate Figure 1: timeseries and suppression duration figure
+    fig = plt.figure(layout="constrained", figsize=(6.5,7.5))
+    countries = ["Brazil", "Canada", "India", "Malaysia", "Qatar"]
+    plot_suppression_durations(fig, flunet_pathogens, countries, colors)
+    plt.savefig(f"Figures/supression_durations_w_season_age.png", dpi=300)
 
     # ## Generate supplemental figures of all FluNet timeseries
     # directory_path = "Data/Processed/FluNetTimeseries/"
@@ -2408,8 +2561,8 @@ if __name__ == "__main__":
     # good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
     # run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260624_lockdownExponentialODipp25_2d"
     # fig = plt.figure(figsize=(4.5, 4.5))
-    # plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False, prune=0)
-    # plt.savefig(f"Figures/figure_five_update3.png", dpi=300)
+    # plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False, prune=100)
+    # plt.savefig(f"Figures/figure_five_update5.png", dpi=1000)
     # plt.close()
 
     # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
