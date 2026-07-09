@@ -1,0 +1,1135 @@
+country,pathogen,pathogen_label,pathogen_column,max_count,n_months,dq_pass,dq_reason,dq_set_triggered,dq_longest_zero_run_months,months_above_low_activity_threshold,post_nonzero_months,status,reason,threshold,dip_time,last_pre_time,rebound_time,suppression_duration_months,is_right_censored,series_end,pre2020_baseline_start,pre2020_longest_below_threshold_run_months,pre2020_effective_baseline_run_months,excess_gap_months,suppression_zero_processed_run_months,country_level_no_excess_gap_warning
+Afghanistan,RSV,RSV,RSV,0.0,201,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Afghanistan,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,201,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Afghanistan,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,201,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Afghanistan,Adenovirus,Adenovirus,ADENO,0.0,201,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Afghanistan,InfluenzaA,InfluenzaA,INF_A,177.0,201,True,,none,,22,35,ok,observed_rebound,8.15,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,16.0,12.0,8.0,4.0,False
+Afghanistan,InfluenzaB,InfluenzaB,INF_B,41.0,201,True,,none,,2,40,ok,observed_rebound,1.1,2020-04-01,2020-03-01,2020-10-01,7.0,False,2026-05-01,2015-03-01,10.0,10.0,0.0,4.0,True
+Albania,RSV,RSV,RSV,13.0,353,False,low_activity_all_months_below_threshold,none,,0,5,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-04-01,,,,,,
+Albania,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Albania,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Albania,Adenovirus,Adenovirus,ADENO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Albania,InfluenzaA,InfluenzaA,INF_A,949.0,353,True,,none,,31,35,ok,observed_rebound,12.2,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-04-01,2015-03-01,11.0,11.0,10.0,8.0,False
+Albania,InfluenzaB,InfluenzaB,INF_B,174.0,353,True,,none,,16,19,ok,observed_rebound,7.15,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-04-01,2015-03-01,21.0,12.0,22.0,8.0,False
+Algeria,RSV,RSV,RSV,10.0,340,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Algeria,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,340,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Algeria,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,340,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Algeria,Adenovirus,Adenovirus,ADENO,2.0,340,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Algeria,InfluenzaA,InfluenzaA,INF_A,313.0,340,True,,none,,36,29,excluded,zero_testing_explains_excess_gap,14.4,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,21.0,12.0,8.0,9.0,False
+Algeria,InfluenzaB,InfluenzaB,INF_B,121.0,340,True,,none,,13,24,ok,observed_rebound,6.05,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-05-01,2015-03-01,21.0,12.0,20.0,9.0,False
+Angola,RSV,RSV,RSV,0.0,181,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-01-01,,,,,,
+Angola,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,181,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-01-01,,,,,,
+Angola,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,181,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-01-01,,,,,,
+Angola,Adenovirus,Adenovirus,ADENO,0.0,181,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-01-01,,,,,,
+Angola,InfluenzaA,InfluenzaA,INF_A,10.0,181,False,low_activity_all_months_below_threshold,none,,0,7,excluded,low_activity_all_months_below_threshold,,,,,,False,2025-01-01,,,,,,
+Angola,InfluenzaB,InfluenzaB,INF_B,11.0,181,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2025-01-01,,,,,,
+Anguilla,RSV,RSV,RSV,0.0,80,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Anguilla,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,80,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Anguilla,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,80,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Anguilla,Adenovirus,Adenovirus,ADENO,0.0,80,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Anguilla,InfluenzaA,InfluenzaA,INF_A,1.0,80,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Anguilla,InfluenzaB,InfluenzaB,INF_B,1.0,80,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Antigua and Barbuda,RSV,RSV,RSV,0.0,64,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Antigua and Barbuda,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,64,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Antigua and Barbuda,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,64,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Antigua and Barbuda,Adenovirus,Adenovirus,ADENO,0.0,64,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Antigua and Barbuda,InfluenzaA,InfluenzaA,INF_A,0.0,64,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Antigua and Barbuda,InfluenzaB,InfluenzaB,INF_B,1.0,64,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Argentina,RSV,RSV,RSV,10658.0,350,True,,none,,106,71,ok,observed_rebound,338.85,2020-04-01,2020-03-01,2021-05-01,14.0,False,2026-05-01,2015-03-01,7.0,7.0,7.0,0.0,False
+Argentina,Metapneumovirus,Metapneumovirus,METAPNEUMO,2739.0,350,True,,none,,64,66,ok,observed_rebound,28.7,2020-04-01,2020-03-01,2021-07-01,16.0,False,2026-05-01,2015-06-01,7.0,7.0,9.0,0.0,False
+Argentina,Parainfluenza,Parainfluenza,PARAINFLUENZA,1250.0,350,True,,none,,113,74,ok,observed_rebound,32.9,2020-04-01,2020-03-01,2021-07-01,16.0,False,2026-05-01,2015-03-01,2.0,2.0,14.0,0.0,False
+Argentina,Adenovirus,Adenovirus,ADENO,525.0,350,True,,none,,131,75,ok,observed_rebound,26.25,2020-12-01,2020-11-01,2021-01-01,2.0,False,2026-05-01,2015-03-01,1.0,1.0,1.0,0.0,False
+Argentina,InfluenzaA,InfluenzaA,INF_A,7218.0,350,True,,none,,158,67,ok,observed_rebound,360.9,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,11.0,11.0,12.0,0.0,False
+Argentina,InfluenzaB,InfluenzaB,INF_B,3405.0,350,True,,none,,91,63,ok,observed_rebound,29.9,2020-04-01,2020-03-01,2022-08-01,29.0,False,2026-05-01,2015-03-01,7.0,7.0,22.0,0.0,False
+Armenia,RSV,RSV,RSV,67.0,187,True,,none,,2,12,ok,observed_rebound,1.55,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-04-01,2017-02-01,10.0,10.0,23.0,7.0,False
+Armenia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,187,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Armenia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,187,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Armenia,Adenovirus,Adenovirus,ADENO,0.0,187,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Armenia,InfluenzaA,InfluenzaA,INF_A,585.0,187,True,,none,,21,27,ok,observed_rebound,29.25,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-04-01,2016-01-01,14.0,12.0,9.0,7.0,False
+Armenia,InfluenzaB,InfluenzaB,INF_B,112.0,187,True,,none,,11,10,ok,observed_rebound,4.35,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-04-01,2015-03-01,21.0,12.0,22.0,7.0,False
+Aruba,RSV,RSV,RSV,18.0,81,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Aruba,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,81,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Aruba,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,81,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Aruba,Adenovirus,Adenovirus,ADENO,4.0,81,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Aruba,InfluenzaA,InfluenzaA,INF_A,55.0,81,False,insufficient_post_nonzero_months,none,,3,1,excluded,insufficient_post_nonzero_months,,,,,,False,2023-09-01,,,,,,
+Aruba,InfluenzaB,InfluenzaB,INF_B,14.0,81,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Australia,RSV,RSV,RSV,1020.0,354,True,,none,,97,74,ok,observed_rebound,31.8,2020-05-01,2020-04-01,2020-08-01,4.0,False,2026-05-01,2016-05-01,3.0,3.0,1.0,0.0,False
+Australia,Metapneumovirus,Metapneumovirus,METAPNEUMO,433.0,354,True,,none,,84,72,ok,observed_rebound,15.4,2020-04-01,2020-03-01,2021-05-01,14.0,False,2026-05-01,2016-06-01,1.0,1.0,13.0,0.0,False
+Australia,Parainfluenza,Parainfluenza,PARAINFLUENZA,596.0,354,True,,none,,93,75,ok,observed_rebound,9.85,2020-05-01,2020-04-01,2020-06-01,2.0,False,2026-05-01,2016-06-01,0.0,0.0,2.0,0.0,False
+Australia,Adenovirus,Adenovirus,ADENO,172.0,354,True,,none,,101,75,excluded,no_dip_after_anchor,5.4,,,,,False,2026-05-01,2016-06-01,0.0,0.0,,,
+Australia,InfluenzaA,InfluenzaA,INF_A,5200.0,354,True,,none,,202,60,ok,observed_rebound,161.7,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,8.0,8.0,16.0,0.0,False
+Australia,InfluenzaB,InfluenzaB,INF_B,1303.0,354,True,,none,,111,60,ok,observed_rebound,44.9,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,7.0,7.0,16.0,0.0,False
+Austria,RSV,RSV,RSV,635.0,354,True,,none,,20,29,ok,observed_rebound,15.85,2020-04-01,2020-03-01,2023-11-01,44.0,False,2026-05-01,2015-03-01,60.0,12.0,32.0,6.0,False
+Austria,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Austria,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Austria,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Austria,InfluenzaA,InfluenzaA,INF_A,2272.0,354,True,,none,,76,45,ok,observed_rebound,85.85,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,10.0,10.0,12.0,6.0,False
+Austria,InfluenzaB,InfluenzaB,INF_B,1645.0,354,True,,none,,37,33,ok,observed_rebound,82.25,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,21.0,12.0,22.0,6.0,False
+Azerbaijan,RSV,RSV,RSV,2.0,214,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2025-12-01,,,,,,
+Azerbaijan,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,214,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Azerbaijan,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,214,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Azerbaijan,Adenovirus,Adenovirus,ADENO,0.0,214,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Azerbaijan,InfluenzaA,InfluenzaA,INF_A,81.0,214,True,,none,,5,15,ok,observed_rebound,4.05,2020-04-01,2020-03-01,2024-01-01,46.0,False,2025-12-01,2016-02-01,22.0,12.0,34.0,6.0,False
+Azerbaijan,InfluenzaB,InfluenzaB,INF_B,140.0,214,True,,none,,4,11,ok,right_censored,7.0,2020-04-01,2020-03-01,,69.0,True,2025-12-01,2016-02-01,21.0,12.0,57.0,6.0,False
+Bahamas,RSV,RSV,RSV,1.0,69,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Bahamas,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,69,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Bahamas,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,69,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Bahamas,Adenovirus,Adenovirus,ADENO,0.0,69,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Bahamas,InfluenzaA,InfluenzaA,INF_A,3.0,69,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Bahamas,InfluenzaB,InfluenzaB,INF_B,2.0,69,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Bahrain,RSV,RSV,RSV,47.0,178,True,,none,,1,25,excluded,zero_testing_explains_excess_gap,0.9,2020-04-01,2020-03-01,2022-08-01,29.0,False,2026-05-01,2015-03-01,18.0,12.0,17.0,21.0,False
+Bahrain,Metapneumovirus,Metapneumovirus,METAPNEUMO,6.0,178,False,low_activity_all_months_below_threshold,none,,0,11,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bahrain,Parainfluenza,Parainfluenza,PARAINFLUENZA,4.0,178,False,low_activity_all_months_below_threshold,none,,0,19,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bahrain,Adenovirus,Adenovirus,ADENO,12.0,178,False,low_activity_all_months_below_threshold,none,,0,8,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bahrain,InfluenzaA,InfluenzaA,INF_A,721.0,178,True,,none,,31,50,excluded,zero_testing_explains_excess_gap,14.5,2020-04-01,2020-03-01,2022-05-01,26.0,False,2026-05-01,2015-03-01,24.0,12.0,14.0,21.0,False
+Bahrain,InfluenzaB,InfluenzaB,INF_B,107.0,178,True,,none,,14,48,ok,observed_rebound,1.0,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-05-01,2015-03-01,3.0,3.0,22.0,21.0,False
+Bangladesh,RSV,RSV,RSV,217.0,197,True,,none,,18,37,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Bangladesh,Metapneumovirus,Metapneumovirus,METAPNEUMO,9.0,197,False,low_activity_all_months_below_threshold,none,,0,12,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bangladesh,Parainfluenza,Parainfluenza,PARAINFLUENZA,3.0,197,False,low_activity_all_months_below_threshold,none,,0,17,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bangladesh,Adenovirus,Adenovirus,ADENO,6.0,197,False,low_activity_all_months_below_threshold,none,,0,28,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bangladesh,InfluenzaA,InfluenzaA,INF_A,864.0,197,True,,none,,73,58,ok,observed_rebound,17.3,2020-04-01,2020-03-01,2020-08-01,5.0,False,2026-05-01,2015-03-01,10.0,10.0,0.0,0.0,True
+Bangladesh,InfluenzaB,InfluenzaB,INF_B,611.0,197,True,,none,,42,40,ok,observed_rebound,13.85,2020-04-01,2020-03-01,2021-04-01,13.0,False,2026-05-01,2015-03-01,10.0,10.0,3.0,0.0,False
+Barbados,RSV,RSV,RSV,64.0,137,True,,none,,2,24,ok,observed_rebound,0.6,2020-04-01,2020-03-01,2023-06-01,39.0,False,2026-05-01,2015-03-01,8.0,8.0,31.0,30.0,False
+Barbados,Metapneumovirus,Metapneumovirus,METAPNEUMO,5.0,137,False,low_activity_all_months_below_threshold,none,,0,14,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Barbados,Parainfluenza,Parainfluenza,PARAINFLUENZA,8.0,137,False,low_activity_all_months_below_threshold,none,,0,19,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Barbados,Adenovirus,Adenovirus,ADENO,4.0,137,False,low_activity_all_months_below_threshold,none,,0,10,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Barbados,InfluenzaA,InfluenzaA,INF_A,82.0,137,True,,none,,7,36,excluded,zero_testing_explains_excess_gap,1.7,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-11-01,11.0,11.0,23.0,30.0,False
+Barbados,InfluenzaB,InfluenzaB,INF_B,33.0,137,True,,none,,1,20,excluded,zero_testing_explains_excess_gap,0.85,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,6.0,6.0,28.0,30.0,False
+Belarus,RSV,RSV,RSV,233.0,353,True,,none,,13,37,ok,observed_rebound,1.8,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-04-01,2015-03-01,46.0,12.0,9.0,5.0,False
+Belarus,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Belarus,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Belarus,Adenovirus,Adenovirus,ADENO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Belarus,InfluenzaA,InfluenzaA,INF_A,1476.0,353,True,,none,,47,28,ok,observed_rebound,46.65,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-04-01,2015-03-01,11.0,11.0,10.0,5.0,False
+Belarus,InfluenzaB,InfluenzaB,INF_B,568.0,353,True,,none,,21,26,ok,observed_rebound,5.65,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-04-01,2015-03-01,21.0,12.0,20.0,5.0,False
+Belgium,RSV,RSV,RSV,4213.0,354,True,,none,,64,73,ok,observed_rebound,51.4,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2019-12-01,0.0,0.0,11.0,0.0,False
+Belgium,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Belgium,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Belgium,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Belgium,InfluenzaA,InfluenzaA,INF_A,9351.0,354,True,,none,,107,72,ok,observed_rebound,226.7,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-05-01,2015-03-01,57.0,12.0,13.0,0.0,False
+Belgium,InfluenzaB,InfluenzaB,INF_B,2520.0,354,True,,none,,45,63,ok,observed_rebound,23.4,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-05-01,2015-03-01,21.0,12.0,13.0,0.0,False
+Belize,RSV,RSV,RSV,47.0,136,True,,none,,2,26,excluded,zero_testing_explains_excess_gap,0.65,2020-04-01,2020-03-01,2021-06-01,15.0,False,2026-05-01,2015-03-01,22.0,12.0,3.0,5.0,False
+Belize,Metapneumovirus,Metapneumovirus,METAPNEUMO,8.0,136,False,low_activity_all_months_below_threshold,none,,0,15,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Belize,Parainfluenza,Parainfluenza,PARAINFLUENZA,24.0,136,False,low_activity_all_months_below_threshold,none,,0,18,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Belize,Adenovirus,Adenovirus,ADENO,5.0,136,False,low_activity_all_months_below_threshold,none,,0,20,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Belize,InfluenzaA,InfluenzaA,INF_A,50.0,136,True,,none,,5,49,ok,observed_rebound,0.9,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,22.0,12.0,10.0,5.0,False
+Belize,InfluenzaB,InfluenzaB,INF_B,35.0,136,True,,none,,2,29,ok,observed_rebound,0.35,2020-05-01,2020-04-01,2020-06-01,2.0,False,2026-05-01,2015-03-01,26.0,12.0,0.0,0.0,True
+Bermuda,RSV,RSV,RSV,0.0,81,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Bermuda,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,81,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Bermuda,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,81,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Bermuda,Adenovirus,Adenovirus,ADENO,0.0,81,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Bermuda,InfluenzaA,InfluenzaA,INF_A,5.0,81,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Bermuda,InfluenzaB,InfluenzaB,INF_B,3.0,81,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Bhutan,RSV,RSV,RSV,30.0,185,True,,none,,1,11,ok,observed_rebound,1.5,2020-04-01,2020-03-01,2025-10-01,67.0,False,2026-05-01,2015-03-01,28.0,12.0,55.0,0.0,False
+Bhutan,Metapneumovirus,Metapneumovirus,METAPNEUMO,7.0,185,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bhutan,Parainfluenza,Parainfluenza,PARAINFLUENZA,4.0,185,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bhutan,Adenovirus,Adenovirus,ADENO,3.0,185,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bhutan,InfluenzaA,InfluenzaA,INF_A,151.0,185,True,,none,,53,52,ok,observed_rebound,5.55,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2015-03-01,6.0,6.0,15.0,0.0,False
+Bhutan,InfluenzaB,InfluenzaB,INF_B,108.0,185,True,,none,,21,41,ok,observed_rebound,2.4,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-05-01,2015-03-01,6.0,6.0,26.0,0.0,False
+Bolivia (Plurinational State of),RSV,RSV,RSV,169.0,197,True,,none,,19,42,ok,observed_rebound,8.45,2020-04-01,2020-03-01,2021-04-01,13.0,False,2026-05-01,2017-05-01,10.0,10.0,3.0,0.0,False
+Bolivia (Plurinational State of),Metapneumovirus,Metapneumovirus,METAPNEUMO,17.0,197,False,low_activity_all_months_below_threshold,none,,0,15,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bolivia (Plurinational State of),Parainfluenza,Parainfluenza,PARAINFLUENZA,9.0,197,False,low_activity_all_months_below_threshold,none,,0,25,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bolivia (Plurinational State of),Adenovirus,Adenovirus,ADENO,15.0,197,False,low_activity_all_months_below_threshold,none,,0,28,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bolivia (Plurinational State of),InfluenzaA,InfluenzaA,INF_A,936.0,197,True,,none,,65,43,ok,observed_rebound,44.95,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,10.0,10.0,12.0,0.0,False
+Bolivia (Plurinational State of),InfluenzaB,InfluenzaB,INF_B,319.0,197,True,,none,,26,23,ok,observed_rebound,15.95,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-05-01,2015-03-01,12.0,12.0,20.0,0.0,False
+Bosnia and Herzegovina,RSV,RSV,RSV,99.0,170,True,,none,,4,8,excluded,no_pre2020_signal,,,,,,False,2024-12-01,,,,,,
+Bosnia and Herzegovina,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,170,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2024-12-01,,,,,,
+Bosnia and Herzegovina,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,170,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2024-12-01,,,,,,
+Bosnia and Herzegovina,Adenovirus,Adenovirus,ADENO,0.0,170,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2024-12-01,,,,,,
+Bosnia and Herzegovina,InfluenzaA,InfluenzaA,INF_A,373.0,170,False,insufficient_post_nonzero_months,none,,4,1,excluded,insufficient_post_nonzero_months,,,,,,False,2024-12-01,,,,,,
+Bosnia and Herzegovina,InfluenzaB,InfluenzaB,INF_B,13.0,170,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2024-12-01,,,,,,
+Brazil,RSV,RSV,RSV,6876.0,354,True,,none,,75,70,ok,observed_rebound,14.7,2020-04-01,2020-03-01,2020-06-01,3.0,False,2026-05-01,2017-01-01,7.0,7.0,0.0,0.0,True
+Brazil,Metapneumovirus,Metapneumovirus,METAPNEUMO,781.0,354,True,,none,,21,54,ok,observed_rebound,4.35,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2017-06-01,4.0,4.0,16.0,0.0,False
+Brazil,Parainfluenza,Parainfluenza,PARAINFLUENZA,44.0,354,True,,none,,2,40,ok,observed_rebound,2.2,2020-04-01,2020-03-01,2021-03-01,12.0,False,2026-05-01,2019-04-01,1.0,1.0,11.0,0.0,False
+Brazil,Adenovirus,Adenovirus,ADENO,675.0,354,True,,none,,48,71,ok,observed_rebound,3.2,2020-04-01,2020-03-01,2020-06-01,3.0,False,2026-05-01,2017-05-01,2.0,2.0,1.0,0.0,False
+Brazil,InfluenzaA,InfluenzaA,INF_A,9174.0,354,True,,none,,166,62,ok,observed_rebound,104.85,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,7.0,7.0,13.0,0.0,False
+Brazil,InfluenzaB,InfluenzaB,INF_B,3876.0,354,True,,none,,109,60,ok,observed_rebound,19.65,2020-05-01,2020-04-01,2023-01-01,33.0,False,2026-05-01,2015-03-01,3.0,3.0,30.0,0.0,False
+British Virgin Islands,RSV,RSV,RSV,0.0,46,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+British Virgin Islands,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,46,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+British Virgin Islands,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,46,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+British Virgin Islands,Adenovirus,Adenovirus,ADENO,0.0,46,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+British Virgin Islands,InfluenzaA,InfluenzaA,INF_A,2.0,46,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+British Virgin Islands,InfluenzaB,InfluenzaB,INF_B,0.0,46,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Brunei Darussalam,RSV,RSV,RSV,43.0,65,True,,none,,3,50,excluded,insufficient_pre2020_baseline,,,,,,False,2026-05-01,,,,,,
+Brunei Darussalam,Metapneumovirus,Metapneumovirus,METAPNEUMO,33.0,65,True,,none,,1,39,excluded,insufficient_pre2020_baseline,,,,,,False,2026-05-01,,,,,,
+Brunei Darussalam,Parainfluenza,Parainfluenza,PARAINFLUENZA,16.0,65,False,low_activity_all_months_below_threshold,none,,0,48,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Brunei Darussalam,Adenovirus,Adenovirus,ADENO,21.0,65,False,low_activity_all_months_below_threshold,none,,0,51,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Brunei Darussalam,InfluenzaA,InfluenzaA,INF_A,68.0,65,True,,none,,11,44,excluded,insufficient_pre2020_baseline,,,,,,False,2026-05-01,,,,,,
+Brunei Darussalam,InfluenzaB,InfluenzaB,INF_B,27.0,65,False,low_activity_all_months_below_threshold,none,,0,37,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Bulgaria,RSV,RSV,RSV,101.0,353,True,,none,,16,47,excluded,zero_testing_explains_excess_gap,2.5,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2016-02-01,7.0,7.0,3.0,7.0,False
+Bulgaria,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Bulgaria,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Bulgaria,Adenovirus,Adenovirus,ADENO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Bulgaria,InfluenzaA,InfluenzaA,INF_A,1008.0,353,True,,none,,37,30,ok,observed_rebound,23.8,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,11.0,11.0,13.0,7.0,False
+Bulgaria,InfluenzaB,InfluenzaB,INF_B,279.0,353,True,,none,,13,22,ok,observed_rebound,13.95,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,22.0,12.0,22.0,7.0,False
+Burkina Faso,RSV,RSV,RSV,0.0,191,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Burkina Faso,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,191,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Burkina Faso,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,191,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Burkina Faso,Adenovirus,Adenovirus,ADENO,0.0,191,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Burkina Faso,InfluenzaA,InfluenzaA,INF_A,98.0,191,True,,none,,12,60,excluded,no_excess_gap_vs_pre2020_country_level,4.75,2020-04-01,2020-03-01,2020-10-01,7.0,False,2026-05-01,2018-01-01,8.0,8.0,0.0,1.0,False
+Burkina Faso,InfluenzaB,InfluenzaB,INF_B,58.0,191,True,,none,,1,34,excluded,no_excess_gap_vs_pre2020_country_level,1.15,2020-04-01,2020-03-01,2020-09-01,6.0,False,2026-05-01,2015-03-01,22.0,12.0,0.0,1.0,False
+Cambodia,RSV,RSV,RSV,0.0,239,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Cambodia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,239,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Cambodia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,239,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Cambodia,Adenovirus,Adenovirus,ADENO,0.0,239,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Cambodia,InfluenzaA,InfluenzaA,INF_A,351.0,239,True,,none,,57,55,ok,observed_rebound,17.55,2020-04-01,2020-03-01,2020-08-01,5.0,False,2026-05-01,2015-03-01,10.0,10.0,0.0,0.0,True
+Cambodia,InfluenzaB,InfluenzaB,INF_B,373.0,239,True,,none,,26,39,ok,observed_rebound,18.65,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,20.0,12.0,19.0,0.0,False
+Cameroon,RSV,RSV,RSV,183.0,223,True,,none,,11,26,ok,right_censored,1.7,2022-05-01,2022-04-01,,49.0,True,2026-05-01,2020-02-01,0.0,0.0,49.0,1.0,False
+Cameroon,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,223,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Cameroon,Parainfluenza,Parainfluenza,PARAINFLUENZA,14.0,223,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Cameroon,Adenovirus,Adenovirus,ADENO,24.0,223,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Cameroon,InfluenzaA,InfluenzaA,INF_A,272.0,223,True,,none,,40,67,ok,observed_rebound,13.6,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2015-03-01,12.0,12.0,0.0,0.0,True
+Cameroon,InfluenzaB,InfluenzaB,INF_B,72.0,223,True,,none,,16,46,ok,observed_rebound,3.6,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2015-03-01,12.0,12.0,0.0,0.0,True
+Canada,RSV,RSV,RSV,16584.0,354,True,,none,,114,75,ok,observed_rebound,401.3,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2016-01-01,6.0,6.0,11.0,0.0,False
+Canada,Metapneumovirus,Metapneumovirus,METAPNEUMO,2563.0,354,True,,none,,107,75,ok,observed_rebound,61.95,2020-05-01,2020-04-01,2021-11-01,19.0,False,2026-05-01,2016-01-01,4.0,4.0,15.0,0.0,False
+Canada,Parainfluenza,Parainfluenza,PARAINFLUENZA,2694.0,354,True,,none,,113,75,ok,observed_rebound,59.25,2020-05-01,2020-04-01,2021-06-01,14.0,False,2026-05-01,2016-01-01,0.0,0.0,14.0,0.0,False
+Canada,Adenovirus,Adenovirus,ADENO,1148.0,354,True,,none,,125,75,excluded,no_dip_after_anchor,24.4,,,,,False,2026-05-01,2016-01-01,0.0,0.0,,,
+Canada,InfluenzaA,InfluenzaA,INF_A,62659.0,354,True,,none,,224,75,ok,observed_rebound,1152.85,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-05-01,2015-03-01,9.0,9.0,16.0,0.0,False
+Canada,InfluenzaB,InfluenzaB,INF_B,9237.0,354,True,,none,,157,69,ok,observed_rebound,461.85,2020-04-01,2020-03-01,2023-02-01,35.0,False,2026-05-01,2015-03-01,11.0,11.0,24.0,0.0,False
+Cayman Islands,RSV,RSV,RSV,30.0,113,True,,none,,2,23,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Cayman Islands,Metapneumovirus,Metapneumovirus,METAPNEUMO,42.0,113,True,,none,,1,21,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Cayman Islands,Parainfluenza,Parainfluenza,PARAINFLUENZA,40.0,113,True,,none,,1,26,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Cayman Islands,Adenovirus,Adenovirus,ADENO,24.0,113,False,low_activity_all_months_below_threshold,none,,0,21,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Cayman Islands,InfluenzaA,InfluenzaA,INF_A,300.0,113,True,,none,,9,31,excluded,zero_testing_explains_excess_gap,0.55,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,23.0,12.0,22.0,32.0,False
+Cayman Islands,InfluenzaB,InfluenzaB,INF_B,38.0,113,True,,none,,1,23,excluded,zero_testing_explains_excess_gap,0.05,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,24.0,12.0,22.0,32.0,False
+Central African Republic,RSV,RSV,RSV,78.0,194,True,,none,,7,24,excluded,zero_testing_explains_excess_gap,3.65,2020-04-01,2020-03-01,2022-06-01,27.0,False,2026-02-01,2017-06-01,10.0,10.0,17.0,23.0,False
+Central African Republic,Metapneumovirus,Metapneumovirus,METAPNEUMO,10.0,194,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-02-01,,,,,,
+Central African Republic,Parainfluenza,Parainfluenza,PARAINFLUENZA,2.0,194,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-02-01,,,,,,
+Central African Republic,Adenovirus,Adenovirus,ADENO,7.0,194,False,low_activity_all_months_below_threshold,none,,0,4,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-02-01,,,,,,
+Central African Republic,InfluenzaA,InfluenzaA,INF_A,84.0,194,True,,none,,7,16,excluded,zero_testing_explains_excess_gap,4.2,2020-04-01,2020-03-01,2022-07-01,28.0,False,2026-02-01,2015-03-01,19.0,12.0,16.0,23.0,False
+Central African Republic,InfluenzaB,InfluenzaB,INF_B,53.0,194,True,,none,,5,5,ok,observed_rebound,2.65,2020-04-01,2020-03-01,2023-09-01,42.0,False,2026-02-01,2015-03-01,20.0,12.0,30.0,23.0,False
+Chad,RSV,RSV,RSV,0.0,101,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Chad,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,101,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Chad,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,101,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Chad,Adenovirus,Adenovirus,ADENO,0.0,101,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Chad,InfluenzaA,InfluenzaA,INF_A,9.0,101,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Chad,InfluenzaB,InfluenzaB,INF_B,6.0,101,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Chile,RSV,RSV,RSV,6667.0,354,True,,none,,96,75,ok,observed_rebound,187.05,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2015-05-01,7.0,7.0,10.0,0.0,False
+Chile,Metapneumovirus,Metapneumovirus,METAPNEUMO,2415.0,354,True,,none,,81,73,ok,observed_rebound,24.35,2020-04-01,2020-03-01,2020-05-01,2.0,False,2026-05-01,2015-07-01,5.0,5.0,0.0,0.0,True
+Chile,Parainfluenza,Parainfluenza,PARAINFLUENZA,2055.0,354,True,,none,,117,75,ok,observed_rebound,28.35,2020-05-01,2020-04-01,2021-08-01,16.0,False,2026-05-01,2015-04-01,1.0,1.0,15.0,0.0,False
+Chile,Adenovirus,Adenovirus,ADENO,1545.0,354,True,,none,,123,75,ok,observed_rebound,17.45,2020-07-01,2020-06-01,2021-06-01,12.0,False,2026-05-01,2015-03-01,0.0,0.0,12.0,0.0,False
+Chile,InfluenzaA,InfluenzaA,INF_A,7528.0,354,True,,none,,162,59,ok,observed_rebound,100.9,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,9.0,9.0,13.0,0.0,False
+Chile,InfluenzaB,InfluenzaB,INF_B,942.0,354,True,,none,,100,50,ok,observed_rebound,41.15,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,7.0,7.0,26.0,0.0,False
+China,RSV,RSV,RSV,0.0,249,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+China,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,249,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+China,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,249,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+China,Adenovirus,Adenovirus,ADENO,0.0,249,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+China,InfluenzaA,InfluenzaA,INF_A,55932.0,249,True,,none,,205,74,ok,observed_rebound,1092.65,2020-04-01,2020-03-01,2022-05-01,26.0,False,2026-05-01,2015-03-01,7.0,7.0,19.0,0.0,False
+China,InfluenzaB,InfluenzaB,INF_B,30284.0,249,True,,none,,213,75,ok,observed_rebound,634.65,2020-04-01,2020-03-01,2021-03-01,12.0,False,2026-05-01,2015-03-01,10.0,10.0,2.0,0.0,False
+"China, Hong Kong SAR",RSV,RSV,RSV,1770.0,354,True,,none,,100,47,ok,observed_rebound,72.1,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-05-01,2015-06-01,0.0,0.0,32.0,0.0,False
+"China, Hong Kong SAR",Metapneumovirus,Metapneumovirus,METAPNEUMO,1511.0,354,True,,none,,66,47,ok,observed_rebound,75.55,2020-04-01,2020-03-01,2023-04-01,37.0,False,2026-05-01,2018-01-01,3.0,3.0,34.0,0.0,False
+"China, Hong Kong SAR",Parainfluenza,Parainfluenza,PARAINFLUENZA,2019.0,354,True,,none,,100,47,ok,observed_rebound,77.7,2020-04-01,2020-03-01,2023-02-01,35.0,False,2026-05-01,2015-06-01,1.0,1.0,34.0,0.0,False
+"China, Hong Kong SAR",Adenovirus,Adenovirus,ADENO,739.0,354,True,,none,,93,47,ok,observed_rebound,36.95,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-06-01,0.0,0.0,31.0,0.0,False
+"China, Hong Kong SAR",InfluenzaA,InfluenzaA,INF_A,13393.0,354,True,,none,,265,59,ok,observed_rebound,669.65,2020-04-01,2020-03-01,2023-04-01,37.0,False,2026-05-01,2015-03-01,6.0,6.0,31.0,0.0,False
+"China, Hong Kong SAR",InfluenzaB,InfluenzaB,INF_B,6047.0,354,True,,none,,189,63,ok,observed_rebound,302.35,2020-04-01,2020-03-01,2024-01-01,46.0,False,2026-05-01,2015-03-01,18.0,12.0,34.0,0.0,False
+Colombia,RSV,RSV,RSV,1305.0,354,True,,none,,115,72,ok,observed_rebound,18.25,2020-04-01,2020-03-01,2020-12-01,9.0,False,2026-05-01,2015-03-01,3.0,3.0,6.0,0.0,False
+Colombia,Metapneumovirus,Metapneumovirus,METAPNEUMO,231.0,354,True,,none,,48,63,ok,observed_rebound,1.1,2020-05-01,2020-04-01,2021-04-01,12.0,False,2026-05-01,2015-03-01,2.0,2.0,10.0,0.0,False
+Colombia,Parainfluenza,Parainfluenza,PARAINFLUENZA,363.0,354,True,,none,,92,70,ok,observed_rebound,7.8,2020-04-01,2020-03-01,2021-04-01,13.0,False,2026-05-01,2015-03-01,1.0,1.0,12.0,0.0,False
+Colombia,Adenovirus,Adenovirus,ADENO,574.0,354,True,,none,,75,69,ok,observed_rebound,3.7,2020-04-01,2020-03-01,2020-05-01,2.0,False,2026-05-01,2015-03-01,2.0,2.0,0.0,0.0,True
+Colombia,InfluenzaA,InfluenzaA,INF_A,779.0,354,True,,none,,139,58,ok,observed_rebound,34.75,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,6.0,6.0,16.0,0.0,False
+Colombia,InfluenzaB,InfluenzaB,INF_B,219.0,354,True,,none,,27,51,ok,observed_rebound,2.85,2020-06-01,2020-05-01,2022-01-01,20.0,False,2026-05-01,2019-01-01,0.0,0.0,20.0,0.0,False
+Congo,RSV,RSV,RSV,0.0,15,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2013-07-01,,,,,,
+Congo,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,15,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2013-07-01,,,,,,
+Congo,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,15,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2013-07-01,,,,,,
+Congo,Adenovirus,Adenovirus,ADENO,0.0,15,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2013-07-01,,,,,,
+Congo,InfluenzaA,InfluenzaA,INF_A,7.0,15,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2013-07-01,,,,,,
+Congo,InfluenzaB,InfluenzaB,INF_B,7.0,15,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2013-07-01,,,,,,
+Costa Rica,RSV,RSV,RSV,910.0,250,True,,none,,57,59,ok,observed_rebound,5.85,2020-04-01,2020-03-01,2021-06-01,15.0,False,2026-05-01,2016-01-01,10.0,10.0,5.0,0.0,False
+Costa Rica,Metapneumovirus,Metapneumovirus,METAPNEUMO,499.0,250,True,,none,,24,50,ok,observed_rebound,0.25,2020-04-01,2020-03-01,2020-08-01,5.0,False,2026-05-01,2015-03-01,46.0,12.0,0.0,0.0,True
+Costa Rica,Parainfluenza,Parainfluenza,PARAINFLUENZA,507.0,250,True,,none,,40,65,ok,observed_rebound,1.65,2020-11-01,2020-10-01,2021-01-01,3.0,False,2026-05-01,2019-06-01,0.0,0.0,3.0,0.0,False
+Costa Rica,Adenovirus,Adenovirus,ADENO,159.0,250,True,,none,,44,66,ok,observed_rebound,1.5,2020-07-01,2020-06-01,2020-08-01,2.0,False,2026-05-01,2015-03-01,2.0,2.0,0.0,0.0,True
+Costa Rica,InfluenzaA,InfluenzaA,INF_A,1649.0,250,True,,none,,71,47,ok,observed_rebound,11.3,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,8.0,8.0,15.0,0.0,False
+Costa Rica,InfluenzaB,InfluenzaB,INF_B,265.0,250,True,,none,,30,35,ok,observed_rebound,4.9,2020-04-01,2020-03-01,2023-05-01,38.0,False,2026-05-01,2015-03-01,20.0,12.0,26.0,1.0,False
+Croatia,RSV,RSV,RSV,427.0,354,True,,none,,18,37,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Croatia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Croatia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Croatia,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Croatia,InfluenzaA,InfluenzaA,INF_A,1872.0,354,True,,none,,86,56,excluded,zero_testing_explains_excess_gap,93.6,2020-04-01,2020-03-01,2021-09-01,18.0,False,2026-05-01,2015-03-01,10.0,10.0,8.0,9.0,False
+Croatia,InfluenzaB,InfluenzaB,INF_B,724.0,354,True,,none,,30,28,ok,observed_rebound,36.2,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,13.0,12.0,22.0,9.0,False
+Cuba,RSV,RSV,RSV,214.0,365,True,,none,,24,33,excluded,zero_testing_explains_excess_gap,10.7,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-07-01,10.0,10.0,24.0,33.0,False
+Cuba,Metapneumovirus,Metapneumovirus,METAPNEUMO,7.0,365,False,low_activity_all_months_below_threshold,none,,0,9,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Cuba,Parainfluenza,Parainfluenza,PARAINFLUENZA,68.0,365,True,,none,,7,24,excluded,zero_testing_explains_excess_gap,3.4,2020-04-01,2020-03-01,2023-02-01,35.0,False,2026-05-01,2015-06-01,8.0,8.0,27.0,33.0,False
+Cuba,Adenovirus,Adenovirus,ADENO,5.0,365,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Cuba,InfluenzaA,InfluenzaA,INF_A,455.0,365,True,,none,,45,35,ok,observed_rebound,22.75,2020-04-01,2020-03-01,2025-03-01,60.0,False,2026-05-01,2015-03-01,11.0,11.0,49.0,33.0,False
+Cuba,InfluenzaB,InfluenzaB,INF_B,88.0,365,True,,none,,11,17,excluded,zero_testing_explains_excess_gap,4.4,2020-04-01,2020-03-01,2023-05-01,38.0,False,2026-05-01,2015-03-01,13.0,12.0,26.0,33.0,False
+Cyprus,RSV,RSV,RSV,140.0,125,True,,none,,10,21,excluded,zero_testing_explains_excess_gap,4.05,2020-04-01,2020-03-01,2024-01-01,46.0,False,2026-05-01,2017-01-01,11.0,11.0,35.0,45.0,False
+Cyprus,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,125,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Cyprus,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,125,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Cyprus,Adenovirus,Adenovirus,ADENO,0.0,125,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Cyprus,InfluenzaA,InfluenzaA,INF_A,365.0,125,True,,none,,11,25,excluded,zero_testing_explains_excess_gap,18.25,2020-04-01,2020-03-01,2024-01-01,46.0,False,2026-05-01,2016-01-01,12.0,12.0,34.0,45.0,False
+Cyprus,InfluenzaB,InfluenzaB,INF_B,51.0,125,True,,none,,2,12,excluded,zero_testing_explains_excess_gap,2.55,2020-04-01,2020-03-01,2024-01-01,46.0,False,2026-05-01,2018-02-01,23.0,12.0,34.0,45.0,False
+Czechia,RSV,RSV,RSV,865.0,354,True,,none,,31,56,excluded,zero_testing_explains_excess_gap,1.0,2020-04-01,2020-03-01,2021-09-01,18.0,False,2026-05-01,2015-03-01,11.0,11.0,7.0,17.0,False
+Czechia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Czechia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Czechia,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Czechia,InfluenzaA,InfluenzaA,INF_A,1969.0,354,True,,none,,67,53,excluded,zero_testing_explains_excess_gap,31.4,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,11.0,11.0,13.0,17.0,False
+Czechia,InfluenzaB,InfluenzaB,INF_B,1083.0,354,True,,none,,29,42,ok,observed_rebound,8.9,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,22.0,12.0,21.0,17.0,False
+Côte d’Ivoire,RSV,RSV,RSV,81.0,210,True,,none,,10,46,ok,observed_rebound,3.05,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2017-05-01,6.0,6.0,4.0,0.0,False
+Côte d’Ivoire,Metapneumovirus,Metapneumovirus,METAPNEUMO,38.0,210,True,,none,,1,21,ok,observed_rebound,1.9,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2018-07-01,1.0,1.0,10.0,0.0,False
+Côte d’Ivoire,Parainfluenza,Parainfluenza,PARAINFLUENZA,20.0,210,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Côte d’Ivoire,Adenovirus,Adenovirus,ADENO,0.0,210,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Côte d’Ivoire,InfluenzaA,InfluenzaA,INF_A,118.0,210,True,,none,,35,67,ok,observed_rebound,5.9,2020-04-01,2020-03-01,2020-09-01,6.0,False,2026-05-01,2015-03-01,12.0,12.0,0.0,0.0,True
+Côte d’Ivoire,InfluenzaB,InfluenzaB,INF_B,107.0,210,True,,none,,11,48,ok,observed_rebound,5.35,2020-04-01,2020-03-01,2020-08-01,5.0,False,2026-05-01,2015-03-01,8.0,8.0,0.0,0.0,True
+Democratic People's Republic of Korea,RSV,RSV,RSV,0.0,335,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-02-01,,,,,,
+Democratic People's Republic of Korea,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,335,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-02-01,,,,,,
+Democratic People's Republic of Korea,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,335,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-02-01,,,,,,
+Democratic People's Republic of Korea,Adenovirus,Adenovirus,ADENO,0.0,335,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-02-01,,,,,,
+Democratic People's Republic of Korea,InfluenzaA,InfluenzaA,INF_A,417.0,335,True,,none,,9,38,excluded,no_excess_gap_vs_pre2020_country_level,20.85,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-02-01,2018-01-01,10.0,10.0,0.0,1.0,False
+Democratic People's Republic of Korea,InfluenzaB,InfluenzaB,INF_B,19.0,335,False,low_activity_all_months_below_threshold,none,,0,16,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-02-01,,,,,,
+Democratic Republic of the Congo,RSV,RSV,RSV,4.0,197,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Democratic Republic of the Congo,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Democratic Republic of the Congo,Parainfluenza,Parainfluenza,PARAINFLUENZA,4.0,197,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Democratic Republic of the Congo,Adenovirus,Adenovirus,ADENO,1.0,197,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Democratic Republic of the Congo,InfluenzaA,InfluenzaA,INF_A,52.0,197,True,,none,,14,33,ok,observed_rebound,2.6,2020-04-01,2020-03-01,2020-11-01,8.0,False,2026-05-01,2015-03-01,12.0,12.0,0.0,1.0,True
+Democratic Republic of the Congo,InfluenzaB,InfluenzaB,INF_B,62.0,197,True,,none,,4,14,ok,observed_rebound,3.1,2020-04-01,2020-03-01,2021-04-01,13.0,False,2026-05-01,2015-03-01,10.0,10.0,3.0,1.0,False
+Denmark,RSV,RSV,RSV,4771.0,352,True,,none,,80,67,ok,observed_rebound,80.7,2020-04-01,2020-03-01,2021-06-01,15.0,False,2026-05-01,2015-11-01,8.0,8.0,7.0,0.0,False
+Denmark,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,352,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Denmark,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,352,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Denmark,Adenovirus,Adenovirus,ADENO,0.0,352,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Denmark,InfluenzaA,InfluenzaA,INF_A,9946.0,352,True,,none,,117,70,ok,observed_rebound,266.15,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,9.0,9.0,14.0,0.0,False
+Denmark,InfluenzaB,InfluenzaB,INF_B,5533.0,352,True,,none,,56,68,ok,observed_rebound,276.65,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,21.0,12.0,21.0,0.0,False
+Dominica,RSV,RSV,RSV,8.0,134,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-02-01,,,,,,
+Dominica,Metapneumovirus,Metapneumovirus,METAPNEUMO,2.0,134,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-02-01,,,,,,
+Dominica,Parainfluenza,Parainfluenza,PARAINFLUENZA,1.0,134,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-02-01,,,,,,
+Dominica,Adenovirus,Adenovirus,ADENO,4.0,134,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-02-01,,,,,,
+Dominica,InfluenzaA,InfluenzaA,INF_A,9.0,134,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-02-01,,,,,,
+Dominica,InfluenzaB,InfluenzaB,INF_B,3.0,134,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-02-01,,,,,,
+Dominican Republic,RSV,RSV,RSV,88.0,263,True,,none,,13,42,ok,observed_rebound,3.1,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-05-01,2016-05-01,10.0,10.0,15.0,4.0,False
+Dominican Republic,Metapneumovirus,Metapneumovirus,METAPNEUMO,14.0,263,False,low_activity_all_months_below_threshold,none,,0,21,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Dominican Republic,Parainfluenza,Parainfluenza,PARAINFLUENZA,23.0,263,False,low_activity_all_months_below_threshold,none,,0,25,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Dominican Republic,Adenovirus,Adenovirus,ADENO,31.0,263,True,,none,,1,49,ok,observed_rebound,0.15,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,13.0,12.0,12.0,4.0,False
+Dominican Republic,InfluenzaA,InfluenzaA,INF_A,123.0,263,True,,none,,19,48,ok,observed_rebound,6.15,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,9.0,9.0,13.0,4.0,False
+Dominican Republic,InfluenzaB,InfluenzaB,INF_B,56.0,263,True,,none,,5,21,ok,observed_rebound,2.8,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2016-03-01,7.0,7.0,12.0,4.0,False
+Ecuador,RSV,RSV,RSV,336.0,230,True,,none,,44,65,ok,observed_rebound,10.35,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-06-01,2015-03-01,7.0,7.0,4.0,2.0,False
+Ecuador,Metapneumovirus,Metapneumovirus,METAPNEUMO,35.0,230,True,,none,,1,35,ok,observed_rebound,1.45,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-06-01,2015-03-01,25.0,12.0,13.0,2.0,False
+Ecuador,Parainfluenza,Parainfluenza,PARAINFLUENZA,27.0,230,False,low_activity_all_months_below_threshold,none,,0,60,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-06-01,,,,,,
+Ecuador,Adenovirus,Adenovirus,ADENO,10.0,230,False,low_activity_all_months_below_threshold,none,,0,39,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-06-01,,,,,,
+Ecuador,InfluenzaA,InfluenzaA,INF_A,598.0,230,True,,none,,72,55,ok,observed_rebound,29.9,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-06-01,2015-03-01,11.0,11.0,13.0,2.0,False
+Ecuador,InfluenzaB,InfluenzaB,INF_B,107.0,230,True,,none,,11,44,ok,observed_rebound,2.75,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-06-01,2015-03-01,8.0,8.0,25.0,2.0,False
+Egypt,RSV,RSV,RSV,0.0,342,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Egypt,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,342,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Egypt,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,342,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Egypt,Adenovirus,Adenovirus,ADENO,0.0,342,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Egypt,InfluenzaA,InfluenzaA,INF_A,3011.0,342,True,,none,,119,71,ok,observed_rebound,150.55,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,13.0,12.0,19.0,0.0,False
+Egypt,InfluenzaB,InfluenzaB,INF_B,250.0,342,True,,none,,86,73,ok,observed_rebound,11.65,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,10.0,10.0,13.0,0.0,False
+El Salvador,RSV,RSV,RSV,142.0,245,True,,none,,24,48,ok,observed_rebound,7.1,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2015-06-01,14.0,12.0,5.0,0.0,False
+El Salvador,Metapneumovirus,Metapneumovirus,METAPNEUMO,78.0,245,True,,none,,3,12,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+El Salvador,Parainfluenza,Parainfluenza,PARAINFLUENZA,26.0,245,False,low_activity_all_months_below_threshold,none,,0,59,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+El Salvador,Adenovirus,Adenovirus,ADENO,37.0,245,True,,none,,1,58,ok,observed_rebound,0.65,2020-06-01,2020-05-01,2021-02-01,9.0,False,2026-05-01,2015-03-01,7.0,7.0,2.0,0.0,False
+El Salvador,InfluenzaA,InfluenzaA,INF_A,370.0,245,True,,none,,31,48,ok,observed_rebound,18.5,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,13.0,12.0,12.0,0.0,False
+El Salvador,InfluenzaB,InfluenzaB,INF_B,77.0,245,True,,none,,7,27,ok,observed_rebound,3.85,2020-04-01,2020-03-01,2023-02-01,35.0,False,2026-05-01,2015-03-01,19.0,12.0,23.0,0.0,False
+Estonia,RSV,RSV,RSV,815.0,222,True,,none,,48,49,ok,observed_rebound,12.55,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2015-03-01,8.0,8.0,11.0,0.0,False
+Estonia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Estonia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Estonia,Adenovirus,Adenovirus,ADENO,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Estonia,InfluenzaA,InfluenzaA,INF_A,1467.0,222,True,,none,,69,48,ok,observed_rebound,46.35,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-05-01,2015-03-01,10.0,10.0,15.0,0.0,False
+Estonia,InfluenzaB,InfluenzaB,INF_B,657.0,222,True,,none,,27,40,ok,observed_rebound,32.85,2020-04-01,2020-03-01,2023-02-01,35.0,False,2026-05-01,2015-03-01,21.0,12.0,23.0,0.0,False
+Ethiopia,RSV,RSV,RSV,140.0,197,True,,none,,5,17,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Ethiopia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ethiopia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ethiopia,Adenovirus,Adenovirus,ADENO,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ethiopia,InfluenzaA,InfluenzaA,INF_A,195.0,197,True,,none,,25,62,excluded,zero_testing_explains_excess_gap,2.85,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2015-03-01,10.0,10.0,1.0,9.0,False
+Ethiopia,InfluenzaB,InfluenzaB,INF_B,53.0,197,True,,none,,8,56,excluded,no_excess_gap_vs_pre2020_country_level,2.35,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2015-03-01,22.0,12.0,0.0,9.0,False
+Fiji,RSV,RSV,RSV,19.0,353,False,low_activity_all_months_below_threshold,none,,0,12,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Fiji,Metapneumovirus,Metapneumovirus,METAPNEUMO,1.0,353,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Fiji,Parainfluenza,Parainfluenza,PARAINFLUENZA,7.0,353,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Fiji,Adenovirus,Adenovirus,ADENO,1.0,353,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Fiji,InfluenzaA,InfluenzaA,INF_A,157.0,353,True,,none,,13,33,ok,observed_rebound,7.85,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,13.0,12.0,11.0,6.0,False
+Fiji,InfluenzaB,InfluenzaB,INF_B,165.0,353,True,,none,,7,14,ok,observed_rebound,3.75,2020-04-01,2020-03-01,2023-02-01,35.0,False,2026-05-01,2015-09-01,16.0,12.0,23.0,6.0,False
+Finland,RSV,RSV,RSV,1696.0,353,True,,none,,15,27,ok,observed_rebound,0.55,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-04-01,2015-03-01,8.0,8.0,12.0,4.0,False
+Finland,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Finland,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Finland,Adenovirus,Adenovirus,ADENO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Finland,InfluenzaA,InfluenzaA,INF_A,5779.0,353,True,,none,,75,40,ok,observed_rebound,25.05,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-04-01,2015-03-01,12.0,12.0,13.0,4.0,False
+Finland,InfluenzaB,InfluenzaB,INF_B,1066.0,353,True,,none,,23,28,ok,observed_rebound,7.3,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-04-01,2015-03-01,31.0,12.0,22.0,4.0,False
+France,RSV,RSV,RSV,9052.0,354,True,,none,,122,74,ok,observed_rebound,310.7,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2015-03-01,7.0,7.0,4.0,1.0,False
+France,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+France,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+France,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+France,InfluenzaA,InfluenzaA,INF_A,15921.0,354,True,,none,,171,68,ok,observed_rebound,735.9,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2015-03-01,10.0,10.0,11.0,1.0,False
+France,InfluenzaB,InfluenzaB,INF_B,4030.0,354,True,,none,,99,65,ok,observed_rebound,201.5,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,19.0,12.0,21.0,1.0,False
+French Guiana,RSV,RSV,RSV,98.0,352,True,,none,,6,46,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+French Guiana,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,352,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+French Guiana,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,352,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+French Guiana,Adenovirus,Adenovirus,ADENO,0.0,352,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+French Guiana,InfluenzaA,InfluenzaA,INF_A,236.0,352,True,,none,,30,38,ok,observed_rebound,6.85,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,9.0,9.0,13.0,0.0,False
+French Guiana,InfluenzaB,InfluenzaB,INF_B,54.0,352,True,,none,,9,18,ok,observed_rebound,2.65,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,19.0,12.0,22.0,9.0,False
+Gabon,RSV,RSV,RSV,0.0,44,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Gabon,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,44,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Gabon,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,44,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Gabon,Adenovirus,Adenovirus,ADENO,0.0,44,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Gabon,InfluenzaA,InfluenzaA,INF_A,39.0,44,True,,none,,1,15,excluded,insufficient_pre2020_baseline,,,,,,False,2025-12-01,,,,,,
+Gabon,InfluenzaB,InfluenzaB,INF_B,11.0,44,False,low_activity_all_months_below_threshold,none,,0,13,excluded,low_activity_all_months_below_threshold,,,,,,False,2025-12-01,,,,,,
+Georgia,RSV,RSV,RSV,47.0,206,True,,none,,4,51,ok,observed_rebound,0.4,2020-04-01,2020-03-01,2021-03-01,12.0,False,2026-05-01,2015-03-01,10.0,10.0,2.0,1.0,False
+Georgia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,206,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Georgia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,206,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Georgia,Adenovirus,Adenovirus,ADENO,0.0,206,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Georgia,InfluenzaA,InfluenzaA,INF_A,765.0,206,True,,none,,30,37,ok,observed_rebound,38.25,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-05-01,2015-03-01,23.0,12.0,13.0,1.0,False
+Georgia,InfluenzaB,InfluenzaB,INF_B,222.0,206,True,,none,,10,24,ok,observed_rebound,11.1,2020-04-01,2020-03-01,2024-03-01,48.0,False,2026-05-01,2015-03-01,32.0,12.0,36.0,1.0,False
+Germany,RSV,RSV,RSV,317.0,354,True,,none,,49,52,ok,observed_rebound,11.6,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2015-03-01,8.0,8.0,9.0,0.0,False
+Germany,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Germany,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Germany,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Germany,InfluenzaA,InfluenzaA,INF_A,1689.0,354,True,,none,,106,57,ok,observed_rebound,84.45,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,10.0,10.0,14.0,0.0,False
+Germany,InfluenzaB,InfluenzaB,INF_B,693.0,354,True,,none,,53,40,ok,observed_rebound,34.65,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,22.0,12.0,22.0,0.0,False
+Ghana,RSV,RSV,RSV,83.0,222,True,,none,,4,9,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Ghana,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ghana,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ghana,Adenovirus,Adenovirus,ADENO,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ghana,InfluenzaA,InfluenzaA,INF_A,787.0,222,True,,none,,88,68,excluded,zero_testing_explains_excess_gap,22.3,2020-04-01,2020-03-01,2021-06-01,15.0,False,2026-05-01,2015-03-01,10.0,10.0,5.0,7.0,False
+Ghana,InfluenzaB,InfluenzaB,INF_B,203.0,222,True,,none,,28,41,excluded,no_excess_gap_vs_pre2020_country_level,6.4,2020-04-01,2020-03-01,2020-11-01,8.0,False,2026-05-01,2015-03-01,11.0,11.0,0.0,7.0,False
+Greece,RSV,RSV,RSV,52.0,354,True,,none,,5,21,ok,observed_rebound,0.55,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,23.0,12.0,22.0,4.0,False
+Greece,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Greece,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Greece,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Greece,InfluenzaA,InfluenzaA,INF_A,3991.0,354,True,,none,,63,48,ok,observed_rebound,199.55,2020-04-01,2020-03-01,2025-12-01,69.0,False,2026-05-01,2015-03-01,23.0,12.0,57.0,4.0,False
+Greece,InfluenzaB,InfluenzaB,INF_B,278.0,354,True,,none,,30,28,ok,observed_rebound,13.9,2020-04-01,2020-03-01,2023-03-01,36.0,False,2026-05-01,2015-03-01,20.0,12.0,24.0,4.0,False
+Grenada,RSV,RSV,RSV,3.0,78,False,low_activity_all_months_below_threshold,none,,0,4,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Grenada,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,78,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Grenada,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,78,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Grenada,Adenovirus,Adenovirus,ADENO,0.0,78,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Grenada,InfluenzaA,InfluenzaA,INF_A,4.0,78,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Grenada,InfluenzaB,InfluenzaB,INF_B,1.0,78,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Guadeloupe,RSV,RSV,RSV,0.0,221,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Guadeloupe,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,221,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Guadeloupe,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,221,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Guadeloupe,Adenovirus,Adenovirus,ADENO,0.0,221,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Guadeloupe,InfluenzaA,InfluenzaA,INF_A,125.0,221,True,,none,,6,11,ok,observed_rebound,6.25,2020-04-01,2020-03-01,2025-01-01,58.0,False,2026-05-01,2015-03-01,12.0,12.0,46.0,21.0,False
+Guadeloupe,InfluenzaB,InfluenzaB,INF_B,13.0,221,False,low_activity_all_months_below_threshold,none,,0,8,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Guatemala,RSV,RSV,RSV,179.0,202,True,,none,,51,69,ok,observed_rebound,8.95,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2015-03-01,7.0,7.0,3.0,1.0,False
+Guatemala,Metapneumovirus,Metapneumovirus,METAPNEUMO,77.0,202,True,,none,,10,57,ok,observed_rebound,1.85,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2016-10-01,3.0,3.0,14.0,1.0,False
+Guatemala,Parainfluenza,Parainfluenza,PARAINFLUENZA,58.0,202,True,,none,,13,62,ok,observed_rebound,1.65,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2018-04-01,2.0,2.0,9.0,1.0,False
+Guatemala,Adenovirus,Adenovirus,ADENO,18.0,202,False,low_activity_all_months_below_threshold,none,,0,64,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Guatemala,InfluenzaA,InfluenzaA,INF_A,430.0,202,True,,none,,40,55,ok,observed_rebound,11.0,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,8.0,8.0,14.0,1.0,False
+Guatemala,InfluenzaB,InfluenzaB,INF_B,66.0,202,True,,none,,3,43,ok,observed_rebound,1.55,2020-04-01,2020-03-01,2020-10-01,7.0,False,2026-05-01,2015-03-01,11.0,11.0,0.0,1.0,True
+Guinea,RSV,RSV,RSV,0.0,100,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Guinea,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,100,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Guinea,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,100,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Guinea,Adenovirus,Adenovirus,ADENO,0.0,100,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Guinea,InfluenzaA,InfluenzaA,INF_A,50.0,100,True,,none,,3,39,excluded,no_excess_gap_vs_pre2020_country_level,1.45,2020-04-01,2020-03-01,2020-08-01,5.0,False,2026-04-01,2015-03-01,7.0,7.0,0.0,0.0,False
+Guinea,InfluenzaB,InfluenzaB,INF_B,28.0,100,False,low_activity_all_months_below_threshold,none,,0,29,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-04-01,,,,,,
+Guyana,RSV,RSV,RSV,19.0,133,False,low_activity_all_months_below_threshold,none,,0,21,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Guyana,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,133,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Guyana,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,133,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Guyana,Adenovirus,Adenovirus,ADENO,0.0,133,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Guyana,InfluenzaA,InfluenzaA,INF_A,80.0,133,True,,none,,2,34,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Guyana,InfluenzaB,InfluenzaB,INF_B,7.0,133,False,low_activity_all_months_below_threshold,none,,0,21,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Haiti,RSV,RSV,RSV,25.0,128,False,low_activity_all_months_below_threshold,none,,0,6,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Haiti,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,128,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Haiti,Parainfluenza,Parainfluenza,PARAINFLUENZA,15.0,128,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Haiti,Adenovirus,Adenovirus,ADENO,32.0,128,False,insufficient_post_nonzero_months,none,,1,0,excluded,insufficient_post_nonzero_months,,,,,,False,2026-05-01,,,,,,
+Haiti,InfluenzaA,InfluenzaA,INF_A,198.0,128,True,,none,,26,40,ok,observed_rebound,6.25,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2018-07-01,5.0,5.0,16.0,0.0,False
+Haiti,InfluenzaB,InfluenzaB,INF_B,125.0,128,True,,none,,4,41,ok,observed_rebound,0.95,2020-04-01,2020-03-01,2020-08-01,5.0,False,2026-05-01,2015-03-01,22.0,12.0,0.0,0.0,True
+Honduras,RSV,RSV,RSV,154.0,233,True,,none,,27,39,ok,observed_rebound,5.35,2020-04-01,2020-03-01,2021-06-01,15.0,False,2026-05-01,2015-03-01,9.0,9.0,6.0,0.0,False
+Honduras,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,233,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Honduras,Parainfluenza,Parainfluenza,PARAINFLUENZA,18.0,233,False,low_activity_all_months_below_threshold,none,,0,19,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Honduras,Adenovirus,Adenovirus,ADENO,12.0,233,False,low_activity_all_months_below_threshold,none,,0,10,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Honduras,InfluenzaA,InfluenzaA,INF_A,276.0,233,True,,none,,49,52,ok,observed_rebound,12.5,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2015-03-01,15.0,12.0,9.0,0.0,False
+Honduras,InfluenzaB,InfluenzaB,INF_B,59.0,233,True,,none,,7,51,ok,observed_rebound,2.5,2020-04-01,2020-03-01,2020-08-01,5.0,False,2026-05-01,2015-03-01,13.0,12.0,0.0,0.0,True
+Hungary,RSV,RSV,RSV,486.0,354,True,,none,,26,42,ok,observed_rebound,9.2,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,11.0,11.0,9.0,6.0,False
+Hungary,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Hungary,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Hungary,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Hungary,InfluenzaA,InfluenzaA,INF_A,989.0,354,True,,none,,54,36,ok,observed_rebound,49.45,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,11.0,11.0,11.0,6.0,False
+Hungary,InfluenzaB,InfluenzaB,INF_B,536.0,354,True,,none,,22,27,ok,observed_rebound,12.45,2020-04-01,2020-03-01,2023-02-01,35.0,False,2026-05-01,2015-03-01,21.0,12.0,23.0,6.0,False
+Iceland,RSV,RSV,RSV,317.0,354,True,,none,,49,65,ok,observed_rebound,5.65,2020-05-01,2020-04-01,2020-12-01,8.0,False,2026-05-01,2015-03-01,7.0,7.0,1.0,0.0,False
+Iceland,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Iceland,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Iceland,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Iceland,InfluenzaA,InfluenzaA,INF_A,364.0,354,True,,none,,58,54,ok,observed_rebound,8.7,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,9.0,9.0,14.0,0.0,False
+Iceland,InfluenzaB,InfluenzaB,INF_B,145.0,354,True,,none,,15,28,ok,observed_rebound,5.85,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,20.0,12.0,22.0,0.0,False
+India,RSV,RSV,RSV,324.0,354,True,,none,,24,57,ok,observed_rebound,3.75,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2017-02-01,9.0,9.0,13.0,0.0,False
+India,Metapneumovirus,Metapneumovirus,METAPNEUMO,128.0,354,True,,none,,8,43,ok,observed_rebound,2.5,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2017-01-01,4.0,4.0,6.0,0.0,False
+India,Parainfluenza,Parainfluenza,PARAINFLUENZA,62.0,354,True,,none,,4,4,ok,observed_rebound,3.1,2020-04-01,2020-03-01,2020-07-01,4.0,False,2026-05-01,2017-01-01,6.0,6.0,0.0,0.0,True
+India,Adenovirus,Adenovirus,ADENO,47.0,354,True,,none,,8,56,ok,observed_rebound,2.05,2020-04-01,2020-03-01,2021-03-01,12.0,False,2026-05-01,2017-01-01,4.0,4.0,8.0,0.0,False
+India,InfluenzaA,InfluenzaA,INF_A,2911.0,354,True,,none,,148,70,ok,observed_rebound,145.55,2020-04-01,2020-03-01,2021-07-01,16.0,False,2026-05-01,2015-03-01,15.0,12.0,4.0,0.0,False
+India,InfluenzaB,InfluenzaB,INF_B,839.0,354,True,,none,,81,60,ok,observed_rebound,16.45,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2015-03-01,14.0,12.0,5.0,0.0,False
+Indonesia,RSV,RSV,RSV,0.0,262,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Indonesia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,262,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Indonesia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,262,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Indonesia,Adenovirus,Adenovirus,ADENO,0.0,262,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Indonesia,InfluenzaA,InfluenzaA,INF_A,441.0,262,True,,none,,90,66,ok,observed_rebound,17.6,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,5.0,5.0,17.0,0.0,False
+Indonesia,InfluenzaB,InfluenzaB,INF_B,185.0,262,True,,none,,68,55,ok,observed_rebound,9.25,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,7.0,7.0,24.0,0.0,False
+Iran (Islamic Republic of),RSV,RSV,RSV,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Iran (Islamic Republic of),Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Iran (Islamic Republic of),Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Iran (Islamic Republic of),Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Iran (Islamic Republic of),InfluenzaA,InfluenzaA,INF_A,6424.0,354,True,,none,,93,61,ok,observed_rebound,137.45,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,11.0,11.0,9.0,0.0,False
+Iran (Islamic Republic of),InfluenzaB,InfluenzaB,INF_B,1211.0,354,True,,none,,66,55,ok,observed_rebound,34.0,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,21.0,12.0,19.0,0.0,False
+Iraq,RSV,RSV,RSV,0.0,210,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Iraq,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,210,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Iraq,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,210,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Iraq,Adenovirus,Adenovirus,ADENO,0.0,210,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Iraq,InfluenzaA,InfluenzaA,INF_A,847.0,210,True,,none,,27,35,ok,observed_rebound,42.35,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2015-03-01,12.0,12.0,9.0,7.0,False
+Iraq,InfluenzaB,InfluenzaB,INF_B,108.0,210,True,,none,,10,18,ok,observed_rebound,5.3,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-05-01,2016-01-01,21.0,12.0,20.0,7.0,False
+Ireland,RSV,RSV,RSV,585.0,354,True,,none,,67,58,ok,observed_rebound,29.25,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2015-03-01,7.0,7.0,10.0,3.0,False
+Ireland,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ireland,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ireland,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ireland,InfluenzaA,InfluenzaA,INF_A,1799.0,354,True,,none,,88,57,ok,observed_rebound,82.85,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,9.0,9.0,14.0,3.0,False
+Ireland,InfluenzaB,InfluenzaB,INF_B,1549.0,354,True,,none,,40,42,ok,observed_rebound,77.45,2020-04-01,2020-03-01,2023-03-01,36.0,False,2026-05-01,2015-03-01,20.0,12.0,24.0,3.0,False
+Israel,RSV,RSV,RSV,431.0,351,True,,none,,69,42,ok,observed_rebound,21.55,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-03-01,2015-03-01,8.0,8.0,12.0,6.0,False
+Israel,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,351,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+Israel,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,351,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+Israel,Adenovirus,Adenovirus,ADENO,0.0,351,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+Israel,InfluenzaA,InfluenzaA,INF_A,2112.0,351,True,,none,,91,41,ok,observed_rebound,105.6,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-03-01,2015-03-01,10.0,10.0,11.0,6.0,False
+Israel,InfluenzaB,InfluenzaB,INF_B,547.0,351,True,,none,,39,20,ok,observed_rebound,27.35,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-03-01,2015-03-01,20.0,12.0,22.0,6.0,False
+Italy,RSV,RSV,RSV,1979.0,351,True,,none,,10,11,excluded,no_pre2020_signal,,,,,,False,2026-02-01,,,,,,
+Italy,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,351,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-02-01,,,,,,
+Italy,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,351,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-02-01,,,,,,
+Italy,Adenovirus,Adenovirus,ADENO,0.0,351,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-02-01,,,,,,
+Italy,InfluenzaA,InfluenzaA,INF_A,8398.0,351,True,,none,,102,34,ok,observed_rebound,284.0,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-02-01,2015-03-01,11.0,11.0,13.0,6.0,False
+Italy,InfluenzaB,InfluenzaB,INF_B,2150.0,351,True,,none,,47,28,ok,observed_rebound,107.5,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-02-01,2015-03-01,21.0,12.0,22.0,6.0,False
+Jamaica,RSV,RSV,RSV,122.0,354,True,,none,,4,31,ok,observed_rebound,1.0,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-05-01,2015-03-01,33.0,12.0,20.0,7.0,False
+Jamaica,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Jamaica,Parainfluenza,Parainfluenza,PARAINFLUENZA,4.0,354,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Jamaica,Adenovirus,Adenovirus,ADENO,2.0,354,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Jamaica,InfluenzaA,InfluenzaA,INF_A,168.0,354,True,,none,,22,43,ok,observed_rebound,5.6,2020-04-01,2020-03-01,2022-06-01,27.0,False,2026-05-01,2015-03-01,14.0,12.0,15.0,7.0,False
+Jamaica,InfluenzaB,InfluenzaB,INF_B,63.0,354,True,,none,,3,28,ok,observed_rebound,1.85,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,22.0,12.0,22.0,7.0,False
+Japan,RSV,RSV,RSV,653.0,356,True,,none,,87,72,ok,observed_rebound,12.8,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2016-01-01,1.0,1.0,10.0,0.0,False
+Japan,Metapneumovirus,Metapneumovirus,METAPNEUMO,310.0,356,True,,none,,60,59,ok,observed_rebound,6.15,2020-05-01,2020-04-01,2022-05-01,25.0,False,2026-05-01,2016-02-01,1.0,1.0,24.0,0.0,False
+Japan,Parainfluenza,Parainfluenza,PARAINFLUENZA,1591.0,356,True,,none,,61,69,ok,observed_rebound,8.95,2020-04-01,2020-03-01,2021-04-01,13.0,False,2026-05-01,2016-06-01,1.0,1.0,12.0,0.0,False
+Japan,Adenovirus,Adenovirus,ADENO,417.0,356,True,,none,,118,75,excluded,no_dip_after_anchor,13.35,,,,,False,2026-05-01,2016-01-01,0.0,0.0,,,
+Japan,InfluenzaA,InfluenzaA,INF_A,7381.0,356,True,,none,,213,55,ok,observed_rebound,369.05,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,10.0,10.0,24.0,0.0,False
+Japan,InfluenzaB,InfluenzaB,INF_B,1974.0,356,True,,none,,142,44,ok,observed_rebound,98.7,2020-04-01,2020-03-01,2024-01-01,46.0,False,2026-05-01,2015-03-01,12.0,12.0,34.0,0.0,False
+Jordan,RSV,RSV,RSV,0.0,186,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Jordan,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,186,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Jordan,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,186,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Jordan,Adenovirus,Adenovirus,ADENO,0.0,186,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Jordan,InfluenzaA,InfluenzaA,INF_A,341.0,186,True,,none,,31,42,ok,observed_rebound,17.05,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-04-01,2015-03-01,11.0,11.0,10.0,0.0,False
+Jordan,InfluenzaB,InfluenzaB,INF_B,70.0,186,True,,none,,9,18,ok,observed_rebound,3.05,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-04-01,2015-03-01,19.0,12.0,21.0,0.0,False
+Kazakhstan,RSV,RSV,RSV,167.0,225,True,,none,,8,25,ok,observed_rebound,0.3,2020-04-01,2020-03-01,2024-01-01,46.0,False,2026-05-01,2015-03-01,55.0,12.0,34.0,6.0,False
+Kazakhstan,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,225,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Kazakhstan,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,225,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Kazakhstan,Adenovirus,Adenovirus,ADENO,0.0,225,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Kazakhstan,InfluenzaA,InfluenzaA,INF_A,1206.0,225,True,,none,,45,30,ok,observed_rebound,25.35,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,10.0,10.0,10.0,6.0,False
+Kazakhstan,InfluenzaB,InfluenzaB,INF_B,543.0,225,True,,none,,18,25,ok,observed_rebound,9.65,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,11.0,11.0,11.0,6.0,False
+Kenya,RSV,RSV,RSV,93.0,330,True,,none,,8,20,ok,observed_rebound,2.7,2020-04-01,2020-03-01,2024-01-01,46.0,False,2026-05-01,2019-02-01,9.0,9.0,37.0,3.0,False
+Kenya,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,330,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Kenya,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,330,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Kenya,Adenovirus,Adenovirus,ADENO,0.0,330,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Kenya,InfluenzaA,InfluenzaA,INF_A,452.0,330,True,,none,,70,66,ok,observed_rebound,22.6,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2015-03-01,40.0,12.0,0.0,3.0,True
+Kenya,InfluenzaB,InfluenzaB,INF_B,164.0,330,True,,none,,25,53,ok,observed_rebound,8.2,2020-04-01,2020-03-01,2020-11-01,8.0,False,2026-05-01,2015-03-01,49.0,12.0,0.0,3.0,True
+Kosovo (in accordance with UN Security Council resolution 1244 (1999)),RSV,RSV,RSV,72.0,113,True,,none,,5,18,ok,observed_rebound,0.1,2020-04-01,2020-03-01,2022-01-01,22.0,False,2025-05-01,2015-03-01,28.0,12.0,10.0,8.0,False
+Kosovo (in accordance with UN Security Council resolution 1244 (1999)),Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,113,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-05-01,,,,,,
+Kosovo (in accordance with UN Security Council resolution 1244 (1999)),Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,113,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-05-01,,,,,,
+Kosovo (in accordance with UN Security Council resolution 1244 (1999)),Adenovirus,Adenovirus,ADENO,0.0,113,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-05-01,,,,,,
+Kosovo (in accordance with UN Security Council resolution 1244 (1999)),InfluenzaA,InfluenzaA,INF_A,337.0,113,True,,none,,20,22,excluded,zero_testing_explains_excess_gap,10.55,2020-04-01,2020-03-01,2021-11-01,20.0,False,2025-05-01,2016-02-01,12.0,12.0,8.0,8.0,False
+Kosovo (in accordance with UN Security Council resolution 1244 (1999)),InfluenzaB,InfluenzaB,INF_B,202.0,113,True,,none,,11,19,excluded,zero_testing_explains_excess_gap,6.25,2020-04-01,2020-03-01,2021-04-01,13.0,False,2025-05-01,2016-02-01,21.0,12.0,1.0,8.0,False
+Kuwait,RSV,RSV,RSV,734.0,106,True,,none,,17,20,excluded,zero_testing_explains_excess_gap,7.3,2020-04-01,2020-03-01,2024-10-01,55.0,False,2026-05-01,2018-01-01,6.0,6.0,49.0,53.0,False
+Kuwait,Metapneumovirus,Metapneumovirus,METAPNEUMO,30.0,106,False,insufficient_post_nonzero_months,none,,1,0,excluded,insufficient_post_nonzero_months,,,,,,False,2026-05-01,,,,,,
+Kuwait,Parainfluenza,Parainfluenza,PARAINFLUENZA,30.0,106,False,insufficient_post_nonzero_months,none,,1,0,excluded,insufficient_post_nonzero_months,,,,,,False,2026-05-01,,,,,,
+Kuwait,Adenovirus,Adenovirus,ADENO,39.0,106,False,insufficient_post_nonzero_months,none,,1,0,excluded,insufficient_post_nonzero_months,,,,,,False,2026-05-01,,,,,,
+Kuwait,InfluenzaA,InfluenzaA,INF_A,2206.0,106,True,,none,,30,18,excluded,zero_testing_explains_excess_gap,110.3,2020-04-01,2020-03-01,2024-11-01,56.0,False,2026-05-01,2017-09-01,8.0,8.0,48.0,53.0,False
+Kuwait,InfluenzaB,InfluenzaB,INF_B,550.0,106,True,,none,,22,17,excluded,zero_testing_explains_excess_gap,27.5,2020-04-01,2020-03-01,2024-11-01,56.0,False,2026-05-01,2017-10-01,7.0,7.0,49.0,53.0,False
+Kyrgyzstan,RSV,RSV,RSV,4.0,222,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Kyrgyzstan,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Kyrgyzstan,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Kyrgyzstan,Adenovirus,Adenovirus,ADENO,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Kyrgyzstan,InfluenzaA,InfluenzaA,INF_A,229.0,222,True,,none,,16,18,excluded,zero_testing_explains_excess_gap,11.45,2020-04-01,2020-03-01,2021-09-01,18.0,False,2026-05-01,2015-03-01,12.0,12.0,6.0,8.0,False
+Kyrgyzstan,InfluenzaB,InfluenzaB,INF_B,114.0,222,True,,none,,9,15,ok,observed_rebound,5.7,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-05-01,2015-03-01,19.0,12.0,20.0,8.0,False
+Lao People's Democratic Republic,RSV,RSV,RSV,0.0,187,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Lao People's Democratic Republic,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,187,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Lao People's Democratic Republic,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,187,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Lao People's Democratic Republic,Adenovirus,Adenovirus,ADENO,0.0,187,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Lao People's Democratic Republic,InfluenzaA,InfluenzaA,INF_A,201.0,187,True,,none,,59,53,ok,observed_rebound,8.7,2020-04-01,2020-03-01,2020-09-01,6.0,False,2026-05-01,2015-03-01,8.0,8.0,0.0,0.0,True
+Lao People's Democratic Republic,InfluenzaB,InfluenzaB,INF_B,89.0,187,True,,none,,21,43,ok,observed_rebound,3.3,2020-04-01,2020-03-01,2022-06-01,27.0,False,2026-05-01,2015-03-01,5.0,5.0,22.0,0.0,False
+Latvia,RSV,RSV,RSV,175.0,365,True,,none,,39,47,ok,observed_rebound,7.9,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-04-01,2015-03-01,8.0,8.0,11.0,3.0,False
+Latvia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,365,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Latvia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,365,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Latvia,Adenovirus,Adenovirus,ADENO,0.0,365,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Latvia,InfluenzaA,InfluenzaA,INF_A,983.0,365,True,,none,,79,39,ok,observed_rebound,49.15,2020-04-01,2020-03-01,2022-05-01,26.0,False,2026-04-01,2015-03-01,9.0,9.0,17.0,3.0,False
+Latvia,InfluenzaB,InfluenzaB,INF_B,597.0,365,True,,none,,37,24,ok,right_censored,29.85,2020-04-01,2020-03-01,,73.0,True,2026-04-01,2015-03-01,18.0,12.0,61.0,4.0,False
+Lebanon,RSV,RSV,RSV,0.0,138,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Lebanon,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,138,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Lebanon,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,138,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Lebanon,Adenovirus,Adenovirus,ADENO,0.0,138,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Lebanon,InfluenzaA,InfluenzaA,INF_A,178.0,138,True,,none,,22,41,ok,observed_rebound,4.0,2020-05-01,2020-04-01,2021-09-01,17.0,False,2026-05-01,2016-02-01,10.0,10.0,7.0,4.0,False
+Lebanon,InfluenzaB,InfluenzaB,INF_B,118.0,138,True,,none,,6,22,ok,observed_rebound,5.9,2020-04-01,2020-03-01,2023-05-01,38.0,False,2026-05-01,2015-03-01,11.0,11.0,27.0,4.0,False
+Lesotho,RSV,RSV,RSV,2.0,10,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2025-10-01,,,,,,
+Lesotho,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,10,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-10-01,,,,,,
+Lesotho,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,10,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-10-01,,,,,,
+Lesotho,Adenovirus,Adenovirus,ADENO,0.0,10,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-10-01,,,,,,
+Lesotho,InfluenzaA,InfluenzaA,INF_A,31.0,10,True,,none,,1,6,excluded,insufficient_months,,,,,,False,2025-10-01,,,,,,
+Lesotho,InfluenzaB,InfluenzaB,INF_B,1.0,10,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2025-10-01,,,,,,
+Liberia,RSV,RSV,RSV,0.0,45,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Liberia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,45,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Liberia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,45,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Liberia,Adenovirus,Adenovirus,ADENO,0.0,45,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Liberia,InfluenzaA,InfluenzaA,INF_A,0.0,45,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Liberia,InfluenzaB,InfluenzaB,INF_B,73.0,45,True,,none,,5,16,excluded,insufficient_pre2020_baseline,,,,,,False,2026-04-01,,,,,,
+Libya,RSV,RSV,RSV,19.0,44,False,low_activity_all_months_below_threshold,none,,0,11,excluded,low_activity_all_months_below_threshold,,,,,,False,2025-09-01,,,,,,
+Libya,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,44,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-09-01,,,,,,
+Libya,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,44,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-09-01,,,,,,
+Libya,Adenovirus,Adenovirus,ADENO,0.0,44,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-09-01,,,,,,
+Libya,InfluenzaA,InfluenzaA,INF_A,99.0,44,True,,none,,3,21,excluded,insufficient_pre2020_baseline,,,,,,False,2025-09-01,,,,,,
+Libya,InfluenzaB,InfluenzaB,INF_B,22.0,44,False,low_activity_all_months_below_threshold,none,,0,19,excluded,low_activity_all_months_below_threshold,,,,,,False,2025-09-01,,,,,,
+Liechtenstein,RSV,RSV,RSV,0.0,72,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Liechtenstein,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,72,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Liechtenstein,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,72,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Liechtenstein,Adenovirus,Adenovirus,ADENO,0.0,72,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Liechtenstein,InfluenzaA,InfluenzaA,INF_A,71.0,72,True,,none,,4,30,excluded,insufficient_pre2020_baseline,,,,,,False,2026-05-01,,,,,,
+Liechtenstein,InfluenzaB,InfluenzaB,INF_B,13.0,72,False,low_activity_all_months_below_threshold,none,,0,11,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Lithuania,RSV,RSV,RSV,605.0,200,True,,none,,17,34,ok,observed_rebound,0.75,2020-04-01,2020-03-01,2021-09-01,18.0,False,2026-03-01,2015-03-01,22.0,12.0,6.0,3.0,False
+Lithuania,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,200,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+Lithuania,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,200,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+Lithuania,Adenovirus,Adenovirus,ADENO,0.0,200,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+Lithuania,InfluenzaA,InfluenzaA,INF_A,1427.0,200,True,,none,,50,42,ok,observed_rebound,48.7,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-03-01,2015-03-01,21.0,12.0,10.0,3.0,False
+Lithuania,InfluenzaB,InfluenzaB,INF_B,401.0,200,True,,none,,22,24,ok,observed_rebound,20.05,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-03-01,2015-03-01,21.0,12.0,22.0,3.0,False
+Luxembourg,RSV,RSV,RSV,1502.0,270,True,,none,,28,55,ok,observed_rebound,1.8,2020-04-01,2020-03-01,2021-03-01,12.0,False,2026-05-01,2020-01-01,0.0,0.0,12.0,4.0,False
+Luxembourg,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,270,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Luxembourg,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,270,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Luxembourg,Adenovirus,Adenovirus,ADENO,0.0,270,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Luxembourg,InfluenzaA,InfluenzaA,INF_A,5371.0,270,True,,none,,62,50,ok,observed_rebound,20.7,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,10.0,10.0,13.0,4.0,False
+Luxembourg,InfluenzaB,InfluenzaB,INF_B,3457.0,270,True,,none,,30,45,ok,observed_rebound,12.2,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,21.0,12.0,12.0,4.0,False
+Madagascar,RSV,RSV,RSV,50.0,354,True,,none,,2,16,ok,observed_rebound,2.0,2020-05-01,2020-04-01,2020-11-01,7.0,False,2026-05-01,2016-03-01,10.0,10.0,0.0,0.0,True
+Madagascar,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Madagascar,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Madagascar,Adenovirus,Adenovirus,ADENO,7.0,354,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Madagascar,InfluenzaA,InfluenzaA,INF_A,423.0,354,True,,none,,76,54,ok,observed_rebound,21.15,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,11.0,11.0,9.0,0.0,False
+Madagascar,InfluenzaB,InfluenzaB,INF_B,168.0,354,True,,none,,41,48,ok,observed_rebound,3.45,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2015-03-01,8.0,8.0,9.0,0.0,False
+Malaysia,RSV,RSV,RSV,91.0,354,True,,none,,34,59,ok,observed_rebound,2.25,2020-04-01,2020-03-01,2020-09-01,6.0,False,2026-05-01,2016-08-01,3.0,3.0,3.0,0.0,False
+Malaysia,Metapneumovirus,Metapneumovirus,METAPNEUMO,53.0,354,True,,none,,4,44,ok,observed_rebound,0.35,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,17.0,12.0,12.0,0.0,False
+Malaysia,Parainfluenza,Parainfluenza,PARAINFLUENZA,33.0,354,True,,none,,3,41,ok,observed_rebound,0.55,2020-04-01,2020-03-01,2021-05-01,14.0,False,2026-05-01,2015-03-01,14.0,12.0,2.0,0.0,False
+Malaysia,Adenovirus,Adenovirus,ADENO,48.0,354,True,,none,,11,59,ok,observed_rebound,1.2,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,16.0,12.0,8.0,0.0,False
+Malaysia,InfluenzaA,InfluenzaA,INF_A,1514.0,354,True,,none,,97,60,ok,observed_rebound,17.6,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,22.0,12.0,8.0,0.0,False
+Malaysia,InfluenzaB,InfluenzaB,INF_B,1241.0,354,True,,none,,50,58,ok,observed_rebound,5.55,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,10.0,10.0,10.0,0.0,False
+Maldives,RSV,RSV,RSV,0.0,136,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Maldives,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,136,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Maldives,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,136,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Maldives,Adenovirus,Adenovirus,ADENO,0.0,136,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Maldives,InfluenzaA,InfluenzaA,INF_A,536.0,136,True,,none,,26,57,ok,observed_rebound,13.15,2020-04-01,2020-03-01,2021-09-01,18.0,False,2026-04-01,2017-02-01,12.0,12.0,6.0,0.0,False
+Maldives,InfluenzaB,InfluenzaB,INF_B,68.0,136,True,,none,,3,47,ok,observed_rebound,3.3,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-04-01,2017-10-01,7.0,7.0,12.0,0.0,False
+Mali,RSV,RSV,RSV,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mali,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mali,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mali,Adenovirus,Adenovirus,ADENO,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mali,InfluenzaA,InfluenzaA,INF_A,47.0,197,True,,none,,10,39,ok,observed_rebound,2.35,2020-04-01,2020-03-01,2020-08-01,5.0,False,2026-05-01,2015-03-01,10.0,10.0,0.0,0.0,True
+Mali,InfluenzaB,InfluenzaB,INF_B,50.0,197,True,,none,,2,24,ok,observed_rebound,2.5,2020-05-01,2020-04-01,2022-10-01,30.0,False,2026-05-01,2017-02-01,11.0,11.0,19.0,0.0,False
+Malta,RSV,RSV,RSV,312.0,206,True,,none,,35,44,excluded,zero_testing_explains_excess_gap,6.6,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,33.0,12.0,19.0,30.0,False
+Malta,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,206,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Malta,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,206,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Malta,Adenovirus,Adenovirus,ADENO,0.0,206,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Malta,InfluenzaA,InfluenzaA,INF_A,1033.0,206,True,,none,,55,43,excluded,zero_testing_explains_excess_gap,24.6,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,9.0,9.0,22.0,30.0,False
+Malta,InfluenzaB,InfluenzaB,INF_B,481.0,206,True,,none,,11,37,excluded,zero_testing_explains_excess_gap,24.05,2020-04-01,2020-03-01,2023-02-01,35.0,False,2026-05-01,2015-03-01,22.0,12.0,23.0,30.0,False
+Martinique,RSV,RSV,RSV,1.0,222,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Martinique,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Martinique,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Martinique,Adenovirus,Adenovirus,ADENO,0.0,222,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Martinique,InfluenzaA,InfluenzaA,INF_A,100.0,222,True,,none,,12,11,excluded,zero_testing_explains_excess_gap,5.0,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,10.0,10.0,12.0,21.0,False
+Martinique,InfluenzaB,InfluenzaB,INF_B,51.0,222,True,,none,,2,9,excluded,zero_testing_explains_excess_gap,2.55,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,20.0,12.0,12.0,21.0,False
+Mauritania,RSV,RSV,RSV,0.0,125,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mauritania,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,125,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mauritania,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,125,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mauritania,Adenovirus,Adenovirus,ADENO,0.0,125,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mauritania,InfluenzaA,InfluenzaA,INF_A,51.0,125,True,,none,,2,24,excluded,no_excess_gap_vs_pre2020_country_level,1.15,2020-04-01,2020-03-01,2020-10-01,7.0,False,2026-05-01,2015-03-01,8.0,8.0,0.0,5.0,False
+Mauritania,InfluenzaB,InfluenzaB,INF_B,9.0,125,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Mauritius,RSV,RSV,RSV,79.0,338,True,,none,,5,43,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Mauritius,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,338,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mauritius,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,338,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mauritius,Adenovirus,Adenovirus,ADENO,22.0,338,False,low_activity_all_months_below_threshold,none,,0,42,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Mauritius,InfluenzaA,InfluenzaA,INF_A,146.0,338,True,,none,,29,50,excluded,zero_testing_explains_excess_gap,7.3,2020-04-01,2020-03-01,2022-05-01,26.0,False,2026-05-01,2015-03-01,10.0,10.0,16.0,16.0,False
+Mauritius,InfluenzaB,InfluenzaB,INF_B,78.0,338,True,,none,,3,28,ok,observed_rebound,0.9,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,23.0,12.0,19.0,16.0,False
+Mexico,RSV,RSV,RSV,749.0,352,True,,none,,50,70,ok,observed_rebound,4.1,2020-04-01,2020-03-01,2021-07-01,16.0,False,2026-05-01,2017-10-01,7.0,7.0,9.0,0.0,False
+Mexico,Metapneumovirus,Metapneumovirus,METAPNEUMO,232.0,352,True,,none,,28,73,ok,observed_rebound,1.7,2020-07-01,2020-06-01,2020-11-01,5.0,False,2026-05-01,2018-10-01,7.0,7.0,0.0,0.0,True
+Mexico,Parainfluenza,Parainfluenza,PARAINFLUENZA,164.0,352,True,,none,,42,66,ok,observed_rebound,1.1,2020-04-01,2020-03-01,2020-06-01,3.0,False,2026-05-01,2015-03-01,11.0,11.0,0.0,0.0,True
+Mexico,Adenovirus,Adenovirus,ADENO,84.0,352,True,,none,,27,72,ok,observed_rebound,0.9,2020-07-01,2020-06-01,2020-08-01,2.0,False,2026-05-01,2015-03-01,7.0,7.0,0.0,0.0,True
+Mexico,InfluenzaA,InfluenzaA,INF_A,22793.0,352,True,,none,,182,68,ok,observed_rebound,1139.65,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,11.0,11.0,20.0,0.0,False
+Mexico,InfluenzaB,InfluenzaB,INF_B,978.0,352,True,,none,,103,58,ok,observed_rebound,48.9,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,9.0,9.0,25.0,0.0,False
+Mongolia,RSV,RSV,RSV,533.0,333,True,,none,,32,54,ok,observed_rebound,6.75,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2016-12-01,8.0,8.0,14.0,1.0,False
+Mongolia,Metapneumovirus,Metapneumovirus,METAPNEUMO,53.0,333,True,,none,,5,39,ok,observed_rebound,1.35,2020-04-01,2020-03-01,2022-05-01,26.0,False,2026-05-01,2015-03-01,11.0,11.0,15.0,1.0,False
+Mongolia,Parainfluenza,Parainfluenza,PARAINFLUENZA,39.0,333,True,,none,,2,31,ok,observed_rebound,1.65,2020-04-01,2020-03-01,2021-03-01,12.0,False,2026-05-01,2016-12-01,3.0,3.0,9.0,0.0,False
+Mongolia,Adenovirus,Adenovirus,ADENO,52.0,333,True,,none,,3,59,ok,observed_rebound,0.85,2020-05-01,2020-04-01,2020-06-01,2.0,False,2026-05-01,2015-03-01,3.0,3.0,0.0,0.0,True
+Mongolia,InfluenzaA,InfluenzaA,INF_A,797.0,333,True,,none,,55,39,ok,observed_rebound,39.85,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,13.0,12.0,12.0,1.0,False
+Mongolia,InfluenzaB,InfluenzaB,INF_B,331.0,333,True,,none,,25,23,ok,observed_rebound,13.1,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,22.0,12.0,21.0,1.0,False
+Montenegro,RSV,RSV,RSV,104.0,220,True,,none,,7,23,excluded,no_pre2020_signal,,,,,,False,2026-04-01,,,,,,
+Montenegro,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,220,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Montenegro,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,220,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Montenegro,Adenovirus,Adenovirus,ADENO,0.0,220,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Montenegro,InfluenzaA,InfluenzaA,INF_A,477.0,220,True,,none,,22,31,ok,observed_rebound,11.9,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-04-01,2016-02-01,12.0,12.0,9.0,6.0,False
+Montenegro,InfluenzaB,InfluenzaB,INF_B,147.0,220,True,,none,,11,17,ok,observed_rebound,6.0,2020-04-01,2020-03-01,2023-02-01,35.0,False,2026-04-01,2018-01-01,21.0,12.0,23.0,6.0,False
+Montserrat,RSV,RSV,RSV,0.0,1,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2008-03-01,,,,,,
+Montserrat,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,1,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2008-03-01,,,,,,
+Montserrat,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,1,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2008-03-01,,,,,,
+Montserrat,Adenovirus,Adenovirus,ADENO,0.0,1,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2008-03-01,,,,,,
+Montserrat,InfluenzaA,InfluenzaA,INF_A,2.0,1,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2008-03-01,,,,,,
+Montserrat,InfluenzaB,InfluenzaB,INF_B,0.0,1,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2008-03-01,,,,,,
+Morocco,RSV,RSV,RSV,242.0,344,True,,none,,8,25,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Morocco,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,344,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Morocco,Parainfluenza,Parainfluenza,PARAINFLUENZA,1.0,344,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Morocco,Adenovirus,Adenovirus,ADENO,0.0,344,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Morocco,InfluenzaA,InfluenzaA,INF_A,868.0,344,True,,none,,40,29,ok,observed_rebound,43.4,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2015-03-01,11.0,11.0,10.0,9.0,False
+Morocco,InfluenzaB,InfluenzaB,INF_B,117.0,344,True,,none,,11,22,ok,observed_rebound,5.85,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-05-01,2015-03-01,20.0,12.0,20.0,9.0,False
+Mozambique,RSV,RSV,RSV,114.0,160,True,,none,,11,43,ok,observed_rebound,1.85,2020-04-01,2020-03-01,2022-05-01,26.0,False,2026-05-01,2018-04-01,18.0,12.0,14.0,6.0,False
+Mozambique,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,160,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mozambique,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,160,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mozambique,Adenovirus,Adenovirus,ADENO,0.0,160,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Mozambique,InfluenzaA,InfluenzaA,INF_A,109.0,160,True,,none,,17,51,ok,observed_rebound,2.8,2020-05-01,2020-04-01,2021-12-01,20.0,False,2026-05-01,2019-03-01,10.0,10.0,10.0,6.0,False
+Mozambique,InfluenzaB,InfluenzaB,INF_B,71.0,160,True,,none,,3,43,excluded,zero_testing_explains_excess_gap,0.8,2020-05-01,2020-04-01,2021-05-01,13.0,False,2026-05-01,2015-03-01,11.0,11.0,2.0,6.0,False
+Myanmar,RSV,RSV,RSV,0.0,125,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Myanmar,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,125,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Myanmar,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,125,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Myanmar,Adenovirus,Adenovirus,ADENO,0.0,125,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Myanmar,InfluenzaA,InfluenzaA,INF_A,340.0,125,True,,none,,11,28,ok,observed_rebound,17.0,2020-04-01,2020-03-01,2023-07-01,40.0,False,2026-05-01,2016-08-01,11.0,11.0,29.0,8.0,False
+Myanmar,InfluenzaB,InfluenzaB,INF_B,129.0,125,True,,none,,6,8,ok,observed_rebound,6.45,2020-04-01,2020-03-01,2024-07-01,52.0,False,2026-05-01,2016-06-01,25.0,12.0,40.0,8.0,False
+Namibia,RSV,RSV,RSV,0.0,47,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-06-01,,,,,,
+Namibia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,47,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-06-01,,,,,,
+Namibia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,47,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-06-01,,,,,,
+Namibia,Adenovirus,Adenovirus,ADENO,0.0,47,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-06-01,,,,,,
+Namibia,InfluenzaA,InfluenzaA,INF_A,92.0,47,True,,none,,4,23,excluded,insufficient_pre2020_baseline,,,,,,False,2025-06-01,,,,,,
+Namibia,InfluenzaB,InfluenzaB,INF_B,11.0,47,False,low_activity_all_months_below_threshold,none,,0,18,excluded,low_activity_all_months_below_threshold,,,,,,False,2025-06-01,,,,,,
+Nepal,RSV,RSV,RSV,77.0,180,True,,none,,3,38,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Nepal,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,180,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Nepal,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,180,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Nepal,Adenovirus,Adenovirus,ADENO,0.0,180,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Nepal,InfluenzaA,InfluenzaA,INF_A,1053.0,180,True,,none,,77,64,ok,observed_rebound,52.65,2020-04-01,2020-03-01,2021-07-01,16.0,False,2026-05-01,2015-03-01,10.0,10.0,6.0,0.0,False
+Nepal,InfluenzaB,InfluenzaB,INF_B,370.0,180,True,,none,,49,51,ok,observed_rebound,18.5,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2015-03-01,10.0,10.0,7.0,0.0,False
+Netherlands (Kingdom of the),RSV,RSV,RSV,1950.0,356,True,,none,,139,73,ok,observed_rebound,52.4,2020-04-01,2020-03-01,2021-06-01,15.0,False,2026-05-01,2015-03-01,7.0,7.0,8.0,0.0,False
+Netherlands (Kingdom of the),Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,356,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Netherlands (Kingdom of the),Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,356,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Netherlands (Kingdom of the),Adenovirus,Adenovirus,ADENO,0.0,356,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Netherlands (Kingdom of the),InfluenzaA,InfluenzaA,INF_A,6682.0,356,True,,none,,141,63,ok,observed_rebound,112.05,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2015-03-01,9.0,9.0,10.0,0.0,False
+Netherlands (Kingdom of the),InfluenzaB,InfluenzaB,INF_B,1206.0,356,True,,none,,56,59,ok,observed_rebound,36.45,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,21.0,12.0,12.0,0.0,False
+New Caledonia,RSV,RSV,RSV,74.0,339,True,,none,,4,41,ok,observed_rebound,0.95,2020-04-01,2020-03-01,2020-07-01,4.0,False,2026-03-01,2015-03-01,35.0,12.0,0.0,0.0,True
+New Caledonia,Metapneumovirus,Metapneumovirus,METAPNEUMO,6.0,339,False,low_activity_all_months_below_threshold,none,,0,16,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-03-01,,,,,,
+New Caledonia,Parainfluenza,Parainfluenza,PARAINFLUENZA,11.0,339,False,low_activity_all_months_below_threshold,none,,0,17,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-03-01,,,,,,
+New Caledonia,Adenovirus,Adenovirus,ADENO,7.0,339,False,low_activity_all_months_below_threshold,none,,0,18,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-03-01,,,,,,
+New Caledonia,InfluenzaA,InfluenzaA,INF_A,325.0,339,True,,none,,33,39,excluded,zero_testing_explains_excess_gap,16.25,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-03-01,2015-03-01,12.0,12.0,12.0,12.0,False
+New Caledonia,InfluenzaB,InfluenzaB,INF_B,78.0,339,True,,none,,9,13,ok,observed_rebound,2.55,2020-04-01,2020-03-01,2023-03-01,36.0,False,2026-03-01,2015-03-01,16.0,12.0,24.0,12.0,False
+New Zealand,RSV,RSV,RSV,104.0,352,True,,none,,14,41,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+New Zealand,Metapneumovirus,Metapneumovirus,METAPNEUMO,62.0,352,True,,none,,7,39,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+New Zealand,Parainfluenza,Parainfluenza,PARAINFLUENZA,38.0,352,True,,none,,2,40,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+New Zealand,Adenovirus,Adenovirus,ADENO,14.0,352,False,low_activity_all_months_below_threshold,none,,0,41,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+New Zealand,InfluenzaA,InfluenzaA,INF_A,1226.0,352,True,,none,,86,41,excluded,zero_testing_explains_excess_gap,61.3,2020-04-01,2020-03-01,2023-04-01,37.0,False,2026-05-01,2015-03-01,10.0,10.0,27.0,27.0,False
+New Zealand,InfluenzaB,InfluenzaB,INF_B,1240.0,352,True,,none,,41,34,ok,right_censored,62.0,2020-04-01,2020-03-01,,74.0,True,2026-05-01,2015-03-01,20.0,12.0,62.0,27.0,False
+Nicaragua,RSV,RSV,RSV,365.0,197,True,,none,,29,57,ok,observed_rebound,11.0,2020-04-01,2020-03-01,2020-11-01,8.0,False,2026-05-01,2015-11-01,14.0,12.0,0.0,0.0,True
+Nicaragua,Metapneumovirus,Metapneumovirus,METAPNEUMO,81.0,197,True,,none,,2,31,ok,observed_rebound,0.95,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2015-03-01,19.0,12.0,9.0,0.0,False
+Nicaragua,Parainfluenza,Parainfluenza,PARAINFLUENZA,79.0,197,True,,none,,9,62,ok,observed_rebound,1.85,2020-04-01,2020-03-01,2020-12-01,9.0,False,2026-05-01,2017-06-01,3.0,3.0,6.0,0.0,False
+Nicaragua,Adenovirus,Adenovirus,ADENO,20.0,197,False,low_activity_all_months_below_threshold,none,,0,38,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Nicaragua,InfluenzaA,InfluenzaA,INF_A,696.0,197,True,,none,,48,53,ok,observed_rebound,34.8,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,10.0,10.0,12.0,0.0,False
+Nicaragua,InfluenzaB,InfluenzaB,INF_B,272.0,197,True,,none,,33,50,ok,observed_rebound,13.6,2020-04-01,2020-03-01,2022-08-01,29.0,False,2026-05-01,2015-03-01,19.0,12.0,17.0,0.0,False
+Niger,RSV,RSV,RSV,161.0,209,True,,none,,23,62,ok,observed_rebound,2.5,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2019-01-01,2.0,2.0,8.0,0.0,False
+Niger,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,209,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Niger,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,209,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Niger,Adenovirus,Adenovirus,ADENO,0.0,209,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Niger,InfluenzaA,InfluenzaA,INF_A,88.0,209,True,,none,,15,59,ok,observed_rebound,2.1,2020-04-01,2020-03-01,2020-09-01,6.0,False,2026-05-01,2016-02-01,8.0,8.0,0.0,0.0,True
+Niger,InfluenzaB,InfluenzaB,INF_B,63.0,209,True,,none,,6,38,ok,observed_rebound,1.55,2020-04-01,2020-03-01,2020-10-01,7.0,False,2026-05-01,2017-01-01,10.0,10.0,0.0,0.0,True
+Nigeria,RSV,RSV,RSV,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Nigeria,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Nigeria,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Nigeria,Adenovirus,Adenovirus,ADENO,0.0,197,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Nigeria,InfluenzaA,InfluenzaA,INF_A,49.0,197,True,,none,,6,48,excluded,no_excess_gap_vs_pre2020_country_level,2.45,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2015-03-01,16.0,12.0,0.0,9.0,False
+Nigeria,InfluenzaB,InfluenzaB,INF_B,23.0,197,False,low_activity_all_months_below_threshold,none,,0,33,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+North Macedonia,RSV,RSV,RSV,54.0,192,True,,none,,3,16,ok,observed_rebound,0.35,2020-04-01,2020-03-01,2022-10-01,31.0,False,2025-03-01,2015-03-01,45.0,12.0,19.0,7.0,False
+North Macedonia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,192,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-03-01,,,,,,
+North Macedonia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,192,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-03-01,,,,,,
+North Macedonia,Adenovirus,Adenovirus,ADENO,0.0,192,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-03-01,,,,,,
+North Macedonia,InfluenzaA,InfluenzaA,INF_A,244.0,192,True,,none,,13,20,ok,observed_rebound,12.2,2020-04-01,2020-03-01,2022-12-01,33.0,False,2025-03-01,2018-02-01,9.0,9.0,24.0,7.0,False
+North Macedonia,InfluenzaB,InfluenzaB,INF_B,73.0,192,True,,none,,6,20,ok,observed_rebound,3.65,2020-04-01,2020-03-01,2023-02-01,35.0,False,2025-03-01,2018-02-01,21.0,12.0,23.0,7.0,False
+Norway,RSV,RSV,RSV,5727.0,354,True,,none,,22,37,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Norway,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Norway,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Norway,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Norway,InfluenzaA,InfluenzaA,INF_A,16712.0,354,True,,none,,173,65,ok,observed_rebound,421.25,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,8.0,8.0,14.0,0.0,False
+Norway,InfluenzaB,InfluenzaB,INF_B,7872.0,354,True,,none,,107,65,ok,observed_rebound,393.6,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,19.0,12.0,22.0,0.0,False
+Oman,RSV,RSV,RSV,286.0,219,True,,none,,35,61,ok,observed_rebound,14.3,2020-04-01,2020-03-01,2021-03-01,12.0,False,2026-05-01,2017-09-01,7.0,7.0,5.0,1.0,False
+Oman,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,219,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Oman,Parainfluenza,Parainfluenza,PARAINFLUENZA,47.0,219,True,,none,,11,59,ok,observed_rebound,2.35,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2017-01-01,3.0,3.0,8.0,1.0,False
+Oman,Adenovirus,Adenovirus,ADENO,39.0,219,True,,none,,2,67,ok,observed_rebound,1.25,2020-04-01,2020-03-01,2020-11-01,8.0,False,2026-05-01,2015-03-01,22.0,12.0,0.0,1.0,True
+Oman,InfluenzaA,InfluenzaA,INF_A,906.0,219,True,,none,,104,59,ok,observed_rebound,45.3,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2015-03-01,8.0,8.0,11.0,1.0,False
+Oman,InfluenzaB,InfluenzaB,INF_B,196.0,219,True,,none,,44,64,ok,observed_rebound,9.8,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,8.0,8.0,12.0,1.0,False
+Pakistan,RSV,RSV,RSV,197.0,223,True,,none,,2,4,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Pakistan,Metapneumovirus,Metapneumovirus,METAPNEUMO,2.0,223,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Pakistan,Parainfluenza,Parainfluenza,PARAINFLUENZA,1.0,223,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Pakistan,Adenovirus,Adenovirus,ADENO,2.0,223,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Pakistan,InfluenzaA,InfluenzaA,INF_A,514.0,223,True,,none,,53,58,excluded,no_excess_gap_vs_pre2020_country_level,25.7,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2015-03-01,21.0,12.0,0.0,5.0,False
+Pakistan,InfluenzaB,InfluenzaB,INF_B,393.0,223,True,,none,,19,51,excluded,no_excess_gap_vs_pre2020_country_level,6.95,2020-04-01,2020-03-01,2020-10-01,7.0,False,2026-05-01,2015-03-01,22.0,12.0,0.0,5.0,False
+Panama,RSV,RSV,RSV,481.0,233,True,,none,,63,53,ok,observed_rebound,16.9,2020-04-01,2020-03-01,2022-05-01,26.0,False,2026-05-01,2015-03-01,6.0,6.0,20.0,16.0,False
+Panama,Metapneumovirus,Metapneumovirus,METAPNEUMO,102.0,233,True,,none,,29,53,ok,observed_rebound,3.1,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-07-01,5.0,5.0,17.0,16.0,False
+Panama,Parainfluenza,Parainfluenza,PARAINFLUENZA,102.0,233,True,,none,,39,57,ok,observed_rebound,4.9,2020-05-01,2020-04-01,2022-01-01,21.0,False,2026-05-01,2015-03-01,2.0,2.0,19.0,16.0,False
+Panama,Adenovirus,Adenovirus,ADENO,61.0,233,True,,none,,7,57,ok,observed_rebound,3.05,2020-05-01,2020-04-01,2022-01-01,21.0,False,2026-05-01,2016-05-01,0.0,0.0,21.0,16.0,False
+Panama,InfluenzaA,InfluenzaA,INF_A,424.0,233,True,,none,,44,52,excluded,zero_testing_explains_excess_gap,21.2,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,13.0,12.0,10.0,16.0,False
+Panama,InfluenzaB,InfluenzaB,INF_B,98.0,233,True,,none,,13,42,ok,observed_rebound,4.65,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,26.0,12.0,19.0,16.0,False
+Papua New Guinea,RSV,RSV,RSV,10.0,341,False,low_activity_all_months_below_threshold,none,,0,7,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Papua New Guinea,Metapneumovirus,Metapneumovirus,METAPNEUMO,1.0,341,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Papua New Guinea,Parainfluenza,Parainfluenza,PARAINFLUENZA,3.0,341,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Papua New Guinea,Adenovirus,Adenovirus,ADENO,2.0,341,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Papua New Guinea,InfluenzaA,InfluenzaA,INF_A,93.0,341,True,,none,,2,15,excluded,zero_testing_explains_excess_gap,4.65,2020-04-01,2020-03-01,2024-01-01,46.0,False,2026-05-01,2016-03-01,20.0,12.0,34.0,44.0,False
+Papua New Guinea,InfluenzaB,InfluenzaB,INF_B,16.0,341,False,low_activity_all_months_below_threshold,none,,0,7,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Paraguay,RSV,RSV,RSV,1168.0,333,True,,none,,65,67,ok,observed_rebound,58.4,2020-04-01,2020-03-01,2021-05-01,14.0,False,2026-05-01,2015-03-01,9.0,9.0,5.0,0.0,False
+Paraguay,Metapneumovirus,Metapneumovirus,METAPNEUMO,451.0,333,True,,none,,28,50,ok,observed_rebound,5.35,2020-04-01,2020-03-01,2021-09-01,18.0,False,2026-05-01,2015-08-01,4.0,4.0,14.0,0.0,False
+Paraguay,Parainfluenza,Parainfluenza,PARAINFLUENZA,618.0,333,True,,none,,14,53,ok,observed_rebound,1.0,2020-04-01,2020-03-01,2021-07-01,16.0,False,2026-05-01,2015-03-01,6.0,6.0,10.0,0.0,False
+Paraguay,Adenovirus,Adenovirus,ADENO,121.0,333,True,,none,,24,57,ok,observed_rebound,6.05,2020-04-01,2020-03-01,2020-05-01,2.0,False,2026-05-01,2015-08-01,12.0,12.0,0.0,0.0,True
+Paraguay,InfluenzaA,InfluenzaA,INF_A,979.0,333,True,,none,,77,52,ok,observed_rebound,28.8,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2015-03-01,10.0,10.0,11.0,0.0,False
+Paraguay,InfluenzaB,InfluenzaB,INF_B,308.0,333,True,,none,,47,46,ok,observed_rebound,6.55,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,7.0,7.0,24.0,0.0,False
+Peru,RSV,RSV,RSV,1568.0,308,True,,none,,54,56,excluded,zero_testing_explains_excess_gap,4.9,2020-04-01,2020-03-01,2021-03-01,12.0,False,2026-05-01,2015-04-01,7.0,7.0,5.0,5.0,False
+Peru,Metapneumovirus,Metapneumovirus,METAPNEUMO,31.0,308,True,,none,,1,39,ok,observed_rebound,1.0,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,4.0,4.0,20.0,5.0,False
+Peru,Parainfluenza,Parainfluenza,PARAINFLUENZA,50.0,308,False,insufficient_post_nonzero_months,none,,1,2,excluded,insufficient_post_nonzero_months,,,,,,False,2026-05-01,,,,,,
+Peru,Adenovirus,Adenovirus,ADENO,14.0,308,False,low_activity_all_months_below_threshold,none,,0,16,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Peru,InfluenzaA,InfluenzaA,INF_A,2381.0,308,True,,none,,111,56,ok,observed_rebound,38.35,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2015-03-01,18.0,12.0,9.0,5.0,False
+Peru,InfluenzaB,InfluenzaB,INF_B,511.0,308,True,,none,,34,44,ok,observed_rebound,5.65,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,7.0,7.0,24.0,5.0,False
+Philippines,RSV,RSV,RSV,264.0,348,True,,none,,19,45,ok,observed_rebound,0.25,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2015-03-01,50.0,12.0,9.0,2.0,False
+Philippines,Metapneumovirus,Metapneumovirus,METAPNEUMO,27.0,348,False,low_activity_all_months_below_threshold,none,,0,10,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Philippines,Parainfluenza,Parainfluenza,PARAINFLUENZA,17.0,348,False,low_activity_all_months_below_threshold,none,,0,9,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Philippines,Adenovirus,Adenovirus,ADENO,19.0,348,False,low_activity_all_months_below_threshold,none,,0,35,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Philippines,InfluenzaA,InfluenzaA,INF_A,4603.0,348,True,,none,,80,57,ok,observed_rebound,230.15,2020-04-01,2020-03-01,2025-10-01,67.0,False,2026-05-01,2015-03-01,60.0,12.0,55.0,2.0,False
+Philippines,InfluenzaB,InfluenzaB,INF_B,256.0,348,True,,none,,46,53,ok,observed_rebound,12.8,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,12.0,12.0,21.0,2.0,False
+Poland,RSV,RSV,RSV,110.0,354,True,,none,,20,28,ok,observed_rebound,5.5,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2015-03-01,10.0,10.0,9.0,0.0,False
+Poland,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Poland,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Poland,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Poland,InfluenzaA,InfluenzaA,INF_A,4691.0,354,True,,none,,62,49,ok,observed_rebound,72.6,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-05-01,2015-03-01,10.0,10.0,15.0,0.0,False
+Poland,InfluenzaB,InfluenzaB,INF_B,875.0,354,True,,none,,33,40,ok,observed_rebound,37.3,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,22.0,12.0,22.0,0.0,False
+Portugal,RSV,RSV,RSV,2721.0,357,True,,none,,74,70,ok,observed_rebound,37.4,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2015-03-01,9.0,9.0,10.0,3.0,False
+Portugal,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,357,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Portugal,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,357,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Portugal,Adenovirus,Adenovirus,ADENO,0.0,357,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Portugal,InfluenzaA,InfluenzaA,INF_A,11178.0,357,True,,none,,111,60,ok,observed_rebound,112.75,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2015-03-01,11.0,11.0,10.0,3.0,False
+Portugal,InfluenzaB,InfluenzaB,INF_B,3752.0,357,True,,none,,51,59,ok,observed_rebound,56.0,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,19.0,12.0,22.0,3.0,False
+Qatar,RSV,RSV,RSV,1477.0,185,True,,none,,82,71,ok,observed_rebound,73.85,2020-04-01,2020-03-01,2021-03-01,12.0,False,2026-05-01,2016-08-01,6.0,6.0,6.0,0.0,False
+Qatar,Metapneumovirus,Metapneumovirus,METAPNEUMO,413.0,185,True,,none,,71,65,ok,observed_rebound,20.65,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2016-11-01,3.0,3.0,17.0,0.0,False
+Qatar,Parainfluenza,Parainfluenza,PARAINFLUENZA,366.0,185,True,,none,,96,72,ok,observed_rebound,18.3,2020-04-01,2020-03-01,2020-11-01,8.0,False,2026-05-01,2016-08-01,0.0,0.0,8.0,0.0,False
+Qatar,Adenovirus,Adenovirus,ADENO,408.0,185,True,,none,,97,74,ok,observed_rebound,20.4,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2016-10-01,0.0,0.0,10.0,0.0,False
+Qatar,InfluenzaA,InfluenzaA,INF_A,2334.0,185,True,,none,,138,62,ok,observed_rebound,116.7,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2015-03-01,6.0,6.0,11.0,0.0,False
+Qatar,InfluenzaB,InfluenzaB,INF_B,883.0,185,True,,none,,107,66,ok,observed_rebound,44.15,2020-04-01,2020-03-01,2022-05-01,26.0,False,2026-05-01,2015-03-01,4.0,4.0,22.0,0.0,False
+Republic of Korea,RSV,RSV,RSV,429.0,298,True,,none,,38,57,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Republic of Korea,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,298,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Republic of Korea,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,298,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Republic of Korea,Adenovirus,Adenovirus,ADENO,0.0,298,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Republic of Korea,InfluenzaA,InfluenzaA,INF_A,2478.0,298,True,,none,,121,48,ok,observed_rebound,123.9,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,10.0,10.0,23.0,4.0,False
+Republic of Korea,InfluenzaB,InfluenzaB,INF_B,1557.0,298,True,,none,,63,35,ok,observed_rebound,77.85,2020-04-01,2020-03-01,2023-12-01,45.0,False,2026-05-01,2015-03-01,12.0,12.0,33.0,4.0,False
+Republic of Moldova,RSV,RSV,RSV,83.0,201,True,,none,,3,32,ok,observed_rebound,1.45,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2015-03-01,32.0,12.0,7.0,5.0,False
+Republic of Moldova,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,201,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Republic of Moldova,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,201,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Republic of Moldova,Adenovirus,Adenovirus,ADENO,0.0,201,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Republic of Moldova,InfluenzaA,InfluenzaA,INF_A,1835.0,201,True,,none,,38,41,ok,observed_rebound,91.75,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,34.0,12.0,10.0,5.0,False
+Republic of Moldova,InfluenzaB,InfluenzaB,INF_B,109.0,201,True,,none,,16,24,ok,observed_rebound,4.85,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,21.0,12.0,21.0,5.0,False
+Romania,RSV,RSV,RSV,38.0,354,False,insufficient_post_nonzero_months,none,,1,0,excluded,insufficient_post_nonzero_months,,,,,,False,2026-05-01,,,,,,
+Romania,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Romania,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Romania,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Romania,InfluenzaA,InfluenzaA,INF_A,2602.0,354,True,,none,,75,44,ok,observed_rebound,130.1,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,12.0,12.0,12.0,5.0,False
+Romania,InfluenzaB,InfluenzaB,INF_B,465.0,354,True,,none,,35,36,ok,observed_rebound,23.25,2020-04-01,2020-03-01,2024-02-01,47.0,False,2026-05-01,2015-03-01,20.0,12.0,35.0,5.0,False
+Russian Federation,RSV,RSV,RSV,2821.0,354,True,,none,,71,75,ok,observed_rebound,38.25,2020-06-01,2020-05-01,2021-02-01,9.0,False,2026-05-01,2016-12-01,36.0,12.0,0.0,0.0,True
+Russian Federation,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Russian Federation,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Russian Federation,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Russian Federation,InfluenzaA,InfluenzaA,INF_A,13172.0,354,True,,none,,156,64,ok,observed_rebound,658.6,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,11.0,11.0,9.0,0.0,False
+Russian Federation,InfluenzaB,InfluenzaB,INF_B,8796.0,354,True,,none,,125,67,ok,observed_rebound,156.25,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,18.0,12.0,21.0,0.0,False
+Rwanda,RSV,RSV,RSV,0.0,192,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Rwanda,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,192,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Rwanda,Parainfluenza,Parainfluenza,PARAINFLUENZA,1.0,192,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2025-12-01,,,,,,
+Rwanda,Adenovirus,Adenovirus,ADENO,0.0,192,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Rwanda,InfluenzaA,InfluenzaA,INF_A,123.0,192,True,,none,,5,24,excluded,zero_testing_explains_excess_gap,6.15,2020-04-01,2020-03-01,2023-01-01,34.0,False,2025-12-01,2015-03-01,18.0,12.0,22.0,33.0,False
+Rwanda,InfluenzaB,InfluenzaB,INF_B,34.0,192,True,,none,,1,16,excluded,zero_testing_explains_excess_gap,1.7,2020-04-01,2020-03-01,2023-01-01,34.0,False,2025-12-01,2015-03-01,33.0,12.0,22.0,33.0,False
+Saint Barthélemy,RSV,RSV,RSV,0.0,73,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2014-12-01,,,,,,
+Saint Barthélemy,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,73,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2014-12-01,,,,,,
+Saint Barthélemy,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,73,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2014-12-01,,,,,,
+Saint Barthélemy,Adenovirus,Adenovirus,ADENO,0.0,73,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2014-12-01,,,,,,
+Saint Barthélemy,InfluenzaA,InfluenzaA,INF_A,0.0,73,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2014-12-01,,,,,,
+Saint Barthélemy,InfluenzaB,InfluenzaB,INF_B,0.0,73,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2014-12-01,,,,,,
+Saint Kitts and Nevis,RSV,RSV,RSV,0.0,103,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Saint Kitts and Nevis,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,103,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Saint Kitts and Nevis,Parainfluenza,Parainfluenza,PARAINFLUENZA,1.0,103,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Saint Kitts and Nevis,Adenovirus,Adenovirus,ADENO,0.0,103,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Saint Kitts and Nevis,InfluenzaA,InfluenzaA,INF_A,4.0,103,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Saint Kitts and Nevis,InfluenzaB,InfluenzaB,INF_B,3.0,103,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Saint Lucia,RSV,RSV,RSV,43.0,214,True,,none,,1,21,excluded,zero_testing_explains_excess_gap,0.25,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,34.0,12.0,22.0,27.0,False
+Saint Lucia,Metapneumovirus,Metapneumovirus,METAPNEUMO,2.0,214,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Saint Lucia,Parainfluenza,Parainfluenza,PARAINFLUENZA,5.0,214,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Saint Lucia,Adenovirus,Adenovirus,ADENO,3.0,214,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Saint Lucia,InfluenzaA,InfluenzaA,INF_A,31.0,214,True,,none,,1,23,excluded,zero_testing_explains_excess_gap,0.25,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,34.0,12.0,22.0,27.0,False
+Saint Lucia,InfluenzaB,InfluenzaB,INF_B,7.0,214,False,low_activity_all_months_below_threshold,none,,0,7,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Saint Martin (French part),RSV,RSV,RSV,0.0,73,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2014-12-01,,,,,,
+Saint Martin (French part),Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,73,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2014-12-01,,,,,,
+Saint Martin (French part),Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,73,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2014-12-01,,,,,,
+Saint Martin (French part),Adenovirus,Adenovirus,ADENO,0.0,73,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2014-12-01,,,,,,
+Saint Martin (French part),InfluenzaA,InfluenzaA,INF_A,3.0,73,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2014-12-01,,,,,,
+Saint Martin (French part),InfluenzaB,InfluenzaB,INF_B,0.0,73,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2014-12-01,,,,,,
+Saint Vincent and the Grenadines,RSV,RSV,RSV,17.0,136,False,low_activity_all_months_below_threshold,none,,0,19,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Saint Vincent and the Grenadines,Metapneumovirus,Metapneumovirus,METAPNEUMO,1.0,136,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Saint Vincent and the Grenadines,Parainfluenza,Parainfluenza,PARAINFLUENZA,2.0,136,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Saint Vincent and the Grenadines,Adenovirus,Adenovirus,ADENO,1.0,136,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Saint Vincent and the Grenadines,InfluenzaA,InfluenzaA,INF_A,87.0,136,True,,none,,3,17,ok,observed_rebound,0.25,2020-04-01,2020-03-01,2023-08-01,41.0,False,2026-05-01,2015-03-01,34.0,12.0,29.0,27.0,False
+Saint Vincent and the Grenadines,InfluenzaB,InfluenzaB,INF_B,59.0,136,True,,none,,1,6,excluded,zero_testing_explains_excess_gap,0.15,2020-04-01,2020-03-01,2023-04-01,37.0,False,2026-05-01,2015-03-01,59.0,12.0,25.0,27.0,False
+Saudi Arabia,RSV,RSV,RSV,358.0,136,True,,none,,21,46,ok,observed_rebound,0.05,2020-04-01,2020-03-01,2022-07-01,28.0,False,2026-05-01,2015-03-01,57.0,12.0,16.0,0.0,False
+Saudi Arabia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,136,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Saudi Arabia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,136,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Saudi Arabia,Adenovirus,Adenovirus,ADENO,3.0,136,False,low_activity_all_months_below_threshold,none,,0,4,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Saudi Arabia,InfluenzaA,InfluenzaA,INF_A,1570.0,136,True,,none,,74,63,ok,observed_rebound,19.1,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2017-06-01,1.0,1.0,19.0,0.0,False
+Saudi Arabia,InfluenzaB,InfluenzaB,INF_B,399.0,136,True,,none,,59,69,ok,observed_rebound,5.05,2020-04-01,2020-03-01,2020-11-01,8.0,False,2026-05-01,2017-12-01,1.0,1.0,7.0,0.0,False
+Senegal,RSV,RSV,RSV,40.0,365,False,insufficient_post_nonzero_months,none,,1,0,excluded,insufficient_post_nonzero_months,,,,,,False,2026-05-01,,,,,,
+Senegal,Metapneumovirus,Metapneumovirus,METAPNEUMO,4.0,365,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Senegal,Parainfluenza,Parainfluenza,PARAINFLUENZA,17.0,365,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Senegal,Adenovirus,Adenovirus,ADENO,14.0,365,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Senegal,InfluenzaA,InfluenzaA,INF_A,1408.0,365,True,,none,,74,64,ok,observed_rebound,70.4,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2015-03-01,31.0,12.0,7.0,0.0,False
+Senegal,InfluenzaB,InfluenzaB,INF_B,360.0,365,True,,none,,38,37,ok,observed_rebound,18.0,2020-04-01,2020-03-01,2020-10-01,7.0,False,2026-05-01,2015-03-01,16.0,12.0,0.0,0.0,True
+Serbia,RSV,RSV,RSV,58.0,233,True,,none,,4,33,ok,observed_rebound,1.45,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,21.0,12.0,8.0,6.0,False
+Serbia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,233,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Serbia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,233,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Serbia,Adenovirus,Adenovirus,ADENO,0.0,233,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Serbia,InfluenzaA,InfluenzaA,INF_A,1142.0,233,True,,none,,50,30,ok,observed_rebound,57.1,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,12.0,12.0,10.0,6.0,False
+Serbia,InfluenzaB,InfluenzaB,INF_B,328.0,233,True,,none,,20,21,ok,observed_rebound,16.4,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,20.0,12.0,21.0,6.0,False
+Serbia and Montenegro (2003-2006),RSV,RSV,RSV,0.0,121,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2006-12-01,,,,,,
+Serbia and Montenegro (2003-2006),Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,121,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2006-12-01,,,,,,
+Serbia and Montenegro (2003-2006),Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,121,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2006-12-01,,,,,,
+Serbia and Montenegro (2003-2006),Adenovirus,Adenovirus,ADENO,0.0,121,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2006-12-01,,,,,,
+Serbia and Montenegro (2003-2006),InfluenzaA,InfluenzaA,INF_A,52.0,121,False,insufficient_post_nonzero_months,none,,3,0,excluded,insufficient_post_nonzero_months,,,,,,False,2006-12-01,,,,,,
+Serbia and Montenegro (2003-2006),InfluenzaB,InfluenzaB,INF_B,8.0,121,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2006-12-01,,,,,,
+Seychelles,RSV,RSV,RSV,0.0,85,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Seychelles,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,85,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Seychelles,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,85,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Seychelles,Adenovirus,Adenovirus,ADENO,0.0,85,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Seychelles,InfluenzaA,InfluenzaA,INF_A,31.0,85,True,,none,,1,8,excluded,zero_testing_explains_excess_gap,0.2,2020-04-01,2020-03-01,2023-02-01,35.0,False,2025-12-01,2015-03-01,3.0,3.0,32.0,32.0,False
+Seychelles,InfluenzaB,InfluenzaB,INF_B,42.0,85,True,,none,,1,13,excluded,zero_testing_explains_excess_gap,0.05,2020-04-01,2020-03-01,2023-02-01,35.0,False,2025-12-01,2015-03-01,10.0,10.0,25.0,32.0,False
+Sierra Leone,RSV,RSV,RSV,0.0,174,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-01-01,,,,,,
+Sierra Leone,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,174,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-01-01,,,,,,
+Sierra Leone,Parainfluenza,Parainfluenza,PARAINFLUENZA,2.0,174,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-01-01,,,,,,
+Sierra Leone,Adenovirus,Adenovirus,ADENO,1.0,174,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-01-01,,,,,,
+Sierra Leone,InfluenzaA,InfluenzaA,INF_A,71.0,174,True,,none,,2,9,ok,observed_rebound,1.55,2020-04-01,2020-03-01,2023-08-01,41.0,False,2026-01-01,2015-03-01,30.0,12.0,29.0,12.0,False
+Sierra Leone,InfluenzaB,InfluenzaB,INF_B,10.0,174,False,low_activity_all_months_below_threshold,none,,0,9,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-01-01,,,,,,
+Singapore,RSV,RSV,RSV,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Singapore,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Singapore,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Singapore,Adenovirus,Adenovirus,ADENO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Singapore,InfluenzaA,InfluenzaA,INF_A,2383.0,353,True,,none,,146,53,ok,observed_rebound,119.15,2020-04-01,2020-03-01,2022-08-01,29.0,False,2026-05-01,2015-03-01,17.0,12.0,17.0,0.0,False
+Singapore,InfluenzaB,InfluenzaB,INF_B,207.0,353,True,,none,,66,50,ok,observed_rebound,9.7,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,5.0,5.0,26.0,0.0,False
+Slovakia,RSV,RSV,RSV,1031.0,354,True,,none,,13,49,ok,observed_rebound,0.8,2020-04-01,2020-03-01,2020-06-01,3.0,False,2026-05-01,2015-03-01,4.0,4.0,0.0,0.0,True
+Slovakia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Slovakia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Slovakia,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Slovakia,InfluenzaA,InfluenzaA,INF_A,1938.0,354,True,,none,,48,47,ok,observed_rebound,22.0,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,11.0,11.0,22.0,0.0,False
+Slovakia,InfluenzaB,InfluenzaB,INF_B,2317.0,354,True,,none,,21,38,ok,observed_rebound,12.4,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,10.0,10.0,24.0,0.0,False
+Slovenia,RSV,RSV,RSV,1323.0,366,True,,none,,89,71,ok,observed_rebound,33.25,2020-04-01,2020-03-01,2021-07-01,16.0,False,2026-05-01,2015-03-01,7.0,7.0,9.0,0.0,False
+Slovenia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,366,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Slovenia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,366,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Slovenia,Adenovirus,Adenovirus,ADENO,0.0,366,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Slovenia,InfluenzaA,InfluenzaA,INF_A,2639.0,366,True,,none,,87,55,ok,observed_rebound,89.3,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,9.0,9.0,13.0,0.0,False
+Slovenia,InfluenzaB,InfluenzaB,INF_B,812.0,366,True,,none,,39,31,ok,observed_rebound,40.6,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,20.0,12.0,22.0,0.0,False
+Somalia,RSV,RSV,RSV,4.0,58,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Somalia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,58,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Somalia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,58,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Somalia,Adenovirus,Adenovirus,ADENO,0.0,58,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Somalia,InfluenzaA,InfluenzaA,INF_A,78.0,58,True,,none,,5,44,excluded,insufficient_pre2020_baseline,,,,,,False,2026-05-01,,,,,,
+Somalia,InfluenzaB,InfluenzaB,INF_B,43.0,58,True,,none,,1,30,excluded,insufficient_pre2020_baseline,,,,,,False,2026-05-01,,,,,,
+South Africa,RSV,RSV,RSV,294.0,353,True,,none,,65,74,ok,observed_rebound,14.7,2020-05-01,2020-04-01,2020-06-01,2.0,False,2026-05-01,2016-02-01,6.0,6.0,0.0,0.0,True
+South Africa,Metapneumovirus,Metapneumovirus,METAPNEUMO,7.0,353,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+South Africa,Parainfluenza,Parainfluenza,PARAINFLUENZA,30.0,353,False,insufficient_post_nonzero_months,none,,1,0,excluded,insufficient_post_nonzero_months,,,,,,False,2026-05-01,,,,,,
+South Africa,Adenovirus,Adenovirus,ADENO,26.0,353,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+South Africa,InfluenzaA,InfluenzaA,INF_A,767.0,353,True,,none,,99,60,ok,observed_rebound,38.35,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2015-03-01,10.0,10.0,9.0,0.0,False
+South Africa,InfluenzaB,InfluenzaB,INF_B,316.0,353,True,,none,,48,52,ok,observed_rebound,15.8,2020-04-01,2020-03-01,2021-05-01,14.0,False,2026-05-01,2015-03-01,16.0,12.0,2.0,0.0,False
+South Sudan,RSV,RSV,RSV,0.0,86,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+South Sudan,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,86,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+South Sudan,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,86,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+South Sudan,Adenovirus,Adenovirus,ADENO,0.0,86,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+South Sudan,InfluenzaA,InfluenzaA,INF_A,102.0,86,True,,none,,3,32,ok,observed_rebound,0.45,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-04-01,2015-03-01,3.0,3.0,14.0,12.0,False
+South Sudan,InfluenzaB,InfluenzaB,INF_B,14.0,86,False,low_activity_all_months_below_threshold,none,,0,27,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-04-01,,,,,,
+Spain,RSV,RSV,RSV,3974.0,354,True,,none,,87,65,ok,observed_rebound,103.85,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,9.0,9.0,22.0,3.0,False
+Spain,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Spain,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Spain,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Spain,InfluenzaA,InfluenzaA,INF_A,10252.0,354,True,,none,,125,59,ok,observed_rebound,368.5,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2015-03-01,9.0,9.0,22.0,3.0,False
+Spain,InfluenzaB,InfluenzaB,INF_B,7085.0,354,True,,none,,67,53,ok,observed_rebound,354.25,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,22.0,12.0,22.0,3.0,False
+Sri Lanka,RSV,RSV,RSV,11.0,338,False,low_activity_all_months_below_threshold,none,,0,14,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Sri Lanka,Metapneumovirus,Metapneumovirus,METAPNEUMO,6.0,338,False,low_activity_all_months_below_threshold,none,,0,9,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Sri Lanka,Parainfluenza,Parainfluenza,PARAINFLUENZA,6.0,338,False,low_activity_all_months_below_threshold,none,,0,18,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Sri Lanka,Adenovirus,Adenovirus,ADENO,5.0,338,False,low_activity_all_months_below_threshold,none,,0,15,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Sri Lanka,InfluenzaA,InfluenzaA,INF_A,664.0,338,True,,none,,79,55,ok,observed_rebound,33.2,2020-04-01,2020-03-01,2022-06-01,27.0,False,2026-05-01,2015-03-01,10.0,10.0,17.0,2.0,False
+Sri Lanka,InfluenzaB,InfluenzaB,INF_B,106.0,338,True,,none,,39,50,ok,observed_rebound,5.3,2020-04-01,2020-03-01,2022-07-01,28.0,False,2026-05-01,2015-03-01,4.0,4.0,24.0,2.0,False
+Sudan,RSV,RSV,RSV,1.0,202,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-04-01,,,,,,
+Sudan,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,202,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Sudan,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,202,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Sudan,Adenovirus,Adenovirus,ADENO,0.0,202,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Sudan,InfluenzaA,InfluenzaA,INF_A,61.0,202,True,,none,,1,7,ok,right_censored,3.05,2020-04-01,2020-03-01,,73.0,True,2026-04-01,2015-03-01,60.0,12.0,61.0,33.0,False
+Sudan,InfluenzaB,InfluenzaB,INF_B,1.0,202,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-04-01,,,,,,
+Suriname,RSV,RSV,RSV,21.0,210,False,low_activity_all_months_below_threshold,none,,0,17,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Suriname,Metapneumovirus,Metapneumovirus,METAPNEUMO,9.0,210,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Suriname,Parainfluenza,Parainfluenza,PARAINFLUENZA,5.0,210,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Suriname,Adenovirus,Adenovirus,ADENO,4.0,210,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Suriname,InfluenzaA,InfluenzaA,INF_A,78.0,210,True,,none,,2,31,ok,observed_rebound,3.9,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2019-01-01,5.0,5.0,29.0,9.0,False
+Suriname,InfluenzaB,InfluenzaB,INF_B,13.0,210,False,low_activity_all_months_below_threshold,none,,0,17,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Sweden,RSV,RSV,RSV,5334.0,353,True,,none,,101,57,ok,observed_rebound,130.15,2020-04-01,2020-03-01,2021-07-01,16.0,False,2026-05-01,2015-03-01,8.0,8.0,8.0,2.0,False
+Sweden,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Sweden,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Sweden,Adenovirus,Adenovirus,ADENO,0.0,353,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Sweden,InfluenzaA,InfluenzaA,INF_A,8067.0,353,True,,none,,170,70,ok,observed_rebound,403.35,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,9.0,9.0,11.0,2.0,False
+Sweden,InfluenzaB,InfluenzaB,INF_B,5982.0,353,True,,none,,95,66,ok,observed_rebound,299.1,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,20.0,12.0,22.0,2.0,False
+Switzerland,RSV,RSV,RSV,49.0,377,True,,none,,4,50,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Switzerland,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,377,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Switzerland,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,377,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Switzerland,Adenovirus,Adenovirus,ADENO,0.0,377,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Switzerland,InfluenzaA,InfluenzaA,INF_A,12008.0,377,True,,none,,134,64,ok,observed_rebound,341.15,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2015-03-01,10.0,10.0,11.0,4.0,False
+Switzerland,InfluenzaB,InfluenzaB,INF_B,4293.0,377,True,,none,,66,60,ok,observed_rebound,214.65,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,21.0,12.0,22.0,4.0,False
+Syrian Arab Republic,RSV,RSV,RSV,40.0,175,True,,none,,1,4,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Syrian Arab Republic,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,175,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Syrian Arab Republic,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,175,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Syrian Arab Republic,Adenovirus,Adenovirus,ADENO,0.0,175,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Syrian Arab Republic,InfluenzaA,InfluenzaA,INF_A,177.0,175,True,,none,,5,28,excluded,no_excess_gap_vs_pre2020_country_level,0.45,2020-04-01,2020-03-01,2021-03-01,12.0,False,2026-05-01,2015-03-01,34.0,12.0,0.0,5.0,False
+Syrian Arab Republic,InfluenzaB,InfluenzaB,INF_B,21.0,175,False,low_activity_all_months_below_threshold,none,,0,23,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Tajikistan,RSV,RSV,RSV,71.0,122,False,insufficient_post_nonzero_months,none,,1,1,excluded,insufficient_post_nonzero_months,,,,,,False,2026-04-01,,,,,,
+Tajikistan,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,122,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Tajikistan,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,122,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Tajikistan,Adenovirus,Adenovirus,ADENO,0.0,122,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Tajikistan,InfluenzaA,InfluenzaA,INF_A,169.0,122,True,,none,,5,18,excluded,no_excess_gap_vs_pre2020_country_level,0.25,2020-04-01,2020-03-01,2020-10-01,7.0,False,2026-04-01,2015-03-01,21.0,12.0,0.0,6.0,False
+Tajikistan,InfluenzaB,InfluenzaB,INF_B,70.0,122,True,,none,,1,11,excluded,zero_testing_explains_excess_gap,1.1,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-04-01,2015-03-01,18.0,12.0,10.0,11.0,False
+Thailand,RSV,RSV,RSV,331.0,353,True,,none,,22,51,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Thailand,Metapneumovirus,Metapneumovirus,METAPNEUMO,72.0,353,True,,none,,18,51,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Thailand,Parainfluenza,Parainfluenza,PARAINFLUENZA,178.0,353,True,,none,,32,53,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Thailand,Adenovirus,Adenovirus,ADENO,136.0,353,True,,none,,19,53,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+Thailand,InfluenzaA,InfluenzaA,INF_A,346.0,353,True,,none,,159,59,ok,observed_rebound,17.3,2020-04-01,2020-03-01,2021-07-01,16.0,False,2026-05-01,2015-03-01,4.0,4.0,12.0,0.0,False
+Thailand,InfluenzaB,InfluenzaB,INF_B,152.0,353,True,,none,,75,51,ok,observed_rebound,7.6,2020-04-01,2020-03-01,2022-08-01,29.0,False,2026-05-01,2015-03-01,9.0,9.0,20.0,0.0,False
+Timor-Leste,RSV,RSV,RSV,1110.0,114,True,,none,,24,33,excluded,no_pre2020_signal,,,,,,False,2026-04-01,,,,,,
+Timor-Leste,Metapneumovirus,Metapneumovirus,METAPNEUMO,17.0,114,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-04-01,,,,,,
+Timor-Leste,Parainfluenza,Parainfluenza,PARAINFLUENZA,5.0,114,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-04-01,,,,,,
+Timor-Leste,Adenovirus,Adenovirus,ADENO,7.0,114,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-04-01,,,,,,
+Timor-Leste,InfluenzaA,InfluenzaA,INF_A,173.0,114,True,,none,,15,54,ok,observed_rebound,2.5,2020-04-01,2020-03-01,2020-07-01,4.0,False,2026-04-01,2019-02-01,8.0,8.0,0.0,0.0,True
+Timor-Leste,InfluenzaB,InfluenzaB,INF_B,47.0,114,True,,none,,6,31,ok,observed_rebound,2.35,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-04-01,2018-03-01,8.0,8.0,17.0,0.0,False
+Togo,RSV,RSV,RSV,0.0,194,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Togo,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,194,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Togo,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,194,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Togo,Adenovirus,Adenovirus,ADENO,0.0,194,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Togo,InfluenzaA,InfluenzaA,INF_A,174.0,194,True,,none,,23,60,ok,observed_rebound,6.0,2020-04-01,2020-03-01,2020-11-01,8.0,False,2026-05-01,2016-05-01,11.0,11.0,0.0,0.0,True
+Togo,InfluenzaB,InfluenzaB,INF_B,71.0,194,True,,none,,9,41,ok,observed_rebound,3.55,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,11.0,11.0,12.0,0.0,False
+Tonga,RSV,RSV,RSV,36.0,12,True,,none,,1,8,excluded,insufficient_pre2020_baseline,,,,,,False,2025-11-01,,,,,,
+Tonga,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,12,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-11-01,,,,,,
+Tonga,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,12,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-11-01,,,,,,
+Tonga,Adenovirus,Adenovirus,ADENO,0.0,12,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-11-01,,,,,,
+Tonga,InfluenzaA,InfluenzaA,INF_A,89.0,12,True,,none,,2,6,excluded,insufficient_pre2020_baseline,,,,,,False,2025-11-01,,,,,,
+Tonga,InfluenzaB,InfluenzaB,INF_B,126.0,12,True,,none,,2,7,excluded,insufficient_pre2020_baseline,,,,,,False,2025-11-01,,,,,,
+Trinidad and Tobago,RSV,RSV,RSV,16.0,120,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2024-12-01,,,,,,
+Trinidad and Tobago,Metapneumovirus,Metapneumovirus,METAPNEUMO,4.0,120,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2024-12-01,,,,,,
+Trinidad and Tobago,Parainfluenza,Parainfluenza,PARAINFLUENZA,4.0,120,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2024-12-01,,,,,,
+Trinidad and Tobago,Adenovirus,Adenovirus,ADENO,8.0,120,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2024-12-01,,,,,,
+Trinidad and Tobago,InfluenzaA,InfluenzaA,INF_A,139.0,120,True,,none,,3,5,ok,observed_rebound,6.95,2020-04-01,2020-03-01,2024-01-01,46.0,False,2024-12-01,2019-10-01,2.0,2.0,44.0,37.0,False
+Trinidad and Tobago,InfluenzaB,InfluenzaB,INF_B,9.0,120,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2024-12-01,,,,,,
+Tunisia,RSV,RSV,RSV,109.0,355,True,,none,,18,35,ok,observed_rebound,2.45,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-06-01,2016-12-01,22.0,12.0,10.0,6.0,False
+Tunisia,Metapneumovirus,Metapneumovirus,METAPNEUMO,26.0,355,False,low_activity_all_months_below_threshold,none,,0,28,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-06-01,,,,,,
+Tunisia,Parainfluenza,Parainfluenza,PARAINFLUENZA,21.0,355,False,low_activity_all_months_below_threshold,none,,0,12,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-06-01,,,,,,
+Tunisia,Adenovirus,Adenovirus,ADENO,22.0,355,False,low_activity_all_months_below_threshold,none,,0,43,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-06-01,,,,,,
+Tunisia,InfluenzaA,InfluenzaA,INF_A,719.0,355,True,,none,,39,35,ok,observed_rebound,35.95,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-06-01,2015-03-01,19.0,12.0,10.0,6.0,False
+Tunisia,InfluenzaB,InfluenzaB,INF_B,121.0,355,True,,none,,6,21,ok,observed_rebound,6.05,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-06-01,2015-03-01,33.0,12.0,20.0,6.0,False
+Turkmenistan,RSV,RSV,RSV,8.0,100,False,low_activity_all_months_below_threshold,none,,0,2,excluded,low_activity_all_months_below_threshold,,,,,,False,2024-05-01,,,,,,
+Turkmenistan,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,100,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2024-05-01,,,,,,
+Turkmenistan,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,100,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2024-05-01,,,,,,
+Turkmenistan,Adenovirus,Adenovirus,ADENO,0.0,100,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2024-05-01,,,,,,
+Turkmenistan,InfluenzaA,InfluenzaA,INF_A,6.0,100,False,low_activity_all_months_below_threshold,none,,0,3,excluded,low_activity_all_months_below_threshold,,,,,,False,2024-05-01,,,,,,
+Turkmenistan,InfluenzaB,InfluenzaB,INF_B,4.0,100,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2024-05-01,,,,,,
+Turks and Caicos Islands,RSV,RSV,RSV,0.0,64,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Turks and Caicos Islands,Metapneumovirus,Metapneumovirus,METAPNEUMO,1.0,64,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Turks and Caicos Islands,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,64,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2023-09-01,,,,,,
+Turks and Caicos Islands,Adenovirus,Adenovirus,ADENO,1.0,64,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Turks and Caicos Islands,InfluenzaA,InfluenzaA,INF_A,9.0,64,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Turks and Caicos Islands,InfluenzaB,InfluenzaB,INF_B,1.0,64,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2023-09-01,,,,,,
+Tuvalu,RSV,RSV,RSV,1.0,13,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2025-12-01,,,,,,
+Tuvalu,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,13,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Tuvalu,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,13,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Tuvalu,Adenovirus,Adenovirus,ADENO,0.0,13,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-12-01,,,,,,
+Tuvalu,InfluenzaA,InfluenzaA,INF_A,225.0,13,True,,none,,3,3,excluded,insufficient_pre2020_baseline,,,,,,False,2025-12-01,,,,,,
+Tuvalu,InfluenzaB,InfluenzaB,INF_B,374.0,13,False,insufficient_post_nonzero_months,none,,2,2,excluded,insufficient_post_nonzero_months,,,,,,False,2025-12-01,,,,,,
+Türkiye,RSV,RSV,RSV,423.0,329,True,,none,,41,38,ok,observed_rebound,21.15,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-05-01,2015-03-01,8.0,8.0,24.0,5.0,False
+Türkiye,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,329,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Türkiye,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,329,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Türkiye,Adenovirus,Adenovirus,ADENO,0.0,329,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Türkiye,InfluenzaA,InfluenzaA,INF_A,5020.0,329,True,,none,,58,42,ok,observed_rebound,251.0,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,11.0,11.0,22.0,5.0,False
+Türkiye,InfluenzaB,InfluenzaB,INF_B,692.0,329,True,,none,,47,42,ok,observed_rebound,34.6,2020-04-01,2020-03-01,2023-01-01,34.0,False,2026-05-01,2015-03-01,10.0,10.0,24.0,5.0,False
+Uganda,RSV,RSV,RSV,65.0,243,True,,none,,10,62,ok,observed_rebound,0.1,2020-04-01,2020-03-01,2020-08-01,5.0,False,2026-05-01,2015-03-01,59.0,12.0,0.0,0.0,True
+Uganda,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,243,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Uganda,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,243,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Uganda,Adenovirus,Adenovirus,ADENO,0.0,243,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Uganda,InfluenzaA,InfluenzaA,INF_A,236.0,243,True,,none,,33,63,ok,observed_rebound,11.8,2020-04-01,2020-03-01,2021-04-01,13.0,False,2026-05-01,2015-03-01,18.0,12.0,1.0,0.0,False
+Uganda,InfluenzaB,InfluenzaB,INF_B,67.0,243,True,,none,,11,51,ok,observed_rebound,3.35,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,18.0,12.0,11.0,0.0,False
+Ukraine,RSV,RSV,RSV,358.0,236,True,,none,,24,49,ok,observed_rebound,0.15,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2015-03-01,32.0,12.0,0.0,2.0,True
+Ukraine,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,236,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ukraine,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,236,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ukraine,Adenovirus,Adenovirus,ADENO,0.0,236,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Ukraine,InfluenzaA,InfluenzaA,INF_A,4051.0,236,True,,none,,64,46,ok,observed_rebound,52.05,2020-04-01,2020-03-01,2022-01-01,22.0,False,2026-05-01,2015-03-01,22.0,12.0,10.0,2.0,False
+Ukraine,InfluenzaB,InfluenzaB,INF_B,1574.0,236,True,,none,,39,43,ok,observed_rebound,23.8,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,23.0,12.0,21.0,2.0,False
+United Arab Emirates,RSV,RSV,RSV,1770.0,78,True,,none,,48,70,ok,observed_rebound,1.15,2020-04-01,2020-03-01,2020-09-01,6.0,False,2026-05-01,2015-03-01,0.0,0.0,6.0,0.0,False
+United Arab Emirates,Metapneumovirus,Metapneumovirus,METAPNEUMO,90.0,78,True,,none,,19,64,ok,observed_rebound,0.05,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2015-03-01,2.0,2.0,8.0,0.0,False
+United Arab Emirates,Parainfluenza,Parainfluenza,PARAINFLUENZA,66.0,78,True,,none,,19,63,ok,observed_rebound,0.1,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2015-03-01,0.0,0.0,11.0,0.0,False
+United Arab Emirates,Adenovirus,Adenovirus,ADENO,45.0,78,True,,none,,11,63,excluded,no_pre2020_signal,,,,,,False,2026-05-01,,,,,,
+United Arab Emirates,InfluenzaA,InfluenzaA,INF_A,2318.0,78,True,,none,,51,61,ok,observed_rebound,2.7,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2020-01-01,0.0,0.0,19.0,0.0,False
+United Arab Emirates,InfluenzaB,InfluenzaB,INF_B,499.0,78,True,,none,,42,56,ok,observed_rebound,1.95,2020-04-01,2020-03-01,2021-12-01,21.0,False,2026-05-01,2020-02-01,0.0,0.0,21.0,0.0,False
+"United Kingdom, England",RSV,RSV,RSV,16621.0,354,True,,none,,119,68,ok,observed_rebound,175.25,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2015-03-01,7.0,7.0,12.0,4.0,False
+"United Kingdom, England",Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+"United Kingdom, England",Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+"United Kingdom, England",Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+"United Kingdom, England",InfluenzaA,InfluenzaA,INF_A,41238.0,354,True,,none,,182,67,ok,observed_rebound,452.75,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2015-03-01,10.0,10.0,9.0,4.0,False
+"United Kingdom, England",InfluenzaB,InfluenzaB,INF_B,6892.0,354,True,,none,,128,67,ok,observed_rebound,342.45,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-05-01,2015-03-01,20.0,12.0,20.0,4.0,False
+"United Kingdom, Northern Ireland",RSV,RSV,RSV,899.0,354,True,,none,,69,62,ok,observed_rebound,20.35,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2015-03-01,8.0,8.0,9.0,0.0,False
+"United Kingdom, Northern Ireland",Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+"United Kingdom, Northern Ireland",Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+"United Kingdom, Northern Ireland",Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+"United Kingdom, Northern Ireland",InfluenzaA,InfluenzaA,INF_A,4503.0,354,True,,none,,89,64,ok,observed_rebound,73.5,2020-04-01,2020-03-01,2022-03-01,24.0,False,2026-05-01,2015-03-01,9.0,9.0,15.0,0.0,False
+"United Kingdom, Northern Ireland",InfluenzaB,InfluenzaB,INF_B,510.0,354,True,,none,,40,61,ok,observed_rebound,25.5,2020-04-01,2020-03-01,2021-10-01,19.0,False,2026-05-01,2015-03-01,19.0,12.0,7.0,0.0,False
+"United Kingdom, Scotland",RSV,RSV,RSV,2737.0,354,True,,none,,123,73,ok,observed_rebound,89.15,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-05-01,2015-03-01,8.0,8.0,9.0,0.0,False
+"United Kingdom, Scotland",Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+"United Kingdom, Scotland",Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+"United Kingdom, Scotland",Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+"United Kingdom, Scotland",InfluenzaA,InfluenzaA,INF_A,13282.0,354,True,,none,,115,73,ok,observed_rebound,155.55,2020-04-01,2020-03-01,2022-02-01,23.0,False,2026-05-01,2015-03-01,8.0,8.0,15.0,0.0,False
+"United Kingdom, Scotland",InfluenzaB,InfluenzaB,INF_B,1386.0,354,True,,none,,69,71,ok,observed_rebound,69.3,2020-04-01,2020-03-01,2022-12-01,33.0,False,2026-05-01,2015-03-01,19.0,12.0,21.0,0.0,False
+"United Kingdom, Wales",RSV,RSV,RSV,982.0,150,True,,none,,75,56,ok,observed_rebound,28.4,2020-04-01,2020-03-01,2020-07-01,4.0,False,2025-03-01,2015-03-01,8.0,8.0,0.0,0.0,True
+"United Kingdom, Wales",Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,150,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-03-01,,,,,,
+"United Kingdom, Wales",Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,150,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-03-01,,,,,,
+"United Kingdom, Wales",Adenovirus,Adenovirus,ADENO,0.0,150,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2025-03-01,,,,,,
+"United Kingdom, Wales",InfluenzaA,InfluenzaA,INF_A,2231.0,150,True,,none,,61,57,ok,observed_rebound,55.35,2020-04-01,2020-03-01,2022-03-01,24.0,False,2025-03-01,2015-03-01,10.0,10.0,14.0,0.0,False
+"United Kingdom, Wales",InfluenzaB,InfluenzaB,INF_B,868.0,150,True,,none,,24,47,ok,observed_rebound,43.4,2020-04-01,2020-03-01,2022-12-01,33.0,False,2025-03-01,2015-03-01,23.0,12.0,21.0,0.0,False
+United Republic of Tanzania,RSV,RSV,RSV,0.0,201,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+United Republic of Tanzania,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,201,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+United Republic of Tanzania,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,201,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+United Republic of Tanzania,Adenovirus,Adenovirus,ADENO,0.0,201,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+United Republic of Tanzania,InfluenzaA,InfluenzaA,INF_A,370.0,201,True,,none,,40,62,excluded,zero_testing_explains_excess_gap,18.5,2020-04-01,2020-03-01,2021-04-01,13.0,False,2026-05-01,2015-03-01,25.0,12.0,1.0,2.0,False
+United Republic of Tanzania,InfluenzaB,InfluenzaB,INF_B,83.0,201,True,,none,,7,55,ok,observed_rebound,2.15,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2015-03-01,4.0,4.0,6.0,2.0,False
+United States of America,RSV,RSV,RSV,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+United States of America,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+United States of America,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+United States of America,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+United States of America,InfluenzaA,InfluenzaA,INF_A,179987.0,354,True,,none,,289,75,ok,observed_rebound,4590.8,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,11.0,11.0,9.0,0.0,False
+United States of America,InfluenzaB,InfluenzaB,INF_B,44651.0,354,True,,none,,256,75,ok,observed_rebound,2232.55,2020-04-01,2020-03-01,2023-11-01,44.0,False,2026-05-01,2015-03-01,10.0,10.0,34.0,0.0,False
+Uruguay,RSV,RSV,RSV,264.0,344,True,,none,,25,42,ok,observed_rebound,3.45,2020-04-01,2020-03-01,2021-05-01,14.0,False,2026-05-01,2016-06-01,8.0,8.0,6.0,0.0,False
+Uruguay,Metapneumovirus,Metapneumovirus,METAPNEUMO,60.0,344,True,,none,,3,26,ok,observed_rebound,0.55,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-05-01,2015-03-01,11.0,11.0,9.0,0.0,False
+Uruguay,Parainfluenza,Parainfluenza,PARAINFLUENZA,18.0,344,False,low_activity_all_months_below_threshold,none,,0,38,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Uruguay,Adenovirus,Adenovirus,ADENO,13.0,344,False,low_activity_all_months_below_threshold,none,,0,41,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Uruguay,InfluenzaA,InfluenzaA,INF_A,325.0,344,True,,none,,26,41,ok,observed_rebound,16.25,2020-04-01,2020-03-01,2022-04-01,25.0,False,2026-05-01,2015-03-01,14.0,12.0,13.0,0.0,False
+Uruguay,InfluenzaB,InfluenzaB,INF_B,56.0,344,True,,none,,1,21,ok,observed_rebound,2.8,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-05-01,2017-06-01,10.0,10.0,21.0,0.0,False
+Uzbekistan,RSV,RSV,RSV,63.0,184,True,,none,,2,19,ok,observed_rebound,1.55,2020-04-01,2020-03-01,2021-11-01,20.0,False,2026-04-01,2016-02-01,22.0,12.0,8.0,6.0,False
+Uzbekistan,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,184,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Uzbekistan,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,184,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Uzbekistan,Adenovirus,Adenovirus,ADENO,0.0,184,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-04-01,,,,,,
+Uzbekistan,InfluenzaA,InfluenzaA,INF_A,155.0,184,True,,none,,8,26,excluded,zero_testing_explains_excess_gap,3.8,2020-04-01,2020-03-01,2021-09-01,18.0,False,2026-04-01,2015-03-01,23.0,12.0,6.0,6.0,False
+Uzbekistan,InfluenzaB,InfluenzaB,INF_B,39.0,184,True,,none,,2,11,ok,observed_rebound,1.75,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-04-01,2015-03-01,19.0,12.0,20.0,6.0,False
+Venezuela (Bolivarian Republic of),RSV,RSV,RSV,192.0,282,True,,none,,10,33,ok,observed_rebound,1.1,2020-04-01,2020-03-01,2023-02-01,35.0,False,2026-05-01,2015-03-01,14.0,12.0,23.0,21.0,False
+Venezuela (Bolivarian Republic of),Metapneumovirus,Metapneumovirus,METAPNEUMO,8.0,282,False,low_activity_all_months_below_threshold,none,,0,14,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Venezuela (Bolivarian Republic of),Parainfluenza,Parainfluenza,PARAINFLUENZA,6.0,282,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Venezuela (Bolivarian Republic of),Adenovirus,Adenovirus,ADENO,15.0,282,False,low_activity_all_months_below_threshold,none,,0,18,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Venezuela (Bolivarian Republic of),InfluenzaA,InfluenzaA,INF_A,1472.0,282,True,,none,,29,45,excluded,zero_testing_explains_excess_gap,73.6,2020-04-01,2020-03-01,2022-08-01,29.0,False,2026-05-01,2015-03-01,60.0,12.0,17.0,21.0,False
+Venezuela (Bolivarian Republic of),InfluenzaB,InfluenzaB,INF_B,72.0,282,True,,none,,5,42,excluded,zero_testing_explains_excess_gap,1.5,2020-04-01,2020-03-01,2022-08-01,29.0,False,2026-05-01,2015-03-01,20.0,12.0,17.0,21.0,False
+Viet Nam,RSV,RSV,RSV,42.0,245,False,insufficient_post_nonzero_months,none,,2,0,excluded,insufficient_post_nonzero_months,,,,,,False,2026-05-01,,,,,,
+Viet Nam,Metapneumovirus,Metapneumovirus,METAPNEUMO,20.0,245,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Viet Nam,Parainfluenza,Parainfluenza,PARAINFLUENZA,20.0,245,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Viet Nam,Adenovirus,Adenovirus,ADENO,11.0,245,False,low_activity_all_months_below_threshold,none,,0,0,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Viet Nam,InfluenzaA,InfluenzaA,INF_A,283.0,245,True,,none,,117,53,ok,observed_rebound,14.15,2020-04-01,2020-03-01,2020-10-01,7.0,False,2026-05-01,2015-03-01,4.0,4.0,3.0,0.0,False
+Viet Nam,InfluenzaB,InfluenzaB,INF_B,146.0,245,True,,none,,64,43,ok,observed_rebound,5.55,2020-04-01,2020-03-01,2022-09-01,30.0,False,2026-05-01,2015-03-01,8.0,8.0,22.0,2.0,False
+Yemen,RSV,RSV,RSV,3.0,90,False,low_activity_all_months_below_threshold,none,,0,1,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Yemen,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,90,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Yemen,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,90,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Yemen,Adenovirus,Adenovirus,ADENO,0.0,90,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Yemen,InfluenzaA,InfluenzaA,INF_A,100.0,90,True,,none,,4,21,ok,observed_rebound,5.0,2020-04-01,2020-03-01,2025-05-01,62.0,False,2026-05-01,2019-01-01,4.0,4.0,58.0,8.0,False
+Yemen,InfluenzaB,InfluenzaB,INF_B,6.0,90,False,low_activity_all_months_below_threshold,none,,0,11,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-05-01,,,,,,
+Zambia,RSV,RSV,RSV,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Zambia,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Zambia,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Zambia,Adenovirus,Adenovirus,ADENO,0.0,354,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-05-01,,,,,,
+Zambia,InfluenzaA,InfluenzaA,INF_A,215.0,354,True,,none,,27,64,ok,observed_rebound,3.15,2020-04-01,2020-03-01,2021-01-01,10.0,False,2026-05-01,2018-03-01,3.0,3.0,7.0,0.0,False
+Zambia,InfluenzaB,InfluenzaB,INF_B,128.0,354,True,,none,,6,57,ok,observed_rebound,2.0,2020-04-01,2020-03-01,2021-02-01,11.0,False,2026-05-01,2017-12-01,2.0,2.0,9.0,0.0,False
+Zimbabwe,RSV,RSV,RSV,0.0,54,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+Zimbabwe,Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,54,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+Zimbabwe,Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,54,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+Zimbabwe,Adenovirus,Adenovirus,ADENO,0.0,54,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+Zimbabwe,InfluenzaA,InfluenzaA,INF_A,41.0,54,True,,none,,1,7,excluded,insufficient_pre2020_baseline,,,,,,False,2026-03-01,,,,,,
+Zimbabwe,InfluenzaB,InfluenzaB,INF_B,21.0,54,False,low_activity_all_months_below_threshold,none,,0,7,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-03-01,,,,,,
+"occupied Palestinian territory, including east Jerusalem",RSV,RSV,RSV,131.0,111,True,,none,,21,39,ok,observed_rebound,3.55,2020-04-01,2020-03-01,2021-08-01,17.0,False,2026-03-01,2017-01-01,9.0,9.0,8.0,4.0,False
+"occupied Palestinian territory, including east Jerusalem",Metapneumovirus,Metapneumovirus,METAPNEUMO,0.0,111,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+"occupied Palestinian territory, including east Jerusalem",Parainfluenza,Parainfluenza,PARAINFLUENZA,0.0,111,False,all_zero,none,,0,0,excluded,all_zero,,,,,,False,2026-03-01,,,,,,
+"occupied Palestinian territory, including east Jerusalem",Adenovirus,Adenovirus,ADENO,14.0,111,False,low_activity_all_months_below_threshold,none,,0,42,excluded,low_activity_all_months_below_threshold,,,,,,False,2026-03-01,,,,,,
+"occupied Palestinian territory, including east Jerusalem",InfluenzaA,InfluenzaA,INF_A,283.0,111,True,,none,,16,33,ok,observed_rebound,14.15,2020-04-01,2020-03-01,2022-10-01,31.0,False,2026-03-01,2017-12-01,7.0,7.0,24.0,4.0,False
+"occupied Palestinian territory, including east Jerusalem",InfluenzaB,InfluenzaB,INF_B,78.0,111,True,,none,,2,14,ok,observed_rebound,1.25,2020-04-01,2020-03-01,2022-11-01,32.0,False,2026-03-01,2015-03-01,20.0,12.0,20.0,4.0,False

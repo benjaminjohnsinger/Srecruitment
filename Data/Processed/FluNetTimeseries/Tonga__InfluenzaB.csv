@@ -1,0 +1,13 @@
+country,pathogen,pathogen_label,pathogen_column,month_start,count,spec_processed_nb
+Tonga,InfluenzaB,InfluenzaB,INF_B,2024-12-01,0.0,25.0
+Tonga,InfluenzaB,InfluenzaB,INF_B,2025-01-01,0.0,189.0
+Tonga,InfluenzaB,InfluenzaB,INF_B,2025-02-01,0.0,55.0
+Tonga,InfluenzaB,InfluenzaB,INF_B,2025-03-01,25.0,176.0
+Tonga,InfluenzaB,InfluenzaB,INF_B,2025-04-01,126.0,538.0
+Tonga,InfluenzaB,InfluenzaB,INF_B,2025-05-01,34.0,277.0
+Tonga,InfluenzaB,InfluenzaB,INF_B,2025-06-01,3.0,209.0
+Tonga,InfluenzaB,InfluenzaB,INF_B,2025-07-01,0.0,130.0
+Tonga,InfluenzaB,InfluenzaB,INF_B,2025-08-01,1.0,122.0
+Tonga,InfluenzaB,InfluenzaB,INF_B,2025-09-01,0.0,274.0
+Tonga,InfluenzaB,InfluenzaB,INF_B,2025-10-01,13.0,283.0
+Tonga,InfluenzaB,InfluenzaB,INF_B,2025-11-01,5.0,50.0
