@@ -13,7 +13,7 @@ import re
 import glob
 
 from utils import consistent_x_from_DE, x_to_params, date_to_t, calculate_population_size, calculate_R0_from_values, load_mcmc_chain
-from fit_MCMC import run_simulation
+from likelihood import run_simulation
 from data_processing import calculate_proportion_positive_incidence
 # from Parameters.times_and_contacts import PERIOD
 

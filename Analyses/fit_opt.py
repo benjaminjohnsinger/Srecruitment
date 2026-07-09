@@ -20,7 +20,7 @@ if "Cuda" in str(jax.devices()):
 from Parameters.times_and_contacts import *
 
 from utils import *
-from fit_MCMC import run_simulation, SIS_likelihood, peaks_and_times_likelihood
+from likelihood import run_simulation, SIS_likelihood, peaks_and_times_likelihood
 from plotting import calculate_observations_per_season, get_season_start
 from data_processing import calculate_proportion_positive_incidence
 

@@ -27,7 +27,7 @@ from matplotlib import cm as colormaps
 hsv_colors = colormaps.hsv(-0.02+np.arange(7)/7)
 hsv_colors[3] = colormaps.hsv((3/7)+0.04)
 
-from fit_MCMC import SIS_likelihood, run_simulation
+from likelihood import SIS_likelihood, run_simulation
 from fit_opt import get_likelihood
 import time
 import pickle
@@ -123,8 +123,8 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 
     # # # cut off burn-in
     # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
-    n_iterations -= 2000
-    mcmc_samples = mcmc_samples[2000*n_walkers:, :]
+    n_iterations -= 3000
+    mcmc_samples = mcmc_samples[3000*n_walkers:, :]
 
     # # find index of S_REL1 in pram_names
     # thinning = 100 if "Influenza" not in pathogen else 1000
@@ -244,7 +244,7 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 
     import corner
     fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-    plt.savefig(f"Figures/mcmc_corner_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_cutoff2000.pdf", bbox_inches='tight')
+    plt.savefig(f"Figures/mcmc_corner_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_from3000.pdf", bbox_inches='tight')
     plt.close(fig)
     
 # #     # sns.kdeplot(ax=ax, x=r0_samples, y=1-srel1_samples, color=color, label=pathogen, fill=True)

@@ -14,7 +14,7 @@ from demography import *
 from mobility_and_import import *
 from sim_grid import *
 from plotting import *
-from fit_MCMC import *
+from likelihood import *
 
 if __name__ == "__main__":
     pathogen, seed, lockdown, option1, option2, import_multiplier = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
