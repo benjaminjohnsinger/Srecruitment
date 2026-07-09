@@ -20,7 +20,7 @@ import colorsys
 from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 import time
 
-from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, infections_by_age, observations, load_optimization_results, x_to_params, sum_age_to, pathogen_parameters, load_mcmc_chain, load_random_mcmc_result, parameters_names_bounds, constrained_immunity, calculate_R0_from_values
+from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, observations, load_optimization_results, x_to_params, sum_age_to, pathogen_parameters, load_mcmc_chain, load_random_mcmc_result, parameters_names_bounds, constrained_immunity, calculate_R0_from_values
 
 N_C = 2
 N_S = 3
@@ -413,288 +413,6 @@ def lockdown_susceptibility_format(ax,T_LOCKDOWN,LOCKDOWN_DURATION,ymin=0.875,ym
     # else:
     #     ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],yin,yax,color='gray',alpha=0.2)
 
-def age_infect_plot(ax,state0,params,AGE_GROUP_NAMES,period,points,T_LOCKDOWN,LOCKDOWN_DURATION,result=None,delts=deltas):
-    cmap = plt.get_cmap('viridis')
-    NAG, N_S, AGING_RATE, births, WANE_UP, WANE_SAME, REC, S_REL, S_AGE, I_REL, P_OBS, birth_vax, all_vax, S_VAX, ACOV, BCOV, T_VAX, arrivals, IMPORT_RATE, BETA, SEASONALITY, OFFSET, contact = params.values()
-    if result is None:
-        result = sp.integrate.solve_ivp(deltas, [0,period], state0, method='RK45', t_eval=points,args=(params,))
-    ## Calculate rate of infections created by each age group
-    infs = infections_by_age(result,params)
-    rel_infs = infs/np.sum(infs,axis=1)[:,np.newaxis]
-    for i in range(NAG):
-        ax.plot(result.t,rel_infs[:,i], label=AGE_GROUP_NAMES[i], color=cmap(i/(NAG-1)),zorder=1)
-    ax.set_xlim(T_LOCKDOWN-5*365,T_LOCKDOWN+LOCKDOWN_DURATION+5*365)
-    ax.set_title('Infections caused by each age group')
-    ax.set_ylabel('Infection rate')
-    ax.fill_between([T_LOCKDOWN,T_LOCKDOWN+LOCKDOWN_DURATION],0,1,color='gray',zorder=0,alpha=0.2)
-    ax.set_xticks(np.arange(T_LOCKDOWN-5*365,T_LOCKDOWN+LOCKDOWN_DURATION+5*365,365),[str(int(x)-5) for x in np.arange(0,11,1)])
-    ax.set_xlabel('Time (years)')
-    ax.set_ylim(0,1)
-    # ax.legend()
-
-##### Sim grid based plots #####
-def param_line_plot(ax,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=None,
-    grid_params=("WANE_UP","WANE_SAME"),grid_mode="scale",factor=1,label_mode="mean",
-    y_values=("peak incidence","time to rebound"),y_labels=("Peak incidence","Time to rebound (years)"),x_label="Waning",
-    colors=("#648FFF","#DC267F")):
-    N = max([max(p) for p in results.keys()])+1
-    # Line plots of chosen value before and after lockdown
-    values = np.zeros((N,len(y_values)))
-    parameter_values = np.zeros(N)
-
-    for p_n,result in results.items():
-        params_n = params.copy()
-        for p in p_n:
-            for pname in grid_params:
-                if grid_mode == "scale":
-                    params_n[pname] = params[pname]*(1+(p/N-1/2))**factor
-                elif grid_mode == "fade_vec":
-                    vec_len = len(params[pname])
-                    vec = np.array([(1-j*(p/(N*(vec_len-1))))**factor for j in range(vec_len)])
-                    vec = vec.reshape(params[pname].shape)
-                    params_n[pname] = vec
-            # Express summary of parameters as a single value
-            if grid_mode == "fade_vec":
-                parameter_values[p] = factor*p/(N*(vec_len-1))
-            elif label_mode=="diff_mean":
-                parameter_values[p] = np.mean(params_n[grid_params[0]]) - np.mean(params_n[grid_params[1]])
-            elif label_mode=="mean":
-                parameter_values[p] = np.mean([np.mean(params_n[pname]) for pname in grid_params])
-            elif label_mode=="nz_mean":
-                parameter_values[p] = np.mean([np.mean(params_n[pname])*(len(params_n[pname])/np.sum(params_n[pname]!=0)) for pname in grid_params])
-        # Calculate observations
-        if ("peak incidence" in y_values) or ("time to rebound" in y_values) or ("rebound peak incidence"in y_values) or ("periodicity" in y_values):
-            obs = observations(result,params_n,OBS_AGE,incidence=True)
-            if "peak incidence" in y_values:
-                values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="peak incidence"]] = np.max(obs[(result.t>T_LOCKDOWN-12*365) & (result.t<T_LOCKDOWN)])
-            if "time to rebound" in y_values:
-                post_peak_arg = np.argmax(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)] > np.max(obs[(result.t>T_LOCKDOWN-12*365) & (result.t<T_LOCKDOWN)])/2)
-                val = result.t[np.argmax(result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION))+post_peak_arg]-(T_LOCKDOWN+LOCKDOWN_DURATION)
-                values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="time to rebound"]] = val/365
-            if "rebound peak incidence" in y_values:
-                values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="rebound peak incidence"]] = np.max(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)])
-            if "periodicity" in y_values:
-                pre_obs = obs[(result.t>T_LOCKDOWN-12*365) & (result.t<T_LOCKDOWN)]
-                corr = np.correlate(pre_obs, pre_obs, mode='same')
-                acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
-                acorr = acorr + np.linspace(0.1, 0, len(acorr))
-                lag = np.abs(acorr).argmax() + 1
-                values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="periodicity"]] = lag/365
-        if "child infections" in y_values or "under-five infections" in y_values:
-            infs = infections_by_age(result,params_n)
-            if "child infections" in y_values:
-                values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="child infections"]] = (np.sum(infs[:,0:4],axis=1)/np.sum(infs,axis=1))[np.argmax(result.t>=T_LOCKDOWN)]
-            if "under-five infections" in y_values:
-                values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="under-five infections"]] = (np.sum(infs[:,0:3],axis=1)/np.sum(infs,axis=1))[np.argmax(result.t>=T_LOCKDOWN)]
-        if "pre-lockdown susceptibility" in y_values or "post-lockdown susceptibility" in y_values:
-            sus = susceptibility(result,params_n)
-            total_sus = np.sum(sus,axis=1)
-            if "pre-lockdown susceptibility" in y_values:
-                values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="pre-lockdown susceptibility"]] = total_sus[np.argmax(result.t<=T_LOCKDOWN)]
-            if "post-lockdown susceptibility" in y_values:
-                values[p_n,[idx for idx in range(len(y_values)) if y_values[idx]=="post-lockdown susceptibility"]] = total_sus[np.argmax(result.t>=T_LOCKDOWN+LOCKDOWN_DURATION)]
-    for i in range(len(y_values)):
-        ax.plot(parameter_values,values[:,i],label=y_labels[i],color=colors[i])
-    ax.set_xlabel(x_label)
-
-def grid_plot(ax,results,params,T_LOCKDOWN,LOCKDOWN_DURATION,OBS_AGE=None,
-    grid_params=(("BETA","REC"),("WANE_UP","WANE_SAME")),grid_mode=("scale","scale"),factors=(1,1),label_mode=("diff_mean","nz_mean"),
-    z_value="peak incidence",z_label="Observed incidence",x_labels=("Growth","Waning"),
-    save=False,file=None,fix=False,vmin=None,vmax=None):
-    N_params = len(grid_params)
-    N = max([max(p) for p in results.keys()])+1
-    z_values = np.zeros(np.repeat(N,N_params))
-    parameter_values = np.zeros((N,N_params))
-    if save or (file is None):
-        for p_n,result in results.items():
-            if all([p==0 for p in p_n[1:]]):
-                print(p_n)
-            params_n = params.copy()
-            for i,p in enumerate(p_n):
-                for pname in grid_params[i]:
-                    if grid_mode[i] == "scale":
-                        params_n[pname] = params[pname]*(1+(p/N-1/2))**factors[i]
-                    elif grid_mode[i] == "fade_vec":
-                        vec_len = len(params[pname])
-                        vec = np.array([(1-j*(p/(N*(vec_len-1))))**factors[i] for j in range(vec_len)])
-                        vec = vec.reshape(params[pname].shape)
-                        params_n[pname] = vec
-                if grid_mode[i] == "fade_vec":
-                    parameter_values[p,i] = (p/(N*(vec_len-1)))**factors[i]
-                if label_mode[i]=="diff_mean":
-                    parameter_values[p,i] = np.mean(params_n[grid_params[i][0]]) - np.mean(params_n[grid_params[i][1]])
-                elif label_mode[i]=="mean":
-                    parameter_values[p,i] = np.mean([np.mean(params_n[pname]) for pname in grid_params[i]])
-                elif label_mode[i]=="nz_mean":
-                    parameter_values[p,i] = np.mean([np.mean(params_n[pname])*(len(params_n[pname])/np.sum(params_n[pname]!=0)) for pname in grid_params[i]])
-            # Calculate observations
-            if (z_value == "peak incidence") or (z_value == "min incidence") or (z_value == "oscillation size") or (z_value == "time to rebound") or (z_value == "rebound peak incidence") or (z_value == "periodicity"):
-                obs = observations(result,params_n,OBS_AGE,incidence=True)
-                if z_value == "peak incidence":
-                    z_values[p_n] = np.max(obs[(result.t>T_LOCKDOWN-12*365) & (result.t<T_LOCKDOWN)])
-                if z_value == "min incidence":
-                    z_values[p_n] = np.min(obs[(result.t>T_LOCKDOWN-12*365) & (result.t<T_LOCKDOWN)])
-                if z_value == "oscillation size":
-                    pre_obs = obs[(result.t>T_LOCKDOWN-12*365) & (result.t<T_LOCKDOWN)]
-                    z_values[p_n] = (np.max(pre_obs) - np.min(pre_obs))/np.mean(pre_obs)
-                if z_value == "time to rebound":
-                    post_peak_arg = np.argmax(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)] > np.max(obs[(result.t>T_LOCKDOWN-12*365) & (result.t<T_LOCKDOWN)])/2)
-                    z_values[p_n] = (result.t[np.argmax(result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION))+post_peak_arg]-(T_LOCKDOWN+LOCKDOWN_DURATION))/365
-                if z_value == "rebound peak incidence":
-                    z_values[p_n] = np.max(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)])
-                if z_value == "periodicity":
-                    pre_obs = obs[(result.t>T_LOCKDOWN-12*365) & (result.t<T_LOCKDOWN)]
-                    corr = np.correlate(pre_obs, pre_obs, mode='same')
-                    acorr = corr[len(pre_obs)//2 + 1:] / (pre_obs.var() * np.arange(len(pre_obs)-1, len(pre_obs)//2, -1))
-                    acorr = acorr + np.linspace(0.1, 0, len(acorr))
-                    lag = np.abs(acorr).argmax() + 1
-                    z_values[p_n] = lag/12
-            if (z_value == "child infections") or (z_value == "under-five infections"):
-                infs = infections_by_age(result,params_n)
-                if z_value == "child infections":
-                    z_values[p_n] = (np.sum(infs[:,0:4],axis=1)/np.sum(infs,axis=1))[np.argmax(result.t>=T_LOCKDOWN)]
-                if z_value == "under-five infections":
-                    z_values[p_n] = (np.sum(infs[:,0:3],axis=1)/np.sum(infs,axis=1))[np.argmax(result.t>=T_LOCKDOWN)]
-            if (z_value == "pre-lockdown susceptibility") or (z_value == "post-lockdown susceptibility"):
-                sus = susceptibility(result,params_n)
-                total_sus = np.sum(sus,axis=1)
-                if z_value == "pre-lockdown susceptibility":
-                    z_values[p_n] = total_sus[np.argmax(result.t>=T_LOCKDOWN)]
-                if z_value == "post-lockdown susceptibility":
-                    z_values[p_n] = total_sus[np.argmax(result.t>=T_LOCKDOWN+LOCKDOWN_DURATION)]
-    if save:
-        with open(file,'wb') as f:
-            pickle.dump((parameter_values,z_values),f)
-    if file is not None:
-        with open(file,'rb') as f:
-            parameter_values,z_values = pickle.load(f)
-    if N_params == 2:
-        im = ax.imshow(np.flipud(z_values))
-        ax.set_yticks(range(0,N,N//4+1),[f'{parameter_values[y_n,0]:.2g}' for y_n in range(N-1,-1,-(N//4+1))])
-        ax.set_xticks(range(0,N,N//4+1),[f'{parameter_values[x_n,1]:.2g}' for x_n in range(0,N,N//4+1)])
-        cbar = plt.colorbar(im, ax=ax)
-        cbar.set_label(z_label)
-    else:
-        ax_width = ax.shape[1]
-        for i in range(N_params):
-            for j in range(i+1,N_params):
-                axn = sum((N_params-k) for k in range(i+1))+j-i-N_params-1
-                axis = ax[axn//ax_width,axn%ax_width]
-                if fix:
-                    # get z_values with all indixes equal to N//2 except for i and j
-                    z_values_plot = np.zeros((N,N))
-                    for i_n in range(N):
-                        for j_n in range(N):
-                            indices = [N//2]*N_params
-                            indices[i] = i_n
-                            indices[j] = j_n
-                            z_values_plot[i_n,j_n] = z_values[tuple(indices)]
-                else:  
-                    z_values_plot = np.mean(z_values,axis=tuple([k for k in range(N_params) if k not in [i,j]]))
-                if (vmax is not None) and (vmin is not None):
-                    im = axis.imshow(np.flipud(z_values_plot),vmin=vmin,vmax=vmax)
-                else:
-                    im = axis.imshow(np.flipud(z_values_plot))
-                    cbar = plt.colorbar(im, ax=axis)
-                axis.set_yticks(range(0,N,N//4+1),[f'{parameter_values[y_n,i]:.2g}' for y_n in range(N-1,-1,-(N//4+1))])
-                axis.set_xticks(range(0,N,N//4+1),[f'{parameter_values[x_n,j]:.2g}' for x_n in range(0,N,N//4+1)])
-                axis.set_xlabel(x_labels[j])
-                axis.set_ylabel(x_labels[i])
-        return(im)
-
-##### Clustering plots #####
-def cluster_plot(axes,results,obses,n_clusters,labels,cluster_centers,relative=False,color=False,line=True,clusters=None, color_values_all=None,
-    parameters=["BETA","WANE","S_REL"],param_labels=["Infectiousness","Waning","Acquired\nimmunity"],
-    grid_mode=["scale","scale","based_vec"],base_values=[40,1/30,1/4],factors=[0.7,3,1],N=25,
-    y_value=("time to rebound"),y_label="Time to rebound",
-    t_lockdown="2014-01-01",LOCKDOWN_DURATION=365):
-    if clusters is None:
-        clusters = set(labels)
-    T_LOCKDOWN = date_to_t(pd.to_datetime(t_lockdown))
-    times = np.array(date_to_t(pd.date_range(start=pd.to_datetime(t_lockdown)-pd.Timedelta(5*365,unit='D'),end=pd.to_datetime(t_lockdown),freq='MS')))[:-1]
-    param_values_all = np.zeros((len(results.keys()),len(parameters)))
-    for i,p_n in enumerate(results.keys()):
-        for n_p,param in enumerate(parameters):
-            if grid_mode[n_p] == "scale":
-                param_values_all[i,n_p] = base_values[n_p]*(1+(p_n[n_p]/N-1/2))**factors[n_p]
-            elif grid_mode[n_p] == "fade_vec":
-                param_values_all[i,n_p] = p_n[n_p]/(2*N)
-            elif grid_mode[n_p] == "based_vec":
-                param_values_all[i,n_p] = base_values[n_p]+(1/2-base_values[n_p])*p_n[n_p]/N
-    for i,cluster in enumerate(clusters):
-        idx = np.where(labels==cluster)[0]
-        values = np.zeros(len(idx))
-        mx = 0
-        param_values = param_values_all[idx,:]
-        if color:
-            if color_values_all is None:
-                color_values = 0.95*(param_values-np.min(param_values_all,axis=0))/(np.max(param_values_all,axis=0)-np.min(param_values_all,axis=0))
-            else:
-                color_values = color_values_all[idx]
-        for n_j,j in enumerate(idx):
-            result = results[list(results.keys())[j]]
-            obs = 100*obses[list(obses.keys())[j]]
-            p_n = list(results.keys())[j]
-            if y_value == "rebound peak incidence":
-                values[n_j] = np.max(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)])
-            elif y_value == "time to rebound":
-                post_peak_arg = np.argmax(obs[result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION)] > np.max(obs[(result.t>T_LOCKDOWN-5*365) & (result.t<T_LOCKDOWN)])/2)
-                val = result.t[np.argmax(result.t>=(T_LOCKDOWN+LOCKDOWN_DURATION))+post_peak_arg]-(T_LOCKDOWN+LOCKDOWN_DURATION)
-                values[n_j] = min(val/365,5)
-            elif y_value == "child infections":
-                infs = infections_by_age(result,params)
-                values[n_j] = (np.sum(infs[:,0:4],axis=1)/np.sum(infs,axis=1))[np.argmax(result.t>=T_LOCKDOWN)]
-            if color:
-                if np.random.rand() < 500/len(idx):
-                    mxs = lockdown_incidence_plot(axes[i,0],None,None,None,None,None,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,relative=relative,
-                    start_t=date_to_t('2009-01-01'),end_t=date_to_t('2020-01-01'),
-                    color=color_values[n_j],alpha=1)
-                    mx = max(mx,mxs)
-            else:
-                mxs = lockdown_incidence_plot(axes[i,0],None,None,None,None,None,T_LOCKDOWN,LOCKDOWN_DURATION,result=result,obs=obs,relative=relative,
-                start_t=date_to_t('2009-01-01'),end_t=date_to_t('2020-01-01'),
-                color='black',alpha=0.01)
-                mx = max(mx,mxs)
-        if cluster_centers is not None:
-            if color:
-                axes[i,0].plot(times,100*cluster_centers[cluster],color='black',label='Cluster center')
-            else:
-                axes[i,0].plot(times,100*cluster_centers[cluster],color='red',label='Cluster center')
-        lockdown_incidence_format(axes[i,0],T_LOCKDOWN,LOCKDOWN_DURATION,mx,title='',year_skip=2)
-        axes[i,0].set_xlabel("")
-        for n_p,param in enumerate(parameters):
-            if color and not line:
-                jitter_param = np.random.normal(-1,1,len(param_values[:,n_p]))*base_values[n_p]/(2*N)
-                jitter_values = np.random.normal(-1,1,len(param_values[:,n_p]))*(1/24)
-                axes[i,n_p+1].scatter(param_values[:,n_p]+jitter_param,values+jitter_values,c=color_values,alpha=1,s=15/np.sqrt(len(idx)),linewidths=0)
-            elif not line:
-                axes[i,n_p+1].scatter(param_values[:,n_p],values,color="black",alpha=0.3,s=10)
-            else:
-                pf = param_values[:,n_p]
-                Qs = np.zeros((len(pf),3))
-                for pidx in range(len(pf)):
-                    Qs[pidx,:] = np.percentile(values[pf==pf[pidx]],[25,50,75])
-                sort_args = np.argsort(pf)
-                param_sorted = pf[sort_args]
-                Qs_sorted = Qs[sort_args,:]
-                if color:
-                    axes[i,n_p+1].plot(param_sorted,Qs_sorted[:,1],color=color_values[n_j])
-                    axes[i,n_p+1].fill_between(param_sorted,Qs_sorted[:,0],Qs_sorted[:,2],alpha=0.3,color=color_values[n_j])
-                else:
-                    axes[i,n_p+1].plot(param_sorted,Qs_sorted[:,1],color="black")
-                    axes[i,n_p+1].fill_between(param_sorted,Qs_sorted[:,0],Qs_sorted[:,2],alpha=0.3,color="black")
-            if n_p > 0:
-                axes[i,n_p+1].set_yticklabels([])
-        if n_clusters > 1:
-            axes[i,0].set_ylabel(f"Cluster {cluster+1}\n\nIncidence")
-        else:
-            axes[i,0].set_ylabel(f"All simulations\n\nIncidence")
-        axes[i,1].set_ylabel("\n"+y_label)
-    if n_clusters > 1:
-        axes[len(clusters)-1,0].set_xlabel("Time (years)")
-        for n_p,label in enumerate(param_labels):
-            axes[len(clusters)-1,n_p+1].set_xlabel(f"{label}")
-
 ##### Fitting plots #####
 def mcmc_trajectory_plot(axes,trajectory,param_names):
     for i in range(trajectory.shape[1]):
@@ -1011,29 +729,57 @@ def season_plot(ax,pathogen,incidence=True,relative=False,filter=True):
     ax.set_xlim(-0.5,cases.shape[0]-0.5)
     ax.set_ylim(0,1)
 
-def plot_relative_age_incidence(ax,pathogen,group_names=None):
-    incidence = calculate_proportion_positive_incidence(pathogen, aggregation="QS", window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=True, NAG=NAG, detrend=False, dedup=True, sac=True)
+def plot_relative_age_incidence(ax,pathogen,group_names=None,aggregation="YS-OCT"):
+    proportional_incidence, lower_ci, upper_ci = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=True, NAG=NAG, detrend=False, dedup=True, sac=True, return_ci=True, cum_sum=False)
+    pop_by_age_group_month = pd.read_csv('Data/Processed/KPSC_population_by_age_group_monthly_sac.csv', index_col=0, parse_dates=['month_start'])
+    pop_size = pop_by_age_group_month.resample(aggregation).ffill()[:proportional_incidence.shape[0]]
+    pop_size.index = pd.to_datetime(pop_size.index)
+    incidence = proportional_incidence.multiply(pop_size.values, axis=0)
+    lower_ci = lower_ci.multiply(pop_size.values, axis=0)
+    upper_ci = upper_ci.multiply(pop_size.values, axis=0)
+    if "<1y" in group_names or "<5y" in group_names:
+        cum_proportional_incidence, cum_lower_ci, cum_upper_ci = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=1, weighting_factor=0, sum_age_groups=False, save_counts=False, pp_only=False, hosp=True, NAG=NAG, detrend=False, dedup=True, sac=True, return_ci=True, cum_sum=True)
+        cum_pop_size = pop_size.cumsum(axis=1)
+        cum_incidence = cum_proportional_incidence.multiply(cum_pop_size.values, axis=0)
+        cum_lower_ci = cum_lower_ci.multiply(cum_pop_size.values, axis=0)
+        cum_upper_ci = cum_upper_ci.multiply(cum_pop_size.values, axis=0)
     age_incidence = {}
     for group in group_names:
         if group in incidence.columns:
             age_incidence[group] = incidence[group] / incidence.sum(axis=1)
+            lower_ci[group] = lower_ci[group] / incidence.sum(axis=1)
+            upper_ci[group] = upper_ci[group] / incidence.sum(axis=1)
         elif group == "<1y":
-            age_incidence[group] = (incidence["<3m"] + incidence["3-11m"]) / incidence.sum(axis=1)
+            age_incidence[group] = cum_incidence["3-11m"] / incidence.sum(axis=1)
+            lower_ci[group] = cum_lower_ci["3-11m"] / incidence.sum(axis=1)
+            upper_ci[group] = cum_upper_ci["3-11m"] / incidence.sum(axis=1)
         elif group == "<5y":
-            age_incidence[group] = (incidence["<3m"] + incidence["3-11m"] + incidence["1-4y"]) / incidence.sum(axis=1)
+            age_incidence[group] = cum_incidence["1-4y"] / incidence.sum(axis=1)
+            lower_ci[group] = cum_lower_ci["1-4y"] / incidence.sum(axis=1)
+            upper_ci[group] = cum_upper_ci["1-4y"] / incidence.sum(axis=1)
     age_incidence = pd.DataFrame(age_incidence)
     # set to NA for 2020/21
-    age_incidence.loc[(age_incidence.index > pd.to_datetime("2019-10-01")) & (age_incidence.index < pd.to_datetime("2021-10-01")), :] = np.nan
-    if "Influenza" in pathogen:
-        age_incidence.loc[(age_incidence.index > pd.to_datetime("2019-10-01")) & (age_incidence.index < pd.to_datetime("2022-10-01")), :] = np.nan
-        if "B" in pathogen:
-            age_incidence.loc[(age_incidence.index > pd.to_datetime("2022-10-01")) & (age_incidence.index < pd.to_datetime("2024-10-01")), :] = np.nan
+    if "Parainfluenza" not in pathogen:
+        age_incidence.loc[(age_incidence.index > pd.to_datetime("2019-10-01")) & (age_incidence.index < pd.to_datetime("2021-10-01")), :] = np.nan
+        if "Influenza" in pathogen:
+            age_incidence.loc[(age_incidence.index > pd.to_datetime("2019-10-01")) & (age_incidence.index < pd.to_datetime("2022-10-01")), :] = np.nan
+            if "B" in pathogen:
+                age_incidence.loc[(age_incidence.index > pd.to_datetime("2022-10-01")) & (age_incidence.index < pd.to_datetime("2024-10-01")), :] = np.nan
+    else:
+
+        age_incidence.loc[(age_incidence.index > pd.to_datetime("2018-10-01")) & (age_incidence.index < pd.to_datetime("2020-10-01")), :] = np.nan
     # set to NA when incidence is zero for that age group
     for group in group_names:
         age_incidence.loc[age_incidence[group] == 0, group] = np.nan
     colors = ["silver", "k"]
+    days_in_agg = {"YS-OCT": 365, "MS": 30.44, "W": 7, "D": 1}[aggregation]
+    offset = (1/5) * len(group_names)
     for i, group in enumerate(group_names):
-        ax.plot(age_incidence.index, age_incidence[group], color=colors[i], label=group)
+        x_offset = (i - len(group_names)/2 + 0.5) * offset * days_in_agg
+        ax.scatter(age_incidence.index + pd.Timedelta(days=x_offset), age_incidence[group], color=colors[i], label=group, marker='s', s=5)
+        for idx in age_incidence.index:
+            if not np.isnan(age_incidence.loc[idx, group]):
+                ax.plot([idx + pd.Timedelta(days=x_offset), idx + pd.Timedelta(days=x_offset)], [lower_ci.loc[idx, group], upper_ci.loc[idx, group]], color=colors[i], linewidth=0.7)
 
 def calculate_infection_matrices_from_solution(solution, params, NAG=7, hospitalizations=False):
     # find total observed infections each season in each age group
@@ -2420,15 +2166,15 @@ if __name__ == "__main__":
     # # season age plots in row 1
     for i, pathogen in enumerate(pathogens):
         ax = season_age_axes[i]
-        plot_relative_age_incidence(ax, pathogen, group_names=["<1y","<5y"])
-        ax.set_xticks([])
-        # ax.set_xticklabels(["", "2016/17", "", "2018/19", "", "2020/21", "", "2022/23", "", "2024/25",], fontsize=6)
+        plot_relative_age_incidence(ax, pathogen, group_names=["<1y","<5y"], aggregation="MS")
+        # ax.set_xticks([])
+        ax.set_xticklabels(["", "2016/17", "", "2018/19", "", "2020/21", "", "2022/23", "", "2024/25",], fontsize=6)
         # ax.set_xticklabels(["", "", "", "", "", "", "", "", "", "",], fontsize=6)
         for label in ax.get_xticklabels():
             label.set_rotation(45)
             label.set_horizontalalignment('right')
             label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
-        ax.set_ylim(0, 1)
+        ax.set_ylim(0.0, 0.5)
         if i>0:
             ax.set_yticks([])
     season_age_axes[0].set_ylabel("KPSC", rotation=0, ha='right', labelpad=20)
@@ -2442,7 +2188,7 @@ if __name__ == "__main__":
     sax2.yaxis.tick_left()
     # put legend in first plot
     season_age_axes[0].legend(loc='best', fontsize=6)
-    plt.savefig(f"Figures/season_age_incidence_quarterly.png", dpi=300)
+    plt.savefig(f"Figures/season_age_incidence_monthly_uncertainty.png", dpi=300)
 
     ### plotting population susceptibility
     # fig, fit_ax = plt.subplots(1, 1, figsize=(3.5, 3.5), layout="constrained", sharex=False, sharey=False)
