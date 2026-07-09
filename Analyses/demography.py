@@ -67,44 +67,44 @@ def birth_rate(t, BIRTHS_NP=BIRTHS_NP, BIRTHS_IDX=BIRTHS_IDX, POPULATION_NP=POPU
     return bths/pop
 
 
+if __name__ == "__main__":
+    PERIOD = pd.date_range(start=pd.to_datetime('2000-10-01'), end=pd.to_datetime('2024-10-01'), freq='D')
 
-# PERIOD = pd.date_range(start=pd.to_datetime('2000-10-01'), end=pd.to_datetime('2024-10-01'), freq='D')
+    POINTS = np.array(date_to_t(PERIOD))
 
-# POINTS = np.array(date_to_t(PERIOD))
+    plt.plot([t_to_date(pt) for pt in POINTS],[birth_rate(pt) for pt in POINTS])
+    plt.show()
 
-# plt.plot([t_to_date(pt) for pt in POINTS],[birth_rate(pt) for pt in POINTS])
-# plt.show()
+    # plot, with dates after 2022 in a different color, with legend and labels
+    fig, ax = plt.subplots(figsize=(6,6))
+    BIRTHS.plot(ax=ax,color="#648FFF")
+    BIRTHS.loc[(pd.to_datetime('2023-01-01')-pd.to_datetime('1970-01-01')).days:].plot(ax=ax,color="#DC267F")
+    plt.legend(['Resident births','Provisional data'])
+    ax.get_legend().get_lines()[0].set_color('#648FFF')
+    ax.get_legend().get_lines()[1].set_color('#DC267F')
+    # add detail panel to plot with data from 2016 onwards
+    axins = ax.inset_axes([0.42, 0.13, 0.42, 0.3])
+    BIRTHS.loc[(pd.to_datetime('2016-01-01')-pd.to_datetime('1970-01-01')).days:].plot(ax=axins,color="#648FFF")
+    BIRTHS.loc[(pd.to_datetime('2023-01-01')-pd.to_datetime('1970-01-01')).days:].plot(ax=axins,color="#DC267F")
+    axins.get_legend().remove()
+    axins.set_xticks([(pd.to_datetime('2016-01-01')-pd.to_datetime('1970-01-01')).days,(pd.to_datetime('2020-01-01')-pd.to_datetime('1970-01-01')).days,(pd.to_datetime('2024-01-01')-pd.to_datetime('1970-01-01')).days])
+    axins.set_yticks([])
+    # axins.set_ylim(0,40000)
+    ax.indicate_inset_zoom(axins)
 
-# # plot, with dates after 2022 in a different color, with legend and labels
-# fig, ax = plt.subplots(figsize=(6,6))
-# BIRTHS.plot(ax=ax,color="#648FFF")
-# BIRTHS.loc[(pd.to_datetime('2023-01-01')-pd.to_datetime('1970-01-01')).days:].plot(ax=ax,color="#DC267F")
-# plt.legend(['Resident births','Provisional data'])
-# ax.get_legend().get_lines()[0].set_color('#648FFF')
-# ax.get_legend().get_lines()[1].set_color('#DC267F')
-# # add detail panel to plot with data from 2016 onwards
-# axins = ax.inset_axes([0.42, 0.13, 0.42, 0.3])
-# BIRTHS.loc[(pd.to_datetime('2016-01-01')-pd.to_datetime('1970-01-01')).days:].plot(ax=axins,color="#648FFF")
-# BIRTHS.loc[(pd.to_datetime('2023-01-01')-pd.to_datetime('1970-01-01')).days:].plot(ax=axins,color="#DC267F")
-# axins.get_legend().remove()
-# axins.set_xticks([(pd.to_datetime('2016-01-01')-pd.to_datetime('1970-01-01')).days,(pd.to_datetime('2020-01-01')-pd.to_datetime('1970-01-01')).days,(pd.to_datetime('2024-01-01')-pd.to_datetime('1970-01-01')).days])
-# axins.set_yticks([])
-# # axins.set_ylim(0,40000)
-# ax.indicate_inset_zoom(axins)
+    # years as x ticks - every 10 years
+    years = pd.date_range(start='1960-01-01', end='2025-01-01', freq='10YE')
+    # years = years[years.year!=2020]
+    ax.set_xticks((years-pd.to_datetime('1970-01-01')).days)
+    ax.set_xticklabels(years.year)
+    # and for axins, restricting to range from 2016 to 2024
+    years = pd.date_range(start='2016-01-01', end='2025-01-01', freq='2YE')
+    axins.set_xticks((years-pd.to_datetime('1970-01-01')).days)
+    axins.set_xticklabels(years.year)
 
-# # years as x ticks - every 10 years
-# years = pd.date_range(start='1960-01-01', end='2025-01-01', freq='10YE')
-# # years = years[years.year!=2020]
-# ax.set_xticks((years-pd.to_datetime('1970-01-01')).days)
-# ax.set_xticklabels(years.year)
-# # and for axins, restricting to range from 2016 to 2024
-# years = pd.date_range(start='2016-01-01', end='2025-01-01', freq='2YE')
-# axins.set_xticks((years-pd.to_datetime('1970-01-01')).days)
-# axins.set_xticklabels(years.year)
-
-# ax.set_ylabel('Monthly births')
-# ax.set_xlabel('Date')
-# ax.set_title('Monthly births in California')
-# ax.set_ylim(0,55250)
-# plt.tight_layout()
-# plt.savefig('Figures/births_CA.png',dpi=300)
+    ax.set_ylabel('Monthly births')
+    ax.set_xlabel('Date')
+    ax.set_title('Monthly births in California')
+    ax.set_ylim(0,55250)
+    plt.tight_layout()
+    plt.savefig('Figures/births_CA.png',dpi=300)
