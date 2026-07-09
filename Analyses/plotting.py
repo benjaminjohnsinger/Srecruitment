@@ -20,7 +20,7 @@ import colorsys
 from diffrax import diffeqsolve, ODETerm, Dopri5, SaveAt, PIDController
 import time
 
-from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, observations, load_optimization_results, x_to_params, sum_age_to, pathogen_parameters, load_mcmc_chain, load_random_mcmc_result, parameters_names_bounds, constrained_immunity, calculate_R0_from_values
+from utils import date_to_t, t_to_date, calculate_population_size, susceptibility, load_optimization_results, x_to_params, sum_age_to, pathogen_parameters, load_mcmc_chain, parameters_names_bounds, constrained_immunity, calculate_R0_from_values
 
 N_C = 2
 N_S = 3
@@ -760,14 +760,14 @@ def plot_relative_age_incidence(ax,pathogen,group_names=None,aggregation="YS-OCT
     age_incidence = pd.DataFrame(age_incidence)
     # set to NA for 2020/21
     if "Parainfluenza" not in pathogen:
-        age_incidence.loc[(age_incidence.index > pd.to_datetime("2019-10-01")) & (age_incidence.index < pd.to_datetime("2021-10-01")), :] = np.nan
+        age_incidence.loc[(age_incidence.index >= pd.to_datetime("2020-10-01")) & (age_incidence.index < pd.to_datetime("2021-10-01")), :] = np.nan
         if "Influenza" in pathogen:
-            age_incidence.loc[(age_incidence.index > pd.to_datetime("2019-10-01")) & (age_incidence.index < pd.to_datetime("2022-10-01")), :] = np.nan
+            age_incidence.loc[(age_incidence.index >= pd.to_datetime("2020-10-01")) & (age_incidence.index < pd.to_datetime("2022-10-01")), :] = np.nan
             if "B" in pathogen:
-                age_incidence.loc[(age_incidence.index > pd.to_datetime("2022-10-01")) & (age_incidence.index < pd.to_datetime("2024-10-01")), :] = np.nan
+                age_incidence.loc[(age_incidence.index >= pd.to_datetime("2018-10-01")) & (age_incidence.index < pd.to_datetime("2019-10-01")), :] = np.nan
+                age_incidence.loc[(age_incidence.index >= pd.to_datetime("2022-10-01")) & (age_incidence.index < pd.to_datetime("2025-10-01")), :] = np.nan
     else:
-
-        age_incidence.loc[(age_incidence.index > pd.to_datetime("2018-10-01")) & (age_incidence.index < pd.to_datetime("2020-10-01")), :] = np.nan
+        age_incidence.loc[(age_incidence.index >= pd.to_datetime("2019-10-01")) & (age_incidence.index < pd.to_datetime("2020-10-01")), :] = np.nan
     # set to NA when incidence is zero for that age group
     for group in group_names:
         age_incidence.loc[age_incidence[group] == 0, group] = np.nan
@@ -780,6 +780,10 @@ def plot_relative_age_incidence(ax,pathogen,group_names=None,aggregation="YS-OCT
         for idx in age_incidence.index:
             if not np.isnan(age_incidence.loc[idx, group]):
                 ax.plot([idx + pd.Timedelta(days=x_offset), idx + pd.Timedelta(days=x_offset)], [lower_ci.loc[idx, group], upper_ci.loc[idx, group]], color=colors[i], linewidth=0.7)
+    # ax x ticks as years
+    print(pd.date_range(start=age_incidence.index.min(), end=age_incidence.index.max(), freq='YS-OCT'))
+    ax.set_xticks(pd.date_range(start=age_incidence.index.min(), end=age_incidence.index.max(), freq='YS-OCT'))
+    ax.set_xticklabels([str(x.year) for x in pd.date_range(start=age_incidence.index.min(), end=age_incidence.index.max(), freq='YS-OCT')])
 
 def calculate_infection_matrices_from_solution(solution, params, NAG=7, hospitalizations=False):
     # find total observed infections each season in each age group
@@ -2166,7 +2170,7 @@ if __name__ == "__main__":
     # # season age plots in row 1
     for i, pathogen in enumerate(pathogens):
         ax = season_age_axes[i]
-        plot_relative_age_incidence(ax, pathogen, group_names=["<1y","<5y"], aggregation="MS")
+        plot_relative_age_incidence(ax, pathogen, group_names=["<1y","<5y"], aggregation="YS-OCT")
         # ax.set_xticks([])
         ax.set_xticklabels(["", "2016/17", "", "2018/19", "", "2020/21", "", "2022/23", "", "2024/25",], fontsize=6)
         # ax.set_xticklabels(["", "", "", "", "", "", "", "", "", "",], fontsize=6)
@@ -2188,7 +2192,7 @@ if __name__ == "__main__":
     sax2.yaxis.tick_left()
     # put legend in first plot
     season_age_axes[0].legend(loc='best', fontsize=6)
-    plt.savefig(f"Figures/season_age_incidence_monthly_uncertainty.png", dpi=300)
+    plt.savefig(f"Figures/season_age_incidence_annual_uncertainty.png", dpi=300)
 
     ### plotting population susceptibility
     # fig, fit_ax = plt.subplots(1, 1, figsize=(3.5, 3.5), layout="constrained", sharex=False, sharey=False)
@@ -2366,11 +2370,11 @@ if __name__ == "__main__":
     #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
     #     plt.close()
 
-    # # ## Generate Figure 1: timeseries and suppression duration figure
-    # fig = plt.figure(layout="constrained", figsize=(6.5,7.5))
-    # countries = ["Brazil", "Canada", "India", "Malaysia", "Qatar"]
-    # plot_suppression_durations(fig, flunet_pathogens, countries, colors)
-    # plt.savefig(f"Figures/supression_durations_w_relative_age_monthly.png", dpi=300)
+    # ## Generate Figure 1: timeseries and suppression duration figure
+    fig = plt.figure(layout="constrained", figsize=(6.5,7.5))
+    countries = ["Brazil", "Canada", "India", "Malaysia", "Qatar"]
+    plot_suppression_durations(fig, flunet_pathogens, countries, colors)
+    plt.savefig(f"Figures/supression_durations_w_relative_age_monthly.png", dpi=300)
 
     # ## Generate supplemental figures of all FluNet timeseries
     # directory_path = "Data/Processed/FluNetTimeseries/"
@@ -2389,153 +2393,35 @@ if __name__ == "__main__":
     #     plt.tight_layout()
     #     plt.savefig(f"Figures//FluNetTimeseries_{countries[i]}_to_{countries[min(i+14, len(countries)-1)]}.png", dpi=300)
     
-    # ## Generate Figure 2: age-structured fits figure
-    # fig, axes = plt.subplots(7, 6, figsize=(6.5,6.5), layout="constrained")
-    # plot_fits(axes, n_samples=400, load_data=True)
-    # fig.text(0.001, 0.5, 'Estimated incidence of hospitalization per 100k members', va='center', rotation='vertical')
-    # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
+    ## Generate Figure 2: age-structured fits figure
+    fig, axes = plt.subplots(7, 6, figsize=(6.5,6.5), layout="constrained")
+    plot_fits(axes, n_samples=400, load_data=True)
+    fig.text(0.001, 0.5, 'Estimated incidence of hospitalization per 100k members', va='center', rotation='vertical')
+    plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
-    # ## Generate Figure 4: age infection figure
-    # fig = plt.figure(figsize=(6.5, 6), layout="constrained")
-    # gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
-    # gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
-    # gs_bottom = gs_main[1].subgridspec(1, 8)
-    # import numpy as np
-    # ax_top = np.empty((2, 4), dtype=object)
-    # for r in range(2):
-    #     for c in range(3):
-    #         ax_top[r, c] = fig.add_subplot(gs_top[r, c])
-    #     ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
-    # ax_bottom = np.empty((1,8), dtype=object)
-    # for c in range(8):
-    #     ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
-    # axes = [ax_top, ax_bottom]
-    # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=True, logD=True, samples=400, load_data=True, prefix="")
-    # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty_logD_adjusted.png", dpi=300)
+    ## Generate Figure 4: age infection figure
+    fig = plt.figure(figsize=(6.5, 6), layout="constrained")
+    gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
+    gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
+    gs_bottom = gs_main[1].subgridspec(1, 8)
+    import numpy as np
+    ax_top = np.empty((2, 4), dtype=object)
+    for r in range(2):
+        for c in range(3):
+            ax_top[r, c] = fig.add_subplot(gs_top[r, c])
+        ax_top[r, 3] = fig.add_subplot(gs_top[r, 4])
+    ax_bottom = np.empty((1,8), dtype=object)
+    for c in range(8):
+        ax_bottom[0, c] = fig.add_subplot(gs_bottom[c])
+    axes = [ax_top, ax_bottom]
+    plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=True, logD=True, samples=400, load_data=True, prefix="")
+    plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty_logD_adjusted.png", dpi=300)
 
-    # # Generate Figure 5: age group heatmaps and line of best fit
-    # from sim_grid import generate_2d_heatmap_plot
-    # good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
-    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260624_lockdownExponentialODipp25_2d"
-    # fig = plt.figure(figsize=(4.5, 4.5))
-    # plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False, prune=100)
-    # plt.savefig(f"Figures/figure_five_update5.png", dpi=1000)
-    # plt.close()
-
-    # fig, ax1 = plt.subplots(1, 1, figsize=(4.5,4))
-    
-    # # Plot proportion positive on left y-axis
-    # color1 = "red"
-    # kpsc_proportion_positive_incidence_plot(ax1, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=AGE_GROUP_NAMES, title=None, color=color1, legend=False, aggregation="W", window_size=1, weighting_factor=0, label="Proportion positive", factor=10000, annotations=False, pp_only=False, hosp=True)
-    # ax1.tick_params(axis='y', labelcolor=color1)
-    # for line in ax1.get_lines():
-    #     line.set_alpha(0.7)
-    # ax1.set_ylabel('Proportion positive incidence per 10k', color=color1)
-    
-    # # Create second y-axis for positive tests
-    # ax2 = ax1.twinx()
-    # color2 = "blue"
-    # ax2.set_ylabel('Positive tests incidence per 10k', color=color2)
-    # kpsc_positive_test_plot(ax2, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=AGE_GROUP_NAMES, color=color2, legend=False, aggregation="W", factor=10000, label="Positive tests")
-    # ax2.tick_params(axis='y', labelcolor=color2)
-    # for line in ax2.get_lines():
-    #     line.set_alpha(0.7)
-    # fig.tight_layout()
-    # plt.savefig("Figures/KPSC_RSV_proportion_positive_vs_positive_test_incidence_weekly.png", dpi=300)
-
-    # fig = plt.figure(layout="constrained", figsize=(7,4))
-
-    # # pathogens = ["RSV","Metapneumovirus","InfluenzaA","InfluenzaB","Adenovirus","Parainfluenza3",]
-
-    # subfigs = fig.subfigures(1, 2, wspace=0.05, width_ratios=[7, 3])
-    # axA = subfigs[1].subplots(len(pathogens), 1, sharex = True)
-    # axB = subfigs[0].subplots((len(pathogens) + 1)//2, 2, sharex = True)
-
-    # # # figA, axA = plt.subplots(6, 1, figsize=(2.5,4), sharex = True)
-    # for pi,pathogen in enumerate(pathogens):
-    #     print(pathogen)
-    #     age_group_incidence_plot(axA[pi],pathogen,color="k",season="pre_median", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, NAG=NAG, label="Pre-COVID-19")
-    #     age_group_incidence_plot(axA[pi],pathogen,color="silver",season="rebound", AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, NAG=NAG, label="Re-emergence")
-    #     axA[pi].set_title(nice_names.get(pathogen, pathogen))
-    # # set singe x label for all subplots
-    # axA[-1].set_xlabel("Age group")
-    # axA[0].legend(loc="upper right", fontsize=6)
-    # # set single y label for all subplots
-    # subfigs[1].text(-0.05, 0.5, 'Incidence per 100k members', va='center', rotation='vertical')
-    # # # plt.tight_layout()
-    # # # plt.savefig("Figures/KPSC_age_group_incidence_pre_median_rebound.png",dpi=300)
-
-    # # figB, axB = plt.subplots(3, 2, figsize=(6.5,4), sharex = True)
-    # data_color = "#648FFF"
-    # aggregation = "MS"
-    # agg_factor = {"D":1, "W-MON":7, "MS":30.44}[aggregation]
-    # factor = 100000
-    # if factor >= 1000000:
-    #     factor_label = f"{factor // 1000000}M"
-    # elif factor >= 1000:
-    #     factor_label = f"{factor // 1000}k"
-    # else:
-    #     factor_label = str(factor)
-    # for pi, pathogen in enumerate(pathogens):
-    #     kpsc_proportion_positive_incidence_plot(
-    #         axB[pi//2, pi%2], pathogen=pathogen, AGE_GROUP_NAMES=AGE_GROUP_NAMES, title=nice_names.get(pathogen, pathogen),
-    #         color=data_color, aggregation=aggregation, factor=factor,
-    #         annotations=True, definition="30% median", label="Data", hosp=True, dedup=True)
-    # # suppress all y labels and replace with single label on left
-    # for i in range(len(pathogens)//2):
-    #     for j in range(2):
-    #         axB[i,j].set_ylabel("")
-    # axB[len(pathogens)//4,0].set_ylabel(f"Incidence per {factor_label} members")
-    # # only include every other year label
-    # for axB_i in axB.flatten():
-    #     axB_i.set_xticks(pd.date_range(start='2016-01-01',end='2025-01-01',freq='2YS'))
-    #     axB_i.set_xticklabels([str(year) for year in range(2016,2026,2)])
-    #     axB_i.set_xticks(pd.date_range(start='2016-01-01',end='2025-01-01',freq='YS'), minor=True)
-
-    # # plt.tight_layout()
-    # # plt.savefig("Figures/KPSC_proportion_positive_incidence_weekly_annotated.png",dpi=300)
-
-    # # now include plots of simulations on top of data
-    
-    # PERIOD = pd.date_range(start=pd.to_datetime('2015-07-04'), end=pd.to_datetime('2025-05-01'), freq='D')
-    # POINTS = np.array(date_to_t(PERIOD))
-    # start_idx = int(date_to_t(PERIOD[0]) + 90 - date_to_t('2015-10-01'))
-    # end_idx = int(date_to_t(PERIOD[-1]) - date_to_t('2015-10-01'))
-    # ## Initial conditions
-    # STATE0 = jnp.zeros((2*N_S+1,NAG))
-    # STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
-    # STATE0 = STATE0.at[1,:].set(1)
-    # # # flatten initial state and add maternal immunity compartment
-    # STATE0 = STATE0.flatten()
-    # STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-    # _, _, _, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
-    # data = data_full[start_idx:end_idx]
-    # daily_hospitalization_rates_pd = pd.read_csv('Data/Processed/KPSC_ARI_nonCOVID_hospitalization_rates_by_day_age_group'+['','_split'][NAG>7]+['','_detrended']["detrend" in option1]+["","_dedup"]["dedup" in option1]+'.csv',index_col=0,parse_dates=True)
-    # daily_hospitalization_rates_full = jnp.asarray(daily_hospitalization_rates_pd.values)
-    # daily_hospitalization_rates = daily_hospitalization_rates_full[start_idx:end_idx,]
-
-    # good_simulations = [
-    #     [pathogen, seed_i, lockdown, option1, option2]
-    #     for pathogen, option2, seed_i in zip(pathogens, option2s, seeds)
-    # ]
-    # from Parameters.times_and_contacts import PERIOD
-    # POINTS = jnp.array(date_to_t(PERIOD))
-    # T_LOCKDOWN = date_to_t(pd.to_datetime("2020-03-20"))
-    # for pi, sim in enumerate(good_simulations):
-    #     pathogen = sim[0]
-    #     print(f"Plotting simulation for {pathogen}...")
-    #     _, x, _ = load_optimization_results("", sim[0], sim[1], sim[2], sim[3], sim[4])
-    #     params = x_to_params(x, sim[0], sim[2], sim[3], sim[4], NAG=NAG, return_contact=False, print_params=False)
-    #     lockdown_incidence_plot(axB[pi//2,pi%2], STATE0, params, POINTS, T_LOCKDOWN,
-    #                             p_time_to_obs=p_time_to_obs, NAG=NAG,
-    #                             test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
-    #                             color="#DC267F", factor=factor*agg_factor, label="Simulation")
-    # axB[1,1].legend(loc="upper right")
-    
-    # # plt.tight_layout()
-    # # plt.savefig("Figures/ReportOverallIncidenceWeeklyExponential2604172_annotate100.png",dpi=300)
-
-    # subfigs[0].suptitle("A", x=0.01, fontweight='bold')
-    # subfigs[1].suptitle("B", x=0.01, fontweight='bold')
-    # # plt.tight_layout()
-    # plt.savefig("Figures/Figure1_test_monthly.png",dpi=300)
+    # Generate Figure 5: age group heatmaps and line of best fit
+    from sim_grid import generate_2d_heatmap_plot
+    good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
+    run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260624_lockdownExponentialODipp25_2d"
+    fig = plt.figure(figsize=(4.5, 4.5))
+    plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False, prune=100)
+    plt.savefig(f"Figures/figure_five_update5.png", dpi=1000)
+    plt.close()
