@@ -120,7 +120,7 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             elif incidence_data=="orig":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_RSV_incidence_age_daily.csv",index_col=0))
             elif smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age"+['', '_hosp'][hosp]+"_daily_smoothed.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_RSV_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
@@ -137,7 +137,7 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             elif incidence_data=="orig":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_InfluenzaA_incidence_age_daily.csv",index_col=0))
             elif smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age"+['', '_hosp'][hosp]+"_daily_smoothed.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaA_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
@@ -154,7 +154,7 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             elif incidence_data=="orig":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_InfluenzaB_incidence_age_daily.csv",index_col=0))
             elif smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age"+['', '_hosp'][hosp]+"_daily_smoothed.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_InfluenzaB_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
@@ -171,7 +171,7 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             elif incidence_data=="orig":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Parainfluenza3_incidence_age_daily.csv",index_col=0))
             elif smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age"+['', '_hosp'][hosp]+"_daily_smoothed.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Parainfluenza3_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
@@ -188,7 +188,7 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             elif incidence_data=="orig":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Adenovirus_incidence_age_daily.csv",index_col=0))
             elif smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age"+['', '_hosp'][hosp]+"_daily_smoothed.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Adenovirus_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:
@@ -205,7 +205,7 @@ def pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, 
             elif incidence_data=="orig":
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_ARI_Metapneumovirus_incidence_age_daily.csv",index_col=0))
             elif smoothed:
-                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age"+['', '_hosp'][hosp]+"_daily_smootheds14fp1.csv",index_col=0).values)
+                data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age"+['', '_hosp'][hosp]+"_daily_smoothed.csv",index_col=0).values)
             else:
                 data = jnp.asarray(pd.read_csv("Data/Processed/KPSC_panel_proportion_positive_ARI_nonCOVID_Metapneumovirus_incidence_age"+['', '_hosp'][hosp]+"_daily.csv",index_col=0).values)
         else:

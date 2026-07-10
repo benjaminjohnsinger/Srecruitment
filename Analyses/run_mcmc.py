@@ -11,6 +11,7 @@ import pickle
 from multiprocessing import Pool
 
 import emcee
+from tqdm import tqdm
 
 import numpyro
 from numpyro import distributions as dist
@@ -68,6 +69,7 @@ def run_emcee(
     num_steps=1000,
     census_age_pop=None,
     pool=None,
+    history_samples=None,
 ):
     if startx is None:
         _, startx, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
@@ -92,27 +94,32 @@ def run_emcee(
         initial_pos = jnp.clip(initial_pos, lower_bounds + 1e-5, upper_bounds - 1e-5)
 
     n_dim = int(initial_pos.shape[-1])
-    # # loop to resample candidates that give -inf log posterior until all walkers have valid initial positions
-    # log_posteriors = log_posterior(initial_pos)
-    # while jnp.any(log_posteriors == -jnp.inf):
-    #     invalid_mask = log_posteriors == -jnp.inf
-    #     num_invalid = jnp.sum(invalid_mask)
-    #     print(f"Resampling {num_invalid} invalid initial positions...")
-    #     key, subkey = jax.random.split(key)
-    #     perturbations = jax.random.uniform(subkey, shape=(num_invalid, len(startx)), minval=-spread, maxval=spread) * startx
-    #     candidates = startx[jnp.newaxis, :] + perturbations
-    #     candidates = jnp.clip(candidates, lower_bounds + 1e-5, upper_bounds - 1e-5)
-    #     initial_pos = initial_pos.at[invalid_mask].set(candidates)
-    #     log_posteriors = log_posterior(initial_pos)
-
     default_gamma = 2.38 / np.sqrt(2 * n_dim)
-    conservative_gamma = default_gamma
+    
+    # Infer the current acceptance fraction seamlessly from the state vector history when resuming
+    if history_samples is not None and history_samples.shape[0] > 1:
+        # Calculate acceptance from the last available generation in the history
+        last_jumps = np.any(history_samples[-1] != history_samples[-2], axis=-1)
+        inferred_acc_frac = np.mean(last_jumps)
+        
+        if inferred_acc_frac < 0.2:
+            current_gamma = default_gamma * 0.9
+        elif inferred_acc_frac > 0.31:
+            current_gamma = default_gamma * 1.1
+        else:
+            current_gamma = default_gamma * (inferred_acc_frac / 0.25)
+    else:
+        current_gamma = default_gamma
+
+    gamma_val = [current_gamma]
+    def get_gamma():
+        return float(gamma_val[0])
 
     my_moves = [
-        (emcee.moves.DEMove(gamma0=conservative_gamma, sigma=1e-5), 0.80),
-
+        (emcee.moves.DEMove(gamma0=get_gamma, sigma=1e-5), 0.80),
         (emcee.moves.DESnookerMove(), 0.20)
     ]
+    
     sampler = emcee.EnsembleSampler(
         num_walkers, 
         n_dim,
@@ -121,7 +128,22 @@ def run_emcee(
         moves=my_moves
     )
 
-    sampler.run_mcmc(initial_pos, num_steps, progress=True)
+    prev_accepted = np.zeros(num_walkers)
+    # Wrap the sampler generator in tqdm for a dynamic progress bar
+    for state in tqdm(sampler.sample(initial_pos, iterations=num_steps), total=num_steps, desc="MCMC Sampling"):
+        # Calculate acceptance fraction for the single previous generation
+        gen_accepted = state.accepted - prev_accepted
+        acc_frac = np.mean(gen_accepted)
+        prev_accepted = state.accepted.copy()
+        
+        # Apply RUN DMC scaling rules to adapt gamma
+        if acc_frac < 0.2:
+            gamma_val[0] *= 0.9
+        elif acc_frac > 0.31:
+            gamma_val[0] *= 1.1
+        else:
+            gamma_val[0] *= (acc_frac / 0.25)
+
     return sampler
 
 def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2, seed, separate_walkers=True):
@@ -180,6 +202,7 @@ def run_burn_in_for_pathogen(key, pathogen, lockdown, option1, option2, seed, NA
         num_steps=burn_in_size,
         census_age_pop=census_age_pop,
         pool=pool,
+        history_samples=None,
     )
     return sampler
 
@@ -203,24 +226,16 @@ def load_refined_chain_or_burnin(burnin_sample_path, burnin_log_prob_path, refin
 if __name__ == "__main__":
     option1 = "dedupsac"
     NAG = 7
-    prefix = ""
+    prefix = "emcee"
     from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
 
     n_walkers = 32
     burn_in_size = 10000
 
     lockdown = "ExponentialODipp25"
-    pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-    option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
-    seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
-    # lockdown = "Default"
-    # pathogens = ["RSV",]
-    # option2s = ["2020-01-01maxagep028",]
-    # seeds = [260615,]
-    # lockdown = "ExponentialODipp25"
-    # pathogens = ["Adenovirus",]
-    # option2s = ["maxagep003",]
-    # seeds = [260612,]
+    pathogens = ["Metapneumovirus",]
+    option2s = ["fixage0maxagep006",]
+    seeds = [260622,]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
@@ -314,8 +329,11 @@ if __name__ == "__main__":
             
             if chunk_n == 0:
                 initial_pos = None
+                history_samples = state.get("current_samples") if state["completed_chunks"] > 0 else None
             else:    
                 initial_pos = state["current_samples"][-1]
+                history_samples = state["current_samples"]
+                
             psampler = run_emcee(
                 state["key"],
                 pathogen,
@@ -332,6 +350,7 @@ if __name__ == "__main__":
                 num_steps=chunk_size,
                 census_age_pop=CENSUS_AGE_POP,
                 pool=pools[pathogen],
+                history_samples=history_samples,
             )
 
             acceptance_fraction = np.mean(psampler.acceptance_fraction)
@@ -341,12 +360,14 @@ if __name__ == "__main__":
             new_log_prob = psampler.get_log_prob()
             new_samples = new_samples[::thinning_factor]
             new_log_prob = new_log_prob[::thinning_factor]
+            
             if chunk_n == 0:
                 state["current_samples"] = new_samples
                 state["current_log_prob"] = new_log_prob
             else:
                 state["current_samples"] = np.concatenate([state["current_samples"], new_samples], axis=0)
                 state["current_log_prob"] = np.concatenate([state["current_log_prob"], new_log_prob], axis=0)
+                
             np.savetxt(state["refined_sample_path"], state["current_samples"].reshape(-1, state["current_samples"].shape[-1]), delimiter=',')
             np.savetxt(state["refined_log_prob_path"], state["current_log_prob"], delimiter=',')
 
