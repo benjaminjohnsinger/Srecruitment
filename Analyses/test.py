@@ -92,10 +92,10 @@ plt.rcParams['font.serif'] = ['Palatino']
 option1 = "dedupsac"
 # option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
 # seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
-lockdown = "ExponentialODipp25"
-pathogens = [ "Adenovirus",]
-option2s = [ "maxagep003", ]
-seeds = [260612,]
+lockdown = "Default"
+pathogens = [ "RSV",]
+option2s = [ "2020-01-01maxagep028", ]
+seeds = [260615,]
 colors = ["#FF832B",]
 def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor):
     srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
@@ -111,20 +111,20 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
     from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
     param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 
-    mcmc_filepath = f"Outputs/mcmc_samples_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+    mcmc_filepath = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
     # mcmc_filepath = "Outputs/mcmc_samples_big_RSV_ExponentialODipLinear_dedupsac_maxagep028_260531_refined_studio.csv"
     mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
     loading_time = time.time()
     print(f"Loading samples time for {pathogen}: {time.time() - start_time:.2f} seconds")
     n_params = bounds.shape[0]
-    n_walkers = 500
+    n_walkers = 32
     n_iterations = len(mcmc_samples) // n_walkers
     n_params = len(param_names)
 
     # # # cut off burn-in
     # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
-    n_iterations -= 3000
-    mcmc_samples = mcmc_samples[3000*n_walkers:, :]
+    n_iterations -= 300
+    mcmc_samples = mcmc_samples[300*n_walkers:, :]
 
     # # find index of S_REL1 in pram_names
     # thinning = 100 if "Influenza" not in pathogen else 1000
@@ -244,7 +244,7 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 
     import corner
     fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-    plt.savefig(f"Figures/mcmc_corner_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_from3000.pdf", bbox_inches='tight')
+    plt.savefig(f"Figures/mcmc_corner_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_from30.pdf", bbox_inches='tight')
     plt.close(fig)
     
 # #     # sns.kdeplot(ax=ax, x=r0_samples, y=1-srel1_samples, color=color, label=pathogen, fill=True)

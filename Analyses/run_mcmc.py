@@ -36,27 +36,6 @@ def _worker_log_prob_wrapper(x):
     return _worker_log_posterior(x)
 # -----------------------------------------------------
 
-def get_nuts_model(pathogen, lockdown, option1, option2, xDE, NAG=7):
-    _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
-    likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, normalize=False, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP)
-    # calculate priors based on bounds, and get ready to work in transformed space
-    lower_bounds = bounds[:, 0]
-    upper_bounds = bounds[:, 1]
-    de_deltas = jnp.maximum(xDE - lower_bounds, 1e-6)
-    mu = jnp.log(de_deltas)
-    uncontrained_upper = jnp.log(upper_bounds - lower_bounds)
-    sigma = jnp.maximum(0.5, jnp.abs(uncontrained_upper - mu) / 2.0) # upper bound is roughly 2 std above the mean, but enforce a minimum sigma to prevent numerical issues
-    
-    def model():
-        lognormal_prior = dist.TransformedDistribution(
-            dist.LogNormal(loc=mu, scale=sigma),
-            dist.transforms.AffineTransform(loc=lower_bounds, scale=1.0)
-        )
-        x = numpyro.sample("x", lognormal_prior)
-        nll = likelihood(x)
-        numpyro.factor("likelihood", -nll)
-    return model
-
 def get_emcee_model(pathogen, lockdown, option1, option2, NAG=7):
     _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
     likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, normalize=False, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP)
@@ -71,21 +50,6 @@ def get_emcee_model(pathogen, lockdown, option1, option2, NAG=7):
         return -nll
     
     return jax.jit(log_posterior)
-
-def run_nuts(key, pathogen, lockdown, option1, option2, seed, NAG=7, num_warmup=500, num_samples=1000, num_chains=1):
-    _, xDE, _ = load_optimization_results("", pathogen, seed, lockdown, option1, option2)
-    # force 64 bit precision on xDE
-    xDE = jnp.asarray(xDE, dtype=jnp.float64)
-    model = get_nuts_model(pathogen, lockdown, option1, option2, xDE, NAG)
-    nuts_kernel = numpyro.infer.NUTS(model,
-                                     init_strategy=numpyro.infer.init_to_value(values={"x": xDE}),
-                                     max_tree_depth=6,
-                                     dense_mass=True,)
-    mcmc = numpyro.infer.MCMC(nuts_kernel, num_warmup=num_warmup, num_samples=num_samples,
-                              num_chains=num_chains, chain_method="parallel")
-    mcmc.run(key)
-    mcmc.print_summary()
-    return mcmc.get_samples()
 
 def run_emcee(
     key,
@@ -142,13 +106,11 @@ def run_emcee(
     #     log_posteriors = log_posterior(initial_pos)
 
     default_gamma = 2.38 / np.sqrt(2 * n_dim)
-    conservative_gamma = default_gamma / 50
+    conservative_gamma = default_gamma
 
     my_moves = [
-        # 80% of the time: Take a conservative DE step
         (emcee.moves.DEMove(gamma0=conservative_gamma, sigma=1e-5), 0.80),
 
-        # 20% of the time: Attempt the chaotic Snooker leap
         (emcee.moves.DESnookerMove(), 0.20)
     ]
     sampler = emcee.EnsembleSampler(
@@ -166,14 +128,14 @@ def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2,
     _, n_walkers, n_params = mcmc_samples.shape
     # make directory Figures/mcmc_traces_{pathogen}_{lockdown}_{option1}_{option2}_{seed}
     if separate_walkers:
-        os.makedirs(f"Figures/mcmc_traces_big_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
+        os.makedirs(f"Figures/mcmc_traces_DESnooker_{pathogen}_{lockdown}_{option1}_{option2}_{seed}", exist_ok=True)
         for j in range(n_walkers):
             fig, ax = plt.subplots(4,4, figsize=(10,6))
             for i in range(n_params):
                 ax[i//4, i%4].plot(mcmc_samples[:,j,i], color='k')
                 ax[i//4, i%4].set_title(param_names[i])
             plt.tight_layout()
-            plt.savefig(f"Figures/mcmc_traces_big_{pathogen}_{lockdown}_{option1}_{option2}_{seed}/walker_{j}.png", dpi=300, bbox_inches='tight')
+            plt.savefig(f"Figures/mcmc_traces_DESnooker_{pathogen}_{lockdown}_{option1}_{option2}_{seed}/walker_{j}.png", dpi=300, bbox_inches='tight')
             plt.close(fig)
     else:
         fig, ax = plt.subplots(4,4, figsize=(10,6))
@@ -182,7 +144,7 @@ def plot_traces(mcmc_samples, param_names, pathogen, lockdown, option1, option2,
                 ax[i//4, i%4].plot(mcmc_samples[:,j,i], alpha=0.3)
             ax[i//4, i%4].set_title(param_names[i])
         plt.tight_layout()
-        plt.savefig(f"Figures/mcmc_traces_big_{pathogen}_{lockdown}_{option1}_{option2}_{seed}all_walkers.png", dpi=300, bbox_inches='tight')
+        plt.savefig(f"Figures/mcmc_traces_DESnooker_{pathogen}_{lockdown}_{option1}_{option2}_{seed}all_walkers.png", dpi=300, bbox_inches='tight')
         plt.close(fig)
 
 def _load_saved_chain(sample_path, log_prob_path, n_walkers):
@@ -244,22 +206,26 @@ if __name__ == "__main__":
     prefix = ""
     from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
 
-    n_walkers = 500
-    burn_in_size = 1500
+    n_walkers = 32
+    burn_in_size = 10000
 
-    # lockdown = "Default"
-    # pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-    # option2s = ["2020-01-01maxagep028","2020-01-01fixage0maxagep006","2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035","2020-01-01maxagep035",]
-    # seeds = [260615, 260624, 260615, 260615, 260615, 260615,]
     lockdown = "ExponentialODipp25"
-    pathogens = ["Adenovirus",]
-    option2s = ["maxagep003",]
-    seeds = [260612,]
+    pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
+    seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
+    # lockdown = "Default"
+    # pathogens = ["RSV",]
+    # option2s = ["2020-01-01maxagep028",]
+    # seeds = [260615,]
+    # lockdown = "ExponentialODipp25"
+    # pathogens = ["Adenovirus",]
+    # option2s = ["maxagep003",]
+    # seeds = [260612,]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         pool = Pool(
-            processes=50, 
+            processes=32, 
             initializer=_init_worker, 
             initargs=(pathogen, lockdown, option1, option2, NAG, CENSUS_AGE_POP)
         )
@@ -267,8 +233,8 @@ if __name__ == "__main__":
 
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         key = jax.random.PRNGKey(260605)
-        burnin_sample_path = f"Outputs/mcmc_samples_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        burnin_log_prob_path = f"Outputs/mcmc_log_prob_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_sample_path = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
 
         if os.path.exists(burnin_sample_path) and os.path.exists(burnin_log_prob_path):
             print(f"Found existing burn-in files for {pathogen}. Skipping burn-in and moving to refinement.")
@@ -297,19 +263,19 @@ if __name__ == "__main__":
         param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
         plot_traces(samples, param_names, pathogen, lockdown, option1, option2, seed)
 
-    n_samples = 150000
-    chunk_size = 150
-    thinning_factor = 15
+    n_samples = 1000000
+    chunk_size = 10000
+    thinning_factor = 100
     total_chunks = n_samples // chunk_size
 
     refined_state = {}
 
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         key = jax.random.PRNGKey(260605)
-        burnin_sample_path = f"Outputs/mcmc_samples_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        burnin_log_prob_path = f"Outputs/mcmc_log_prob_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        refined_sample_path = f"Outputs/mcmc_samples_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-        refined_log_prob_path = f"Outputs/mcmc_log_prob_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+        burnin_sample_path = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        refined_sample_path = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+        refined_log_prob_path = f"Outputs/mcmc_log_prob_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
 
         current_samples, current_log_prob, best_sample, completed_chunks = load_refined_chain_or_burnin(
             burnin_sample_path,
