@@ -241,9 +241,9 @@ if __name__ == "__main__":
     burn_in_size = 10000
 
     lockdown = "ExponentialODipp25"
-    pathogens = ["Metapneumovirus",]
-    option2s = ["fixage0maxagep006",]
-    seeds = [260622,]
+    pathogens = ["Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    option2s = ["maxagep004","maxagep003","maxagep035","maxagep035",]
+    seeds = [260612, 260612, 260612, 260612,]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
