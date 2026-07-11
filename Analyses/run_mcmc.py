@@ -94,30 +94,30 @@ def run_emcee(
         initial_pos = jnp.clip(initial_pos, lower_bounds + 1e-5, upper_bounds - 1e-5)
 
     n_dim = int(initial_pos.shape[-1])
-    default_gamma = 2.38 / np.sqrt(2 * n_dim)
+    default_gamma = 2.38 / jnp.sqrt(2 * n_dim)
     
     # Infer the current acceptance fraction seamlessly from the state vector history when resuming
     if history_samples is not None and history_samples.shape[0] > 1:
         # Calculate acceptance from the last available generation in the history
-        last_jumps = np.any(history_samples[-1] != history_samples[-2], axis=-1)
-        inferred_acc_frac = np.mean(last_jumps)
+        last_jumps = jnp.any(history_samples[-1] != history_samples[-2], axis=-1)
+        inferred_acc_frac = jnp.mean(last_jumps)
         
         if inferred_acc_frac < 0.2:
             current_gamma = default_gamma * 0.9
         elif inferred_acc_frac > 0.31:
             current_gamma = default_gamma * 1.1
         else:
-            current_gamma = default_gamma * (inferred_acc_frac / 0.25)
+            current_gamma = default_gamma * jnp.sqrt(inferred_acc_frac / 0.25)
     else:
         current_gamma = default_gamma
 
-    gamma_val = [current_gamma]
-    def get_gamma():
-        return float(gamma_val[0])
-
+    de_move = emcee.moves.DEMove(gamma0=current_gamma, sigma=1e-5)
+    gamma1_move = emcee.moves.DEMove(gamma0=1, sigma=1e-5)
+    
     my_moves = [
-        (emcee.moves.DEMove(gamma0=get_gamma, sigma=1e-5), 0.80),
-        (emcee.moves.DESnookerMove(), 0.20)
+        (de_move, 0.80),
+        (emcee.moves.DESnookerMove(), 0.19),
+        (gamma1_move, 0.01)
     ]
     
     sampler = emcee.EnsembleSampler(
@@ -128,21 +128,29 @@ def run_emcee(
         moves=my_moves
     )
 
-    prev_accepted = np.zeros(num_walkers)
-    # Wrap the sampler generator in tqdm for a dynamic progress bar
-    for state in tqdm(sampler.sample(initial_pos, iterations=num_steps), total=num_steps, desc="MCMC Sampling"):
-        # Calculate acceptance fraction for the single previous generation
-        gen_accepted = state.accepted - prev_accepted
+    prev_coords = np.copy(initial_pos)
+    # Assign the tqdm generator to a variable so we can modify it inside the loop
+    pbar = tqdm(sampler.sample(initial_pos, iterations=num_steps), total=num_steps, desc=pathogen)
+    
+    for state in pbar:  
+        # Calculate acceptance fraction by checking which walkers actually moved
+        gen_accepted = np.any(state.coords != prev_coords, axis=-1)
         acc_frac = np.mean(gen_accepted)
-        prev_accepted = state.accepted.copy()
+
+        pbar.set_postfix({"Acc.": f"{acc_frac:.3f}", "Gamma*": f"{(current_gamma/default_gamma):.3f}"})
+        
+        # Update our coordinate tracker for the next generation
+        prev_coords = np.copy(state.coords)
         
         # Apply RUN DMC scaling rules to adapt gamma
         if acc_frac < 0.2:
-            gamma_val[0] *= 0.9
+            current_gamma *= 0.9
         elif acc_frac > 0.31:
-            gamma_val[0] *= 1.1
+            current_gamma *= 1.1
         else:
-            gamma_val[0] *= (acc_frac / 0.25)
+            current_gamma *= jnp.sqrt(acc_frac / 0.25)
+
+        de_move.gamma0 = current_gamma
 
     return sampler
 
