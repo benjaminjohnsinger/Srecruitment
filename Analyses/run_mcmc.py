@@ -25,32 +25,88 @@ from fit_opt import get_likelihood
 _worker_log_posterior = None
 CENSUS_AGE_POP = None
 
-def _init_worker(pathogen, lockdown, option1, option2, NAG, census_age_pop):
+
+def _beta_to_transformed(beta):
+    return 1.0 - 1.0 / beta
+
+
+def _beta_from_transformed(beta_t):
+    return 1.0 / (1.0 - beta_t)
+
+
+def _transform_first_param(x):
+    x = jnp.asarray(x)
+    return x.at[..., 0].set(_beta_to_transformed(x[..., 0]))
+
+
+def _inverse_transform_first_param(x):
+    x = jnp.asarray(x)
+    return x.at[..., 0].set(_beta_from_transformed(x[..., 0]))
+
+
+def _first_param_transformed_log_jacobian(x_transformed):
+    # beta = 1 / (1 - beta_t) so |dbeta/dbeta_t| = 1 / (1 - beta_t)^2.
+    return -2.0 * jnp.log(jnp.abs(1.0 - x_transformed[..., 0]))
+
+def _init_worker(pathogen, lockdown, option1, option2, NAG, census_age_pop, transform_first_param=False):
     """This runs once on each worker process when the Pool starts up."""
     global _worker_log_posterior, CENSUS_AGE_POP
     CENSUS_AGE_POP = census_age_pop
     # Each process compiles its own local JIT version of the heavy ODE model
-    _worker_log_posterior = get_emcee_model(pathogen, lockdown, option1, option2, NAG)
+    _worker_log_posterior = get_emcee_model(
+        pathogen,
+        lockdown,
+        option1,
+        option2,
+        NAG,
+        transform_first_param=transform_first_param,
+    )
 
 def _worker_log_prob_wrapper(x):
     """A top-level, perfectly picklable function that workers can call."""
     return _worker_log_posterior(x)
 # -----------------------------------------------------
 
-def get_emcee_model(pathogen, lockdown, option1, option2, NAG=7):
+def get_emcee_model(pathogen, lockdown, option1, option2, NAG=7, transform_first_param=False):
     _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
     likelihood, _ = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, normalize=False, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP)
     # calculate priors based on bounds
-    lower_bounds = bounds[:, 0]
-    upper_bounds = bounds[:, 1]
+    lower_bounds = jnp.asarray(bounds[:, 0])
+    upper_bounds = jnp.asarray(bounds[:, 1])
+
+    if transform_first_param:
+        transformed_lower_bounds = lower_bounds.at[0].set(_beta_to_transformed(lower_bounds[0]))
+        transformed_upper_bounds = upper_bounds.at[0].set(_beta_to_transformed(upper_bounds[0]))
+    else:
+        transformed_lower_bounds = lower_bounds
+        transformed_upper_bounds = upper_bounds
     
     def log_posterior(x):
-        in_bounds = jnp.all(jnp.logical_and(x >= lower_bounds, x <= upper_bounds))
-        nll = jax.lax.cond(in_bounds, lambda p: likelihood(p), lambda p: jnp.inf, x)
-        nll = jnp.where(jnp.isnan(nll), jnp.inf, nll)
-        return -nll
-    
+        in_bounds = jnp.all(jnp.logical_and(x >= transformed_lower_bounds, x <= transformed_upper_bounds))
+
+        def _evaluate(p):
+            if transform_first_param:
+                p_model = _inverse_transform_first_param(p)
+                nll = likelihood(p_model)
+                return -nll + _first_param_transformed_log_jacobian(p)
+            nll = likelihood(p)
+            return -nll
+
+        logp = jax.lax.cond(in_bounds, _evaluate, lambda p: -jnp.inf, x)
+        logp = jnp.where(jnp.isnan(logp), -jnp.inf, logp)
+        return logp
+
     return jax.jit(log_posterior)
+
+
+def _get_sampling_bounds(pathogen, lockdown, option1, option2, NAG, transform_first_param):
+    _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+    lower_bounds = jnp.asarray(bounds[:, 0])
+    upper_bounds = jnp.asarray(bounds[:, 1])
+    if transform_first_param:
+        lower_bounds = lower_bounds.at[0].set(_beta_to_transformed(lower_bounds[0]))
+        upper_bounds = upper_bounds.at[0].set(_beta_to_transformed(upper_bounds[0]))
+    return lower_bounds, upper_bounds
 
 def run_emcee(
     key,
@@ -70,17 +126,26 @@ def run_emcee(
     census_age_pop=None,
     pool=None,
     history_samples=None,
+    transform_first_param=False,
+    startx_in_sampling_space=False,
 ):
     if startx is None:
         _, startx, _ = load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2)
     # initialize walkers randomly within 3% of parameter values, within bounds
-    _, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
-    lower_bounds = jnp.asarray(bounds[:, 0])
-    upper_bounds = jnp.asarray(bounds[:, 1])
+    lower_bounds, upper_bounds = _get_sampling_bounds(
+        pathogen,
+        lockdown,
+        option1,
+        option2,
+        NAG,
+        transform_first_param,
+    )
     startx = jnp.asarray(startx)
     if startx.ndim > 1:
         # When resuming, callers may pass walker positions; use one parameter vector for shape metadata.
         startx = startx[0]
+    if transform_first_param and (not startx_in_sampling_space):
+        startx = _transform_first_param(startx)
 
     if initial_pos is None:
         # generate perturbations for all walkers
@@ -194,7 +259,7 @@ def _load_saved_chain(sample_path, log_prob_path, n_walkers):
     log_prob = log_prob.reshape(-1, n_walkers)
     return samples, log_prob
 
-def run_burn_in_for_pathogen(key, pathogen, lockdown, option1, option2, seed, NAG, prefix, n_walkers, burn_in_size, census_age_pop, pool):
+def run_burn_in_for_pathogen(key, pathogen, lockdown, option1, option2, seed, NAG, prefix, n_walkers, burn_in_size, census_age_pop, pool, transform_first_param=False):
     sampler = run_emcee(
         key,
         pathogen,
@@ -211,6 +276,8 @@ def run_burn_in_for_pathogen(key, pathogen, lockdown, option1, option2, seed, NA
         census_age_pop=census_age_pop,
         pool=pool,
         history_samples=None,
+        transform_first_param=transform_first_param,
+        startx_in_sampling_space=False,
     )
     return sampler
 
@@ -238,26 +305,28 @@ if __name__ == "__main__":
     from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP
 
     n_walkers = 32
-    burn_in_size = 10000
+    burn_in_size = 1000
+    TRANSFORM_FIRST_PARAM = True
+    run_label = "_betat" if TRANSFORM_FIRST_PARAM else ""
 
-    lockdown = "ExponentialODipp25"
-    pathogens = ["Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-    option2s = ["maxagep004","maxagep003","maxagep035","maxagep035",]
-    seeds = [260612, 260612, 260612, 260612,]
+    lockdown = "Default"
+    pathogens = ["Parainfluenza3",]
+    option2s = ["2020-01-01maxagep004",]
+    seeds = [260615,]
 
     pools = {}
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         pool = Pool(
             processes=32, 
             initializer=_init_worker, 
-            initargs=(pathogen, lockdown, option1, option2, NAG, CENSUS_AGE_POP)
+            initargs=(pathogen, lockdown, option1, option2, NAG, CENSUS_AGE_POP, TRANSFORM_FIRST_PARAM)
         )
         pools[pathogen] = pool
 
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         key = jax.random.PRNGKey(260605)
-        burnin_sample_path = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
+        burnin_sample_path = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}{run_label}_burnin.csv"
+        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}{run_label}_burnin.csv"
 
         if os.path.exists(burnin_sample_path) and os.path.exists(burnin_log_prob_path):
             print(f"Found existing burn-in files for {pathogen}. Skipping burn-in and moving to refinement.")
@@ -276,6 +345,7 @@ if __name__ == "__main__":
             burn_in_size,
             CENSUS_AGE_POP,
             pools[pathogen],
+            transform_first_param=TRANSFORM_FIRST_PARAM,
         )
         acceptance_fraction = np.mean(burnin_sampler.acceptance_fraction)
         print(f"Acceptance fraction: {acceptance_fraction:.4f}")
@@ -284,6 +354,8 @@ if __name__ == "__main__":
         np.savetxt(burnin_sample_path, samples.reshape(-1, samples.shape[-1]), delimiter=',')
         np.savetxt(burnin_log_prob_path, log_prob, delimiter=',')
         param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+        if TRANSFORM_FIRST_PARAM:
+            param_names = ["BETA_TRANSFORMED"] + param_names[1:]
         plot_traces(samples, param_names, pathogen, lockdown, option1, option2, seed)
 
     n_samples = 1000000
@@ -295,10 +367,10 @@ if __name__ == "__main__":
 
     for pathogen, option2, seed in zip(pathogens, option2s, seeds):
         key = jax.random.PRNGKey(260605)
-        burnin_sample_path = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_burnin.csv"
-        refined_sample_path = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-        refined_log_prob_path = f"Outputs/mcmc_log_prob_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+        burnin_sample_path = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}{run_label}_burnin.csv"
+        burnin_log_prob_path = f"Outputs/mcmc_log_prob_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}{run_label}_burnin.csv"
+        refined_sample_path = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}{run_label}_refined.csv"
+        refined_log_prob_path = f"Outputs/mcmc_log_prob_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}{run_label}_refined.csv"
 
         current_samples, current_log_prob, best_sample, completed_chunks = load_refined_chain_or_burnin(
             burnin_sample_path,
@@ -359,6 +431,8 @@ if __name__ == "__main__":
                 census_age_pop=CENSUS_AGE_POP,
                 pool=pools[pathogen],
                 history_samples=history_samples,
+                transform_first_param=TRANSFORM_FIRST_PARAM,
+                startx_in_sampling_space=True,
             )
 
             acceptance_fraction = np.mean(psampler.acceptance_fraction)
@@ -383,19 +457,27 @@ if __name__ == "__main__":
             best_params = np.asarray(state["current_samples"][best_idx], dtype=np.float64)
             state["best_sample"] = best_params
             best_neg_log_likelihood = float(-state["current_log_prob"][best_idx])
+            best_params_to_save = best_params
+            if TRANSFORM_FIRST_PARAM:
+                best_neg_log_likelihood = float(
+                    -state["current_log_prob"][best_idx] + _first_param_transformed_log_jacobian(best_params)
+                )
+                best_params_to_save = np.asarray(_inverse_transform_first_param(best_params), dtype=np.float64)
             results_dir = f"Data/Processed/results{str(state['seed'])[:6]}"
             os.makedirs(results_dir, exist_ok=True)
             emcee_results_path = f"{results_dir}/emcee_{prefix}{pathogen}{lockdown}{option1}{state['option2']}{state['seed']}.pickle"
             with open(emcee_results_path, "wb") as f:
                 pickle.dump(
                     {
-                        "final_population": np.asarray([best_params]),
+                        "final_population": np.asarray([best_params_to_save]),
                         "final_fitness": np.asarray([best_neg_log_likelihood]),
                     },
                     f,
                 )
             
             param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, state["option2"], NAG=NAG)
+            if TRANSFORM_FIRST_PARAM:
+                param_names = ["BETA_TRANSFORMED"] + param_names[1:]
             plot_traces(state["current_samples"], param_names, pathogen, lockdown, option1, state["option2"], state["seed"], separate_walkers=False)
 
     print("Closing processing pools...")

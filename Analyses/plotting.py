@@ -2215,18 +2215,18 @@ if __name__ == "__main__":
     # plt.tight_layout()
     # plt.savefig(f"Figures/phase_diagrams_{lockdown}_age.pdf", dpi=300)
 
-    # fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
-    # for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes.flatten()):
-    #     print(f"Difference measures for {pathogen}...")
-    #     chain2 = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
-    #     chain1 = load_mcmc_chain(pathogen, [260615, 260624][pathogen=="Metapneumovirus"], ["Default", "ExponentialODipp25"][pathogen=="Metapneumovirus"], option1, "2020-01-01"+option2, just_chain=True, prune=0, prefix="")
-    #     param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
-    #     param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
-    #     select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
-    #     compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
-    #     plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
-    #     ax.set_title(short_names.get(pathogen, pathogen))
-    # plt.savefig(f"Figures/correlation_matrix_difference_{lockdown}_updated.png", dpi=300)
+    fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
+    for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes.flatten()):
+        print(f"Difference measures for {pathogen}...")
+        chain2 = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
+        chain1 = load_mcmc_chain(pathogen, [260615, 260624][pathogen=="Metapneumovirus"], ["Default", "ExponentialODipp25"][pathogen=="Metapneumovirus"], option1, "2020-01-01"+option2, just_chain=True, prune=0, prefix="")
+        param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
+        param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
+        select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
+        compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
+        plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
+        ax.set_title(short_names.get(pathogen, pathogen))
+    plt.savefig(f"Figures/correlation_matrix_difference_DESnooker.png", dpi=300)
 
     # fig, axes = plt.subplots(6,7, figsize=(4, 5), layout="constrained", sharex=False, sharey=False)
     # plot_immunity_cascade(axes, n_samples=400, save_data=True, kpsc_incidence=True)
@@ -2345,11 +2345,11 @@ if __name__ == "__main__":
     #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
     #     plt.close()
 
-    # ## Generate Figure 1: timeseries and suppression duration figure
-    fig = plt.figure(layout="constrained", figsize=(6.5,7.5))
-    countries = ["Brazil", "Canada", "India", "Malaysia", "Qatar"]
-    plot_suppression_durations(fig, flunet_pathogens, countries, colors)
-    plt.savefig(f"Figures/suppression_durations_w_age_prop_shading.pdf", dpi=300)
+    # # ## Generate Figure 1: timeseries and suppression duration figure
+    # fig = plt.figure(layout="constrained", figsize=(6.5,7.5))
+    # countries = ["Brazil", "Canada", "India", "Malaysia", "Qatar"]
+    # plot_suppression_durations(fig, flunet_pathogens, countries, colors)
+    # plt.savefig(f"Figures/suppression_durations_w_age_prop_shading.pdf", dpi=300)
 
     # ## Generate supplemental figures of all FluNet timeseries
     # directory_path = "Data/Processed/FluNetTimeseries/"
