@@ -85,25 +85,32 @@ plt.rcParams['font.serif'] = ['Palatino']
 # plt.show()
 
 ### plot mcmc output
-# lockdown = "ExponentialODipp25"
-# pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-# flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
-# colors = ["#DC267F", "#FFB000", "#FF832B", "#648FFF", "#785EF0", "#004D40",]
 option1 = "dedupsac"
-# option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
-# seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
+# lockdown = "ExponentialODipp25"
+# pathogens = ["Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+# flunet_pathogens = ["Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
+# colors = [ "#FF832B", "#648FFF", "#785EF0", "#004D40",]
+# option2s = ["maxagep004","maxagep003","maxagep035","maxagep035",]
+# seeds = [260612, 260612, 260612, 260612,]
+# pruners = [2000, 2000, 100, 100]
 lockdown = "Default"
-pathogens = ["Parainfluenza3","Adenovirus","InfluenzaA",]
-option2s = ["2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035",]
-seeds = [260615, 260615, 260615,]
-colors = ['k', 'k', 'k',]
+pathogens = ["Parainfluenza3",]
+option2s = ["2020-01-01maxagep004",]
+seeds = [260615,]
+pruners = [0,]
+colors = ['k',]
+# lockdown = "Default"
+# pathogens = ["Parainfluenza3","Adenovirus","InfluenzaA",]
+# option2s = ["2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035",]
+# seeds = [260615, 260615, 260615,]
+# colors = ['k', 'k', 'k',]
 def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor):
     srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
     return srel[1]
-# fig, ax = plxt.subplots()
+# fig, ax = plt.subplots()
 r0_samples_by_pathogen = {}
 immunity_samples_by_pathogen = {}
-for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
+for pathogen, color, option2, prune, seed in zip(pathogens, colors, option2s, pruners, seeds):
     start_time = time.time()
     prefix = "emcee"
     NAG = 7
@@ -111,7 +118,7 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
     from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
     param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 
-    mcmc_filepath = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+    mcmc_filepath = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_betat_refined.csv"
     # mcmc_filepath = "Outputs/mcmc_samples_DESnooker_Adenovirus_ExponentialODipp25_dedupsac_maxagep003_260612_refined_nonadaptive.csv"
     mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
     loading_time = time.time()
@@ -123,8 +130,8 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 
     # # # cut off burn-in
     # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
-    n_iterations -= 300
-    mcmc_samples = mcmc_samples[300*n_walkers:, :]
+    n_iterations -= prune
+    mcmc_samples = mcmc_samples[prune*n_walkers:, :]
 
     # # find index of S_REL1 in pram_names
     # thinning = 100 if "Influenza" not in pathogen else 1000
@@ -179,12 +186,12 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
     # mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
     # median_params = np.median(mcmc_samples_2d, axis=0)
     # log_prob_of_median = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, AGE_GROUPS=AGE_GROUPS)[0](median_params)
-    # # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
+    # # # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
     # WRITE_EMCEE_ADHOC_EXPORT = True
     # if WRITE_EMCEE_ADHOC_EXPORT:
     #     results_dir = f"Data/Processed/results{str(seed)[:6]}"
     #     os.makedirs(results_dir, exist_ok=True)
-    #     emcee_results_file = f"{results_dir}/emcee_median_{prefix}{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
+    #     emcee_results_file = f"{results_dir}/emcee_median_{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
     #     with open(emcee_results_file, "wb") as f:
     #         pickle.dump(
     #             {
@@ -197,26 +204,29 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
     # # --- END AD-HOC EMCEE EXPORT BLOCK ---
 
     
-#     # fig, trax = plt.subplots(4,4, figsize=(10,6))
-#     # for param_idx in range(n_params):
-#     #     for walker_idx in range(n_walkers):
-#     #         # if best_idx[1] == walker_idx:
-#     #         #     trax[param_idx//4, param_idx%4].plot(mcmc_samples[:,walker_idx,param_idx], alpha=1, zorder=10, color='k', label="Best fit walker")
-#     #         # else:
-#     #         trax[param_idx//4, param_idx%4].plot(mcmc_samples[:,walker_idx,param_idx], alpha=0.4)
-#     #     trax[param_idx//4, param_idx%4].set_title(param_names[param_idx])
-#     #     # trax[param_idx//4, param_idx%4].axvline(x=best_idx[0], color='k', linestyle='-', label="Best fit")
-#     # plt.tight_layout()
-#     # plt.savefig(f"Figures/mcmc_traces_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers_test.png", dpi=300, bbox_inches='tight')
-#     # plt.close(fig)
-
-
-    # # Reshape it back to 3D to separate the walkers properly
+    # # # Reshape it back to 3D to separate the walkers properly
     chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
+
+    # fig, trax = plt.subplots(4,4, figsize=(10,6))
+    # for param_idx in range(n_params):
+    #     for walker_idx in range(n_walkers):
+    #         # if best_idx[1] == walker_idx:
+    #         #     trax[param_idx//4, param_idx%4].plot(mcmc_samples[:,walker_idx,param_idx], alpha=1, zorder=10, color='k', label="Best fit walker")
+    #         # else:
+    #         trax[param_idx//4, param_idx%4].plot(chain_3d[:,walker_idx,param_idx], alpha=0.4)
+    #     trax[param_idx//4, param_idx%4].set_title(param_names[param_idx])
+    #     # trax[param_idx//4, param_idx%4].axvline(x=best_idx[0], color='k', linestyle='-', label="Best fit")
+    # plt.tight_layout()
+    # plt.savefig(f"Figures/mcmc_traces_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers.png", dpi=300, bbox_inches='tight')
+    # plt.close(fig)
+
+
 
     # calculate ensemble-aware autocorrelation time and ESS
     try:
         autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
+        print("N/50:", n_iterations/50)
+        print("Autocorrelation times:\n", autocorr_times)
     except emcee.autocorr.AutocorrError as error:
         autocorr_times = np.asarray(error.tau)
         print("Warning: chain may be too short for reliable autocorrelation estimates.")
@@ -244,7 +254,7 @@ for pathogen, color, option2, seed in zip(pathogens, colors, option2s, seeds):
 
     import corner
     fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-    plt.savefig(f"Figures/mcmc_corner_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_transform.pdf", bbox_inches='tight')
+    plt.savefig(f"Figures/mcmc_corner_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_betat_transform.pdf", bbox_inches='tight')
     plt.close(fig)
     
 # #     # sns.kdeplot(ax=ax, x=r0_samples, y=1-srel1_samples, color=color, label=pathogen, fill=True)

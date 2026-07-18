@@ -956,55 +956,44 @@ def load_optimization_results(prefix, pathogen, seed, lockdown, option1, option2
         neg_log_likelihood = opt.fun
     return prefix, x, neg_log_likelihood
 
-def load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prefix="", prune=0, n_walkers=64, just_chain=False):
-    # If prefix is empty, try to find any matching file
-    if prefix == "":
-        import glob
-        pattern = f"Outputs/mcmc_samples_DESnooker_*{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-        matches = glob.glob(pattern)
-        if matches:
-            filepath_chain = matches[0]
-            filepath_logprob = filepath_chain.replace("mcmc_samples_", "mcmc_log_prob_")
-        else:
-            pattern = f"Outputs/mcmc_samples_DESnooker_*{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined_nonadaptive.csv"
-            matches = glob.glob(pattern)
-            if matches:
-                filepath_chain = matches[0]
-                filepath_logprob = filepath_chain.replace("mcmc_samples_", "mcmc_log_prob_")
-            else:
-                pattern = f"Outputs/mcmc_samples_DEm*ove_*{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-                matches = glob.glob(pattern)
-                if matches:
-                    filepath_chain = matches[0]
-                    filepath_logprob = filepath_chain.replace("mcmc_samples_", "mcmc_log_prob_")
-                else:
-                    print(f"Results file not found for {pathogen}_{lockdown}_{option1}_{option2}_{seed}")
-                    return None
-    else:
-        filepath_chain = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-        filepath_logprob = f"Outputs/mcmc_log_prob_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+import glob
+import numpy as np
+
+import glob
+import numpy as np
+
+def load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prefix="", prune=0, just_chain=False):
+    base_name = f"{pathogen}_{lockdown}_{option1}_{option2}_{seed}"
+    p_mid = prefix if prefix else "*"
+    patterns = [
+        f"Outputs/mcmc_samples_DESnooker_{p_mid}{base_name}_refined.csv",
+        f"Outputs/mcmc_samples_DESnooker_{p_mid}{base_name}_refined_nonadaptive.csv",
+        f"Outputs/mcmc_samples_DE*ove_{p_mid}{base_name}_refined.csv"
+    ]
+    filepath_chain = next((m for p in patterns for m in glob.glob(p)), None)
+    if not filepath_chain:
+        print(f"Results file not found for {base_name}")
+        return None
+    filepath_logprob = filepath_chain.replace("mcmc_samples_", "mcmc_log_prob_")
+
+    n_walkers = 32 if "DESnooker" in filepath_chain else 64
+    start_idx = prune * n_walkers
+
     try:
-        chain = np.genfromtxt(filepath_chain, delimiter=',')[prune*n_walkers:]
-    except FileNotFoundError:
-        print(f"Snooker results file not found: {filepath_chain}")
-        try:
-            filepath_chain = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined_nonadaptive.csv"
-            filepath_logprob = f"Outputs/mcmc_log_prob_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined_nonadaptive.csv"
-        except FileNotFoundError:
-            print(f"Nonadaptive results file not found: {filepath_chain}")
-            try:
-                filepath_chain = f"Outputs/mcmc_samples_DEMove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-                filepath_logprob = f"Outputs/mcmc_log_prob_DEMove_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-            except FileNotFoundError:
-                print(f"Results file not found: {filepath_chain}")
-                return None
+        chain = np.genfromtxt(filepath_chain, delimiter=',')[start_idx:]
+    except OSError:
+        print(f"Error reading chain file: {filepath_chain}")
+        return None
+
     if just_chain:
         return chain
+
     try:
-        logprobs = np.genfromtxt(filepath_logprob, delimiter=',').flatten()[prune*n_walkers:]
-    except FileNotFoundError:
+        logprobs = np.genfromtxt(filepath_logprob, delimiter=',').flatten()[start_idx:]
+    except OSError:
         print(f"MCMC log probability file not found: {filepath_logprob}")
         return None
+
     return prefix, chain, logprobs
 
 def load_random_mcmc_result(pathogen, seed, lockdown, option1, option2, prefix="", prune=0, n_walkers=64):

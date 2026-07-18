@@ -112,8 +112,8 @@ def parameter_space(good_simulations, NAG=7, n_samples=None):
             parameter_sets.append(x)
     else:
         for pathogen_info in good_simulations:
-            pathogen, seed, lockdown, option1, option2 = pathogen_info
-            chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=0, prefix="", just_chain=True)
+            pathogen, seed, lockdown, option1, option2, prune = pathogen_info
+            chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=prune, prefix="", just_chain=True)
             # draw n_samples randomly from the chain
             sampled_xs = chain[np.random.choice(chain.shape[0], size=n_samples, replace=True)]
             consistent_xs = jax.vmap(lambda x: consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, x_DE=x))(sampled_xs)
@@ -1149,7 +1149,7 @@ PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2,
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260629
+    seed = 260717
     option1 = "dedupsac"
     NAG = 7 + ("split" in option1)
     if "split" in option1:
@@ -1178,7 +1178,8 @@ if __name__ == "__main__":
     pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
     option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
     seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
-    good_simulations = [[pathogens[i], seeds[i], lockdown, option1, option2s[i]] for i in range(len(pathogens))]
+    pruners = [100, 100, 2000, 2000, 100, 100,]
+    good_simulations = [[pathogens[i], seeds[i], lockdown, option1, option2s[i], pruners[i]] for i in range(len(pathogens))]
     
     r0_base = calculate_R0_from_values(1, 1, CONTACT_MATRIX, CENSUS_AGE_POP, jnp.zeros(NAG))
     # Parameter scaling factors used in the model

@@ -802,7 +802,7 @@ def calculate_infection_matrices_from_solution(solution, params, NAG=7, hospital
     age_infections_matrix = infections_matrix.sum(axis=0)[:1553].mean(axis=-1)
     return jnp.stack([age_infections_matrix, age_hospital_matrix], axis=-1)
 
-def get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, census_age_pop, samples=None, hospitalizations=False, prefix=""):
+def get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, census_age_pop, prune=None, samples=None, hospitalizations=False, prefix=""):
     from likelihood import run_simulation
     PERIOD = pd.date_range(start=pd.to_datetime('2015-10-01'), end=pd.to_datetime('2025-10-01'), freq='D')
     POINTS = np.array(date_to_t(PERIOD))
@@ -821,8 +821,7 @@ def get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, census
         age_matrices = calculate_infection_matrices_from_solution(solution, params, NAG=NAG, hospitalizations=hospitalizations)
         return age_matrices[...,0], age_matrices[...,1]
     else:
-        pruner = 0
-        _, chain, _ = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=pruner, prefix=prefix)
+        _, chain, _ = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prune=prune, prefix=prefix)
         random_indices = np.random.choice(chain.shape[0], size=samples, replace=False)
         random_samples = chain[random_indices, :]
         def get_matrix(x):
@@ -941,7 +940,7 @@ def plot_infections_versus(ax, matrices, age_group_indices, pathogens, colors, c
     ax.spines['right'].set_visible(False)
 
 import matplotlib.transforms as mtransforms
-def plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, logD=False, age_adjusted=False, samples=100, prefix="", save_data=False, load_data=False):
+def plot_age_figure(axes, pathogens, colors, option1, option2s, pruners, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, logD=False, age_adjusted=False, samples=100, prefix="", save_data=False, load_data=False):
     ax_top, ax_bottom = axes
     if not load_data:
         matrices = {}
@@ -949,8 +948,8 @@ def plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown,
         sampled_matrices = {}
         sampled_hosp_matrices = {}
         for pi, (pathogen, option2, seed) in enumerate(zip(pathogens, option2s, seeds)):
-            matrices[pathogen], hosp_matrices[pathogen] = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=False, prefix="emcee_")
-            sampled_matrices[pathogen], sampled_hosp_matrices[pathogen] = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, hospitalizations=False, samples=samples, prefix=prefix)
+            matrices[pathogen], hosp_matrices[pathogen] = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, prune=pruners[pi], hospitalizations=False, prefix="emcee_")
+            sampled_matrices[pathogen], sampled_hosp_matrices[pathogen] = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, prune=pruners[pi], hospitalizations=False, samples=samples, prefix=prefix)
         if save_data:
             np.savez_compressed("age_figure_data.npz", matrices=matrices, hosp_matrices=hosp_matrices, sampled_matrices=sampled_matrices, sampled_hosp_matrices=sampled_hosp_matrices)
     else:
@@ -1366,7 +1365,7 @@ def plot_fits(axes, n_samples=100, save_data=False, load_data=False):
         ax = axes[:,pathogen_idx]
         pathogen, option2, seed = pathogens[pathogen_idx], option2s[pathogen_idx], seeds[pathogen_idx]
         _, _, _, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
-        chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
+        chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=pruners[pathogen_idx], prefix="")
         np.random.seed(260604)
         # choose n_samples random rows from chain
         random_indices = np.random.choice(chain.shape[0], size=n_samples, replace=False)
@@ -1420,8 +1419,8 @@ def plot_fits(axes, n_samples=100, save_data=False, load_data=False):
             ax[age_group_idx].tick_params(axis='y', labelsize=6)
         print(f"\n", end="")
 
-def plot_contact(ax, pathogen, option2, seed, n_samples=100):
-    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
+def plot_contact(ax, pathogen, option2, prune, seed, n_samples=100):
+    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
     param_names, _ = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
     seasonality_idx = param_names.index("SEASONALITY")
     offset_idx = param_names.index("OFFSET")
@@ -1441,10 +1440,10 @@ def plot_contact(ax, pathogen, option2, seed, n_samples=100):
         ax.plot(POINTS, forcing, color="k", alpha=0.01, linewidth=0.5)
         ax.plot(POINTS, cntct[-len(POINTS):], color="hotpink", alpha=0.01, linewidth=0.5)
 
-def plot_susceptibility(ax, pathogen, option2, seed, n_samples=100, load_data=False):
-    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
+def plot_susceptibility(ax, pathogen, option2, prune, seed, n_samples=100, load_data=False):
+    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
     _, _, _, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
-    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
+    chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
     np.random.seed(260604)
     # choose n_samples random rows from chain
     random_indices = np.random.choice(chain.shape[0], size=n_samples, replace=False)
@@ -1491,7 +1490,7 @@ def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_di
     srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
     return srel[1]
 
-def plot_r0_vs_first_immunity(axes, pathogen, option2, seed, color, r0_base=15.24, prune=0, n_samples=50000):
+def plot_r0_vs_first_immunity(axes, pathogen, option2, seed, color, r0_base=15.24, prune=0, n_samples=10000):
     chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
     # randomly sample n_samples rows from chain
     np.random.seed(260604)
@@ -1612,7 +1611,7 @@ def plot_odr_best_fit(ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_
     ax.plot(x_plot, y_median_plot, color='grey', linestyle='-', label="ODR Best fit", zorder=0)
     ax.fill_between(x_grid, y_lower_fill, y_upper_fill, color='k', linewidths=0, alpha=0.1, label="95% CI", zorder=0)
 
-def plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=True, prune=0):
+def plot_heatmaps_and_best_fit(fig, pathogens, option2s, pruners, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=True):
     gs = fig.add_gridspec(2, 2, height_ratios=[1, 1], hspace=0.6)
     fit_ax = fig.add_subplot(gs[0, :])
     axes_hm = [fig.add_subplot(gs[1, i]) for i in range(2)]
@@ -1639,7 +1638,7 @@ def plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save
 
     r0_values_by_pathogen = {}
     immunity_values_by_pathogen = {}
-    for pathogen, option2, seed, color in zip(pathogens, option2s, seeds, colors):
+    for pathogen, option2, prune, seed, color in zip(pathogens, option2s, pruners, seeds, colors):
         print(f"plotting parameter scatter for {pathogen}...")
         r0_values, immunity_values = plot_r0_vs_first_immunity(fit_ax, pathogen, option2, seed, color, prune=prune)
         r0_values_by_pathogen[pathogen] = r0_values
@@ -1754,7 +1753,7 @@ def plot_immunity_cascade(axes, n_samples=100, save_data=False, kpsc_incidence=T
         ax = axes[pathogen_idx, :]
         pathogen, option2, seed = pathogens[pathogen_idx], option2s[pathogen_idx], seeds[pathogen_idx]
         _, _, _, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
-        chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
+        chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=pruners[pathogen_idx], prefix="")
         np.random.seed(260604)
         # choose n_samples random rows from chain
         random_indices = np.random.choice(chain.shape[0], size=n_samples, replace=False)
@@ -2168,6 +2167,7 @@ if __name__ == "__main__":
     colors = [ "#785EF0", "#004D40", "#648FFF", "#FFB000" ,"#FF832B","#DC267F",]
     option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
     seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
+    pruners = [100, 100, 2000, 2000, 100, 100,]
 
     ### plotting population susceptibility
     # fig, fit_ax = plt.subplots(1, 1, figsize=(3.5, 3.5), layout="constrained", sharex=False, sharey=False)
@@ -2215,63 +2215,29 @@ if __name__ == "__main__":
     # plt.tight_layout()
     # plt.savefig(f"Figures/phase_diagrams_{lockdown}_age.pdf", dpi=300)
 
-    fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
-    for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes.flatten()):
-        print(f"Difference measures for {pathogen}...")
-        chain2 = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=0, prefix="")
-        chain1 = load_mcmc_chain(pathogen, [260615, 260624][pathogen=="Metapneumovirus"], ["Default", "ExponentialODipp25"][pathogen=="Metapneumovirus"], option1, "2020-01-01"+option2, just_chain=True, prune=0, prefix="")
-        param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
-        param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
-        select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
-        compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
-        plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
-        ax.set_title(short_names.get(pathogen, pathogen))
-    plt.savefig(f"Figures/correlation_matrix_difference_DESnooker.png", dpi=300)
+    # fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
+    # for pathogen, option2, seed, prune, ax in zip(pathogens, option2s, seeds, pruners, axes.flatten()):
+    #     print(f"Difference measures for {pathogen}...")
+    #     chain2 = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
+    #     chain1 = load_mcmc_chain(pathogen, [260615, 260624][pathogen=="Metapneumovirus"], ["Default", "ExponentialODipp25"][pathogen=="Metapneumovirus"], option1, "2020-01-01"+option2, just_chain=True, prune=0, prefix="")
+    #     param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
+    #     param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
+    #     select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
+    #     compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
+    #     plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
+    #     ax.set_title(short_names.get(pathogen, pathogen))
+    # plt.savefig(f"Figures/correlation_matrix_difference_DESnooker.png", dpi=300)
 
-    # fig, axes = plt.subplots(6,7, figsize=(4, 5), layout="constrained", sharex=False, sharey=False)
-    # plot_immunity_cascade(axes, n_samples=400, save_data=True, kpsc_incidence=True)
-    # for ax in axes[-1,:]:
-    #     ax.set_xticklabels(["No imm.", "+ I. exp.", "+ D. exp.", "+ D. age"][::-1], fontsize=6, rotation=90, ha='center')
-    # plt.savefig(f"Figures/immunity_cascade_{lockdown}_log_twopart.png", dpi=300)
-
-    ### Figure 1 with diagram
-    # fig, axes = plt.subplots(10, 6, figsize=(6.5, 7), layout="constrained", sharex=False, sharey=False,
-    #                          gridspec_kw={'height_ratios': [2.7, 1, 1, 1, 1, 1, 1, 1, 1, 1]})
-
-    # import fitz
-    # import io
-    # from PIL import Image
-
-    # compartment_diagram_path = "Figures/condensed_compartmental_diagram-2.pdf"
-    # doc = fitz.open(compartment_diagram_path)
-    # page = doc[0]
-
-    # pix = page.get_pixmap(matrix=fitz.Matrix(5, 5))
-    # img_data = pix.tobytes("png")
-    # img = Image.open(io.BytesIO(img_data))
-    # # 1. Remove the original 6 individual axes in the first row
-    # for ax in axes[0, :]:
-    #     ax.remove()
-        
-    # # 2. Get the underlying GridSpec from another axis (e.g., row 1)
-    # gs = axes[1, 0].get_gridspec()
-    
-    # # 3. Create a new single axis that spans row 0, all columns (:)
-    # ax_top = fig.add_subplot(gs[0, :])
-    
-    # # 4. Show the image and turn off the axis on this new spanning subplot
-    # ax_top.imshow(img, interpolation="lanczos")
-    # ax_top.axis("off")
+    # ## Figure 1 
+    # fig, axes = plt.subplots(9, 6, figsize=(6.5, 7), layout="constrained", sharex=False, sharey=False)
 
     # sample_size = 400
-
     # plot_fits(axes[1:8,:], n_samples=sample_size, load_data=False, save_data=True)
     # for ax in axes[7, :]:
     #     ax.set_xticklabels([])
 
-    # # fig, axes = plt.subplots(1, 6, figsize=(6.5, 1.5), sharex=True, sharey=True)
-    # for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes[8, :]):
-    #     plot_contact(ax, pathogen, option2, seed, n_samples=sample_size)
+    # for pathogen, option2, prune, seed, ax in zip(pathogens, option2s, pruners, seeds, axes[7, :]):
+    #     plot_contact(ax, pathogen, option2, prune, seed, n_samples=sample_size)
     #     # ax.set_title(short_names.get(pathogen, pathogen))
     #     ax.set_ylim(0, 1.2)
     #     ax.set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
@@ -2284,13 +2250,9 @@ if __name__ == "__main__":
     #     #     label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
     # axes[8,0].set_ylabel("Contact\nmultiplier", fontsize=6)
 
-    # import time
-    # # fig, axes = plt.subplots(1, 6, figsize=(6.5,1.5))
-    # for pathogen, option2, seed, ax in zip(pathogens, option2s, seeds, axes[9,:]):
+    # for pathogen, option2, prune, seed, ax in zip(pathogens, option2s, pruners, seeds, axes[8,:]):
     #     print(pathogen)
-    #     start_time = time.time()
-    #     plot_susceptibility(ax, pathogen, option2, seed, n_samples=sample_size)
-    #     print(f"Time taken to plot susceptibility for {pathogen}: {time.time() - start_time:.2f} seconds")
+    #     plot_susceptibility(ax, pathogen, option2, prune, seed, n_samples=sample_size)
     #     # ax.set_title(short_names.get(pathogen, pathogen))
     #     ax.set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
     #     ax.set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025",], fontsize=6)
@@ -2301,72 +2263,71 @@ if __name__ == "__main__":
     #         label.set_rotation(45)
     #         label.set_horizontalalignment('right')
     #         label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
-    # axes[9,0].set_ylabel("Relative\nsusceptibility", fontsize=6)
+    # axes[8,0].set_ylabel("Relative\nsusceptibility", fontsize=6)
 
     # # add big letter "A" to first row, "B" to eighth row, "C" to ninth row
-    # ax_top.text(-0.05, 0.8, "A", transform=ax_top.transAxes, fontsize=16, fontweight="bold")
-    # axes[1,0].text(-0.5, 1.2, "B", transform=axes[1,0].transAxes, fontsize=16, fontweight="bold")
+    # axes[1,0].text(-0.5, 1.2, "A", transform=axes[1,0].transAxes, fontsize=16, fontweight="bold")
+    # axes[7,0].text(-0.5, 1.1, "B", transform=axes[7,0].transAxes, fontsize=16, fontweight="bold")
     # axes[8,0].text(-0.5, 1.1, "C", transform=axes[8,0].transAxes, fontsize=16, fontweight="bold")
-    # axes[9,0].text(-0.5, 1.1, "D", transform=axes[9,0].transAxes, fontsize=16, fontweight="bold")
 
-    # plt.savefig(f"Figures/fits_figure_diagram_test.png", dpi=300)
+    # plt.savefig(f"Figures/fits_figure.png", dpi=300)
 
-    # plot_mcmc_corner("InfluenzaB", "Default", "dedupsac", "2020-01-01maxagep035", "260615", prune=0)
+    # # plot_mcmc_corner("InfluenzaB", "Default", "dedupsac", "2020-01-01maxagep035", "260615", prune=0)
 
-    # fig, ax = plt.subplots(figsize=(3,3))
-    # im = plot_supression_rank_heatmap(ax, flunet_pathogens)
-    # # ax.set_title("How often does y re-emerge before x?")
-    # ax.set_ylabel("How often does...")
-    # ax.set_xlabel("re-emerge after ...?")
-    # plt.tight_layout()
-    # plt.savefig(f"Figures/supression_rank_heatmap.png", dpi=300)
+    # # fig, ax = plt.subplots(figsize=(3,3))
+    # # im = plot_supression_rank_heatmap(ax, flunet_pathogens)
+    # # # ax.set_title("How often does y re-emerge before x?")
+    # # ax.set_ylabel("How often does...")
+    # # ax.set_xlabel("re-emerge after ...?")
+    # # plt.tight_layout()
+    # # plt.savefig(f"Figures/supression_rank_heatmap.png", dpi=300)
 
-    # ## plot MCMC corners and traces for all pathogens
-    # for pathogen, option2, seed in zip(pathogens, option2s, seeds):
-    #     print(pathogen, option2, seed)
-    #     plot_mcmc_corner(pathogen, option2, seed, prune=10000)
-    #     print(f"plotting MCMC traces for {pathogen}...")
-    #     fig, axes = plt.subplots(4, 4, figsize=(13.3,7.5), sharex=True)
-    #     # Calculate this once to avoid repeating the function call
-    #     n_params = len(parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)[0])
-    #     plot_mcmc_traces(axes.flatten(), pathogen, option2, seed, prune=0)
-    #     fig.suptitle(f"MCMC traces for {nice_names.get(pathogen, pathogen)}", fontsize=16)
-    #     for i, ax in enumerate(axes.flatten()):
-    #         if i >= n_params:
-    #             ax.axis('off')
-    #     for col in range(axes.shape[1]):
-    #         for row in reversed(range(axes.shape[0])):
-    #             flat_idx = row * axes.shape[1] + col
-    #             if flat_idx < n_params:
-    #                 axes[row, col].tick_params(labelbottom=True)
-    #                 axes[row, col].set_xlabel("Iteration number")
-    #                 break
-    #     plt.tight_layout()
-    #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
-    #     plt.close()
+    # # ## plot MCMC corners and traces for all pathogens
+    # # for pathogen, option2, seed in zip(pathogens, option2s, seeds):
+    # #     print(pathogen, option2, seed)
+    # #     plot_mcmc_corner(pathogen, option2, seed, prune=10000)
+    # #     print(f"plotting MCMC traces for {pathogen}...")
+    # #     fig, axes = plt.subplots(4, 4, figsize=(13.3,7.5), sharex=True)
+    # #     # Calculate this once to avoid repeating the function call
+    # #     n_params = len(parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)[0])
+    # #     plot_mcmc_traces(axes.flatten(), pathogen, option2, seed, prune=0)
+    # #     fig.suptitle(f"MCMC traces for {nice_names.get(pathogen, pathogen)}", fontsize=16)
+    # #     for i, ax in enumerate(axes.flatten()):
+    # #         if i >= n_params:
+    # #             ax.axis('off')
+    # #     for col in range(axes.shape[1]):
+    # #         for row in reversed(range(axes.shape[0])):
+    # #             flat_idx = row * axes.shape[1] + col
+    # #             if flat_idx < n_params:
+    # #                 axes[row, col].tick_params(labelbottom=True)
+    # #                 axes[row, col].set_xlabel("Iteration number")
+    # #                 break
+    # #     plt.tight_layout()
+    # #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
+    # #     plt.close()
 
-    # # ## Generate Figure 1: timeseries and suppression duration figure
-    # fig = plt.figure(layout="constrained", figsize=(6.5,7.5))
-    # countries = ["Brazil", "Canada", "India", "Malaysia", "Qatar"]
-    # plot_suppression_durations(fig, flunet_pathogens, countries, colors)
-    # plt.savefig(f"Figures/suppression_durations_w_age_prop_shading.pdf", dpi=300)
+    # # # ## Generate Figure 1: timeseries and suppression duration figure
+    # # fig = plt.figure(layout="constrained", figsize=(6.5,7.5))
+    # # countries = ["Brazil", "Canada", "India", "Malaysia", "Qatar"]
+    # # plot_suppression_durations(fig, flunet_pathogens, countries, colors)
+    # # plt.savefig(f"Figures/suppression_durations_w_age_prop_shading.pdf", dpi=300)
 
-    # ## Generate supplemental figures of all FluNet timeseries
-    # directory_path = "Data/Processed/FluNetTimeseries/"
-    # countries = []
-    # for filename in os.listdir(directory_path):
-    #     if filename.endswith(".csv"):
-    #         country = filename.split("__")[0]
-    #         if country not in countries:
-    #             countries.append(country)
-    # countries.sort()
-    # # iterate over chunks of ten countries and plot their FluNet data
-    # for i in range(0, len(countries), 15):
-    #     fig, axes = plt.subplots(min(15, len(countries) - i), 6, figsize=(6.5,9))
-    #     countries_chunk = countries[i:i+15]
-    #     plot_FluNet_chunk(axes, countries_chunk)
-    #     plt.tight_layout()
-    #     plt.savefig(f"Figures//FluNetTimeseries_{countries[i]}_to_{countries[min(i+14, len(countries)-1)]}.png", dpi=300)
+    # # ## Generate supplemental figures of all FluNet timeseries
+    # # directory_path = "Data/Processed/FluNetTimeseries/"
+    # # countries = []
+    # # for filename in os.listdir(directory_path):
+    # #     if filename.endswith(".csv"):
+    # #         country = filename.split("__")[0]
+    # #         if country not in countries:
+    # #             countries.append(country)
+    # # countries.sort()
+    # # # iterate over chunks of ten countries and plot their FluNet data
+    # # for i in range(0, len(countries), 15):
+    # #     fig, axes = plt.subplots(min(15, len(countries) - i), 6, figsize=(6.5,9))
+    # #     countries_chunk = countries[i:i+15]
+    # #     plot_FluNet_chunk(axes, countries_chunk)
+    # #     plt.tight_layout()
+    # #     plt.savefig(f"Figures//FluNetTimeseries_{countries[i]}_to_{countries[min(i+14, len(countries)-1)]}.png", dpi=300)
     
     # ## Generate Figure 2: age-structured fits figure
     # fig, axes = plt.subplots(7, 6, figsize=(6.5,6.5), layout="constrained")
@@ -2374,7 +2335,7 @@ if __name__ == "__main__":
     # fig.text(0.001, 0.5, 'Estimated incidence of hospitalization per 100k members', va='center', rotation='vertical')
     # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
-    # ## Generate Figure 4: age infection figure
+    # # ## Generate Figure 3: age infection figure
     # fig = plt.figure(figsize=(6.5, 6), layout="constrained")
     # gs_main = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.05) 
     # gs_top = gs_main[0].subgridspec(2, 5, width_ratios=[1, 1, 1, 0.2, 1])
@@ -2392,11 +2353,19 @@ if __name__ == "__main__":
     # plot_age_figure(axes, pathogens, colors, option1, option2s, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=True, logD=True, samples=400, load_data=True, prefix="")
     # plt.savefig(f"Figures/infection_matrices_{seeds[0]}_{option1}_{lockdown}_uncertainty_logD_adjusted.png", dpi=300)
 
-    # # Generate Figure 5: age group heatmaps and line of best fit
-    # from sim_grid import generate_2d_heatmap_plot
-    # good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
-    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260624_lockdownExponentialODipp25_2d"
-    # fig = plt.figure(figsize=(4.5, 4.5))
-    # plot_heatmaps_and_best_fit(fig, pathogens, option2s, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False, prune=100)
-    # plt.savefig(f"Figures/figure_five_update5.png", dpi=1000)
-    # plt.close()
+    # # Generate Figure 4: immunity cascade figure
+    # fig, axes = plt.subplots(6,7, figsize=(4, 5), layout="constrained", sharex=False, sharey=False)
+    # plot_immunity_cascade(axes, n_samples=400, save_data=True, kpsc_incidence=True)
+    # for ax in axes[-1,:]:
+    #     ax.set_xticklabels(["No imm.", "+ I. exp.", "+ D. exp.", "+ D. age"][::-1], fontsize=6, rotation=90, ha='center')
+    # plt.savefig(f"Figures/immunity_cascade_{lockdown}_log_twopart.png", dpi=300)
+
+
+    # Generate Figure 5: age group heatmaps and line of best fit
+    from sim_grid import generate_2d_heatmap_plot
+    good_simulations = [[pathogen, seed, lockdown, option1, option2] for pathogen, seed, option2 in zip(pathogens, seeds, option2s)]
+    run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260624_lockdownExponentialODipp25_2d"
+    fig = plt.figure(figsize=(4.5, 4.5))
+    plot_heatmaps_and_best_fit(fig, pathogens, option2s, pruners, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False)
+    plt.savefig(f"Figures/figure_five_update5.png", dpi=1000)
+    plt.close()
