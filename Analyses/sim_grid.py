@@ -107,7 +107,7 @@ def parameter_space(good_simulations, NAG=7, n_samples=None):
     parameter_sets = []
     if n_samples is None:
         for pathogen_info in good_simulations:
-            pathogen, seed, lockdown, option1, option2 = pathogen_info
+            pathogen, seed, lockdown, option1, option2, prune = pathogen_info
             x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG)
             parameter_sets.append(x)
     else:
@@ -776,7 +776,7 @@ def add_pathogen_labels(ax, good_simulations, p1=0, p2=8, NAG=7, color=None, r0_
     if color is None:
         color = ["white"] * len(good_simulations)
     for i, pathogen_info in enumerate(good_simulations):
-        pathogen, seed, lockdown, option1, option2 = pathogen_info
+        pathogen, seed, lockdown, option1, option2, prune = pathogen_info
         x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix="emcee_median_")
         if p1 == 0:
             val1 = r0_base * x[2] / x[0]
@@ -901,7 +901,7 @@ def generate_best_fit_plot(ax, good_simulations, p1=0, p2=8, NAG=7, r0_base=15):
     
     val1, val2 = np.zeros(len(good_simulations)), np.zeros(len(good_simulations))
     for i, pathogen_info in enumerate(good_simulations):
-        pathogen, seed, lockdown, option1, option2 = pathogen_info
+        pathogen, seed, lockdown, option1, option2, prune = pathogen_info
         x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed)
         if p1 == 0:
             val1[i] = r0_base * x[2] / x[0]
@@ -1033,7 +1033,7 @@ def plot_outcome_along_linear_combination(
     # Using the same extraction method as generate_best_fit_plot
     val1, val2 = np.zeros(len(good_simulations)), np.zeros(len(good_simulations))
     for i, pathogen_info in enumerate(good_simulations):
-        pathogen, seed, lockdown, option1, option2 = pathogen_info
+        pathogen, seed, lockdown, option1, option2, prune = pathogen_info
         x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed)
         if p1 == 0:
             val1[i] = 13.88 * x[2] / x[0]

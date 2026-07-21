@@ -984,7 +984,7 @@ def load_mcmc_chain(pathogen, seed, lockdown, option1, option2, prefix="", prune
     except OSError:
         print(f"Error reading chain file: {filepath_chain}")
         return None
-
+    
     if just_chain:
         return chain
 

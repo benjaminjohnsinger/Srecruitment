@@ -310,8 +310,8 @@ if __name__ == "__main__":
     run_label = "_betat" if TRANSFORM_FIRST_PARAM else ""
 
     lockdown = "Default"
-    pathogens = ["Parainfluenza3",]
-    option2s = ["2020-01-01maxagep004",]
+    pathogens = ["Adenovirus",]
+    option2s = ["2020-01-01maxagep003",]
     seeds = [260615,]
 
     pools = {}
