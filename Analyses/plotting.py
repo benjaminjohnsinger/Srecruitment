@@ -786,6 +786,7 @@ def plot_relative_age_incidence(ax,pathogen,group_names=None,aggregation="YS-OCT
     print(pd.date_range(start=age_incidence.index.min(), end=age_incidence.index.max(), freq='YS-OCT'))
     ax.set_xticks(pd.date_range(start=age_incidence.index.min(), end=age_incidence.index.max(), freq='YS-OCT'))
     ax.set_xticklabels([str(x.year) for x in pd.date_range(start=age_incidence.index.min(), end=age_incidence.index.max(), freq='YS-OCT')])
+    return cum_incidence
 
 def calculate_infection_matrices_from_solution(solution, params, NAG=7, hospitalizations=False):
     # find total observed infections each season in each age group
@@ -2169,94 +2170,170 @@ if __name__ == "__main__":
     seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
     pruners = [100, 100, 2000, 2000, 100, 100,]
 
-    r0srels = np.zeros((6, 3))
-    seasonwane = np.zeros((6,3))
-    ageobssect = np.zeros((6,3))
-    badageobssect = np.zeros((6,3))
-    all_x = np.zeros((6, 21))
-    suppression = np.zeros(6)
-    excess_sus = np.zeros(6)
+    age_inc = np.zeros((len(pathogens), 10, 3))
 
-    transmission_under5 = np.zeros(6)
-    transmission_under18 = np.zeros(6)
+    for pathogen in pathogens:
+        _, ax = plt.subplots(figsize=(4, 3))
+        cum_incidence = plot_relative_age_incidence(ax, pathogen, group_names=["<1y","<5y"], aggregation="YS-OCT")
+        inc_under1 = cum_incidence["3-11m"]
+        inc_under5 = cum_incidence["1-4y"]
+        total_inc = cum_incidence[">=65y"]
+        age_inc[pathogens.index(pathogen), :, 0] = np.floor(inc_under1)
+        age_inc[pathogens.index(pathogen), :, 1] = np.floor(inc_under5)
+        age_inc[pathogens.index(pathogen), :, 2] = np.floor(total_inc)
 
-    from sim_grid import extract_target_value_from_data
+    print(age_inc[0,:,1:])
 
-    for i, pathogen, seed, option2, prune in zip(range(6), pathogens, seeds, option2s, pruners):
-        x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix="emcee_median_")
-        r0 = np.log(r0_base * x[2] / x[0])
-        # find srel1 and srel2
-        srel1 = x[7]
-        srel2 = x[8]
-        r0srels[i,:] = [r0, srel1, srel2]
-        # find seasonality, offset, and waning
-        seasonwane[i,:] = [x[3], x[4], x[6]]
-        ageobssect[i,:] = [x[14], x[15], x[-1]]
-        badageobssect[i,:] = [x[17], x[18], x[19]]
-        all_x[i,:] = x
-        all_x[i,2] = np.log(all_x[i,2])
-        # get suppression time
-        suppression[i] = extract_target_value_from_data(pathogen, "suppression_length")
-        # get maximum relative susceptibility
-        from likelihood import run_simulation
-        _, _x, _ = load_optimization_results("emcee_median_", pathogen, seed, lockdown, option1, option2)
-        params = x_to_params(_x, pathogen, lockdown, option1, option2, NAG=NAG)
-        solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
-        sus = susceptibility(solution, params).sum(axis=1)
-        rel_sus = sus / sus.mean()
-        excess_sus[i] = rel_sus.max()
+    import statsmodels.api as sm
 
-        print(option1, option2)
-        inf_matrix, _ = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, prune=prune, samples=None, hospitalizations=False, prefix="emcee_median_")
-        transmission_under5[i] = inf_matrix[:,:3].sum() / inf_matrix.sum()
-        transmission_under18[i] = inf_matrix[:,:4].sum() / inf_matrix.sum()
-    print(transmission_under5)
-    print("Fold-difference under 5:", transmission_under5.max() / transmission_under5.min())
-    print(transmission_under18)
-    print("Fold-difference under 18:", transmission_under18.max() / transmission_under18.min())
+    for i, pathogen in enumerate(pathogens):
+        # 2. Transform to [successes, failures] for statsmodels
+        successes = age_inc[i,:, 0]
+        totals = age_inc[i,:, -1]
+        proportions = successes / totals
+
+        baseline_prop = proportions[0:5]
+        baseline_totals = totals[0:5]
+
+        results = []
+
+        # 3. Loop through the test years
+        for j in range(6, 10):
+            test_prop = proportions[j:j+1]
+            test_totals = totals[j:j+1]
+            
+            # Combine baseline with the 1 test year
+            endog = np.concatenate((baseline_prop, test_prop))
+            weights = np.concatenate((baseline_totals, test_totals))
+            
+            # Create the predictor variable
+            exog = np.array([0, 0, 0, 0, 0, 1])
+            exog = sm.add_constant(exog) 
+            
+            # 4. Fit the model using var_weights
+            model = sm.GLM(endog, exog, family=sm.families.Binomial(), var_weights=weights)
+            fit = model.fit(scale='X2')
+
+            # 5. Extract Predictions and 95% Confidence Intervals
+            # exog=[1, 0] represents the baseline, exog=[1, 1] represents the test year
+            pred_base = fit.get_prediction([1, 0]).summary_frame(alpha=0.05)
+            pred_test = fit.get_prediction([1, 1]).summary_frame(alpha=0.05)
+            
+            base_mean = pred_base['mean'].values[0]
+            base_ci_low = pred_base['mean_ci_lower'].values[0]
+            base_ci_upp = pred_base['mean_ci_upper'].values[0]
+            
+            test_mean = pred_test['mean'].values[0]
+            test_ci_low = pred_test['mean_ci_lower'].values[0]
+            test_ci_upp = pred_test['mean_ci_upper'].values[0]
+            
+            p_val = fit.pvalues[1] 
+            dispersion = fit.scale
+            
+            results.append({
+                'Test Year': j,
+                'Baseline': f"{base_mean:.1%}",
+                'Base 95% CI': f"[{base_ci_low:.1%} - {base_ci_upp:.1%}]",
+                'Test Prop': f"{test_mean:.1%}",
+                'Test 95% CI': f"[{test_ci_low:.1%} - {test_ci_upp:.1%}]",
+                'Dispersion': round(dispersion, 2),
+                'P-Value': round(p_val, 4),
+                'Sig.': "Yes" if p_val < 0.05 else "No"
+            })
+
+        # 5. Display the results
+        results_df = pd.DataFrame(results)
+        print(f"\nResults for {pathogen}:")
+        print(results_df.to_string(index=False))
+
+    # r0srels = np.zeros((6, 3))
+    # seasonwane = np.zeros((6,3))
+    # ageobssect = np.zeros((6,3))
+    # badageobssect = np.zeros((6,3))
+    # all_x = np.zeros((6, 21))
+    # suppression = np.zeros(6)
+    # excess_sus = np.zeros(6)
+
+    # transmission_under5 = np.zeros(6)
+    # transmission_under18 = np.zeros(6)
+
+    # from sim_grid import extract_target_value_from_data
+
+    # for i, pathogen, seed, option2, prune in zip(range(6), pathogens, seeds, option2s, pruners):
+    #     x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix="emcee_median_")
+    #     r0 = np.log(r0_base * x[2] / x[0])
+    #     # find srel1 and srel2
+    #     srel1 = x[7]
+    #     srel2 = x[8]
+    #     r0srels[i,:] = [r0, srel1, srel2]
+    #     # find seasonality, offset, and waning
+    #     seasonwane[i,:] = [x[3], x[4], x[6]]
+    #     ageobssect[i,:] = [x[14], x[15], x[-1]]
+    #     badageobssect[i,:] = [x[17], x[18], x[19]]
+    #     all_x[i,:] = x
+    #     all_x[i,2] = np.log(all_x[i,2])
+    #     # get suppression time
+    #     suppression[i] = extract_target_value_from_data(pathogen, "suppression_length")
+    #     # get maximum relative susceptibility
+    #     from likelihood import run_simulation
+    #     _, _x, _ = load_optimization_results("emcee_median_", pathogen, seed, lockdown, option1, option2)
+    #     params = x_to_params(_x, pathogen, lockdown, option1, option2, NAG=NAG)
+    #     solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+    #     sus = susceptibility(solution, params).sum(axis=1)
+    #     rel_sus = sus / sus.mean()
+    #     excess_sus[i] = rel_sus.max()
+
+    #     print(option1, option2)
+    #     inf_matrix, _ = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, prune=prune, samples=None, hospitalizations=False, prefix="emcee_median_")
+    #     transmission_under5[i] = inf_matrix[:,:3].sum() / inf_matrix.sum()
+    #     transmission_under18[i] = inf_matrix[:,:4].sum() / inf_matrix.sum()
+    # print(transmission_under5)
+    # print("Fold-difference under 5:", transmission_under5.max() / transmission_under5.min())
+    # print(transmission_under18)
+    # print("Fold-difference under 18:", transmission_under18.max() / transmission_under18.min())
     
-    # linear regression of suppression vs r0 and srels
-    from sklearn.linear_model import LinearRegression
-    X = r0srels
-    y = suppression
-    reg = LinearRegression().fit(X, y)
-    print(f"Regression coefficients: {reg.coef_}, intercept: {reg.intercept_}")
-    print(f"R^2: {reg.score(X, y)}")
+    # # linear regression of suppression vs r0 and srels
+    # from sklearn.linear_model import LinearRegression
+    # X = r0srels
+    # y = suppression
+    # reg = LinearRegression().fit(X, y)
+    # print(f"Regression coefficients: {reg.coef_}, intercept: {reg.intercept_}")
+    # print(f"R^2: {reg.score(X, y)}")
 
-    susreg = LinearRegression().fit(X, excess_sus)
-    print(f"Regression coefficients (excess susceptibility): {susreg.coef_}, intercept: {susreg.intercept_}")
-    print(f"R^2: {susreg.score(X, excess_sus)}")
+    # susreg = LinearRegression().fit(X, excess_sus)
+    # print(f"Regression coefficients (excess susceptibility): {susreg.coef_}, intercept: {susreg.intercept_}")
+    # print(f"R^2: {susreg.score(X, excess_sus)}")
 
-    reg2 = LinearRegression().fit(seasonwane, suppression)
-    print(f"Regression coefficients (seasonality, offset, waning): {reg2.coef_}, intercept: {reg2.intercept_}")
-    print(f"R^2: {reg2.score(seasonwane, suppression)}")
+    # reg2 = LinearRegression().fit(seasonwane, suppression)
+    # print(f"Regression coefficients (seasonality, offset, waning): {reg2.coef_}, intercept: {reg2.intercept_}")
+    # print(f"R^2: {reg2.score(seasonwane, suppression)}")
 
-    susreg2 = LinearRegression().fit(seasonwane, excess_sus)
-    print(f"Regression coefficients (excess susceptibility): {susreg2.coef_}, intercept: {susreg2.intercept_}")
-    print(f"R^2: {susreg2.score(seasonwane, excess_sus)}")
+    # susreg2 = LinearRegression().fit(seasonwane, excess_sus)
+    # print(f"Regression coefficients (excess susceptibility): {susreg2.coef_}, intercept: {susreg2.intercept_}")
+    # print(f"R^2: {susreg2.score(seasonwane, excess_sus)}")
 
-    reg3 = LinearRegression().fit(ageobssect, suppression)
-    print(f"Regression coefficients (age_obs1, age_obs2, age_obs7): {reg3.coef_}, intercept: {reg3.intercept_}")
-    print(f"R^2: {reg3.score(ageobssect, suppression)}")
-    susreg3 = LinearRegression().fit(ageobssect, excess_sus)
-    print(f"Regression coefficients (excess susceptibility): {susreg3.coef_}, intercept: {susreg3.intercept_}")
-    print(f"R^2: {susreg3.score(ageobssect, excess_sus)}")
+    # reg3 = LinearRegression().fit(ageobssect, suppression)
+    # print(f"Regression coefficients (age_obs1, age_obs2, age_obs7): {reg3.coef_}, intercept: {reg3.intercept_}")
+    # print(f"R^2: {reg3.score(ageobssect, suppression)}")
+    # susreg3 = LinearRegression().fit(ageobssect, excess_sus)
+    # print(f"Regression coefficients (excess susceptibility): {susreg3.coef_}, intercept: {susreg3.intercept_}")
+    # print(f"R^2: {susreg3.score(ageobssect, excess_sus)}")
 
-    reg4 = LinearRegression().fit(badageobssect, suppression)
-    print(f"Regression coefficients (bad_age_obs1, bad_age_obs2, bad_age_obs3): {reg4.coef_}, intercept: {reg4.intercept_}")
-    print(f"R^2: {reg4.score(badageobssect, suppression)}")
-    susreg4 = LinearRegression().fit(badageobssect, excess_sus)
-    print(f"Regression coefficients (excess susceptibility): {susreg4.coef_}, intercept: {susreg4.intercept_}")
-    print(f"R^2: {susreg4.score(badageobssect, excess_sus)}")
+    # reg4 = LinearRegression().fit(badageobssect, suppression)
+    # print(f"Regression coefficients (bad_age_obs1, bad_age_obs2, bad_age_obs3): {reg4.coef_}, intercept: {reg4.intercept_}")
+    # print(f"R^2: {reg4.score(badageobssect, suppression)}")
+    # susreg4 = LinearRegression().fit(badageobssect, excess_sus)
+    # print(f"Regression coefficients (excess susceptibility): {susreg4.coef_}, intercept: {susreg4.intercept_}")
+    # print(f"R^2: {susreg4.score(badageobssect, excess_sus)}")
 
-    # ElasticNet version
-    from sklearn.linear_model import ElasticNet
-    en3 = ElasticNet(alpha=0.2, l1_ratio=0.5).fit(all_x, suppression)
-    print(f"ElasticNet coefficients (all parameters): {en3.coef_}, intercept: {en3.intercept_}")
-    print(f"R^2: {en3.score(all_x, suppression)}")
-    susen3 = ElasticNet(alpha=0.01, l1_ratio=0.5).fit(all_x, excess_sus)
-    print(f"ElasticNet coefficients (excess susceptibility): {susen3.coef_}, intercept: {susen3.intercept_}")
-    print(f"R^2: {susen3.score(all_x, excess_sus)}")
+    # # ElasticNet version
+    # from sklearn.linear_model import ElasticNet
+    # en3 = ElasticNet(alpha=0.2, l1_ratio=0.5).fit(all_x, suppression)
+    # print(f"ElasticNet coefficients (all parameters): {en3.coef_}, intercept: {en3.intercept_}")
+    # print(f"R^2: {en3.score(all_x, suppression)}")
+    # susen3 = ElasticNet(alpha=0.01, l1_ratio=0.5).fit(all_x, excess_sus)
+    # print(f"ElasticNet coefficients (excess susceptibility): {susen3.coef_}, intercept: {susen3.intercept_}")
+    # print(f"R^2: {susen3.score(all_x, excess_sus)}")
 
     ### plotting population susceptibility
     # fig, fit_ax = plt.subplots(1, 1, figsize=(3.5, 3.5), layout="constrained", sharex=False, sharey=False)

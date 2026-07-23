@@ -97,7 +97,7 @@ lockdown = "Default"
 pathogens = ["Adenovirus",]
 option2s = ["2020-01-01maxagep003",]
 seeds = [260615,]
-pruners = [0,]
+pruners = [500,]
 colors = ['k',]
 # lockdown = "Default"
 # pathogens = ["Parainfluenza3","Adenovirus","InfluenzaA",]
@@ -254,7 +254,7 @@ for pathogen, color, option2, prune, seed in zip(pathogens, colors, option2s, pr
 
     import corner
     fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-    plt.savefig(f"Figures/mcmc_corner_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_betat_transform.pdf", bbox_inches='tight')
+    plt.savefig(f"Figures/mcmc_corner_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_betat_transform_from500.pdf", bbox_inches='tight')
     plt.close(fig)
     
 # #     # sns.kdeplot(ax=ax, x=r0_samples, y=1-srel1_samples, color=color, label=pathogen, fill=True)
