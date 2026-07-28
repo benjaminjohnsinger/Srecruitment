@@ -86,19 +86,19 @@ plt.rcParams['font.serif'] = ['Palatino']
 
 ### plot mcmc output
 option1 = "dedupsac"
-# lockdown = "ExponentialODipp25"
-# pathogens = ["Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-# flunet_pathogens = ["Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
-# colors = [ "#FF832B", "#648FFF", "#785EF0", "#004D40",]
-# option2s = ["maxagep004","maxagep003","maxagep035","maxagep035",]
-# seeds = [260612, 260612, 260612, 260612,]
-# pruners = [2000, 2000, 100, 100]
-lockdown = "Default"
-pathogens = ["Adenovirus",]
-option2s = ["2020-01-01maxagep003",]
-seeds = [260615,]
-pruners = [500,]
-colors = ['k',]
+lockdown = "ExponentialODipp25"
+pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
+colors = [ "#785EF0", "#004D40", "#648FFF", "#FFB000" ,"#FF832B","#DC267F",]
+option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
+seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
+pruners = [100, 100, 2000, 2000, 100, 100,]
+# lockdown = "Default"
+# pathogens = ["Adenovirus",]
+# option2s = ["2020-01-01maxagep003",]
+# seeds = [260615,]
+# pruners = [500,]
+# colors = ['k',]
 # lockdown = "Default"
 # pathogens = ["Parainfluenza3","Adenovirus","InfluenzaA",]
 # option2s = ["2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035",]
@@ -118,9 +118,14 @@ for pathogen, color, option2, prune, seed in zip(pathogens, colors, option2s, pr
     from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
     param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 
-    mcmc_filepath = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_betat_refined.csv"
+    try:
+        mcmc_filepath = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+        mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
+    except FileNotFoundError:
+        mcmc_filepath = f"Outputs/mcmc_samples_DEMove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+        mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
     # mcmc_filepath = "Outputs/mcmc_samples_DESnooker_Adenovirus_ExponentialODipp25_dedupsac_maxagep003_260612_refined_nonadaptive.csv"
-    mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
+
     loading_time = time.time()
     print(f"Loading samples time for {pathogen}: {time.time() - start_time:.2f} seconds")
     n_params = bounds.shape[0]
@@ -183,25 +188,25 @@ for pathogen, color, option2, prune, seed in zip(pathogens, colors, option2s, pr
     # print(f"Best R0 found by MCMC: {15.24*gamma*best_params[0]:.4f}, best immunity found by MCMC: {1-best_srel1:.4f}, with negative log-probability: {best_neg_log_likelihood:.4f}")
     
 
-    # mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
-    # median_params = np.median(mcmc_samples_2d, axis=0)
-    # log_prob_of_median = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, AGE_GROUPS=AGE_GROUPS)[0](median_params)
-    # # # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
-    # WRITE_EMCEE_ADHOC_EXPORT = True
-    # if WRITE_EMCEE_ADHOC_EXPORT:
-    #     results_dir = f"Data/Processed/results{str(seed)[:6]}"
-    #     os.makedirs(results_dir, exist_ok=True)
-    #     emcee_results_file = f"{results_dir}/emcee_median_{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
-    #     with open(emcee_results_file, "wb") as f:
-    #         pickle.dump(
-    #             {
-    #                 "final_population": np.asarray([median_params]),
-    #                 "final_fitness": np.asarray([log_prob_of_median]),
-    #             },
-    #             f,
-    #         )
-    #     print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
-    # # --- END AD-HOC EMCEE EXPORT BLOCK ---
+    mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
+    median_params = np.median(mcmc_samples_2d, axis=0)
+    log_prob_of_median = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, AGE_GROUPS=AGE_GROUPS)[0](median_params)
+    # # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
+    WRITE_EMCEE_ADHOC_EXPORT = True
+    if WRITE_EMCEE_ADHOC_EXPORT:
+        results_dir = f"Data/Processed/results{str(seed)[:6]}"
+        os.makedirs(results_dir, exist_ok=True)
+        emcee_results_file = f"{results_dir}/emcee_median_{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
+        with open(emcee_results_file, "wb") as f:
+            pickle.dump(
+                {
+                    "final_population": np.asarray([median_params]),
+                    "final_fitness": np.asarray([log_prob_of_median]),
+                },
+                f,
+            )
+        print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
+    # --- END AD-HOC EMCEE EXPORT BLOCK ---
 
     
     # # # Reshape it back to 3D to separate the walkers properly
@@ -254,7 +259,7 @@ for pathogen, color, option2, prune, seed in zip(pathogens, colors, option2s, pr
 
     import corner
     fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-    plt.savefig(f"Figures/mcmc_corner_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_betat_transform_from500.pdf", bbox_inches='tight')
+    plt.savefig(f"Figures/mcmc_corner_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}.pdf", bbox_inches='tight')
     plt.close(fig)
     
 # #     # sns.kdeplot(ax=ax, x=r0_samples, y=1-srel1_samples, color=color, label=pathogen, fill=True)
