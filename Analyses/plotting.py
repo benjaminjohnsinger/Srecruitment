@@ -892,6 +892,7 @@ def plot_same_age_infection(ax, matrices, age_group_idx, pathogens, colors, cens
         positions = jnp.array([-0.3, -0.18, -0.06, 0.06, 0.18, 0.3])
         separation = positions[:len(matrices)]
     for i in range(len(matrices)):
+        print(values[3])
         ci_lower, ci_upper = credible_intervals[i]
         ax.scatter(separation[i], values[i], label=pathogens[i], color=colors[i], marker="o", s=4)
         ax.plot([separation[i], separation[i]], [ci_lower, ci_upper], color=colors[i], linewidth=1)
@@ -1078,7 +1079,7 @@ def plot_age_figure(fig, pathogens, colors, option1, option2s, pruners, seeds, l
     cbar = fig.colorbar(sm, cax=cax)
 
     # Customization
-    cbar.set_label("Relative number of transmissions", fontsize=9, labelpad=8)
+    cbar.set_label("Population-weighted transmission", fontsize=9, labelpad=8)
     cbar.ax.tick_params(labelsize=8)
     
     for age_group_idx in range(NAG):
@@ -1204,7 +1205,92 @@ def suppression_violin(axes, pathogens, colors, left_annotations=None):
     axes[0].set_ylabel("Suppression duration (months)", fontsize=9)
     axes[0].set_yticks(np.arange(0, xmax+1, 12))
 
-def plot_suppression_rank_heatmap(ax, pathogens, hemisphere='All', tropical="All"):
+@jax.jit
+def compute_kendall_w_single(data):
+    """Computes Kendall's W for a single m x n matrix with NaNs."""
+    m, n = data.shape
+    valid = ~jnp.isnan(data)
+    
+    # Pairwise overlap mask: shape (m, m, n)
+    M = valid[:, None, :] & valid[None, :, :]
+    
+    # Element-wise comparisons per rater: shape (m, n, n)
+    diffs = data[:, :, None] - data[:, None, :]
+    G = diffs > 0
+    E = diffs == 0
+    
+    # Compute relative ranks using pairwise mask
+    greater_count = jnp.sum(G[:, None, :, :] * M[:, :, None, :], axis=-1)
+    equal_count = jnp.sum(E[:, None, :, :] * M[:, :, None, :], axis=-1)
+    
+    rank_x = greater_count + 0.5 * (equal_count - 1.0)
+    rank_x = jnp.where(M, rank_x, 0.0)
+    rank_y = jnp.swapaxes(rank_x, 0, 1)
+    
+    # Pairwise sample sizes and rank means
+    N = jnp.sum(M, axis=-1)
+    N_safe = jnp.where(N > 1, N, 1.0)
+    
+    mean_x = jnp.sum(rank_x, axis=-1) / N_safe
+    mean_y = jnp.sum(rank_y, axis=-1) / N_safe
+    
+    # Mean-centered ranks and Pearson correlation
+    dx = jnp.where(M, rank_x - mean_x[:, :, None], 0.0)
+    dy = jnp.where(M, rank_y - mean_y[:, :, None], 0.0)
+    
+    cov = jnp.sum(dx * dy, axis=-1)
+    var_x = jnp.sum(dx * dx, axis=-1)
+    var_y = jnp.sum(dy * dy, axis=-1)
+    
+    denom = jnp.sqrt(var_x * var_y)
+    denom_safe = jnp.where(denom > 0, denom, 1.0)
+    corr = cov / denom_safe
+    
+    # Mean upper-triangle correlation
+    triu_mask = jnp.triu(jnp.ones((m, m), dtype=bool), k=1)
+    valid_pair = triu_mask & (N > 1) & (denom > 0)
+    
+    mean_r = jnp.nanmean(jnp.where(valid_pair, corr, jnp.nan))
+    return (mean_r * (m - 1) + 1.0) / m
+
+@jax.jit
+def run_permutation_test(key, data, n_permutations):
+    m, n = data.shape
+    valid_mask = ~jnp.isnan(data)
+    
+    # 1. Observed statistic
+    obs_w = compute_kendall_w_single(data)
+    
+    # 2. Vectorized Permutation Generation across all K permutations
+    keys = jax.random.uniform(key, shape=(n_permutations, m, n))
+    keys = jnp.where(valid_mask[None, :, :], keys, 1e9)
+    shuffle_idx = jnp.argsort(keys, axis=-1)
+    
+    valid_pos = jnp.argsort(~valid_mask, axis=-1)
+    N_valid = jnp.sum(valid_mask, axis=-1, keepdims=True)
+    col_idx = jnp.arange(n)
+    valid_pos_safe = jnp.where(col_idx < N_valid, valid_pos, n)
+    
+    shuffled_vals = jnp.take_along_axis(data[None, :, :], shuffle_idx, axis=-1)
+    
+    out = jnp.full((n_permutations, m, n + 1), jnp.nan)
+    out = out.at[:, jnp.arange(m)[:, None], valid_pos_safe].set(shuffled_vals)
+    perm_data = out[:, :, :n]
+    
+    # 3. Parallel statistic calculation across all permutations via vmap
+    perm_ws = jax.vmap(compute_kendall_w_single)(perm_data)
+    
+    p_value = jnp.mean(perm_ws >= obs_w)
+    return obs_w, p_value
+
+def test_concordance_with_nans(data, n_permutations=5000, seed=260728):
+    """Fast JAX permutation test for Kendall's W with NaNs."""
+    data_arr = jnp.array(data, dtype=jnp.float32)
+    key = jax.random.PRNGKey(seed)
+    obs_w, p_val = run_permutation_test(key, data_arr, n_permutations)
+    return float(obs_w), float(p_val)
+
+def plot_suppression_rank_heatmap(ax, pathogens, hemisphere='All', tropical="All", pvals=False):
     suppression_data = pd.read_csv("Data/Processed/FluNet_suppression_duration_by_country_pathogen.csv")
     if hemisphere!='All':
         country_hemisphere = pd.read_csv("Data/Processed/CountryHemisphere.csv", sep=';')
@@ -1223,8 +1309,13 @@ def plot_suppression_rank_heatmap(ax, pathogens, hemisphere='All', tropical="All
     # create a pivot table with index country, columns pathogen, values rank
     pivot = suppression_data.pivot(index="country", columns="pathogen", values="rank")
     print(pivot)
+    w_stat, p_val = test_concordance_with_nans(pivot.values, n_permutations=1000)
+
+    print(f"Kendall's W (Concordance): {w_stat:.4f}")
+    print(f"Permutation p-value:       {p_val}")
     # plot heatmap of how often one pathogen is ranked higher than the other
     image = np.zeros((len(pathogens), len(pathogens)))
+    p_values = np.zeros((len(pathogens), len(pathogens)))
     for i in range(len(pathogens)):
         for j in range(i+1, len(pathogens)):
             pathogen_i = pathogens[i]
@@ -1235,6 +1326,14 @@ def plot_suppression_rank_heatmap(ax, pathogens, hemisphere='All', tropical="All
             if total_count > 0:
                 image[i, j] = count_i_higher / total_count
                 image[j, i] = count_j_higher / total_count
+                # find p-value using binomial test
+                p_values[i, j] = sp.stats.binomtest(count_i_higher, total_count, p=0.5, alternative='two-sided').pvalue
+                p_values[j, i] = sp.stats.binomtest(count_j_higher, total_count, p=0.5, alternative='two-sided').pvalue
+            else:
+                image[i, j] = np.nan
+                image[j, i] = np.nan
+                p_values[i, j] = np.nan
+                p_values[j, i] = np.nan
     # reorder the pathogens by average rank
     order = ["Adenovirus", "Parainfluenza", "RSV",  "Metapneumovirus", "InfluenzaA", "InfluenzaB"]
     image = image[[pathogens.index(p) for p in order], :][:, [pathogens.index(p) for p in order]]
@@ -1242,14 +1341,24 @@ def plot_suppression_rank_heatmap(ax, pathogens, hemisphere='All', tropical="All
     for i in range(len(order)):
         for j in range(i+1, len(order)):
             image[i, j] = np.nan
+            p_values[i, j] = np.nan
     np.fill_diagonal(image, np.nan)
     image = image[1:, :-1]
+    np.fill_diagonal(p_values, np.nan)
+    p_values = p_values[1:, :-1]
     print(image)
     #annotate with percentages
-    for i in range(len(order)-1):
-        for j in range(i, len(order)-1):
-            if not np.isnan(image[j, i]):
-                ax.text(i, j, f"{image[j, i]*100:.0f}%", ha="center", va="center", color="white", fontsize=6)
+    if pvals:
+        # annotate with p-values
+        for i in range(len(order)-1):
+            for j in range(i, len(order)-1):
+                if not np.isnan(image[j, i]):
+                    ax.text(i, j, f"{p_values[j, i]:.2e}", ha="center", va="center", color="white", fontsize=6)
+    else:
+        for i in range(len(order)-1):
+            for j in range(i, len(order)-1):
+                if not np.isnan(image[j, i]):
+                    ax.text(i, j, f"{image[j, i]*100:.0f}%", ha="center", va="center", color="white", fontsize=6)
     # diagonal is NaN
     im = ax.imshow(image, vmin=0.5, vmax=1)
     # set ticks and labels
@@ -1366,7 +1475,7 @@ def plot_toy_model(ax, colors, flulike=False):
     if flulike:
         traj = np.genfromtxt("Data/Processed/favourite_fluonly_clustered_trajectories_scaled2.csv")
     else:
-        traj = np.genfromtxt("Data/Processed/favourite_nonflulike_clustered_trajectories_scaled.csv")
+        traj = np.genfromtxt("Data/Processed/favourite_nonflulike_samefr_clustered_trajectories_scaled.csv")
     for i in range(traj.shape[0]):
         duration = str(int(suppression_duration_single_series(traj[i,:],anchor_idx=260)/4.35))
         ax.plot(PERIOD[:-1],traj[i,:], color=colors[i], label=f"{duration} months")
@@ -2388,6 +2497,15 @@ if __name__ == "__main__":
     seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
     pruners = [100, 100, 2000, 2000, 100, 100,]
 
+    # fig, ax = plt.subplots(1,2,figsize=(6.5,3))
+    # plot_suppression_rank_heatmap(ax[0], flunet_pathogens, tropical="Tropical", pvals=True)
+    # ax[0].set_title("Tropical")
+    # plot_suppression_rank_heatmap(ax[1], flunet_pathogens, tropical="Nontropical", pvals=True)
+    # ax[1].set_title("Nontropical")
+    # plt.savefig("Figures/Suppression_rank_heatmap_pvals_tropical.png", dpi=300)
+    fig,ax = plt.subplots(figsize=(3,3))
+    plot_suppression_rank_heatmap(ax, flunet_pathogens, pvals=True)
+    plt.savefig("Figures/Suppression_rank_heatmap_pvals.png", dpi=300)
     # ### alternative figure 1
     # fig = plt.figure(figsize=(6.5, 4), layout="constrained")
     # plot_alternative_suppression(fig, flunet_pathogens, colors)
@@ -2550,27 +2668,27 @@ if __name__ == "__main__":
 
     # for i, pathogen, seed, option2, prune in zip(range(6), pathogens, seeds, option2s, pruners):
     #     x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix="emcee_median_")
-    #     r0 = np.log(r0_base * x[2] / x[0])
-    #     # find srel1 and srel2
-    #     srel1 = x[7]
-    #     srel2 = x[8]
-    #     r0srels[i,:] = [r0, srel1, srel2]
-    #     # find seasonality, offset, and waning
-    #     seasonwane[i,:] = [x[3], x[4], x[6]]
-    #     ageobssect[i,:] = [x[14], x[15], x[-1]]
-    #     badageobssect[i,:] = [x[17], x[18], x[19]]
-    #     all_x[i,:] = x
-    #     all_x[i,2] = np.log(all_x[i,2])
-    #     # get suppression time
-    #     suppression[i] = extract_target_value_from_data(pathogen, "suppression_length")
-    #     # get maximum relative susceptibility
-    #     from likelihood import run_simulation
-    #     _, _x, _ = load_optimization_results("emcee_median_", pathogen, seed, lockdown, option1, option2)
-    #     params = x_to_params(_x, pathogen, lockdown, option1, option2, NAG=NAG)
-    #     solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
-    #     sus = susceptibility(solution, params).sum(axis=1)
-    #     rel_sus = sus / sus.mean()
-    #     excess_sus[i] = rel_sus.max()
+        # r0 = np.log(r0_base * x[2] / x[0])
+        # # find srel1 and srel2
+        # srel1 = x[7]
+        # srel2 = x[8]
+        # r0srels[i,:] = [r0, srel1, srel2]
+        # # find seasonality, offset, and waning
+        # seasonwane[i,:] = [x[3], x[4], x[6]]
+        # ageobssect[i,:] = [x[14], x[15], x[-1]]
+        # badageobssect[i,:] = [x[17], x[18], x[19]]
+        # all_x[i,:] = x
+        # all_x[i,2] = np.log(all_x[i,2])
+        # # get suppression time
+        # suppression[i] = extract_target_value_from_data(pathogen, "suppression_length")
+        # get maximum relative susceptibility
+        # from likelihood import run_simulation
+        # _, _x, _ = load_optimization_results("emcee_median_", pathogen, seed, lockdown, option1, option2)
+        # params = x_to_params(_x, pathogen, lockdown, option1, option2, NAG=NAG)
+        # solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+        # sus = susceptibility(solution, params).sum(axis=1)
+        # rel_sus = sus / sus.mean()
+        # excess_sus[i] = rel_sus.max()
 
     #     print(option1, option2)
     #     inf_matrix, _ = get_infection_matrix(pathogen, seed, lockdown, option1, option2, NAG, CENSUS_AGE_POP, prune=prune, samples=None, hospitalizations=False, prefix="emcee_median_")
@@ -2727,10 +2845,10 @@ if __name__ == "__main__":
     #         _, _, _, p_time_to_obs, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
     #         chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
     #         x_samples = jnp.asarray(chain[np.random.choice(chain.shape[0], size=samples_per_step, replace=False), :])
-    #         f1_idx = 5 + ("RSV" not in pathogen) + ("Influenza" not in pathogen)
-    #         f1 = x_samples[:, f1_idx]
-    #         random_perturbation = np.random.normal(1, perturbation, size=len(f1))
-    #         x_samples = x_samples.at[:, f1_idx].set(f1 * random_perturbation)
+    #         r1_idx = 6 + ("RSV" not in pathogen) + ("Influenza" not in pathogen)
+    #         r1 = x_samples[:, r1_idx]
+    #         random_perturbation = np.random.normal(1, perturbation, size=len(r1))
+    #         x_samples = x_samples.at[:, r1_idx].set(r1 * random_perturbation)
     #         def suppression_duration_for_pathogen(x):
     #             params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
     #             solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
@@ -2748,10 +2866,10 @@ if __name__ == "__main__":
     # # plot distance against perturbation
     # fig, ax = plt.subplots(figsize=(3.5, 3.5), layout="constrained")
     # ax.plot(perturbations, distances, color='k')
-    # ax.set_xlabel("Perturbation to F1")
+    # ax.set_xlabel("Perturbation to r1")
     # ax.set_ylabel("Difference from canonical order")
-    # plt.savefig(f"Figures/suppression_duration_order_sensitivity_f1.png", dpi=300)
-    # np.savetxt("Data/Processed/saved_f1_random_perturbation_distances.csv",distances)
+    # plt.savefig(f"Figures/suppression_duration_order_sensitivity_r1.png", dpi=300)
+    # np.savetxt("Data/Processed/saved_r1_random_perturbation_distances.csv",distances)
 
 
     # fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
@@ -2875,7 +2993,7 @@ if __name__ == "__main__":
     # # fig.text(0.001, 0.5, 'Estimated incidence of hospitalization per 100k members', va='center', rotation='vertical')
     # # plt.savefig(f"Figures/age_structured_fits.png", dpi=300)
 
-    # # ## Generate Figure 3: age infection figure
+    # # # ## Generate Figure 3: age infection figure
     # fig = plt.figure(figsize=(5, 7), layout="constrained")
     # plot_age_figure(fig, pathogens, colors, option1, option2s, pruners, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=False, logD=True, samples=400, load_data=True, prefix="")
     # plt.savefig(f"Figures/Figure3.png", dpi=300)

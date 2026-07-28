@@ -39,6 +39,36 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
+from data_processing import calculate_proportion_positive_incidence
+incidence = calculate_proportion_positive_incidence("Metapneumovirus", aggregation="W", window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, pp_only=False, hosp=True, NAG=7, detrend=False, dedup=True, sac=True)
+# pre_inc = incidence.loc[incidence.index < pd.to_datetime("2020-03-19")]
+# # give index of five largest values in pre_inc
+# top5_indices = pre_inc.nlargest(5,'Total').index
+# # print("Top 5 incidence values before 2020-03-19:", top5_indices)
+# # find time of peak in 2021-22, 2022-23, 2023-24, 2024-25 seasons
+# post_2021_22 = incidence.loc[(incidence.index >= pd.to_datetime("2021-10-01")) & (incidence.index < pd.to_datetime("2022-10-01"))]
+# post_2021_22_peak = post_2021_22['Total'].idxmax()
+
+# post_2022_23 = incidence.loc[(incidence.index >= pd.to_datetime("2022-10-01")) & (incidence.index < pd.to_datetime("2023-10-01"))]
+# post_2022_23_peak = post_2022_23['Total'].idxmax()
+
+# post_2023_24 = incidence.loc[(incidence.index >= pd.to_datetime("2023-10-01")) & (incidence.index < pd.to_datetime("2024-10-01"))]
+# post_2023_24_peak = post_2023_24['Total'].idxmax()
+
+# post_2024_25 = incidence.loc[(incidence.index >= pd.to_datetime("2024-10-01")) & (incidence.index < pd.to_datetime("2025-10-01"))]
+# post_2024_25_peak = post_2024_25['Total'].idxmax()
+
+# print("Peak incidence values for 2021-22, 2022-23, 2023-24, 2024-25 seasons:", post_2021_22_peak, post_2022_23_peak, post_2023_24_peak, post_2024_25_peak)
+
+# iterate by season (from 2015/16 to 2024/25) and find peak incidence date for each season
+seasons = [(f"{y}-{y+1}", pd.to_datetime(f"{y}-10-01"), pd.to_datetime(f"{y+1}-10-01")) for y in range(2015, 2025)]
+peak_dates = {}
+for season_name, start_date, end_date in seasons:
+    season_data = incidence.loc[(incidence.index >= start_date) & (incidence.index < end_date)]
+    peak_dates[season_name] = season_data['Total'].idxmax() if not season_data.empty else None
+print("Peak incidence dates for each season:", peak_dates)
+
+
 # # Adenovirus
 # S_REL = [1, 0.41513026, 0.40689045]
 # P_OBS = [1, 0.29316723, 0.16823587]
@@ -84,183 +114,183 @@ plt.rcParams['font.serif'] = ['Palatino']
 #     ax[pi//3, pi%3].set_title(pathogen)
 # plt.show()
 
-### plot mcmc output
-option1 = "dedupsac"
-lockdown = "ExponentialODipp25"
-pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
-flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
-colors = [ "#785EF0", "#004D40", "#648FFF", "#FFB000" ,"#FF832B","#DC267F",]
-option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
-seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
-pruners = [100, 100, 2000, 2000, 100, 100,]
-# lockdown = "Default"
-# pathogens = ["Adenovirus",]
-# option2s = ["2020-01-01maxagep003",]
-# seeds = [260615,]
-# pruners = [500,]
-# colors = ['k',]
-# lockdown = "Default"
-# pathogens = ["Parainfluenza3","Adenovirus","InfluenzaA",]
-# option2s = ["2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035",]
-# seeds = [260615, 260615, 260615,]
-# colors = ['k', 'k', 'k',]
-def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor):
-    srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
-    return srel[1]
-# fig, ax = plt.subplots()
-r0_samples_by_pathogen = {}
-immunity_samples_by_pathogen = {}
-for pathogen, color, option2, prune, seed in zip(pathogens, colors, option2s, pruners, seeds):
-    start_time = time.time()
-    prefix = "emcee"
-    NAG = 7
-    N_S = 3
-    from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
-    param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
+# ### plot mcmc output
+# option1 = "dedupsac"
+# lockdown = "ExponentialODipp25"
+# pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+# flunet_pathogens = ["RSV","Metapneumovirus","Parainfluenza","Adenovirus","InfluenzaA","InfluenzaB",]
+# colors = [ "#785EF0", "#004D40", "#648FFF", "#FFB000" ,"#FF832B","#DC267F",]
+# option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
+# seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
+# pruners = [100, 100, 2000, 2000, 100, 100,]
+# # lockdown = "Default"
+# # pathogens = ["Adenovirus",]
+# # option2s = ["2020-01-01maxagep003",]
+# # seeds = [260615,]
+# # pruners = [500,]
+# # colors = ['k',]
+# # lockdown = "Default"
+# # pathogens = ["Parainfluenza3","Adenovirus","InfluenzaA",]
+# # option2s = ["2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035",]
+# # seeds = [260615, 260615, 260615,]
+# # colors = ['k', 'k', 'k',]
+# def get_srel1_from_constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor):
+#     srel, _ = constrained_immunity(extra_immunity, first_immunity, first_dis_inf_factor)
+#     return srel[1]
+# # fig, ax = plt.subplots()
+# r0_samples_by_pathogen = {}
+# immunity_samples_by_pathogen = {}
+# for pathogen, color, option2, prune, seed in zip(pathogens, colors, option2s, pruners, seeds):
+#     start_time = time.time()
+#     prefix = "emcee"
+#     NAG = 7
+#     N_S = 3
+#     from Parameters.census_population import AGE_GROUPS_sac as AGE_GROUPS, AGE_GROUP_NAMES_sac, CENSUS_AGE_POP_sac as CENSUS_AGE_POP
+#     param_names, bounds = parameters_names_bounds(pathogen, lockdown, option1, option2, NAG=NAG)
 
-    try:
-        mcmc_filepath = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-        mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
-    except FileNotFoundError:
-        mcmc_filepath = f"Outputs/mcmc_samples_DEMove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-        mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
-    # mcmc_filepath = "Outputs/mcmc_samples_DESnooker_Adenovirus_ExponentialODipp25_dedupsac_maxagep003_260612_refined_nonadaptive.csv"
+#     try:
+#         mcmc_filepath = f"Outputs/mcmc_samples_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+#         mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
+#     except FileNotFoundError:
+#         mcmc_filepath = f"Outputs/mcmc_samples_DEMove_{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+#         mcmc_samples = np.genfromtxt(mcmc_filepath, delimiter=',', skip_header=0)
+#     # mcmc_filepath = "Outputs/mcmc_samples_DESnooker_Adenovirus_ExponentialODipp25_dedupsac_maxagep003_260612_refined_nonadaptive.csv"
 
-    loading_time = time.time()
-    print(f"Loading samples time for {pathogen}: {time.time() - start_time:.2f} seconds")
-    n_params = bounds.shape[0]
-    n_walkers = 32
-    n_iterations = len(mcmc_samples) // n_walkers
-    n_params = len(param_names)
+#     loading_time = time.time()
+#     print(f"Loading samples time for {pathogen}: {time.time() - start_time:.2f} seconds")
+#     n_params = bounds.shape[0]
+#     n_walkers = 32
+#     n_iterations = len(mcmc_samples) // n_walkers
+#     n_params = len(param_names)
 
-    # # # cut off burn-in
-    # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
-    n_iterations -= prune
-    mcmc_samples = mcmc_samples[prune*n_walkers:, :]
+#     # # # cut off burn-in
+#     # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
+#     n_iterations -= prune
+#     mcmc_samples = mcmc_samples[prune*n_walkers:, :]
 
-    # # find index of S_REL1 in pram_names
-    # thinning = 100 if "Influenza" not in pathogen else 1000
-    # thinned_samples = mcmc_samples[::thinning, :]
-    # gamma = 4.9 if ("RSV" in pathogen) or "Metapneumovirus" in pathogen else 3.0
-    # r0_samples = thinned_samples[:,0]*15.24*gamma
-    # if "S_REL1" in param_names:
-    #     j = param_names.index("S_REL1")
-    #     srel1_samples = thinned_samples[:,j]
-    # else:
-    #     eidx = param_names.index("EXTRA_IMMUNITY")
-    #     fidx = param_names.index("FIRST_IMMUNITY")
-    #     fdifdx = param_names.index("FIRST_DIS_INF_FACTOR")
-    #     srel1_samples = jax.jit(jax.vmap(get_srel1_from_constrained_immunity))(thinned_samples[:,eidx], thinned_samples[:,fidx], thinned_samples[:,fdifdx])
-    # thinning_time = time.time()
-    # print(f"Thinning samples time for {pathogen}: {time.time() - loading_time:.2f} seconds")
-    # median_r0 = np.median(r0_samples)
-    # median_immunity = 1-np.median(srel1_samples)
-    # print(f"Median R0 for {pathogen}: {median_r0:.2f}, Median first immunity for {pathogen}: {median_immunity:.2f}")
-    # r0_samples_by_pathogen[pathogen] = r0_samples
-    # immunity_samples_by_pathogen[pathogen] = 1-srel1_samples
-    # # if pathogen == "RSV":
-    # #     mcmc_samples = mcmc_samples[-17000*64:, :]
-    # mcmc_samples = mcmc_samples.reshape((-1, n_walkers, n_params))
+#     # # find index of S_REL1 in pram_names
+#     # thinning = 100 if "Influenza" not in pathogen else 1000
+#     # thinned_samples = mcmc_samples[::thinning, :]
+#     # gamma = 4.9 if ("RSV" in pathogen) or "Metapneumovirus" in pathogen else 3.0
+#     # r0_samples = thinned_samples[:,0]*15.24*gamma
+#     # if "S_REL1" in param_names:
+#     #     j = param_names.index("S_REL1")
+#     #     srel1_samples = thinned_samples[:,j]
+#     # else:
+#     #     eidx = param_names.index("EXTRA_IMMUNITY")
+#     #     fidx = param_names.index("FIRST_IMMUNITY")
+#     #     fdifdx = param_names.index("FIRST_DIS_INF_FACTOR")
+#     #     srel1_samples = jax.jit(jax.vmap(get_srel1_from_constrained_immunity))(thinned_samples[:,eidx], thinned_samples[:,fidx], thinned_samples[:,fdifdx])
+#     # thinning_time = time.time()
+#     # print(f"Thinning samples time for {pathogen}: {time.time() - loading_time:.2f} seconds")
+#     # median_r0 = np.median(r0_samples)
+#     # median_immunity = 1-np.median(srel1_samples)
+#     # print(f"Median R0 for {pathogen}: {median_r0:.2f}, Median first immunity for {pathogen}: {median_immunity:.2f}")
+#     # r0_samples_by_pathogen[pathogen] = r0_samples
+#     # immunity_samples_by_pathogen[pathogen] = 1-srel1_samples
+#     # # if pathogen == "RSV":
+#     # #     mcmc_samples = mcmc_samples[-17000*64:, :]
+#     # mcmc_samples = mcmc_samples.reshape((-1, n_walkers, n_params))
 
 
-    # # load logprob
-    # logprob_filepath = f"Outputs/mcmc_log_prob_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
-    # log_prob_samples = np.genfromtxt(logprob_filepath, delimiter=',', skip_header=0)
+#     # # load logprob
+#     # logprob_filepath = f"Outputs/mcmc_log_prob_big_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_refined.csv"
+#     # log_prob_samples = np.genfromtxt(logprob_filepath, delimiter=',', skip_header=0)
 
-    # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
-    #     log_prob_samples = log_prob_samples[10000:]
+#     # if pathogen in ["RSV", "Metapneumovirus", "Parainfluenza3", "Adenovirus"]:
+#     #     log_prob_samples = log_prob_samples[10000:]
 
-    # # if pathogen == "RSV":
-    # #     log_prob_samples = log_prob_samples[-17000:]
-    # print(log_prob_samples.shape)
-    # # print parameters at minimum nll
-    # log_prob_2d = np.atleast_2d(log_prob_samples)
-    # best_idx = np.unravel_index(np.argmax(log_prob_2d), log_prob_2d.shape)
-    # mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
-    # flat_best_idx = best_idx[0] * log_prob_2d.shape[1] + best_idx[1]
-    # best_params = mcmc_samples_2d[flat_best_idx]
-    # best_log_prob = float(log_prob_2d[best_idx])
-    # best_neg_log_likelihood = -best_log_prob
-    # if "Influenza" in pathogen:
-    #     best_srel1 = get_srel1_from_constrained_immunity(best_params[eidx], best_params[fidx], best_params[fdifdx])
-    # else:
-    #     best_srel1 = best_params[j]
-    # print(f"Best R0 found by MCMC: {15.24*gamma*best_params[0]:.4f}, best immunity found by MCMC: {1-best_srel1:.4f}, with negative log-probability: {best_neg_log_likelihood:.4f}")
+#     # # if pathogen == "RSV":
+#     # #     log_prob_samples = log_prob_samples[-17000:]
+#     # print(log_prob_samples.shape)
+#     # # print parameters at minimum nll
+#     # log_prob_2d = np.atleast_2d(log_prob_samples)
+#     # best_idx = np.unravel_index(np.argmax(log_prob_2d), log_prob_2d.shape)
+#     # mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
+#     # flat_best_idx = best_idx[0] * log_prob_2d.shape[1] + best_idx[1]
+#     # best_params = mcmc_samples_2d[flat_best_idx]
+#     # best_log_prob = float(log_prob_2d[best_idx])
+#     # best_neg_log_likelihood = -best_log_prob
+#     # if "Influenza" in pathogen:
+#     #     best_srel1 = get_srel1_from_constrained_immunity(best_params[eidx], best_params[fidx], best_params[fdifdx])
+#     # else:
+#     #     best_srel1 = best_params[j]
+#     # print(f"Best R0 found by MCMC: {15.24*gamma*best_params[0]:.4f}, best immunity found by MCMC: {1-best_srel1:.4f}, with negative log-probability: {best_neg_log_likelihood:.4f}")
     
 
-    mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
-    median_params = np.median(mcmc_samples_2d, axis=0)
-    log_prob_of_median = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, AGE_GROUPS=AGE_GROUPS)[0](median_params)
-    # # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
-    WRITE_EMCEE_ADHOC_EXPORT = True
-    if WRITE_EMCEE_ADHOC_EXPORT:
-        results_dir = f"Data/Processed/results{str(seed)[:6]}"
-        os.makedirs(results_dir, exist_ok=True)
-        emcee_results_file = f"{results_dir}/emcee_median_{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
-        with open(emcee_results_file, "wb") as f:
-            pickle.dump(
-                {
-                    "final_population": np.asarray([median_params]),
-                    "final_fitness": np.asarray([log_prob_of_median]),
-                },
-                f,
-            )
-        print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
-    # --- END AD-HOC EMCEE EXPORT BLOCK ---
+#     mcmc_samples_2d = mcmc_samples.reshape(-1, n_params)
+#     median_params = np.median(mcmc_samples_2d, axis=0)
+#     log_prob_of_median = get_likelihood(pathogen, lockdown, option1, option2, 1e-9, NAG=NAG, CENSUS_AGE_POP=CENSUS_AGE_POP, AGE_GROUPS=AGE_GROUPS)[0](median_params)
+#     # # # --- AD-HOC EMCEE EXPORT BLOCK (safe to delete when no longer needed) ---
+#     WRITE_EMCEE_ADHOC_EXPORT = True
+#     if WRITE_EMCEE_ADHOC_EXPORT:
+#         results_dir = f"Data/Processed/results{str(seed)[:6]}"
+#         os.makedirs(results_dir, exist_ok=True)
+#         emcee_results_file = f"{results_dir}/emcee_median_{pathogen}{lockdown}{option1}{option2}{seed}.pickle"
+#         with open(emcee_results_file, "wb") as f:
+#             pickle.dump(
+#                 {
+#                     "final_population": np.asarray([median_params]),
+#                     "final_fitness": np.asarray([log_prob_of_median]),
+#                 },
+#                 f,
+#             )
+#         print(f"Wrote ad-hoc emcee export: {emcee_results_file}")
+#     # --- END AD-HOC EMCEE EXPORT BLOCK ---
 
     
-    # # # Reshape it back to 3D to separate the walkers properly
-    chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
+#     # # # Reshape it back to 3D to separate the walkers properly
+#     chain_3d = mcmc_samples.reshape(n_iterations, n_walkers, n_params)
 
-    # fig, trax = plt.subplots(4,4, figsize=(10,6))
-    # for param_idx in range(n_params):
-    #     for walker_idx in range(n_walkers):
-    #         # if best_idx[1] == walker_idx:
-    #         #     trax[param_idx//4, param_idx%4].plot(mcmc_samples[:,walker_idx,param_idx], alpha=1, zorder=10, color='k', label="Best fit walker")
-    #         # else:
-    #         trax[param_idx//4, param_idx%4].plot(chain_3d[:,walker_idx,param_idx], alpha=0.4)
-    #     trax[param_idx//4, param_idx%4].set_title(param_names[param_idx])
-    #     # trax[param_idx//4, param_idx%4].axvline(x=best_idx[0], color='k', linestyle='-', label="Best fit")
-    # plt.tight_layout()
-    # plt.savefig(f"Figures/mcmc_traces_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers.png", dpi=300, bbox_inches='tight')
-    # plt.close(fig)
+#     # fig, trax = plt.subplots(4,4, figsize=(10,6))
+#     # for param_idx in range(n_params):
+#     #     for walker_idx in range(n_walkers):
+#     #         # if best_idx[1] == walker_idx:
+#     #         #     trax[param_idx//4, param_idx%4].plot(mcmc_samples[:,walker_idx,param_idx], alpha=1, zorder=10, color='k', label="Best fit walker")
+#     #         # else:
+#     #         trax[param_idx//4, param_idx%4].plot(chain_3d[:,walker_idx,param_idx], alpha=0.4)
+#     #     trax[param_idx//4, param_idx%4].set_title(param_names[param_idx])
+#     #     # trax[param_idx//4, param_idx%4].axvline(x=best_idx[0], color='k', linestyle='-', label="Best fit")
+#     # plt.tight_layout()
+#     # plt.savefig(f"Figures/mcmc_traces_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}_all_walkers.png", dpi=300, bbox_inches='tight')
+#     # plt.close(fig)
 
 
 
-    # calculate ensemble-aware autocorrelation time and ESS
-    try:
-        autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
-        print("N/50:", n_iterations/50)
-        print("Autocorrelation times:\n", autocorr_times)
-    except emcee.autocorr.AutocorrError as error:
-        autocorr_times = np.asarray(error.tau)
-        print("Warning: chain may be too short for reliable autocorrelation estimates.")
+#     # calculate ensemble-aware autocorrelation time and ESS
+#     try:
+#         autocorr_times = emcee.autocorr.integrated_time(chain_3d, quiet=True)
+#         print("N/50:", n_iterations/50)
+#         print("Autocorrelation times:\n", autocorr_times)
+#     except emcee.autocorr.AutocorrError as error:
+#         autocorr_times = np.asarray(error.tau)
+#         print("Warning: chain may be too short for reliable autocorrelation estimates.")
 
-# #     autocorr_times = np.asarray(autocorr_times, dtype=float)
-# #     effective_sample_sizes = (n_iterations * n_walkers) / autocorr_times
-# #     print("Autocorrelation times:\n", autocorr_times)
-# #     print("Effective sample sizes:\n", effective_sample_sizes)
+# # #     autocorr_times = np.asarray(autocorr_times, dtype=float)
+# # #     effective_sample_sizes = (n_iterations * n_walkers) / autocorr_times
+# # #     print("Autocorrelation times:\n", autocorr_times)
+# # #     print("Effective sample sizes:\n", effective_sample_sizes)
 
-# #     maximum_autocorr_time = int(np.ceil(np.max(autocorr_times)))
+# # #     maximum_autocorr_time = int(np.ceil(np.max(autocorr_times)))
 
-#     # # chain_3d_pruned = chain_3d[500:][::maximum_autocorr_time]
-#     median_value_by_parameter = np.median(chain_3d, axis=(0,1))
-#     lower_value = np.percentile(chain_3d, 2.5, axis=(0,1))
-#     upper_value = np.percentile(chain_3d, 97.5, axis=(0,1))
-#     # # print(median_value_by_parameter)
-#     # # print(lower_value)
-#     # # print(upper_value)
+# #     # # chain_3d_pruned = chain_3d[500:][::maximum_autocorr_time]
+# #     median_value_by_parameter = np.median(chain_3d, axis=(0,1))
+# #     lower_value = np.percentile(chain_3d, 2.5, axis=(0,1))
+# #     upper_value = np.percentile(chain_3d, 97.5, axis=(0,1))
+# #     # # print(median_value_by_parameter)
+# #     # # print(lower_value)
+# #     # # print(upper_value)
 
-#     # # print best parameter set with credible intervals
-#     # print("Best parameter set found by MCMC, with negative log-likelihood:", best_neg_log_likelihood)
-#     for i in range(n_params):
-#         print(f"median {param_names[i]}: {median_value_by_parameter[i]:.4f} ({lower_value[i]:.4f}–{upper_value[i]:.4f})")
-#         # print(f"optimal {param_names[i]}: {best_params[i]:.4f}")
+# #     # # print best parameter set with credible intervals
+# #     # print("Best parameter set found by MCMC, with negative log-likelihood:", best_neg_log_likelihood)
+# #     for i in range(n_params):
+# #         print(f"median {param_names[i]}: {median_value_by_parameter[i]:.4f} ({lower_value[i]:.4f}–{upper_value[i]:.4f})")
+# #         # print(f"optimal {param_names[i]}: {best_params[i]:.4f}")
 
-    import corner
-    fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
-    plt.savefig(f"Figures/mcmc_corner_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}.pdf", bbox_inches='tight')
-    plt.close(fig)
+#     import corner
+#     fig = corner.corner(chain_3d.reshape(-1, n_params), labels=param_names, show_titles=True, title_fmt=".4f", title_kwargs={"fontsize": 8})
+#     plt.savefig(f"Figures/mcmc_corner_DESnooker_{prefix}{pathogen}_{lockdown}_{option1}_{option2}_{seed}.pdf", bbox_inches='tight')
+#     plt.close(fig)
     
 # #     # sns.kdeplot(ax=ax, x=r0_samples, y=1-srel1_samples, color=color, label=pathogen, fill=True)
 # #     # # ax.scatter(15.24*gamma*best_params[0], 1-best_srel1, marker='x', color='k', label="MAP estimate")

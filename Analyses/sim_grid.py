@@ -329,6 +329,13 @@ def worker(args):
     shaped_values = values[1:, :days_to_keep].reshape((1+2*N_S, NAG, days_to_keep))
     infectious = shaped_values[1:2*N_S:2, :, :]
     susceptible = shaped_values[0:2*N_S:2, :, :]
+    # find the average population susceptibility
+    effective_susceptibles = jnp.sum(susceptible * params[6][:, None, None], axis=0).T
+    susceptibility_by_age = effective_susceptibles / population_size_curtailed
+    total_susceptibility = jnp.sum(effective_susceptibles, axis=1) / jnp.sum(population_size_curtailed, axis=1)
+    peak_susceptibility_by_age_by_season = susceptibility_by_age.reshape((n_seasons, 365, NAG)).max(axis=1)
+    peak_total_susceptibility_by_season = total_susceptibility.reshape((n_seasons, 365)).max(axis=1)
+    peak_susceptibility_by_season = jnp.concatenate([peak_susceptibility_by_age_by_season, peak_total_susceptibility_by_season[:, None]], axis=1)
     # find the proportion of those in the first infected compartment in each age group
     first_infectious = infectious[0]
     first_infectious_by_age = first_infectious.reshape((NAG, n_seasons, 365)).sum(axis=2).T
@@ -399,6 +406,7 @@ def worker(args):
         hospitalizations_caused_by_age_by_season,
         population_by_age_by_season_wsum,
         suppression_duration_by_season,
+        peak_susceptibility_by_season
     ], axis=0)
 
 def simulate_samples_chunked(samples, lockdown, POINTS, STATE0, p_time_to_obs, option1, option2,
@@ -621,6 +629,10 @@ def extract_target_values(all_results, outcome, **kwargs):
         return jax.vmap(lambda x: x[5, :5, int(outcome.split("_")[-1])].sum(axis=0)/x[5, :5, :-1].sum())(all_results) / kwargs.get('foi_scaling', 0.00016)
     if "population_test_" in outcome:
         return jax.vmap(lambda x: x[7, :5, int(outcome.split("_")[-1])].mean(axis=0))(all_results)
+    elif "excess_susceptibility_in_group_" in outcome:
+        return jax.vmap(lambda x: x[9, 5:, int(outcome.split("_")[-1])].max(axis=0)/x[9, :5, int(outcome.split("_")[-1])].max(axis=0))(all_results)
+    elif "excess_susceptibility" in outcome:
+        return jax.vmap(lambda x: x[9, 5:, -1].max(axis=0)/x[9, :5, -1].max(axis=0))(all_results)
     return jax.jit(jax.vmap(lambda x: time_to_rebound(x, kwargs.get('threshold_factor', 1/2))))(all_results) / 365
 
 def extract_target_value_from_data(pathogen, outcome, aggregation="D", NAG=7):
@@ -1149,7 +1161,7 @@ PARAM_SCALING = np.array([1, 1, 1, 1, 1, 1e-2, 1e-2, -1, -1, -1, -1, 1, 1, 1e-2,
 if __name__ == "__main__":
     plt.rcParams.update({'font.size': 11, 'font.family': 'serif', 'font.serif': ['Palatino']})
 
-    seed = 260717
+    seed = 260728
     option1 = "dedupsac"
     NAG = 7 + ("split" in option1)
     if "split" in option1:
@@ -1214,10 +1226,10 @@ if __name__ == "__main__":
     # # plt.savefig(f"Figures/along_linear_combination_age_of_first_infection_ExponentialODipEqualdedupsplit_AdVPIV3hMPV_lowerIHR2_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}_projection.png", dpi=300)
 
     # # ## single panel outcome heatmap
-    # fig, ax = plt.subplots(figsize=(4, 4))
-    # generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="time_to_rebound", cbar=True)
-    # plt.tight_layout()
-    # plt.savefig(f"Figures/heatmap_time_to_rebound_ExponentialODipp25_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
+    fig, ax = plt.subplots(figsize=(4, 4))
+    generate_2d_heatmap_plot(ax, run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="excess_susceptibility", cbar=True)
+    plt.tight_layout()
+    plt.savefig(f"Figures/heatmap_excess_susceptibility_ExponentialODipp25_{SHORT_PNAMES[0]}_{SHORT_PNAMES[8]}.png", dpi=300)
 
     # # ## single panel outcome heatmap
     # # fig, ax = plt.subplots(figsize=(4, 4))

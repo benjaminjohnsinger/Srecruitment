@@ -14,17 +14,20 @@ np.random.seed(260724)
 
 lockdown = "ExponentialODipp25"
 option1 = "dedupsac"
-pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus"]
 option2 = "flexagep05"
-option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003",]
-seeds = [260612, 260622, 260612, 260612,]
+# pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus",]
+# option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003"]
+# seeds = [260612, 260622, 260612, 260612,]
 # xs = []
 # for pathogen, seed, option2 in zip(pathogens, seeds, option2s):
 #     x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="emcee_median")
 #     xs = xs + [x,]
 # xs = np.array(xs)
 # true_xs = xs.copy()
-# # xs[12:14] = np.mean(xs[12:14])
+# # xs[:,0:2] = np.mean(xs[:,0:2], axis=0)
+# # xs[:,4:6] = np.mean(xs[:,4:6], axis=0)
+# # xs[:,9:] = np.mean(xs[:,9:], axis=0)
+# xs[:,12:14] = np.mean(xs[:,12:14], axis=0)
 # minxs = np.min(xs, axis=0)
 # maxxs = np.max(xs, axis=0)
 
@@ -71,22 +74,24 @@ seeds = [260612, 260622, 260612, 260612,]
 
 # print(len(trajectories_dippers))
 # print(len(x_dippers))
-# np.savetxt("Data/Processed/sampled_trajectories_nonflulike.csv",trajectories_dippers)
-# np.savetxt("Data/Processed/sampled_parameters_nonflulike.csv", x_dippers)
+# np.savetxt("Data/Processed/sampled_trajectories_flulike_samefr.csv",trajectories_dippers)
+# np.savetxt("Data/Processed/sampled_parameters_flulike_samefr.csv", x_dippers)
 
-trajectories_dippers = np.genfromtxt("Data/Processed/sampled_trajectories_fluonly.csv")
-x_dippers = np.genfromtxt("Data/Processed/sampled_parameters_fluonly.csv")
+trajectories_dippers = np.genfromtxt("Data/Processed/sampled_trajectories_flulike_samefr.csv")
+x_dippers = np.genfromtxt("Data/Processed/sampled_parameters_flulike_samefr.csv")
 
 from sklearn.decomposition import PCA
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import pairwise_distances
 
-tolerance = 9
+# tolerance = 20
+# tolerance = 3
+tolerance=0.1
 clustering = AgglomerativeClustering(metric='chebyshev',
                                      distance_threshold=tolerance,
                                      n_clusters=None,
                                      linkage='complete')
-cluster_labels = clustering.fit_predict(trajectories_dippers)
+cluster_labels = clustering.fit_predict(trajectories_dippers/np.max(trajectories_dippers, axis=1)[:,None])
 
 
 unique_clusters = set(cluster_labels)
@@ -119,8 +124,8 @@ print("biggest cluster is ", biggest_cluster.mode, " with ", biggest_cluster.cou
 #     return jnp.where(jnp.isnan(duration), 0, duration)
 # durfunc = jax.jit(jax.vmap(suppression_duration_for_pathogen))
 # durations = durfunc(x_dippers)
-# np.savetxt("Data/Processed/xdipperdurations_fluonly.csv", durations)
-durations = np.genfromtxt("Data/Processed/xdipperdurations_fluonly.csv")
+# np.savetxt("Data/Processed/xdipperdurations_flulike_samefr.csv", durations)
+durations = np.genfromtxt("Data/Processed/xdipperdurations_flulike_samefr.csv")
 
 best_cluster_id = None
 max_distance = -1.0
@@ -141,7 +146,7 @@ for i, cluster_id in enumerate(unique_clusters):
     
     # Measure parameter distance matrix within this cluster
     p_dist = pairwise_distances(durations_in_cluster.reshape(-1,1))
-    current_max_dist = np.mean(p_dist)
+    current_max_dist = np.max(p_dist)
     
     if current_max_dist > max_distance:
         max_distance = current_max_dist
@@ -172,8 +177,8 @@ STATE0 = STATE0.flatten()
 STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
 
 def simulator(x, m):
-    params = x_to_params(x, "sim", "Exponential", option1+"mimmwane", option2+"nr", NAG=NAG)
     x[-7:] = x[-7:]*m
+    params = x_to_params(x, "sim", "Exponential", option1+"mimmwane", option2+"nr", NAG=NAG)
     solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
     values = solution.ys.T
     trajectory = jnp.diff(values[-NAG:,:], axis=1).T
@@ -181,24 +186,29 @@ def simulator(x, m):
     return obs_summed_age
 
 print(np.sum(cluster_labels == best_cluster_id))
-# mult = [1,2,1.25,1]
+# mult = [1,0.7,0.5,1]
+mult = [1]*np.sum(cluster_labels == best_cluster_id)
 cluster_idxs = np.where(cluster_labels == best_cluster_id)[0]
-best_cluster_trajectories = [simulator(x_dippers[cluster_idxs[i]],1) for i in range(len(cluster_idxs))]
+best_cluster_trajectories = [simulator(x_dippers[cluster_idxs[i]],mult[i]) for i in range(len(cluster_idxs))]
 
-np.savetxt("Data/Processed/clustered_trajectories_durations_fluonly_scaled.csv",best_cluster_trajectories)
+np.savetxt("Data/Processed/clustered_trajectories_durations_flulike_samefr_scaled_test2.csv",best_cluster_trajectories)
 
 
-best_cluster_trajectories = np.genfromtxt("Data/Processed/clustered_trajectories_durations_fluonly_scaled.csv")
+best_cluster_trajectories = np.genfromtxt("Data/Processed/clustered_trajectories_durations_flulike_samefr_scaled_test2.csv")
 print(len(best_cluster_trajectories))
 colors = ["#648FFF","#DC267F", "#FFB000" , "#785EF0","#FF832B", "#004D40", ]*3
 print(np.max(best_cluster_trajectories,axis=1))
-best_cluster_trajectories = [best_cluster_trajectories[i] for i in [1,2,3]]
+# best_cluster_trajectories = [best_cluster_trajectories[i] for i in [1,3,2,0]]
 
-np.savetxt("Data/Processed/favourite_fluonly_clustered_trajectories_scaled2.csv", best_cluster_trajectories)
+# # print paramter sets of the selected trajectories from the best cluster with comma separated values
+# for i in [1,3,2,0]:
+#     print(f"Trajectory {i}: {', '.join(map(str, x_dippers[cluster_idxs[i]]))}")
+
+np.savetxt("Data/Processed/favourite_flulike_samefr_clustered_trajectories_scaled_test2.csv", best_cluster_trajectories)
 
 from sim_grid import suppression_duration_single_series
 for color, traj in zip(colors,best_cluster_trajectories):
     duration = str(int(suppression_duration_single_series(traj,anchor_idx=260)/4.35))
     plt.plot(traj,alpha=1,color=color, label=duration+" months")
 plt.legend(title="Suppression duration", frameon=False)
-plt.savefig("Figures/cluster_trajectories_duration_fluonly.png",dpi=500)
+plt.savefig("Figures/cluster_trajectories_duration_flulike_samefr_test2.png",dpi=500)
