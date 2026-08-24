@@ -51,8 +51,8 @@ SHORT_PNAMES = [
 ]
 
 PATHOGEN_SHORT_NAMES = {
-    "RSV": "RSV", "Metapneumovirus": "hMPV", "InfluenzaA": "FluA", 
-    "InfluenzaB": "FluB", "Adenovirus": "AdV", "Parainfluenza3": "PIV3"
+    "RSV": "RSV", "Metapneumovirus": "hMPV", "InfluenzaA": "IAV", 
+    "InfluenzaB": "IBV", "Adenovirus": "AdV", "Parainfluenza3": "PIV3"
 }
 
 

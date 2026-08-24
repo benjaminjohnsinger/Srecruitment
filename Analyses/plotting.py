@@ -5,6 +5,7 @@ import os
 import re
 import jax
 import jax.numpy as jnp
+from matplotlib.patches import Patch
 import numpy as np
 import scipy as sp
 import pandas as pd
@@ -196,16 +197,21 @@ def lockdown_incidence_plot(
             ci_lower = np.zeros_like(expected_prop)
             ci_upper = np.zeros_like(expected_prop)
             drawn_path = np.zeros_like(expected_prop)
-            
-            for t_idx in range(len(expected_prop)):
-                if n_tests[t_idx] > 0:
-                    p = np.clip(expected_prop[t_idx], 0, 1)
-                    if uncertainty == "confidence":
+
+            if uncertainty == "draw":
+                p = np.clip(expected_prop, 0, 1)
+                p = np.nan_to_num(p, nan=0.0)
+                n_int = np.maximum(n_tests.astype(int), 0)
+                draw_k = np.random.binomial(n_int, p)
+                denom = n_tests * pop_size_col
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    drawn_path = np.where(n_tests > 0, overall_hosp * draw_k / denom, np.nan)
+            elif uncertainty == "confidence":
+                for t_idx in range(len(expected_prop)):
+                    if n_tests[t_idx] > 0:
+                        p = np.clip(expected_prop[t_idx], 0, 1)
                         ci_lower[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.025, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_col[t_idx])
                         ci_upper[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.975, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_col[t_idx])
-                    elif uncertainty == "draw":
-                        draw_k = np.random.binomial(int(n_tests[t_idx]), p)
-                        drawn_path[t_idx] = overall_hosp[t_idx] * draw_k / (n_tests[t_idx] * pop_size_col[t_idx])
             
             agg_factor_map = {'D': 1, 'W': 7, 'M': 30.44}
             agg_factor = agg_factor_map.get(aggregation[0], 1) if aggregation is not None else 1
@@ -235,6 +241,7 @@ def lockdown_incidence_plot(
                     linewidth=linewidth,
                     alpha=alpha
                 )
+                mx = np.nanmax(factor * drawn_path / agg_factor)
 
         elif not by_age:
             pop_size_by_age = calculate_population_size(values, NAG=NAG)
@@ -263,7 +270,8 @@ def lockdown_incidence_plot(
                 expected_obs_agg = df_agg['expected_obs'].resample(agg_freq).sum().values
                 overall_hosp = df_agg['overall_hosp'].resample(agg_freq).sum().values
                 pop_size_agg = df_agg['pop_size'].resample(agg_freq).first().values
-                expected_prop = expected_obs_agg / overall_hosp
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    expected_prop = expected_obs_agg / overall_hosp
                 n_tests = df_agg['n_tests'].resample(agg_freq).sum().values
                 dates_agg = df_agg['expected_obs'].resample(agg_freq).sum().index.to_list()
             else:
@@ -273,17 +281,21 @@ def lockdown_incidence_plot(
             ci_lower = np.zeros_like(expected_prop)
             ci_upper = np.zeros_like(expected_prop)
             drawn_path = np.zeros_like(expected_prop)
-            
-            for t_idx in range(len(expected_prop)):
-                if n_tests[t_idx] > 0:
-                    p = np.clip(expected_prop[t_idx], 0, 1)
-                    if uncertainty == "confidence":
+
+            if uncertainty=="draw":
+                p = np.clip(expected_prop, 0, 1)
+                n_int = np.maximum(n_tests.astype(int), 0)
+                draw_k = np.random.binomial(n_int, p)
+                denom = n_tests * pop_size_agg
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    drawn_path = np.where(n_tests > 0, overall_hosp * draw_k / denom, np.nan)
+            elif uncertainty=="confidence":
+                for t_idx in range(len(expected_prop)):
+                    if n_tests[t_idx] > 0:
+                        p = np.clip(expected_prop[t_idx], 0, 1)
                         ci_lower[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.025, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_agg[t_idx])
                         ci_upper[t_idx] = overall_hosp[t_idx] * sp.stats.binom.ppf(0.975, n_tests[t_idx], p) / (n_tests[t_idx] * pop_size_agg[t_idx])
-                    elif uncertainty == "draw":
-                        draw_k = np.random.binomial(int(n_tests[t_idx]), p)
-                        drawn_path[t_idx] = overall_hosp[t_idx] * draw_k / (n_tests[t_idx] * pop_size_agg[t_idx])
-            
+
             agg_factor_map = {'D': 1, 'W': 7, 'M': 30.44}
             agg_factor = agg_factor_map.get(aggregation[0], 1) if aggregation is not None else 1
             
@@ -304,6 +316,7 @@ def lockdown_incidence_plot(
                     linewidth=linewidth,
                     alpha=alpha
                 )
+                mx = np.nanmax(factor * drawn_path / agg_factor)
 
     return mx
 
@@ -480,7 +493,7 @@ def kpsc_positive_test_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES
 nice_names = {"RSV": "RSV", "InfluenzaA": "Influenza A", "InfluenzaB": "Influenza B", "Metapneumovirus": "Metapneumovirus", "Adenovirus": "Adenovirus", "Parainfluenza3": "Parainfluenza 3", "Rhinovirus": "Rhinovirus", "Pertussis": "Pertussis", "M.pneumoniae": "M. pneumoniae", "C.pneumoniae": "C. pneumoniae", "SARS-CoV-2": "SARS-CoV-2", "Enterovirus": "Enterovirus"}
 short_names = {"RSV": "RSV", "InfluenzaA": "IAV", "InfluenzaB": "IBV", "Metapneumovirus": "hMPV", "Adenovirus": "AdV", "Parainfluenza": "PIV", "Parainfluenza3": "PIV3", "Rhinovirus": "RhV", "Pertussis": "Pertussis", "M.pneumoniae": "M. pneumo", "C.pneumoniae": "C. pneumo", "SARS-CoV-2": "COVID-19", "Enterovirus": "EV"}
 from data_processing import calculate_proportion_positive_incidence
-def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, select_age_group=None, title=None, color=hsv_colors, linewidth=1, legend=True, aggregation="D", window_size=28, weighting_factor=0.5, label=None, factor=1000000, annotations=False, definition="50% median", pp_only=False, hosp=False, detrend=False, dedup=False, sac=True, mask=[3135,3288]):
+def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None, AGE_GROUP_NAMES=None, select_age_group=None, title=None, color=hsv_colors, linewidth=1, legend=True, aggregation="D", window_size=28, weighting_factor=0.5, label=None, factor=1000000, annotations=False, definition="50% median", pp_only=False, hosp=False, detrend=False, dedup=False, sac=True, mask=[3135,3288], zorder=3):
     NAG = len(AGE_GROUP_NAMES) if AGE_GROUP_NAMES is not None else 7
     incidence = calculate_proportion_positive_incidence(pathogen, aggregation=aggregation, window_size=window_size, weighting_factor=weighting_factor, sum_age_groups=AGE_GROUPS is None, save_counts=False, pp_only=pp_only, hosp=hosp, NAG=NAG, detrend=detrend, dedup=dedup, sac=sac)
     incidence *= factor
@@ -496,17 +509,17 @@ def kpsc_proportion_positive_incidence_plot(ax, pathogen="RSV", AGE_GROUPS=None,
             color = colormaps.hsv(-0.02+np.arange(NAG)/NAG)
             color[3] = colormaps.hsv((3/NAG)+0.28/NAG)
             for i in range(len(AGE_GROUP_NAMES)):
-                ax.plot(incidence.index, incidence[AGE_GROUP_NAMES[i]], label=AGE_GROUP_NAMES[i], color=color[i], linewidth=linewidth)
+                ax.plot(incidence.index, incidence[AGE_GROUP_NAMES[i]], label=AGE_GROUP_NAMES[i], color=color[i], linewidth=linewidth, zorder=zorder)
         else:
             # print(AGE_GROUP_NAMES[select_age_group], "incidence:")
             # print(list(incidence[AGE_GROUP_NAMES[select_age_group]]))
             if label is None:
                 label = AGE_GROUP_NAMES[select_age_group]
-            ax.plot(incidence.index, incidence[AGE_GROUP_NAMES[select_age_group]], label=label, color=color, linewidth=linewidth)
+            ax.plot(incidence.index, incidence[AGE_GROUP_NAMES[select_age_group]], label=label, color=color, linewidth=linewidth, zorder=zorder)
     else:
         if label is None:
             label = nice_names.get(pathogen, pathogen)
-        ax.plot(incidence.index, incidence["Total"], color=color, label=label, linewidth=linewidth)
+        ax.plot(incidence.index, incidence["Total"], color=color, label=label, linewidth=linewidth, zorder=zorder)
 
     if title is None:
         title = f"{nice_names.get(pathogen, pathogen)} estimated incidence of hospitalizations"
@@ -1253,7 +1266,8 @@ def compute_kendall_w_single(data):
     mean_r = jnp.nanmean(jnp.where(valid_pair, corr, jnp.nan))
     return (mean_r * (m - 1) + 1.0) / m
 
-@jax.jit
+from functools import partial
+@partial(jax.jit, static_argnames=('n_permutations',))
 def run_permutation_test(key, data, n_permutations):
     m, n = data.shape
     valid_mask = ~jnp.isnan(data)
@@ -1304,15 +1318,16 @@ def plot_suppression_rank_heatmap(ax, pathogens, hemisphere='All', tropical="All
     suppression_data = suppression_data[suppression_data["dq_pass"] == True]
     # for each country, find the rank of each pathogen by suppression_duration_months
     suppression_data["rank"] = suppression_data.groupby("country")["suppression_duration_months"].rank(method="min", ascending=False)
-    pd.set_option('display.max_rows', None)
-    print(suppression_data[["country", "pathogen", "suppression_duration_months", "rank"]])
     # create a pivot table with index country, columns pathogen, values rank
     pivot = suppression_data.pivot(index="country", columns="pathogen", values="rank")
-    print(pivot)
-    w_stat, p_val = test_concordance_with_nans(pivot.values, n_permutations=1000)
+    n_permutations = 10000
+    w_stat, p_val = test_concordance_with_nans(pivot.values, n_permutations=n_permutations)
 
     print(f"Kendall's W (Concordance): {w_stat:.4f}")
-    print(f"Permutation p-value:       {p_val}")
+    if p_val == 0.0:
+        print(f"Permutation p-value:       < {1/n_permutations:.0e} (based on {n_permutations} permutations)")
+    else:
+        print(f"Permutation p-value:       {p_val}")
     # plot heatmap of how often one pathogen is ranked higher than the other
     image = np.zeros((len(pathogens), len(pathogens)))
     p_values = np.zeros((len(pathogens), len(pathogens)))
@@ -1353,7 +1368,7 @@ def plot_suppression_rank_heatmap(ax, pathogens, hemisphere='All', tropical="All
         for i in range(len(order)-1):
             for j in range(i, len(order)-1):
                 if not np.isnan(image[j, i]):
-                    ax.text(i, j, f"{p_values[j, i]:.2e}", ha="center", va="center", color="white", fontsize=6)
+                    ax.text(i, j, f"{p_values[j, i]:.2e}", ha="center", va="center", color="white", fontsize=5)
     else:
         for i in range(len(order)-1):
             for j in range(i, len(order)-1):
@@ -1670,13 +1685,15 @@ def plot_suppression_durations(fig, pathogens, countries, colors):
     country_axes[0,0].text(-0.5, 1.1, "C", transform=country_axes[0,0].transAxes, fontsize=16, fontweight="bold")
     violin_axis[0].text(-0.5, 1.1, "D", transform=violin_axis[0].transAxes, fontsize=16, fontweight="bold")
 
-def plot_fits(axes, n_samples=100, save_data=False, load_data=False):
+nice_age_group_names = ['<3m', '3–11m', '1–4y', '5–17y', '18–49y', '50–64y', '≥65y']
+def plot_fits(axes, n_samples=100, save_data=False, load_data=False, colors=None):
     aggregation = "MS"
     agg_factor = 30.44
     factor = 100000
     for pathogen_idx in range(len(pathogens)):
         ax = axes[:,pathogen_idx]
         pathogen, option2, seed = pathogens[pathogen_idx], option2s[pathogen_idx], seeds[pathogen_idx]
+        cs = [colors[pathogen_idx]]*NAG if colors is not None else hsv_colors
         _, _, _, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
         chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=pruners[pathogen_idx], prefix="")
         np.random.seed(260604)
@@ -1707,14 +1724,14 @@ def plot_fits(axes, n_samples=100, save_data=False, load_data=False):
                                         p_time_to_obs=p_time_to_obs, NAG=NAG,
                                         test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
                                         uncertainty="draw",
-                                        color=hsv_colors[age_group_idx], factor=factor*agg_factor, label="Simulation", linewidth=0.5, alpha=0.01)
+                                        color=cs[age_group_idx], factor=factor*agg_factor, label="Simulation", linewidth=0.5, alpha=0.01)
         for age_group_idx, age_group_name in enumerate(AGE_GROUP_NAMES):
             kpsc_proportion_positive_incidence_plot(ax[age_group_idx], pathogen=pathogen,
                                                     AGE_GROUPS=AGE_GROUPS, AGE_GROUP_NAMES=AGE_GROUP_NAMES, select_age_group=age_group_idx,
                                                     aggregation=aggregation, factor=factor, annotations=False, definition="", label="Data", hosp=True, dedup=True,
                                                     title="", color="k", linewidth=0.5)
             if pathogen_idx == 0:
-                ax[age_group_idx].set_ylabel(age_group_name)
+                ax[age_group_idx].set_ylabel(nice_age_group_names[age_group_idx])
             else:
                 ax[age_group_idx].set_ylabel("")
             if age_group_idx == 0:
@@ -1731,6 +1748,64 @@ def plot_fits(axes, n_samples=100, save_data=False, load_data=False):
             ax[age_group_idx].legend().set_visible(False)
             ax[age_group_idx].tick_params(axis='y', labelsize=6)
         print(f"\n", end="")
+
+def plot_fits_and_sus(axes, n_samples=100):
+    aggregation = "MS"
+    agg_factor = 30.44
+    factor = 100000
+    for pathogen_idx in range(len(pathogens)):
+        ax = axes.flatten()[pathogen_idx]
+        pathogen, option2, seed = pathogens[pathogen_idx], option2s[pathogen_idx], seeds[pathogen_idx]
+        maxinc = kpsc_proportion_positive_incidence_plot(ax, pathogen=pathogen,
+                                                aggregation=aggregation, factor=factor, annotations=False, definition="", label="Data", hosp=True, dedup=True,
+                                                title="", color="k", linewidth=1, zorder=3)
+        _, _, _, p_time_to_obs, data_full = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
+        chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=pruners[pathogen_idx], prefix="")
+        np.random.seed(260604)
+        # choose n_samples random rows from chain
+        random_indices = np.random.choice(chain.shape[0], size=n_samples, replace=False)
+        random_samples = chain[random_indices, :]
+        from likelihood import run_simulation
+        def get_solution(x):
+            params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
+            solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+            return solution
+        solutions = jax.jit(jax.vmap(get_solution))(random_samples)
+        first_solution = jax.tree_util.tree_map(lambda x: x[0], solutions)
+        population_size = calculate_population_size(first_solution.ys.T, NAG=NAG)
+        maxis = np.zeros(n_samples)
+        for sample_i in range(n_samples):
+            print(f"Pathogen {pathogen_idx+1}/{len(pathogens)}: {pathogen}, sample {sample_i+1}/{n_samples}", end="\r")
+            solution = jax.tree_util.tree_map(lambda x: x[sample_i], solutions)
+            smaxi = lockdown_incidence_plot(ax, STATE0, None, POINTS, pd.to_datetime('2020-03-01'),
+                                    solution=solution,
+                                    by_age=False,
+                                    p_time_to_obs=p_time_to_obs, NAG=NAG,
+                                    test_data=data_full,daily_hospitalization_rates=daily_hospitalization_rates,aggregation=aggregation,
+                                    uncertainty="draw",
+                                    color=colors[pathogen_idx], factor=factor*agg_factor, label="Simulation", linewidth=0.5, alpha=0.01)
+            maxis[sample_i] = smaxi
+        maxi = np.percentile(maxis, 95)
+        print("\n",end="\r")
+        mymax = np.maximum(maxi, maxinc)
+        for sample_i in range(n_samples):
+            params = x_to_params(random_samples[sample_i], pathogen, lockdown, option1, option2, NAG=NAG)
+            print(f"Pathogen {pathogen_idx+1}/{len(pathogens)}: {pathogen}, sample {sample_i+1}/{n_samples}", end="\r")
+            solution = jax.tree_util.tree_map(lambda x: x[sample_i], solutions)
+            sus = susceptibility(solution,params,NAG=NAG).sum(axis=1) / population_size.sum(axis=1)
+            sus = mymax*(1.18 + (sus - sus.mean())*1.7)
+            ax.plot(PERIOD, sus, color='grey', linewidth=0.5, alpha=0.01)
+        print("\n",end="\r")
+        ax.set_title(nice_names.get(pathogen, pathogen), fontsize=8)
+        ax.set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
+        ax.set_xticklabels(["2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025",], fontsize=6)
+        for label in ax.get_xticklabels():
+            label.set_rotation(45)
+            label.set_horizontalalignment('right')
+            label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+        ax.legend().set_visible(False)
+        ax.tick_params(axis='y', labelsize=6)
+        ax.set_ylabel("")
 
 def plot_contact(ax, pathogen, option2, prune, seed, n_samples=100):
     chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
@@ -1825,7 +1900,7 @@ def plot_r0_vs_first_immunity(axes, pathogen, option2, seed, color, r0_base=15.2
     axes.scatter(r0_values, immunity_values, alpha=1, color=color, s=np.sqrt(1/n_samples)/4, linewidths=0, rasterized=True)
     return r0_values, immunity_values
 
-def plot_r0_vs_population_immunity(axes, pathogen, option2, seed, color, r0_base=15.24, prune=0, n_samples=400):
+def plot_r0_vs_population_immunity(axes, pathogen, option2, seed, color, r0_base=15.24, prune=0, n_samples=400, summary="mean"):
     chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
     np.random.seed(260604)
     # choose n_samples random rows from chain
@@ -1845,9 +1920,14 @@ def plot_r0_vs_population_immunity(axes, pathogen, option2, seed, color, r0_base
 
         S_REL = params[6]
         # avg_srel = jnp.sum(S_REL[:, None, None] * susceptible)/jnp.sum(susceptible)
-        avg_srel = jnp.sum(S_REL[:, None, None] * susceptible, axis=(0,1))/jnp.sum(susceptible, axis=(0,1))
-        mean_srel = jnp.mean(avg_srel[:t_key])
-        return mean_srel
+        avg_srel = jnp.sum(S_REL[:, None, None] * susceptible, axis=(0,1))/jnp.sum(pop_size_by_age,axis=1)
+        if summary == "mean":
+            summary_srel = jnp.mean(avg_srel[:t_key])
+        elif summary == "min":
+            summary_srel = jnp.min(avg_srel[:t_key])
+        elif summary == "max":
+            summary_srel = jnp.max(avg_srel[:t_key])
+        return summary_srel
     weighted_pre2020_srel_samples = jax.jit(jax.vmap(run_sims))(random_samples)
     r0_values = r0_base * random_samples[:, 0] * (3.0 + 1.9 * (pathogen in ["RSV", "Metapneumovirus"]))
     immunity_values = 1 - weighted_pre2020_srel_samples
@@ -1925,29 +2005,33 @@ def plot_odr_best_fit(ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_
     ax.fill_between(x_grid, y_lower_fill, y_upper_fill, color='k', linewidths=0, alpha=0.1, label="95% CI", zorder=0)
 
 def plot_heatmaps_and_best_fit(fig, pathogens, option2s, pruners, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=True):
-    gs = fig.add_gridspec(2, 2, height_ratios=[1, 1], hspace=0.6)
+    gs = fig.add_gridspec(2, 3, height_ratios=[1, 1], hspace=0.6)
     fit_ax = fig.add_subplot(gs[0, :])
-    axes_hm = [fig.add_subplot(gs[1, i]) for i in range(2)]
+    axes_hm = [fig.add_subplot(gs[1, i]) for i in range(3)]
     generate_2d_heatmap_plot(axes_hm[0], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="suppression_length", cbar=True, r0_base=r0_base)
     generate_2d_heatmap_plot(axes_hm[1], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="infectors_in_group_0123", cbar=True, r0_base=r0_base)
+    generate_2d_heatmap_plot(axes_hm[2], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="excess_susceptibility", cbar=True, r0_base=r0_base)
     # generate_2d_heatmap_plot(axes_hm[2], run_save_path, good_simulations, NAG=NAG, p1=0, p2=8, outcome="infectors_in_group_6", cbar=True, r0_base=r0_base)
     for ax in axes_hm:
         ax.set_xscale('log')
-        ax.set_xticks([1,2,3,4,5,6,7,8])
-        ax.set_xticklabels([1,2,3,4,5,6,7,8])
+        ax.set_xticks([1,2,3,4,5,6,7])
+        ax.set_xticklabels([1,2,3,4,5,6,7])
     axes_hm[1].set_ylabel("")
     axes_hm[1].set_yticklabels([])
-    # axes_hm[2].set_ylabel("")
-    # axes_hm[2].set_yticklabels([])
+    axes_hm[2].set_ylabel("")
+    axes_hm[2].set_yticklabels([])
+    axes_hm[0].set_xlabel("")
+    axes_hm[1].set_xlabel("Basic reproduction number (log scale)")
+    axes_hm[2].set_xlabel("")
     axes_hm[0].set_title("Suppression duration\n(months)", fontsize=8)
     axes_hm[1].set_title("Proportion of infections\nfrom under 18s", fontsize=8)
-    # axes_hm[2].set_title("Proportion of infections\nfrom over 65s", fontsize=8)
+    axes_hm[2].set_title("Maximum excess\nsusceptibility", fontsize=8)
 
-    colorbar_axes = [c for c in fig.axes if c not in [axes_hm[0], axes_hm[1], fit_ax]]
-    if len(colorbar_axes) >= 2:
+    colorbar_axes = [c for c in fig.axes if c not in [axes_hm[0], axes_hm[1], axes_hm[2], fit_ax]]
+    if len(colorbar_axes) >= 3:
         colorbar_axes[0].set_ylabel("")
         colorbar_axes[1].set_ylabel("")
-        # colorbar_axes[2].set_ylabel("")
+        colorbar_axes[2].set_ylabel("")
 
     r0_values_by_pathogen = {}
     immunity_values_by_pathogen = {}
@@ -1959,25 +2043,25 @@ def plot_heatmaps_and_best_fit(fig, pathogens, option2s, pruners, seeds, colors,
     if fit_line:
         plot_odr_best_fit(fit_ax, r0_values_by_pathogen, immunity_values_by_pathogen, n_iterations=10000)
     else:
-        x = np.linspace(1, 10, 100)
+        x = np.linspace(1, 7, 100)
         y = 1 - 1 / x
         fit_ax.plot(x, y, color='k', linewidth=0.5, zorder=0)
         # label with "1 - 1/R0" in the middle of the line
-        fit_ax.text(3.5, 1-1/3.5, r"$1 - \frac{1}{R_0}$", rotation=0, fontsize=11, color='k', ha='right', va='bottom', zorder=1)
+        fit_ax.text(3.5, 1-1/3.5, r"$\iota_1 = 1 - \frac{1}{R_0}$", rotation=0, fontsize=11, color='k', ha='right', va='bottom', zorder=1)
     # build custom legend with colored squares
     handles = [plt.Line2D([0], [0], marker='s', color='w', markerfacecolor=color, markersize=8) for color in colors]
     labels = [nice_names.get(pathogen, pathogen) for pathogen in pathogens]
-    fit_ax.legend(handles, labels, frameon=False, fontsize=6, loc='lower right')
+    fit_ax.legend(handles, labels, frameon=False, fontsize=6, loc='lower right', ncol=2)
     fit_ax.set_xscale('log')
-    fit_ax.set_xticks([1,2,3,4,5,6,7,8,9,10])
-    fit_ax.set_xticklabels([1,2,3,4,5,6,7,8,9,10])
-    fit_ax.set_xlim(1, 10)
+    fit_ax.set_xticks([1,2,3,4,5,6,7])
+    fit_ax.set_xticklabels([1,2,3,4,5,6,7])
+    fit_ax.set_xlim(1, 7)
     fit_ax.set_ylim(0, 0.95)
     fit_ax.set_xlabel("Basic reproduction number (log scale)")
     fit_ax.set_ylabel("Immunity from first infection")
 
     # add big letter "A" to first row, "B" to second row
-    axes_hm[0].text(-0.32, 1.1, "B", transform=axes_hm[0].transAxes, fontsize=16, fontweight="bold")
+    axes_hm[0].text(-0.5, 1.1, "B", transform=axes_hm[0].transAxes, fontsize=16, fontweight="bold")
     fit_ax.text(-0.12, 1.05, "A", transform=fit_ax.transAxes, fontsize=16, fontweight="bold")
 
 ## MCMC comparison functions
@@ -2055,6 +2139,7 @@ def plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_n
     frob_norm2 = np.linalg.norm(corr2, 'fro')
     print(f"Frobenius norms: {frob_norm1:.4f}, {frob_norm2:.4f}")
     print(f"Proportional change in Frobenius norm: {(frob_norm2 - frob_norm1) / frob_norm1:.4f}")
+    return (frob_norm2 - frob_norm1) / frob_norm1
 
 from matplotlib.collections import LineCollection
 def plot_immunity_cascade(axes, n_samples=100, save_data=False, kpsc_incidence=True):
@@ -2495,21 +2580,154 @@ if __name__ == "__main__":
     colors = [ "#785EF0", "#004D40", "#648FFF", "#FFB000" ,"#FF832B","#DC267F",]
     option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003","maxagep035","maxagep035",]
     seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
-    pruners = [100, 100, 2000, 2000, 100, 100,]
+    pruners = [100, 3000, 2000, 2200, 100, 100,]
 
-    # fig, ax = plt.subplots(1,2,figsize=(6.5,3))
-    # plot_suppression_rank_heatmap(ax[0], flunet_pathogens, tropical="Tropical", pvals=True)
-    # ax[0].set_title("Tropical")
-    # plot_suppression_rank_heatmap(ax[1], flunet_pathogens, tropical="Nontropical", pvals=True)
-    # ax[1].set_title("Nontropical")
-    # plt.savefig("Figures/Suppression_rank_heatmap_pvals_tropical.png", dpi=300)
-    fig,ax = plt.subplots(figsize=(3,3))
-    plot_suppression_rank_heatmap(ax, flunet_pathogens, pvals=True)
-    plt.savefig("Figures/Suppression_rank_heatmap_pvals.png", dpi=300)
-    # ### alternative figure 1
-    # fig = plt.figure(figsize=(6.5, 4), layout="constrained")
+
+    # fig = plt.figure(figsize=(6.5, 4), constrained_layout=True)
     # plot_alternative_suppression(fig, flunet_pathogens, colors)
-    # plt.savefig("Figures/Alternative_suppression.png", dpi=300)
+    # plt.savefig("Figures/Figure1.pdf", dpi=300, bbox_inches='tight')
+
+    # fig, axes = plt.subplots(1, 6, figsize=(6.5, 1.5), constrained_layout=True)
+    # sample_size = 400
+    # for pathogen, option2, prune, seed, ax in zip(pathogens, option2s, pruners, seeds, axes):
+    #     plot_contact(ax, pathogen, option2, prune, seed, n_samples=sample_size)
+    #     ax.set_title(short_names.get(pathogen, pathogen))
+    #     ax.set_ylim(0, 1.2)
+    #     ax.set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
+    #     ax.set_xticklabels([])
+    #     ax.tick_params(axis='y', labelsize=6)
+    #     ax.set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025",], fontsize=6)
+    #     for label in ax.get_xticklabels():
+    #         label.set_rotation(45)
+    #         label.set_horizontalalignment('right')
+    #         label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+    #     axes[0].set_ylabel("Contact\nmultiplier", fontsize=6)
+    # plt.savefig(f"Figures/Contact_multipliers_{lockdown}_{option1}.pdf", dpi=300, bbox_inches='tight')
+
+
+
+    ##### KPSC and age incidence figure now in supplementary
+    # fig = plt.figure(figsize=(6.5, 2.5), constrained_layout=True)
+    # gs = fig.add_gridspec(2, 6, height_ratios=[1, 1])
+    # # KPSC plots in top row (row 0)
+    # kpsc_pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    # kpsc_axis = np.empty(len(kpsc_pathogens), dtype=object)
+    # # season age plots in row 1
+    # season_age_axes = np.empty(len(kpsc_pathogens), dtype=object)
+    # for i, pathogen in enumerate(kpsc_pathogens):
+    #     incax = fig.add_subplot(gs[0, i])
+    #     kpsc_axis[i] = incax
+    #     # color = colors[i]
+    #     last_pre_time, rebound_time = kpsc_proportion_positive_incidence_plot(
+    #         incax, pathogen=pathogen, AGE_GROUP_NAMES=AGE_GROUP_NAMES, title="",
+    #         color="k", aggregation="MS", factor=100000,
+    #         annotations="simple", definition="", label="Data", hosp=True, dedup=True)
+    #     # shade pink for period of suppression
+    #     incax.axvspan(last_pre_time, rebound_time, color='red', alpha=0.1, linewidth=0)
+    #     incax.set_yticklabels([])
+    #     incax.set_xticklabels([])
+    #     incax.set_xlim(pd.to_datetime("2015-05-01"), pd.to_datetime("2025-10-01"))
+    #     # Remove all spines except bottom
+    #     incax.spines['top'].set_visible(False)
+    #     incax.spines['right'].set_visible(False)
+    #     incax.spines['left'].set_visible(False)
+    #     incax.set_ylabel("")
+    #     incax.set_yticks([])
+    #     if i==0:
+    #         incax.set_ylabel("KPSC", rotation=0, ha='right', labelpad=25)
+    #         incax2 = incax.twinx()
+    #         incax2.set_ylabel("Estimated\n+ve hospitalizations", rotation=90, va='center', fontsize=6)
+    #         incax2.set_yticks([])
+    #         incax2.spines['right'].set_visible(False)
+    #         incax2.spines['left'].set_visible(True)
+    #         incax2.spines['top'].set_visible(False)
+    #         incax2.yaxis.set_label_position('left')
+    #         incax2.yaxis.tick_left()
+    #     incax.set_title(short_names.get(pathogen, pathogen))
+    #     incax.set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
+    #     incax.set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025",], fontsize=6)
+    #     for label in incax.get_xticklabels():
+    #         label.set_rotation(45)
+    #         label.set_horizontalalignment('right')
+    #         label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+    #     ageax = fig.add_subplot(gs[1, i])
+    #     season_age_axes[i] = ageax
+    #     plot_relative_age_incidence(ageax, pathogen, group_names=["<1y","<5y"], aggregation="YS-OCT")
+    #     ageax.set_xticklabels(["", "2016/17", "", "2018/19", "", "2020/21", "", "2022/23", "", "2024/25",], fontsize=6)
+    #     ageax.set_xlim(pd.to_datetime("2015-05-01"), pd.to_datetime("2025-10-01"))
+    #     for label in ageax.get_xticklabels():
+    #         label.set_rotation(45)
+    #         label.set_horizontalalignment('right')
+    #         label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+    #     ageax.axvspan(last_pre_time, rebound_time, color='red', alpha=0.1, linewidth=0)
+    #     # add grid
+    #     ageax.grid(axis='y', linestyle='-', linewidth=0.5, alpha=0.3)
+    #     ageax.grid(axis='x', linestyle='-', linewidth=0.5, alpha=0.3)
+    #     ageax.set_ylim(0.0, 0.5)
+    #     ageax.set_yticks([0,0.1,0.2,0.3,0.4,0.5])
+    #     ageax.set_yticklabels(["0.0","","","","","0.5"], fontsize=6)
+    #     if i>0:
+    #         ageax.set_yticklabels(["","","","","",""], fontsize=6)
+    # season_age_axes[0].set_ylabel("KPSC", rotation=0, ha='right', labelpad=16)
+    # sax2 = season_age_axes[0].twinx()
+    # sax2.set_ylabel("Proportion of\nhospitalizations", rotation=90, va='center', fontsize=6, labelpad=16)
+    # sax2.set_yticks([])
+    # sax2.spines['right'].set_visible(False)
+    # sax2.spines['left'].set_visible(True)
+    # sax2.spines['top'].set_visible(False)
+    # sax2.yaxis.set_label_position('left')
+    # sax2.yaxis.tick_left()
+    # # put legend in first plot
+    # legend = season_age_axes[-1].legend(loc='best', fontsize=6)
+    # legend.get_frame().set_facecolor('white')
+    # legend.get_frame().set_edgecolor('black')
+    # legend.get_frame().set_alpha(1)
+    # legend.get_frame().set_linewidth(0.5)
+    # legend.get_frame().set_boxstyle('square,pad=0')
+    # kpsc_axis[0].text(-0.5, 1.1, "A", transform=kpsc_axis[0].transAxes, fontsize=16, fontweight="bold")
+    # season_age_axes[0].text(-0.5, 1.1, "B", transform=season_age_axes[0].transAxes, fontsize=16, fontweight="bold")
+    # plt.savefig("Figures/KPSC_and_age_incidence.png", dpi=500)
+
+    # #### sesonal maximum and minimum immunity vs r0 plot
+    # fig, ax = plt.subplots(1,2,figsize=(6.5,3), layout="constrained", sharey=False, sharex=True)
+    # for pathogen, option2, seed, color, prune in zip(pathogens, option2s, seeds, colors, pruners):
+    #     print(pathogen)
+    #     plot_r0_vs_population_immunity(ax[0], pathogen, option2, seed, color, r0_base=15.24, prune=prune, n_samples=2000, summary="min")
+    #     plot_r0_vs_population_immunity(ax[1], pathogen, option2, seed, color, r0_base=15.24, prune=prune, n_samples=2000, summary="max")
+    # for fit_ax in ax:
+    #     x = np.linspace(1, 7, 100)
+    #     y = 1 - 1 / x
+    #     fit_ax.plot(x, y, color='k', linewidth=0.3, zorder=0)
+    #     # label with "1 - 1/R0" in the middle of the line
+    #     fit_ax.text(3.5, 1-1/3.5, r"$1 - \frac{1}{R_0}$", rotation=0, fontsize=11, color='k', ha='right', va='bottom', zorder=1)
+    #     # build custom legend with colored squares
+    #     handles = [plt.Line2D([0], [0], marker='s', color='w', markerfacecolor=color, markersize=8) for color in colors]
+    #     labels = [nice_names.get(pathogen, pathogen) for pathogen in pathogens]
+    #     fit_ax.legend(handles, labels, frameon=False, fontsize=6, loc='lower right')
+    #     fit_ax.set_xscale('log')
+    #     fit_ax.set_xticks([1,2,3,4,5,6,7,])
+    #     fit_ax.set_xticklabels([1,2,3,4,5,6,7,])
+    #     fit_ax.set_xlim(1, 7)
+    #     fit_ax.set_ylim(0, 0.95)
+    #     fit_ax.set_xlabel("Basic reproduction number (log scale)")
+    # ax[0].set_ylabel("Seasonal minimum of\neffective population immunity")
+    # ax[1].set_ylabel("Seasonal maximum of\neffective population immunity")
+    # plt.savefig("Figures/R0_vs_population_immunity_min_max.png", dpi=500)
+
+    ### suppression order heatmaps with tropical and nontropical
+    # fig, ax = plt.subplots(1,3,figsize=(6.5,3), layout="constrained", sharey=True, sharex=True)
+    # plot_suppression_rank_heatmap(ax[0], flunet_pathogens, tropical="All", pvals=False)
+    # ax[0].set_title("All")
+    # plot_suppression_rank_heatmap(ax[1], flunet_pathogens, tropical="Tropical", pvals=False)
+    # ax[1].set_title("Tropical")
+    # im = plot_suppression_rank_heatmap(ax[2], flunet_pathogens, tropical="Nontropical", pvals=False)
+    # ax[2].set_title("Nontropical")
+    # ax[0].set_ylabel("Re-emerging after")
+    # ax[1].set_xlabel("Re-emerging before")
+    # # add colorbar
+    # cbar = fig.colorbar(im, ax=ax.ravel().tolist(), shrink=0.6)
+    # cbar.set_label("Frequency")
+    # plt.savefig("Figures/Suppression_rank_heatmap_tropical.png", dpi=500)
 
     # # 1) % of all cases occurring in previously-infected individuals
     # # 2) % of all transmission coming from previously-infected individuals
@@ -2652,7 +2870,7 @@ if __name__ == "__main__":
     #     print(f"\nResults for {pathogen}:")
     #     print(results_df.to_string(index=False))
 
-    # # Regression
+    # Regression
     # r0srels = np.zeros((6, 3))
     # seasonwane = np.zeros((6,3))
     # ageobssect = np.zeros((6,3))
@@ -2667,7 +2885,7 @@ if __name__ == "__main__":
     # from sim_grid import extract_target_value_from_data
 
     # for i, pathogen, seed, option2, prune in zip(range(6), pathogens, seeds, option2s, pruners):
-    #     x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix="emcee_median_")
+        # x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, NAG=NAG, prefix="emcee_median_")
         # r0 = np.log(r0_base * x[2] / x[0])
         # # find srel1 and srel2
         # srel1 = x[7]
@@ -2681,12 +2899,13 @@ if __name__ == "__main__":
         # all_x[i,2] = np.log(all_x[i,2])
         # # get suppression time
         # suppression[i] = extract_target_value_from_data(pathogen, "suppression_length")
-        # get maximum relative susceptibility
+        # # get maximum relative susceptibility
         # from likelihood import run_simulation
         # _, _x, _ = load_optimization_results("emcee_median_", pathogen, seed, lockdown, option1, option2)
         # params = x_to_params(_x, pathogen, lockdown, option1, option2, NAG=NAG)
         # solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
-        # sus = susceptibility(solution, params).sum(axis=1)
+        # population_size = calculate_population_size(solution.ys.T, NAG=NAG)
+        # sus = susceptibility(solution, params).sum(axis=1)/population_size.sum(axis=1)
         # rel_sus = sus / sus.mean()
         # excess_sus[i] = rel_sus.max()
 
@@ -2807,8 +3026,15 @@ if __name__ == "__main__":
     # fit_ax.set_xlabel("Basic reproduction number (log scale)")
     # fit_ax.set_ylabel("Seasonal average population immunity to infection")
     # plt.savefig(f"Figures/r0_vs_mean_population_immunity_{lockdown}.png", dpi=300)
+    
+    # ### pre-2020 table
+    # lockdown = "Default"
+    # pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus","InfluenzaA","InfluenzaB",]
+    # option2s = ["2020-01-01maxagep028","2020-01-01fixage0maxagep006","2020-01-01maxagep004","2020-01-01maxagep003","2020-01-01maxagep035","2020-01-01maxagep035",]
+    # seeds = [260615, 260624, 260615, 260615, 260615, 260615,]
+    # pruners = [100, 100, 400, 400, 200, 100]
 
-    # print_parameter_table(pathogens, option2s, seeds, prune=0)
+    # print_parameter_table(pathogens, option2s, seeds, pruners)
 
     # fig, axes = plt.subplots(3, 2, figsize=(6.5, 6.5), layout="constrained", sharex=False, sharey=False)
     # plot_phase_diagrams_from_chains(axes.flatten(), pathogens, option2s, seeds, lockdown, option1, n_samples=1, prune=0, no_lockdown=True)
@@ -2827,7 +3053,7 @@ if __name__ == "__main__":
 
     # #### perturbation analysis
     # from likelihood import run_simulation
-    # perturbations = np.linspace(0,1,100)*0.5
+    # perturbations = np.linspace(0,1,30)*0.5
     # PERIOD = pd.date_range(start=pd.to_datetime('2015-07-04'), end=pd.to_datetime('2025-05-01'), freq='MS')
     # POINTS = np.array(date_to_t(PERIOD))
     # anchor_t = date_to_t(pd.to_datetime("2020-01-01")) - start_idx
@@ -2835,19 +3061,19 @@ if __name__ == "__main__":
     # print(anchor_idx)
     # from sim_grid import suppression_duration_single_series
 
-    # samples_per_step = 10000
+    # samples_per_step = 5000
     
     # durations = np.zeros((len(pathogens), len(perturbations), samples_per_step))
 
     # for pi, perturbation in enumerate(perturbations):
     #     print(pi)
+    #     random_perturbation = np.random.normal(1, perturbation, size=samples_per_step)
     #     for pathogen, seed, option2, prune in zip(pathogens, seeds, option2s, pruners):
     #         _, _, _, p_time_to_obs, _ = pathogen_parameters(pathogen, import_multiplier=1e-9, incidence_data=False, hosp=True, NAG=NAG, dedup=True)
     #         chain = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
     #         x_samples = jnp.asarray(chain[np.random.choice(chain.shape[0], size=samples_per_step, replace=False), :])
     #         r1_idx = 6 + ("RSV" not in pathogen) + ("Influenza" not in pathogen)
     #         r1 = x_samples[:, r1_idx]
-    #         random_perturbation = np.random.normal(1, perturbation, size=len(r1))
     #         x_samples = x_samples.at[:, r1_idx].set(r1 * random_perturbation)
     #         def suppression_duration_for_pathogen(x):
     #             params = x_to_params(x, pathogen, lockdown, option1, option2, NAG=NAG)
@@ -2868,52 +3094,61 @@ if __name__ == "__main__":
     # ax.plot(perturbations, distances, color='k')
     # ax.set_xlabel("Perturbation to r1")
     # ax.set_ylabel("Difference from canonical order")
-    # plt.savefig(f"Figures/suppression_duration_order_sensitivity_r1.png", dpi=300)
-    # np.savetxt("Data/Processed/saved_r1_random_perturbation_distances.csv",distances)
+    # plt.savefig(f"Figures/suppression_duration_order_sensitivity_r1_correlated.png", dpi=300)
+    # distances_f1 = np.genfromtxt("Data/Processed/saved_f1_random_perturbation_distances.csv")
+    # distances_seas = np.genfromtxt("Data/Processed/saved_season_random_perturbation_distances.csv")
+    # fig, ax = plt.subplots(1,2,figsize=(6.5, 3), layout="constrained", sharey=True)
+    # x = 1 + np.linspace(0,1,30)*0.5
+    # ax[1].plot(x, distances_f1, color='k')
+    # ax[1].set_xlabel("Perturbation to NPI sensitivity ($f$)")
+    # ax[1].set_ylabel("Difference from observed order")
+    # x = 1 + np.linspace(0,1,100)*0.5
+    # ax[0].plot(x, distances_seas, color='k')
+    # ax[0].set_xlabel("Perturbation to seasonal forcing amplitude ($A$)")
+    # ax[0].set_ylabel("Difference from observed order")
+    # plt.savefig(f"Figures/suppression_duration_order_sensitivity_r1_seas.png", dpi=300)
 
 
-    # fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
-    # alt_pruners = [100, 100, 400, 400, 200, 100]
-    # for index, pathogen, option2, seed, prune, ax in zip(range(6), pathogens, option2s, seeds, pruners, axes.flatten()):
-    #     print(f"Difference measures for {pathogen}...")
-    #     chain2 = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
-    #     chain1 = load_mcmc_chain(pathogen, [260615, 260624][pathogen=="Metapneumovirus"], ["Default", "ExponentialODipp25"][pathogen=="Metapneumovirus"], option1, "2020-01-01"+option2, just_chain=True, prune=alt_pruners[index], prefix="")
-    #     param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
-    #     param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
-    #     select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
-    #     compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
-    #     plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
-    #     ax.set_title(short_names.get(pathogen, pathogen))
-    # plt.savefig(f"Figures/correlation_matrix_difference_DESnooker.png", dpi=300)
+    #### correlation matrix difference figure
+    fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
+    alt_pruners = [100, 100, 400, 400, 200, 100]
+    for index, pathogen, option2, seed, prune, ax in zip(range(6), pathogens, option2s, seeds, pruners, axes.flatten()):
+        print(f"Difference measures for {pathogen}...")
+        chain2 = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
+        chain1 = load_mcmc_chain(pathogen, [260615, 260624][pathogen=="Metapneumovirus"], ["Default", "ExponentialODipp25"][pathogen=="Metapneumovirus"], option1, "2020-01-01"+option2, just_chain=True, prune=alt_pruners[index], prefix="")
+        param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
+        param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
+        select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
+        compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
+        frob_norm_diff = plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
+        ax.set_title(short_names.get(pathogen, pathogen)+str(f" ({frob_norm_diff:.3f})"), fontsize=8)
+    plt.savefig(f"Figures/correlation_matrix_difference_DESnooker.png", dpi=300)
 
-    # ## Figure 1 
-    # fig, axes = plt.subplots(9, 6, figsize=(6.5, 7), layout="constrained", sharex=False, sharey=False)
 
+    # # ==========================================
+    # # Figure 2: Fits and Susceptibility Figure
+    # # ==========================================
     # sample_size = 400
-    # plot_fits(axes[0:7,:], n_samples=sample_size, load_data=False, save_data=True)
-    # for ax in axes[6, :]:
+    # fig = plt.figure(figsize=(6.5,7), layout="constrained")
+    # subfigs = fig.subfigures(4, 1, height_ratios=[2.3, 5, 1.15, 0.1])
+
+    # axes_A = subfigs[0].subplots(2, 3, sharex=True)
+    # plot_fits_and_sus(axes_A, sample_size)
+    # subfigs[0].supylabel("Monthly incidence\n(per 100,000)", fontsize=8, x=0.03, va='center', ha='center')
+
+    # axes_B = subfigs[1].subplots(7, 6, sharex=False, sharey=False)
+    # plot_fits(axes_B, n_samples=sample_size, load_data=False, save_data=True, colors=colors)
+    # for ax in axes_B[6, :]:
     #     ax.set_xticklabels([])
 
-    # for pathogen, option2, prune, seed, ax in zip(pathogens, option2s, pruners, seeds, axes[7, :]):
-    #     plot_contact(ax, pathogen, option2, prune, seed, n_samples=sample_size)
-    #     # ax.set_title(short_names.get(pathogen, pathogen))
-    #     ax.set_ylim(0, 1.2)
-    #     ax.set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
-    #     ax.set_xticklabels([])
-    #     ax.tick_params(axis='y', labelsize=6)
-    #     # ax.set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025",], fontsize=6)
-    #     # for label in ax.get_xticklabels():
-    #     #     label.set_rotation(45)
-    #     #     label.set_horizontalalignment('right')
-    #     #     label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
-    # axes[8,0].set_ylabel("Contact\nmultiplier", fontsize=6)
-
-    # for pathogen, option2, prune, seed, ax in zip(pathogens, option2s, pruners, seeds, axes[8,:]):
-    #     print(pathogen)
+    # axes_C = subfigs[2].subplots(1, 6, sharex=False, sharey=False)
+    # for pathogen, option2, prune, seed, ax in zip(pathogens, option2s, pruners, seeds, axes_C):
     #     plot_susceptibility(ax, pathogen, option2, prune, seed, n_samples=sample_size)
-    #     # ax.set_title(short_names.get(pathogen, pathogen))
-    #     ax.set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
-    #     ax.set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025",], fontsize=6)
+    #     ax.set_xticks(pd.to_datetime([
+    #         "2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", 
+    #         "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01"
+    #     ]))
+    #     ax.set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025"], fontsize=6)
     #     ax.tick_params(axis='y', labelsize=6)
     #     ax.set_ylim(0.5, 1.5)
     #     ax.set_yticks([0.5, 1.0, 1.5])
@@ -2921,14 +3156,26 @@ if __name__ == "__main__":
     #         label.set_rotation(45)
     #         label.set_horizontalalignment('right')
     #         label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
-    # axes[8,0].set_ylabel("Relative\nsusceptibility", fontsize=6)
+    # axes_C[0].set_ylabel("Relative\nsusceptibility", fontsize=6)
+    # legend_handles = [
+    #     Patch(facecolor=color, label=name) 
+    #     for name, color in zip(nice_age_group_names, hsv_colors)
+    # ]
+    # subfigs[3].legend(
+    #     handles=legend_handles,
+    #     loc="center",
+    #     ncol=len(nice_age_group_names),
+    #     fontsize=6,
+    #     frameon=False,
+    #     handletextpad=0.4,
+    #     columnspacing=1.2
+    # )
+    # # label panels A, B, C
+    # axes_A[0, 0].text(-0.35, 1.15, "A", transform=axes_A[0, 0].transAxes, fontsize=16, fontweight="bold")
+    # axes_B[0, 0].text(-0.7, 1.15, "B", transform=axes_B[0, 0].transAxes, fontsize=16, fontweight="bold")
+    # axes_C[0].text(-0.7, 1.15, "C", transform=axes_C[0].transAxes, fontsize=16, fontweight="bold")
 
-    # # add big letter "A" to first row, "B" to eighth row, "C" to ninth row
-    # axes[0,0].text(-0.5, 1.2, "A", transform=axes[0,0].transAxes, fontsize=16, fontweight="bold")
-    # axes[7,0].text(-0.5, 1.1, "B", transform=axes[7,0].transAxes, fontsize=16, fontweight="bold")
-    # axes[8,0].text(-0.5, 1.1, "C", transform=axes[8,0].transAxes, fontsize=16, fontweight="bold")
-
-    # plt.savefig(f"Figures/fits_figure.png", dpi=300)
+    # plt.savefig("Figures/fits_figure_combined.pdf", dpi=500, bbox_inches='tight')
 
     # # # plot_mcmc_corner("InfluenzaB", "Default", "dedupsac", "2020-01-01maxagep035", "260615", prune=0)
 
@@ -3009,8 +3256,8 @@ if __name__ == "__main__":
     # # Generate Figure 5: age group heatmaps and line of best fit
     # from sim_grid import generate_2d_heatmap_plot
     # good_simulations = [[pathogen, seed, lockdown, option1, option2, prune] for pathogen, seed, option2, prune in zip(pathogens, seeds, option2s, pruners)]
-    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260717_lockdownExponentialODipp25_2d"
-    # fig = plt.figure(figsize=(4.5, 4.5))
+    # run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260728_lockdownExponentialODipp25_2d"
+    # fig = plt.figure(figsize=(5.25, 4.5))
     # plot_heatmaps_and_best_fit(fig, pathogens, option2s, pruners, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False)
-    # plt.savefig(f"Figures/figure_five_update5.png", dpi=1000)
+    # plt.savefig(f"Figures/heatblobs.pdf", dpi=1000)
     # plt.close()

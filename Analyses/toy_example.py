@@ -15,31 +15,31 @@ np.random.seed(260724)
 lockdown = "ExponentialODipp25"
 option1 = "dedupsac"
 option2 = "flexagep05"
-# pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus",]
-# option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003"]
-# seeds = [260612, 260622, 260612, 260612,]
-# xs = []
-# for pathogen, seed, option2 in zip(pathogens, seeds, option2s):
-#     x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="emcee_median")
-#     xs = xs + [x,]
-# xs = np.array(xs)
-# true_xs = xs.copy()
-# # xs[:,0:2] = np.mean(xs[:,0:2], axis=0)
-# # xs[:,4:6] = np.mean(xs[:,4:6], axis=0)
-# # xs[:,9:] = np.mean(xs[:,9:], axis=0)
-# xs[:,12:14] = np.mean(xs[:,12:14], axis=0)
-# minxs = np.min(xs, axis=0)
-# maxxs = np.max(xs, axis=0)
+pathogens = ["RSV","Metapneumovirus","Parainfluenza3","Adenovirus",]
+option2s = ["maxagep028","fixage0maxagep006","maxagep004","maxagep003"]
+seeds = [260612, 260622, 260612, 260612,]
+xs = []
+for pathogen, seed, option2 in zip(pathogens, seeds, option2s):
+    x = consistent_x_from_DE(pathogen, lockdown, option1, option2, seed, prefix="emcee_median")
+    xs = xs + [x,]
+xs = np.array(xs)
+true_xs = xs.copy()
+# xs[:,0:2] = np.mean(xs[:,0:2], axis=0)
+# xs[:,4:6] = np.mean(xs[:,4:6], axis=0)
+# xs[:,9:] = np.mean(xs[:,9:], axis=0)
+xs[:,12:14] = np.mean(xs[:,12:14], axis=0)
+minxs = np.min(xs, axis=0)
+maxxs = np.max(xs, axis=0)
 
-# n_free_params = np.sum(minxs != maxxs)
+n_free_params = np.sum(minxs != maxxs)
 
-# sampler = qmc.LatinHypercube(d=n_free_params)
-# lhs_samples = sampler.random(n=n_samples)
+sampler = qmc.LatinHypercube(d=n_free_params)
+lhs_samples = sampler.random(n=n_samples)
 
-# scaler = np.ones((n_samples,xs.shape[1]))
-# scaler[:,minxs!=maxxs] = lhs_samples
+scaler = np.ones((n_samples,xs.shape[1]))
+scaler[:,minxs!=maxxs] = lhs_samples
 
-# x_samples = minxs[None,:]*scaler + maxxs[None,:]*(1-scaler)
+x_samples = minxs[None,:]*scaler + maxxs[None,:]*(1-scaler)
 
 
 # PERIOD = pd.date_range(start=pd.to_datetime('2015-07-04'), end=pd.to_datetime('2020-01-01'), freq='MS')
@@ -74,11 +74,11 @@ option2 = "flexagep05"
 
 # print(len(trajectories_dippers))
 # print(len(x_dippers))
-# np.savetxt("Data/Processed/sampled_trajectories_flulike_samefr.csv",trajectories_dippers)
-# np.savetxt("Data/Processed/sampled_parameters_flulike_samefr.csv", x_dippers)
+# np.savetxt("Data/Processed/sampled_trajectories_revnonflulike_samefr.csv",trajectories_dippers)
+# np.savetxt("Data/Processed/sampled_parameters_revnonflulike_samefr.csv", x_dippers)
 
-trajectories_dippers = np.genfromtxt("Data/Processed/sampled_trajectories_flulike_samefr.csv")
-x_dippers = np.genfromtxt("Data/Processed/sampled_parameters_flulike_samefr.csv")
+trajectories_dippers = np.genfromtxt("Data/Processed/sampled_trajectories_revnonflulike_samefr.csv")
+x_dippers = np.genfromtxt("Data/Processed/sampled_parameters_revnonflulike_samefr.csv")
 
 from sklearn.decomposition import PCA
 from sklearn.cluster import AgglomerativeClustering
@@ -86,7 +86,8 @@ from sklearn.metrics import pairwise_distances
 
 # tolerance = 20
 # tolerance = 3
-tolerance=0.1
+tolerance = 0.5
+# tolerance=0.1
 clustering = AgglomerativeClustering(metric='chebyshev',
                                      distance_threshold=tolerance,
                                      n_clusters=None,
@@ -101,31 +102,31 @@ biggest_cluster = stats.mode(cluster_labels)
 print("biggest cluster is ", biggest_cluster.mode, " with ", biggest_cluster.count, " trajectories")
 
 
-# PERIOD = pd.date_range(start=pd.to_datetime('2015-07-04'), end=pd.to_datetime('2025-05-01'), freq='MS')
-# POINTS = np.array(date_to_t(PERIOD))
-# from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP, AGE_GROUP_NAMES_sac as AGE_GROUP_NAMES, AGE_GROUPS_sac as AGE_GROUPS
-# N_S = 3
-# NAG = 7
-# STATE0 = jnp.zeros((2*N_S+1,NAG))
-# STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
-# STATE0 = STATE0.at[1,:].set(1)
-# # # flatten initial state and add maternal immunity compartment
-# STATE0 = STATE0.flatten()
-# STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
-# anchor_idx = 52
-# from sim_grid import suppression_duration_single_series
-# def suppression_duration_for_pathogen(x):
-#     params = x_to_params(x, "sim", "Exponential", option1+"mimmwane", option2+"nr", NAG=NAG)
-#     solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
-#     values = solution.ys.T
-#     trajectory = jnp.diff(values[-NAG:,:], axis=1).T
-#     obs_summed_age = trajectory.sum(axis=1)
-#     duration = suppression_duration_single_series(obs_summed_age, anchor_idx)
-#     return jnp.where(jnp.isnan(duration), 0, duration)
-# durfunc = jax.jit(jax.vmap(suppression_duration_for_pathogen))
-# durations = durfunc(x_dippers)
-# np.savetxt("Data/Processed/xdipperdurations_flulike_samefr.csv", durations)
-durations = np.genfromtxt("Data/Processed/xdipperdurations_flulike_samefr.csv")
+PERIOD = pd.date_range(start=pd.to_datetime('2015-07-04'), end=pd.to_datetime('2025-05-01'), freq='MS')
+POINTS = np.array(date_to_t(PERIOD))
+from Parameters.census_population import CENSUS_AGE_POP_sac as CENSUS_AGE_POP, AGE_GROUP_NAMES_sac as AGE_GROUP_NAMES, AGE_GROUPS_sac as AGE_GROUPS
+N_S = 3
+NAG = 7
+STATE0 = jnp.zeros((2*N_S+1,NAG))
+STATE0 = STATE0.at[0,:].set(CENSUS_AGE_POP-1)
+STATE0 = STATE0.at[1,:].set(1)
+# # flatten initial state and add maternal immunity compartment
+STATE0 = STATE0.flatten()
+STATE0 = jnp.concatenate((jnp.array([0]), STATE0))
+anchor_idx = 52
+from sim_grid import suppression_duration_single_series
+def suppression_duration_for_pathogen(x):
+    params = x_to_params(x, "sim", "Exponential", option1+"mimmwane", option2+"nr", NAG=NAG)
+    solution = run_simulation(params, STATE0, int(POINTS[-1]), POINTS, NAG=NAG)
+    values = solution.ys.T
+    trajectory = jnp.diff(values[-NAG:,:], axis=1).T
+    obs_summed_age = trajectory.sum(axis=1)
+    duration = suppression_duration_single_series(obs_summed_age, anchor_idx)
+    return jnp.where(jnp.isnan(duration), 0, duration)
+durfunc = jax.jit(jax.vmap(suppression_duration_for_pathogen))
+durations = durfunc(x_dippers)
+np.savetxt("Data/Processed/xdipperdurations_revnonflulike_samefr.csv", durations)
+durations = np.genfromtxt("Data/Processed/xdipperdurations_revnonflulike_samefr.csv")
 
 best_cluster_id = None
 max_distance = -1.0
@@ -191,10 +192,10 @@ mult = [1]*np.sum(cluster_labels == best_cluster_id)
 cluster_idxs = np.where(cluster_labels == best_cluster_id)[0]
 best_cluster_trajectories = [simulator(x_dippers[cluster_idxs[i]],mult[i]) for i in range(len(cluster_idxs))]
 
-np.savetxt("Data/Processed/clustered_trajectories_durations_flulike_samefr_scaled_test2.csv",best_cluster_trajectories)
+np.savetxt("Data/Processed/clustered_trajectories_durations_revnonflulike_samefr_scaled_test2.csv",best_cluster_trajectories)
 
 
-best_cluster_trajectories = np.genfromtxt("Data/Processed/clustered_trajectories_durations_flulike_samefr_scaled_test2.csv")
+best_cluster_trajectories = np.genfromtxt("Data/Processed/clustered_trajectories_durations_revnonflulike_samefr_scaled_test2.csv")
 print(len(best_cluster_trajectories))
 colors = ["#648FFF","#DC267F", "#FFB000" , "#785EF0","#FF832B", "#004D40", ]*3
 print(np.max(best_cluster_trajectories,axis=1))
@@ -204,11 +205,11 @@ print(np.max(best_cluster_trajectories,axis=1))
 # for i in [1,3,2,0]:
 #     print(f"Trajectory {i}: {', '.join(map(str, x_dippers[cluster_idxs[i]]))}")
 
-np.savetxt("Data/Processed/favourite_flulike_samefr_clustered_trajectories_scaled_test2.csv", best_cluster_trajectories)
+np.savetxt("Data/Processed/favourite_revnonflulike_samefr_clustered_trajectories_scaled_test2.csv", best_cluster_trajectories)
 
 from sim_grid import suppression_duration_single_series
 for color, traj in zip(colors,best_cluster_trajectories):
     duration = str(int(suppression_duration_single_series(traj,anchor_idx=260)/4.35))
     plt.plot(traj,alpha=1,color=color, label=duration+" months")
 plt.legend(title="Suppression duration", frameon=False)
-plt.savefig("Figures/cluster_trajectories_duration_flulike_samefr_test2.png",dpi=500)
+plt.savefig("Figures/cluster_trajectories_duration_revnonflulike_samefr_test2.png",dpi=500)
