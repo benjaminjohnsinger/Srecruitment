@@ -1490,14 +1490,17 @@ def plot_toy_model(ax, colors, flulike=False):
     if flulike:
         traj = np.genfromtxt("Data/Processed/favourite_fluonly_clustered_trajectories_scaled2.csv")
     else:
-        traj = np.genfromtxt("Data/Processed/favourite_nonflulike_samefr_clustered_trajectories_scaled.csv")
+        traj = np.genfromtxt("Data/Processed/favourite_nonflulike_samefr_clustered_trajectories.csv")
     for i in range(traj.shape[0]):
         duration = str(int(suppression_duration_single_series(traj[i,:],anchor_idx=260)/4.35))
         ax.plot(PERIOD[:-1],traj[i,:], color=colors[i], label=f"{duration} months")
     ax.set_yticks([])
     ax.set_xticks(pd.to_datetime(["2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01",]))
     ax.set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025",], fontsize=8)
-    ax.legend(fontsize=6, title="Suppression duration", title_fontsize=7, frameon=False)
+    if flulike:
+        ax.legend(fontsize=6, title="Suppression duration", title_fontsize=7, frameon=False)
+    if not flulike:
+        ax.legend(fontsize=6, title="Suppression duration", title_fontsize=7, frameon=False, loc=(0.1, 0.6))
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
@@ -1515,8 +1518,7 @@ def plot_alternative_suppression(fig, pathogens, colors):
     plot_toy_model(toy_ax2, ["#DC267F", "#FFB000", "#648FFF", "#785EF0"], flulike=False)
     plot_toy_model(toy_ax1, ["#DC267F", "#FFB000", "#648FFF"], flulike=True)
     toy_ax1.set_ylabel("Incidence")
-    toy_ax1.set_title("Influenza-like")
-    toy_ax2.set_title("Non-influenza-like")
+    # toy_ax2.set_title(" ")
 
     # Bottom row: split into left (violin plots) and right (heatmap)
     n_pathogens = len(pathogens)
@@ -1539,10 +1541,12 @@ def plot_alternative_suppression(fig, pathogens, colors):
         "Frequency", 
         fontsize=8
     )
+
     # # Panel labels A B C
-    fig.text(0.01, 0.99, "A", fontsize=16, fontweight="bold", va="top", ha="left")
-    fig.text(0.01, 0.5, "B", fontsize=16, fontweight="bold", va="top", ha="left")
-    fig.text(0.64, 0.5, "C", fontsize=16, fontweight="bold", va="top", ha="left")
+    fig.text(0.035, 0.98, "A", fontsize=16, fontweight="bold", va="top", ha="left")
+    fig.text(0.525, 0.98, "B", fontsize=16, fontweight="bold", va="top", ha="left")
+    fig.text(0.01, 0.5, "C", fontsize=16, fontweight="bold", va="top", ha="left")
+    fig.text(0.64, 0.5, "D", fontsize=16, fontweight="bold", va="top", ha="left")
 
 
 def plot_suppression_durations(fig, pathogens, countries, colors):
@@ -2111,6 +2115,28 @@ def compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param
     print(f"KL divergence: {kl_divergence:.4f}")
 
 import seaborn as sns
+math_names = {
+    "BETA": r"$\beta$",
+    "SEASONALITY": r"$A$",
+    "OFFSET": r"$\theta$",
+    "WANE2": r"$w_{2}$",
+    "S_REL1": r"$\sigma_{2}$",
+    "S_REL2": r"$\sigma_{3} / \sigma_{2}$",
+    "D_REL1": r"$\phi_{2}$",
+    "D_REL2": r"$\phi_{3} / \phi_{2}$",
+    "EXTRA_IMMUNITY": r"$x$",
+    "FIRST_IMMUNITY": r"$y$",
+    "FIRST_DIS_INF_FACTOR": r"$z$",
+    "F1": r"$f$",
+    "R1": r"$r$",
+    "AGE_OBS_1": r"$\psi_{\text{<3m}}$",
+    "AGE_OBS_2": r"$\psi_{\text{3–11m}}$",
+    "AGE_OBS_3": r"$\psi_{\text{1–4y}}$",
+    "AGE_OBS_4": r"$\psi_{\text{5–17y}}$",
+    "AGE_OBS_5": r"$\psi_{\text{18–39y}}$",
+    "AGE_OBS_6": r"$\psi_{\text{40–64y}}$",
+    "AGE_OBS_7": r"$\psi_{\text{≥65y}}$",
+}
 def plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names):
     idxs1 = [param_names1.index(name) for name in select_param_names]
     idxs2 = [param_names2.index(name) for name in select_param_names]
@@ -2126,7 +2152,8 @@ def plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_n
     np.fill_diagonal(corr_diff, std_diff)
     # set upper triangle to NA
     corr_diff[np.triu_indices_from(corr_diff, k=1)] = np.nan
-    sns.heatmap(corr_diff, xticklabels=select_param_names, yticklabels=select_param_names, center=0, cmap="bwr", ax=ax, vmin=-1.05, vmax=1.05)
+    param_math_names = [math_names[name] for name in select_param_names]
+    sns.heatmap(corr_diff, xticklabels=param_math_names, yticklabels=param_math_names, center=0, cmap="bwr", ax=ax, vmin=-1.05, vmax=1.05)
     # for diagonal elements that are greater than 1, add text to their right with the value of the std_diff
     for i in range(len(select_param_names)):
         if std_diff[i] > 1.05 or std_diff[i] < -1.05:
@@ -2582,10 +2609,86 @@ if __name__ == "__main__":
     seeds = [260612, 260622, 260612, 260612, 260612, 260612,]
     pruners = [100, 3000, 2000, 2200, 100, 100,]
 
+    # ==========================================
+    # Figure 1: Toy Model and FluNet Figure
+    # ==========================================
+    fig = plt.figure(figsize=(6.5, 4), constrained_layout=True)
+    plot_alternative_suppression(fig, flunet_pathogens, colors)
+    plt.savefig("Figures/Figure1.svg", dpi=300, bbox_inches='tight')
+    plt.close()
 
-    # fig = plt.figure(figsize=(6.5, 4), constrained_layout=True)
-    # plot_alternative_suppression(fig, flunet_pathogens, colors)
-    # plt.savefig("Figures/Figure1.pdf", dpi=300, bbox_inches='tight')
+    # ==========================================
+    # Figure 2: Fits and Susceptibility Figure
+    # ==========================================
+    sample_size = 400
+    fig = plt.figure(figsize=(6.5,7), layout="constrained")
+    subfigs = fig.subfigures(4, 1, height_ratios=[2.3, 5, 1.15, 0.1])
+
+    axes_A = subfigs[0].subplots(2, 3, sharex=True)
+    plot_fits_and_sus(axes_A, sample_size)
+    subfigs[0].supylabel("Monthly incidence\n(per 100,000)", fontsize=8, x=0.03, va='center', ha='center')
+
+    axes_B = subfigs[1].subplots(7, 6, sharex=False, sharey=False)
+    plot_fits(axes_B, n_samples=sample_size, load_data=False, save_data=True, colors=colors)
+    for ax in axes_B[6, :]:
+        ax.set_xticklabels([])
+
+    axes_C = subfigs[2].subplots(1, 6, sharex=False, sharey=False)
+    for pathogen, option2, prune, seed, ax in zip(pathogens, option2s, pruners, seeds, axes_C):
+        plot_susceptibility(ax, pathogen, option2, prune, seed, n_samples=sample_size)
+        ax.set_xticks(pd.to_datetime([
+            "2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", 
+            "2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01"
+        ]))
+        ax.set_xticklabels(["", "2017", "", "2019", "", "2021", "", "2023", "", "2025"], fontsize=6)
+        ax.tick_params(axis='y', labelsize=6)
+        ax.set_ylim(0.5, 1.5)
+        ax.set_yticks([0.5, 1.0, 1.5])
+        for label in ax.get_xticklabels():
+            label.set_rotation(45)
+            label.set_horizontalalignment('right')
+            label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(5 / 72.0, 3 / 72.0, fig.dpi_scale_trans))
+    axes_C[0].set_ylabel("Relative\nsusceptibility", fontsize=6)
+    legend_handles = [
+        Patch(facecolor=color, label=name) 
+        for name, color in zip(nice_age_group_names, hsv_colors)
+    ]
+    subfigs[3].legend(
+        handles=legend_handles,
+        loc="center",
+        ncol=len(nice_age_group_names),
+        fontsize=6,
+        frameon=False,
+        handletextpad=0.4,
+        columnspacing=1.2
+    )
+    # label panels A, B, C
+    axes_A[0, 0].text(-0.35, 1.15, "A", transform=axes_A[0, 0].transAxes, fontsize=16, fontweight="bold")
+    axes_B[0, 0].text(-0.7, 1.15, "B", transform=axes_B[0, 0].transAxes, fontsize=16, fontweight="bold")
+    axes_C[0].text(-0.7, 1.15, "C", transform=axes_C[0].transAxes, fontsize=16, fontweight="bold")
+
+    plt.savefig("Figures/Figure2.svg", dpi=500, bbox_inches='tight')
+    plt.close()
+
+
+    # ==========================================
+    # Figure 3: WAIFW and age susceptibility
+    # ==========================================
+    fig = plt.figure(figsize=(5, 7), layout="constrained")
+    plot_age_figure(fig, pathogens, colors, option1, option2s, pruners, seeds, lockdown, NAG, CENSUS_AGE_POP, AGE_GROUP_NAMES, age_adjusted=False, logD=True, samples=400, load_data=True, prefix="")
+    plt.savefig(f"Figures/Figure3.svg", dpi=300)
+    plt.close()
+
+    # ==========================================
+    # Figure 4: HIT and heat-blobs
+    # ==========================================
+    from sim_grid import generate_2d_heatmap_plot
+    good_simulations = [[pathogen, seed, lockdown, option1, option2, prune] for pathogen, seed, option2, prune in zip(pathogens, seeds, option2s, pruners)]
+    run_save_path = "Outputs/sim_grid_lh_n80000_chunk10000_seed260728_lockdownExponentialODipp25_2d"
+    fig = plt.figure(figsize=(5.25, 4.5))
+    plot_heatmaps_and_best_fit(fig, pathogens, option2s, pruners, seeds, colors, run_save_path, good_simulations, r0_base, fit_line=False)
+    plt.savefig(f"Figures/.svg", dpi=1000)
+    plt.close()
 
     # fig, axes = plt.subplots(1, 6, figsize=(6.5, 1.5), constrained_layout=True)
     # sample_size = 400
@@ -3109,20 +3212,20 @@ if __name__ == "__main__":
     # plt.savefig(f"Figures/suppression_duration_order_sensitivity_r1_seas.png", dpi=300)
 
 
-    #### correlation matrix difference figure
-    fig, axes = plt.subplots(3, 2, figsize=(6.5, 8), layout="constrained", sharex=False, sharey=False)
-    alt_pruners = [100, 100, 400, 400, 200, 100]
-    for index, pathogen, option2, seed, prune, ax in zip(range(6), pathogens, option2s, seeds, pruners, axes.flatten()):
-        print(f"Difference measures for {pathogen}...")
-        chain2 = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
-        chain1 = load_mcmc_chain(pathogen, [260615, 260624][pathogen=="Metapneumovirus"], ["Default", "ExponentialODipp25"][pathogen=="Metapneumovirus"], option1, "2020-01-01"+option2, just_chain=True, prune=alt_pruners[index], prefix="")
-        param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
-        param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
-        select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
-        compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
-        frob_norm_diff = plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
-        ax.set_title(short_names.get(pathogen, pathogen)+str(f" ({frob_norm_diff:.3f})"), fontsize=8)
-    plt.savefig(f"Figures/correlation_matrix_difference_DESnooker.png", dpi=300)
+    # #### correlation matrix difference figure
+    # fig, axes = plt.subplots(3, 2, figsize=(5, 6.5), layout="constrained", sharex=False, sharey=False)
+    # alt_pruners = [100, 100, 400, 400, 200, 100]
+    # for index, pathogen, option2, seed, prune, ax in zip(range(6), pathogens, option2s, seeds, pruners, axes.flatten()):
+    #     print(f"Difference measures for {pathogen}...")
+    #     chain2 = load_mcmc_chain(pathogen, seed, lockdown, option1, option2, just_chain=True, prune=prune, prefix="")
+    #     chain1 = load_mcmc_chain(pathogen, [260615, 260624][pathogen=="Metapneumovirus"], ["Default", "ExponentialODipp25"][pathogen=="Metapneumovirus"], option1, "2020-01-01"+option2, just_chain=True, prune=alt_pruners[index], prefix="")
+    #     param_names1, _ = parameters_names_bounds(pathogen, "Default", "dedupsac", "2020-01-01"+option2, NAG=NAG)
+    #     param_names2, _ = parameters_names_bounds(pathogen, lockdown, "dedupsac", option2, NAG=NAG)
+    #     select_param_names = [param_name for param_name in param_names1 if param_name in param_names2]
+    #     compare_mcmc_chains(chain1, chain2, param_names1, param_names2, select_param_names)
+    #     frob_norm_diff = plot_correlation_matrix_difference(ax, chain1, chain2, param_names1, param_names2, select_param_names)
+    #     ax.set_title(short_names.get(pathogen, pathogen)+str(f" ({frob_norm_diff:.3f})"), fontsize=8)
+    # plt.savefig(f"Figures/correlation_matrix_difference_DESnooker.png", dpi=300)
 
 
     # # ==========================================
@@ -3211,29 +3314,23 @@ if __name__ == "__main__":
     # # #     plt.savefig(f"Figures/mcmc_traces_{pathogen}_{option2}_{seed}_slide.png", dpi=300)
     # # #     plt.close()
 
-    # # # # ## Generate Figure 1: timeseries and suppression duration figure
-    # # # fig = plt.figure(layout="constrained", figsize=(6.5,7.5))
-    # # # countries = ["Brazil", "Canada", "India", "Malaysia", "Qatar"]
-    # # # plot_suppression_durations(fig, flunet_pathogens, countries, colors)
-    # # # plt.savefig(f"Figures/suppression_durations_w_age_prop_shading.pdf", dpi=300)
+    # ## Generate supplemental figures of all FluNet timeseries
+    # directory_path = "Data/Processed/FluNetTimeseries/"
+    # countries = []
+    # for filename in os.listdir(directory_path):
+    #     if filename.endswith(".csv"):
+    #         country = filename.split("__")[0]
+    #         if country not in countries:
+    #             countries.append(country)
+    # countries.sort()
+    # # iterate over chunks of ten countries and plot their FluNet data
+    # # for i in range(0, len(countries), 15):
+    # #     fig, axes = plt.subplots(min(15, len(countries) - i), 6, figsize=(6.5,9))
+    # #     countries_chunk = countries[i:i+15]
+    # #     plot_FluNet_chunk(axes, countries_chunk)
+    # #     plt.tight_layout()
+    # #     plt.savefig(f"Figures//FluNetTimeseries_{countries[i]}_to_{countries[min(i+14, len(countries)-1)]}.png", dpi=300)
 
-    # # # ## Generate supplemental figures of all FluNet timeseries
-    # # # directory_path = "Data/Processed/FluNetTimeseries/"
-    # # # countries = []
-    # # # for filename in os.listdir(directory_path):
-    # # #     if filename.endswith(".csv"):
-    # # #         country = filename.split("__")[0]
-    # # #         if country not in countries:
-    # # #             countries.append(country)
-    # # # countries.sort()
-    # # # # iterate over chunks of ten countries and plot their FluNet data
-    # # # for i in range(0, len(countries), 15):
-    # # #     fig, axes = plt.subplots(min(15, len(countries) - i), 6, figsize=(6.5,9))
-    # # #     countries_chunk = countries[i:i+15]
-    # # #     plot_FluNet_chunk(axes, countries_chunk)
-    # # #     plt.tight_layout()
-    # # #     plt.savefig(f"Figures//FluNetTimeseries_{countries[i]}_to_{countries[min(i+14, len(countries)-1)]}.png", dpi=300)
-    
     # # ## Generate Figure 2: age-structured fits figure
     # # fig, axes = plt.subplots(7, 6, figsize=(6.5,6.5), layout="constrained")
     # # plot_fits(axes, n_samples=400, load_data=True)

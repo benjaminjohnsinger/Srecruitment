@@ -39,8 +39,26 @@ plt.rcParams.update({'font.size':8})
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Palatino']
 
-from data_processing import calculate_proportion_positive_incidence
-incidence = calculate_proportion_positive_incidence("Metapneumovirus", aggregation="W", window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, pp_only=False, hosp=True, NAG=7, detrend=False, dedup=True, sac=True)
+from Parameters.census_population import AGE_GROUP_NAMES_sac, AGE_PROPORTION_sac
+kpsc_pops = pd.read_csv("Data/Processed/KPSC_population_by_age_group_monthly_sac.csv")
+kpsc_age_pop = kpsc_pops[kpsc_pops['month_start']=="2020-04-01"][AGE_GROUP_NAMES_sac].iloc[0]
+kpsc_age_pop /= np.sum(kpsc_age_pop)
+# bar plot of age proportions in kpsc and census
+plt.figure(figsize=(5, 3))
+bar_width = 0.35
+index = np.arange(len(AGE_GROUP_NAMES_sac))
+plt.bar(index, AGE_PROPORTION_sac, bar_width, label='Census',color='k')
+plt.bar(index + bar_width, kpsc_age_pop, bar_width, label='KPSC', color='silver')
+plt.xlabel('Age Group')
+plt.ylabel('Proportion')
+plt.xticks(index + bar_width / 2, AGE_GROUP_NAMES_sac)
+plt.yscale('log')
+plt.legend()
+plt.tight_layout()
+plt.savefig("Figures/age_proportions_kpsc_census.png", dpi=300)
+
+# from data_processing import calculate_proportion_positive_incidence
+# incidence = calculate_proportion_positive_incidence("Metapneumovirus", aggregation="W", window_size=1, weighting_factor=0, sum_age_groups=True, save_counts=False, pp_only=False, hosp=True, NAG=7, detrend=False, dedup=True, sac=True)
 # pre_inc = incidence.loc[incidence.index < pd.to_datetime("2020-03-19")]
 # # give index of five largest values in pre_inc
 # top5_indices = pre_inc.nlargest(5,'Total').index
